@@ -3,9 +3,9 @@
 The renderer is shared by Electron and the web. Core logic has no dependency on React, Electron, the filesystem, or WebAssembly.
 
 ```text
-src/core       Media assets, edit recipes, formats, probe interpretation, timeline rules
+src/core       Media assets, edit recipes, formats, probe interpretation, timeline rules, versioned projects
 src/engines    MediaEngine interface adapters: browser worker or desktop bridge
-src/hooks      Application state, per-asset undo/redo, theme preference
+src/hooks      Application state, per-asset undo/redo, theme preference, project relinking
 src/components Focused editing and export components
 src/styles     Tokens, layout, editing surface, controls
 
@@ -21,9 +21,13 @@ A source asset has metadata and an opaque ID. Its recipe records source trim bou
 
 The application owns the media library and bounded per-asset undo/redo histories. The interface sends edit patches rather than constructing FFmpeg commands. Exports use a snapshot of the selected recipe. Imports and exports are serialized by application state, and exports can be cancelled.
 
+## Project persistence
+
+Version 1 `.frame.json` documents contain source metadata and edit recipes, without source paths, preview URLs, or embedded media. The parser validates structure, numeric limits, recipes, and bounded collections before restoring. Reopening matches source metadata against the library; missing or renamed sources can be imported and explicitly relinked. Restoring validates recipes against the actual sources again, then records the change in undo history. Project schemas are independent of engines; bump the version and provide explicit migrations when changing incompatible recipe fields.
+
 ## Desktop boundary
 
-The preload exposes only import, sample import, export, cancellation, release, and progress subscription. It does not expose Node.js or arbitrary IPC. File-drop paths are derived from real File objects in the isolated preload. Main-process requests are accepted only from the application's main frame; source paths are stored behind opaque IDs. The renderer cannot choose an arbitrary input or output path for FFmpeg.
+The preload exposes only import, sample import, export, validated project saving, cancellation, release, and progress subscription. It does not expose Node.js or arbitrary IPC. File-drop paths are derived from real File objects in the isolated preload. Main-process requests are accepted only from the application's main frame; source paths are stored behind opaque IDs. The renderer cannot choose an arbitrary input or output path for FFmpeg.
 
 Native tools run through `spawn` with arrays, never a shell. The app imports platform-specific FFmpeg and FFprobe packages and resolves paths outside ASAR before execution. FFprobe discovers stream capabilities. Export destinations come from the native save dialog. Output is written beside the destination under a temporary filename and moved only after encoding succeeds; failed/cancelled jobs clean up that temporary file. The sample is an external resource because native subprocesses cannot read inside ASAR.
 

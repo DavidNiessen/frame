@@ -1,7 +1,7 @@
 import { test, expect, _electron } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, rm, readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import ffprobe from '@ffprobe-installer/ffprobe';
@@ -19,6 +19,17 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await page.getByLabel('Trim start', { exact: true }).fill('1');
     await page.getByLabel('Trim end').fill('2');
+    const projectPath = join(directory, 'edit.frame.json');
+    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, projectPath);
+    await page.getByRole('button', { name: 'Save project', exact: true }).click();
+    await expect(page.getByRole('status')).toContainText('Project saved');
+    const project = JSON.parse(await readFile(projectPath, 'utf8'));
+    expect(project.sources[0].edit.start).toBe(1);
+    expect(JSON.stringify(project)).not.toContain('media://');
+    await page.getByLabel('Trim start', { exact: true }).fill('0');
+    await page.getByLabel('Choose project file').setInputFiles(projectPath);
+    await page.getByRole('button', { name: 'Restore edits' }).click();
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveValue('1');
     await page.getByLabel('Output format').selectOption('flac');
     const output = join(directory, 'output.flac');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
@@ -31,6 +42,8 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     expect((await readdir(directory)).some(name => name.startsWith('.frame-'))).toBe(false);
     const source = await app.evaluate(({ app }) => app.isPackaged ? app.getAppPath().replace(/[/\\]app\.asar$/, '') + '/sample.mp4' : app.getAppPath() + '/public/sample.mp4');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, source);
+    await page.getByRole('button', { name: 'Save project', exact: true }).click();
+    await expect(page.locator('.toast')).toContainText('Choose a different project path');
     await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
     await expect(page.getByRole('status')).toContainText('Choose a different output path');
     await app.evaluate(({ dialog }) => { dialog.showSaveDialog = async () => ({ canceled: true, filePath: '' }); });

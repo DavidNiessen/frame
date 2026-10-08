@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createEngine } from '../engines';
 import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type MediaAsset, type MediaEngine } from '../core/types';
+import { parseEdit } from '../core/project';
 import { validateEdit } from '../core/export-plan';
 interface History { past: EditSettings[]; present: EditSettings; future: EditSettings[] }
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
@@ -83,11 +84,28 @@ export function useEditor() {
     } catch (error) { setNotice(messageOf(error)); }
     finally { busyRef.current = false; setBusy(null); setProgress(null); }
   }
+  function restoreEdits(entries: { id: string; edit: EditSettings }[], selectedId: string) {
+    if (busyRef.current) throw new Error('Wait for processing to finish.');
+    const validated = entries.map(entry => {
+      const source = assets.find(a => a.id === entry.id);
+      if (!source) throw new Error('Import all source media before restoring edits.');
+      return { id: entry.id, edit: parseEdit(entry.edit, source) };
+    });
+    setHistories(current => {
+      const next = { ...current };
+      for (const { id, edit } of validated) {
+        const h = current[id]; next[id] = { past: [...h.past, h.present].slice(-100), present: edit, future: [] };
+      }
+      return next;
+    });
+    setSelected(selectedId);
+  }
   function dismissResult() { if (result?.url) URL.revokeObjectURL(result.url); setResult(null); }
   return { assets, asset, edit, selected, busy, notice, setNotice, progress, result, dismissResult,
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,
     select: (id: string) => { if (!busyRef.current) setSelected(id); },
-    importMedia, update, remove, exportMedia,
+    importMedia, update, remove, exportMedia, restoreEdits,
+    settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),
     cancel: () => void engine().then(e => e.cancel()),
     undo: () => travel('undo'), redo: () => travel('redo'),
     canUndo: !!history?.past.length, canRedo: !!history?.future.length,

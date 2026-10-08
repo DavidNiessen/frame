@@ -27,7 +27,7 @@ The browser's first import loads the self-hosted WebAssembly engine (about 32 MB
 5. Open Advanced settings for bitrate, GIF frame rate, embedded artwork, and metadata.
 6. Export: desktop opens a save dialog; the browser provides a downloadable file.
 
-Edits are nondestructive and support undo/redo. Artwork is enabled by default for MP3, FLAC, and M4A if embedded in the source. GIF has no audio. WAV/FLAC use lossless encoding rather than a target audio bitrate. The default export name has an `-edited` suffix; the desktop app rejects exporting over the source file. Edits and the media library are session-only; theme preference persists.
+Edits are nondestructive and support undo/redo. Artwork is enabled by default for MP3, FLAC, and M4A if embedded in the source. GIF has no audio. WAV/FLAC use lossless encoding rather than a target audio bitrate. The default export name has an `-edited` suffix; the desktop app rejects exporting over the source file. Save a `.frame.json` project to retain edits across sessions. Project files contain recipes and source metadata, without media bytes or machine paths. Open a project and relink its original media to restore edits; you can undo the restore. Keep the original files alongside your projects. Theme preference persists locally.
 
 Keyboard shortcuts: Ctrl/Cmd+O imports, Space plays/pauses, I/O set trim boundaries, Ctrl/Cmd+Z undoes, and Ctrl/Cmd+Shift+Z redoes. A shortcut reference is available in the footer.
 
@@ -46,7 +46,7 @@ Keyboard shortcuts: Ctrl/Cmd+O imports, Space plays/pauses, I/O set trim boundar
 
 Common input extensions include MP4, MOV, MKV, WebM, AVI, M4V, GIF, MP3, WAV, FLAC, OGG, M4A, AAC, OPUS, and AIFF. A container alone does not guarantee a decodable stream. Unsupported preview codecs can still be converted when FFmpeg can decode them. GIF previews loop the source; trim/split edits are applied on export. Volume above 100% is applied on export and may clip; the media element's preview is capped at 100%.
 
-Browser guards are conservative, not a guarantee that a 500 MB job will fit: decoding, processing, and output buffers consume additional memory. Mobile devices may support considerably smaller jobs. Desktop uses native processes and avoids those WebAssembly limits. Multitrack composition, project saving, hardware encoding, and arbitrary third-party plugins are future extensions.
+Browser guards are conservative, not a guarantee that a 500 MB job will fit: decoding, processing, and output buffers consume additional memory. Mobile devices may support considerably smaller jobs. Desktop uses native processes and avoids those WebAssembly limits. Multitrack composition, hardware encoding, and arbitrary third-party plugins are future extensions.
 
 ## Validate
 
@@ -58,7 +58,7 @@ npm run test:desktop # Electron UI + native export with an empty PATH
 npm run build
 ```
 
-Playwright uses system Chromium when available, otherwise run `npx playwright install --with-deps chromium`. Linux desktop tests require a display, for example `xvfb-run -a npm run test:desktop`. Sandboxed containers may need the test-only `FRAME_TEST_NO_SANDBOX=1`; the application itself keeps renderer sandboxing enabled. Set `FRAME_TEST_EXECUTABLE` to test an unpacked desktop executable with the same desktop suite.
+Install the test browser with `npx playwright install --with-deps chromium`. Playwright uses its full Chromium build; set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to use a specific local browser. Linux desktop tests require a display, for example `xvfb-run -a npm run test:desktop`. Sandboxed containers may need the test-only `FRAME_TEST_NO_SANDBOX=1`; the application itself keeps renderer sandboxing enabled. Set `FRAME_TEST_EXECUTABLE` to test an unpacked desktop executable with the same desktop suite.
 
 ## Package
 

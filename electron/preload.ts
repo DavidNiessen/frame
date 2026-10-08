@@ -4,6 +4,7 @@ const bridge: DesktopBridge = {
   importFiles: files => ipcRenderer.invoke('media:import', files?.map(file => webUtils.getPathForFile(file))),
   importSample: () => ipcRenderer.invoke('media:sample'),
   export: (id, settings) => ipcRenderer.invoke('media:export', id, settings),
+  saveProject: project => ipcRenderer.invoke('project:save', project),
   cancel: () => ipcRenderer.send('media:cancel'),
   release: id => ipcRenderer.invoke('media:release', id),
   onProgress: callback => {

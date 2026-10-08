@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { rename, rm, stat, realpath } from 'node:fs/promises';
 import type { ChildProcess } from 'node:child_process';
+import { registerProjectSaving } from './projects';
 import { probeFile, transcode } from './native';
 import { outputName, validateEdit } from '../src/core/export-plan';
 import { supportedExtensions, type EditSettings, type MediaAsset } from '../src/core/types';
@@ -94,6 +95,7 @@ app.whenReady().then(() => {
       if (temporary) await rm(temporary, { force: true });
     }
   });
+  registerProjectSaving(() => mainWindow!, trusted, () => Array.from(assets.values(), item => item.path));
   createWindow();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
