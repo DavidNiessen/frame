@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-electron/
+release/
+public/ffmpeg/
+playwright-report/
+test-results/
+coverage/
+.DS_Store
+*.log
