@@ -13,6 +13,7 @@ export interface MediaAsset {
   width?: number;
   height?: number;
   hasAudio: boolean;
+  audioChannels?: number;
   artworkIndex?: number;
   previewUrl: string;
 }
@@ -24,6 +25,7 @@ export interface EditSettings {
   volume: number;
   speed: number;
   preservePitch: boolean;
+  normalizeLoudness: boolean; targetLufs: number; reduceNoise: boolean; noiseStrength: number; noiseFloor: number; equalizer: { bass: number; mid: number; treble: number };
   audioFadeIn: number; audioFadeOut: number; videoFadeIn: number; videoFadeOut: number;
   cuts: TimeRange[];
   splits: number[];
@@ -44,6 +46,7 @@ export interface MediaEngine {
   importSample(): Promise<MediaAsset[]>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
   merge(clips: MediaClip[], output: OutputSettings, onProgress: (p: ExportProgress) => void, transition?: TransitionSettings): Promise<ExportResult | null>;
+  previewAudio(asset: MediaAsset, edit: EditSettings, onProgress: (p: ExportProgress) => void): Promise<string>;
   thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;
   waveform(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<WaveformPoint[]>;
   beginBatch(): Promise<string | null>;
@@ -54,7 +57,7 @@ export interface MediaEngine {
 export const supportedExtensions = ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', 'gif', 'mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'opus', 'aiff'];
 export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
-  return { start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
+  return { start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
     format: asset.kind === 'audio' ? 'mp3' : 'mp4', quality: 'balanced',
     videoBitrate: null, audioBitrate: 192, fps: 15, includeArtwork: true, keepMetadata: true };
 }

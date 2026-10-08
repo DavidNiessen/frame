@@ -3,6 +3,8 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { MediaAsset } from '../src/core/types';
+import { parseEdit } from '../src/core/project';
+import { previewAudioArgs } from '../src/core/audio-preview';
 import { waveformArgs, WaveformCollector } from '../src/core/waveform';
 import { thumbnailArgs } from '../src/core/thumbnails';
 import { runFfmpeg } from './native';
@@ -22,7 +24,17 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       if (!collector.points.length) throw new Error('No audio peaks could be read.'); return collector.points;
     });
   });
-  ipcMain.handle('media:thumbnails', (event, id: string) => {
+  ipcMain.handle('media:audio-preview', (event, id: string, value: unknown) => {
+    const item = source(event, id); const edit = parseEdit(value, item.asset);
+    return jobs.run(async execute => {
+      const directory = await mkdtemp(join(tmpdir(), 'frame-audio-preview-')); const output = join(directory, 'preview.wav');
+      try {
+        await execute(runFfmpeg(previewAudioArgs(item.asset, edit, item.path, output), 10, progress(event, 'Preparing audio effects preview…')));
+        return new Uint8Array(await readFile(output));
+      } finally { await rm(directory, { recursive: true, force: true }); }
+    });
+  });
+  ipcMain.handle('media:thumbnails' , (event, id: string) => {
     const item = source(event, id);
     return jobs.run(async execute => {
       const directory = await mkdtemp(join(tmpdir(), 'frame-thumbnails-')); const output = join(directory, 'strip.png');

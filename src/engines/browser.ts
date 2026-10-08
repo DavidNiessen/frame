@@ -1,3 +1,4 @@
+import { previewAudioArgs } from '../core/audio-preview';
 import { buildMergeArgs, compositionAsset } from '../core/composition';
 import { thumbnailArgs } from '../core/thumbnails';
 import { waveformArgs, WaveformCollector } from '../core/waveform';
@@ -105,6 +106,18 @@ export function createBrowserEngine(): MediaEngine {
         return { name: output, url: URL.createObjectURL(new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime })), size: data.length };
       } catch (error) { if (cancelled) throw new Error('Merge cancelled.'); throw error; }
       finally { ff.off('progress', progress); for (const name of [...inputs.map(id => `merge-${id}`), output]) await ff.deleteFile(name).catch(() => {}); }
+    },
+    async previewAudio(asset, edit, onProgress) {
+      const source = files.get(asset.id); if (!source) throw new Error('Import the source file again.');
+      const ff = await ready(); const input = `audio-source-${asset.id}`; const output = `audio-preview-${asset.id}.wav`; const errors: string[] = [];
+      const log = ({ message }: { message: string }) => { errors.push(message); if (errors.length > 15) errors.shift(); }; ff.on('log', log);
+      try {
+        onProgress({ ratio: 0, message: 'Preparing audio effects preview…' });
+        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        if (await ff.exec(previewAudioArgs(asset, edit, input, output)) !== 0) throw new Error(`Could not prepare the audio preview. ${errors.slice(-5).join(' ')}`);
+        const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid preview output.');
+        return URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'audio/wav' }));
+      } finally { ff.off('log', log); await ff.deleteFile(input).catch(() => {}); await ff.deleteFile(output).catch(() => {}); }
     },
     async thumbnails(asset, onProgress) {
       const source = files.get(asset.id); if (!source) throw new Error('Import the source file again.');

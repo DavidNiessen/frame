@@ -31,6 +31,8 @@ Speed is recipe data, not an output preset. Source time remains the basis for cu
 
 Audio/video fades operate on output time after cuts and speed. Preview maps the source playhead back to output time and updates gain/opacity using animation frames. Crossfades use normalized video time bases and audio formats, with validated overlap limits; composition duration subtracts the overlap at each boundary.
 
+Audio cleanup filters run after speed processing and before final manual gain/fades. Loudness normalization explicitly negotiates channel layouts around resampling for compatibility with both native and WebAssembly FFmpeg. Preview generation chooses a bounded retained section and returns a temporary stereo WAV; source recipe changes revoke the preview.
+
 ## Composition
 
 A composition is an ordered list of source assets and recipe snapshots. Its planner applies each source’s retained ranges, crop, and gain, normalizes frames and audio formats, and concatenates labeled streams. Missing video audio becomes a duration-matched silent stream. Source metadata and compatible first-source artwork can be retained. Native and browser engines use the same plan; source files remain immutable. Drag ordering has keyboard-accessible move buttons.

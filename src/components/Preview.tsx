@@ -3,7 +3,7 @@ import { AudioLines, Maximize, Pause, Play, SkipBack, Volume2 } from 'lucide-rea
 import type { EditSettings, MediaAsset } from '../core/types';
 import { nextPlayableTime } from '../core/timeline';
 import { time } from '../core/format';
-import { applyPreviewEffects, usePreviewEffects } from '../hooks/usePreviewEffects';
+import { applyPreviewEffects, usePreviewEffects, pauseOtherMedia } from '../hooks/usePreviewEffects';
 import { CropOverlay } from './CropOverlay';
 export function Preview({ asset, edit, mediaRef, current, setCurrent, update, disabled }: {
   asset: MediaAsset; edit: EditSettings; mediaRef: RefObject<HTMLMediaElement | null>;
@@ -25,7 +25,7 @@ export function Preview({ asset, edit, mediaRef, current, setCurrent, update, di
     }
   }
   const mediaEvents = {
-    onPlay: () => setPlaying(true), onPause: () => setPlaying(false), onEnded: () => setPlaying(false),
+    onPlay: () => { if (mediaRef.current) pauseOtherMedia(mediaRef.current); setPlaying(true); }, onPause: () => setPlaying(false), onEnded: () => setPlaying(false),
     onError: () => setFailed(true),
     onLoadedMetadata: () => { if (mediaRef.current) { mediaRef.current.currentTime = edit.start; applyPreviewEffects(mediaRef.current, edit); } },
     onTimeUpdate: () => {

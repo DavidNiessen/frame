@@ -1,9 +1,11 @@
+import { validateAudioEffects } from './audio-effects';
 import { audioFilters, videoFilters as recipeVideoFilters } from './filters';
 import { getFormat } from './formats';
 import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
+  validateAudioEffects(edit);
   const format = getFormat(edit.format);
   if (![edit.start, edit.end, edit.volume, edit.audioBitrate, edit.fps].every(Number.isFinite)) throw new Error('Enter valid numeric settings.');
   if (edit.start < 0 || edit.end > asset.duration + 0.05 || edit.end - edit.start < 0.05) throw new Error('Choose a trim range of at least 0.05 seconds within the media.');
@@ -51,7 +53,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
     graph.push(`${inputs}concat=n=${ranges.length}:v=${hasVideo ? 1 : 0}:a=${hasAudio ? 1 : 0}${hasVideo ? '[joinedv]' : ''}${hasAudio ? '[joineda]' : ''}`);
     videoInput = '[joinedv]'; audioInput = '[joineda]';
     if (hasVideo && videoFilters.length) { graph.push(`[joinedv]${videoFilters.join(',')}[editedv]`); videoInput = '[editedv]'; }
-    if (hasAudio) { graph.push(`[joineda]${audioFilters(edit).join(',')}[editeda]`); audioInput = '[editeda]'; }
+    if (hasAudio) { graph.push(`[joineda]${audioFilters(edit, asset).join(',')}[editeda]`); audioInput = '[editeda]'; }
   }
   if (edit.format === 'gif') {
     const prefix = complex ? videoInput : '[0:V:0]';
@@ -80,7 +82,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
     } else args.push('-vn');
   }
   if (graph.length) args.push('-filter_complex', graph.join(';'));
-  if (hasAudio && !complex) args.push('-af', audioFilters(edit).join(','));
+  if (hasAudio && !complex) args.push('-af', audioFilters(edit, asset).join(','));
   if (['mp4', 'mov', 'm4a'].includes(edit.format)) args.push('-movflags', '+faststart');
   args.push('-threads', '2', output);
   return args;

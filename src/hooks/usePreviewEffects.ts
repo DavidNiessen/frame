@@ -2,6 +2,9 @@ import { useEffect, type RefObject } from 'react';
 import { fadeGain, outputTimeAtSource } from '../core/fades';
 import { editedDuration } from '../core/timeline';
 import type { EditSettings } from '../core/types';
+export function pauseOtherMedia(active: HTMLMediaElement) {
+  for (const element of document.querySelectorAll('video, audio')) if (element !== active) (element as HTMLMediaElement).pause();
+}
 export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings) {
   const position = outputTimeAtSource(edit, media.currentTime); const duration = editedDuration(edit);
   media.volume = Math.min(1, edit.volume * fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut));

@@ -1,3 +1,4 @@
+import { cleanupFilters } from './audio-effects';
 import { fadeFilters } from './fades';
 import { editedDuration } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
@@ -6,8 +7,8 @@ export function videoFilters(_asset: MediaAsset, edit: EditSettings): string[] {
   if (edit.speed !== 1) filters.push(`setpts=(PTS-STARTPTS)/${edit.speed}`);
   return [...filters, ...fadeFilters(edit, 'video')];
 }
-export function audioFilters(edit: EditSettings): string[] {
-  const filters = [`volume=${edit.volume}`];
+export function audioFilters(edit: EditSettings, asset?: MediaAsset): string[] {
+  const filters: string[] = [];
   if (edit.speed !== 1) {
     if (!edit.preservePitch) filters.push('aresample=48000', `asetrate=${Math.round(48000 * edit.speed)}`, 'aresample=48000');
     else {
@@ -18,5 +19,5 @@ export function audioFilters(edit: EditSettings): string[] {
     }
     filters.push(`apad=whole_dur=${editedDuration(edit)}`);
   }
-  return [...filters, ...fadeFilters(edit, 'audio')];
+  return [...filters, ...cleanupFilters(edit, asset), `volume=${edit.volume}`, ...fadeFilters(edit, 'audio')];
 }

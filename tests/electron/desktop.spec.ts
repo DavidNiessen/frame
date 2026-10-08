@@ -21,6 +21,10 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.getByRole('group', { name: 'Timeline thumbnails', exact: true }).getByRole('button')).toHaveCount(12);
     await page.getByRole('button', { name: 'Generate waveform' }).click();
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
+    await page.getByText('Audio cleanup & EQ', { exact: true }).click();
+    await page.getByLabel('Normalize loudness', { exact: true }).check();
+    await page.getByRole('button', { name: 'Preview audio effects', exact: true }).click();
+    await expect(page.getByLabel('Processed audio preview', { exact: true })).toHaveJSProperty('readyState', 4);
     await page.getByLabel('Trim start', { exact: true }).fill('1');
     await page.getByLabel('Trim end').fill('2');
     const projectPath = join(directory, 'edit.frame.json');

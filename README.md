@@ -42,6 +42,8 @@ Use **Speed** for 0.25×–4× playback and export. Audio pitch stays unchanged 
 
 Set **Fades** to fade video to/from black and audio to/from silence. Fade duration uses output seconds after cuts and speed. Preview fades update smoothly during playback. In **Merge clips**, choose **Crossfade audio and video** to overlap adjacent clips; the duration can use at most half of the shortest clip, and the overlap shortens the output.
 
+Open **Audio cleanup & EQ** to normalize loudness to a LUFS target, reduce steady background noise, and adjust bass/mid/treble by up to 12 dB. Cleanup also applies within merged clips. **Preview audio effects** processes a retained section up to 10 seconds; final normalization processes the complete export. Manual volume applies after normalization.
+
 ## Batch export
 
 Open **Batch export**, select library files, and choose each file’s recipe, current output settings, or all current edits. Jobs run sequentially with per-file progress and errors. Desktop asks for one output folder and numbers conflicting filenames; the browser offers a separate download per result. Cancelling preserves completed results. Browser batch downloads have a 500 MB retention guard; save and clear results before running more jobs.

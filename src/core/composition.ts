@@ -31,7 +31,7 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
     const stream = (type: string) => ranges.length === 1 ? `c${index}r0${type}` : `c${index}cut${type}`;
     if (ranges.length > 1 && (v || a)) graph.push(`${ranges.map((_, r) => `${v ? `[c${index}r${r}v]` : ''}${a ? `[c${index}r${r}a]` : ''}`).join('')}concat=n=${ranges.length}:v=${v ? 1 : 0}:a=${a ? 1 : 0}${v ? `[${stream('v')}]` : ''}${a ? `[${stream('a')}]` : ''}`);
     if (v) graph.push(`[${stream('v')}]${[...videoFilters(source, recipe), `scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease`, `pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2`, 'setsar=1', 'fps=30', 'format=yuv420p', 'settb=AVTB'].join(',')}[v${index}]`);
-    if (a) graph.push(`[${stream('a')}]${[...audioFilters(recipe), 'aresample=48000', 'aformat=sample_fmts=fltp:channel_layouts=stereo'].join(',')}[a${index}]`);
+    if (a) graph.push(`[${stream('a')}]${[...audioFilters(recipe, source), 'aresample=48000', 'aformat=sample_fmts=fltp:channel_layouts=stereo'].join(',')}[a${index}]`);
     else if (audio) graph.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${editedDuration(recipe)},asetpts=PTS-STARTPTS[a${index}]`);
   });
   const artwork = format.kind === 'audio' && format.artwork && settings.includeArtwork && clips[0].asset.artworkIndex !== undefined;

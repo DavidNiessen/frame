@@ -23,7 +23,11 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const e = record(value);
   if (!Array.isArray(e.cuts) || e.cuts.length > 1000 || !Array.isArray(e.splits) || e.splits.length > 1000) return fail();
   const c = e.crop === null ? null : record(e.crop);
+  const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
+    normalizeLoudness: e.normalizeLoudness === undefined ? false : boolean(e.normalizeLoudness), targetLufs: e.targetLufs === undefined ? -16 : number(e.targetLufs),
+    reduceNoise: e.reduceNoise === undefined ? false : boolean(e.reduceNoise), noiseStrength: e.noiseStrength === undefined ? 12 : number(e.noiseStrength), noiseFloor: e.noiseFloor === undefined ? -50 : number(e.noiseFloor),
+    equalizer: { bass: number(eq.bass), mid: number(eq.mid), treble: number(eq.treble) },
     audioFadeIn: e.audioFadeIn === undefined ? 0 : number(e.audioFadeIn), audioFadeOut: e.audioFadeOut === undefined ? 0 : number(e.audioFadeOut),
     videoFadeIn: e.videoFadeIn === undefined ? 0 : number(e.videoFadeIn), videoFadeOut: e.videoFadeOut === undefined ? 0 : number(e.videoFadeOut),
     speed: e.speed === undefined ? 1 : number(e.speed), preservePitch: e.preservePitch === undefined ? true : boolean(e.preservePitch),

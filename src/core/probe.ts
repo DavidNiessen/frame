@@ -1,6 +1,7 @@
 import type { MediaAsset } from './types';
 interface Stream {
   index: number; codec_type: string; width?: number; height?: number; duration?: string;
+  channels?: number;
   disposition?: { attached_pic?: number };
   tags?: { rotate?: string };
   side_data_list?: { rotation?: number }[];
@@ -18,5 +19,5 @@ export function parseProbe(data: ProbeData): Omit<MediaAsset, 'id' | 'name' | 's
   const rotation = Number(video?.side_data_list?.find(s => s.rotation !== undefined)?.rotation ?? video?.tags?.rotate ?? 0);
   const swapped = Math.abs(rotation) % 180 === 90;
   return { kind: video ? 'video' : 'audio', duration, width: swapped ? video?.height : video?.width, height: swapped ? video?.width : video?.height,
-    hasAudio: Boolean(audio), artworkIndex: streams.find(s => s.disposition?.attached_pic)?.index };
+    hasAudio: Boolean(audio), audioChannels: audio?.channels, artworkIndex: streams.find(s => s.disposition?.attached_pic)?.index };
 }
