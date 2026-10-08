@@ -21,6 +21,8 @@ export interface EditSettings {
   start: number;
   end: number;
   volume: number;
+  speed: number;
+  preservePitch: boolean;
   cuts: TimeRange[];
   splits: number[];
   crop: Crop | null;
@@ -50,7 +52,7 @@ export interface MediaEngine {
 export const supportedExtensions = ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', 'gif', 'mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'opus', 'aiff'];
 export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
-  return { start: 0, end: asset.duration, volume: 1, cuts: [], splits: [], crop: null,
+  return { start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, cuts: [], splits: [], crop: null,
     format: asset.kind === 'audio' ? 'mp3' : 'mp4', quality: 'balanced',
     videoBitrate: null, audioBitrate: 192, fps: 15, includeArtwork: true, keepMetadata: true };
 }

@@ -14,6 +14,9 @@ export function Preview({ asset, edit, mediaRef, current, setCurrent, update, di
   useEffect(() => { setFailed(false); setPlaying(false); setCurrent(edit.start); }, [asset.id]); // Source changes reset playback.
   useEffect(() => { if (mediaRef.current) mediaRef.current.volume = Math.min(1, edit.volume); }, [edit.volume, mediaRef]);
   useEffect(() => { if (disabled) mediaRef.current?.pause(); }, [disabled, mediaRef]);
+  useEffect(() => {
+    if (mediaRef.current) { mediaRef.current.playbackRate = edit.speed; mediaRef.current.preservesPitch = edit.preservePitch; }
+  }, [edit.speed, edit.preservePitch, asset.id, mediaRef]);
   function toggle() {
     const media = mediaRef.current; if (!media || failed) return;
     if (!media.paused) media.pause();
@@ -26,7 +29,7 @@ export function Preview({ asset, edit, mediaRef, current, setCurrent, update, di
   const mediaEvents = {
     onPlay: () => setPlaying(true), onPause: () => setPlaying(false), onEnded: () => setPlaying(false),
     onError: () => setFailed(true),
-    onLoadedMetadata: () => { if (mediaRef.current) { mediaRef.current.currentTime = edit.start; mediaRef.current.volume = Math.min(1, edit.volume); } },
+    onLoadedMetadata: () => { if (mediaRef.current) { mediaRef.current.currentTime = edit.start; mediaRef.current.playbackRate = edit.speed; mediaRef.current.preservesPitch = edit.preservePitch; mediaRef.current.volume = Math.min(1, edit.volume); } },
     onTimeUpdate: () => {
       const media = mediaRef.current; if (!media) return;
       if (!media.paused) {

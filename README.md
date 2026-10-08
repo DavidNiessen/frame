@@ -38,6 +38,8 @@ For video, **Generate thumbnails** adds a strip of twelve source frames. Click a
 
 **Merge clips** combines imported sources in your chosen order. Drag clips or use the up/down buttons; each clip keeps its recipe. Video outputs require video sources, fit frames to the first clip, and use silence for missing audio. Mixed video/audio selections can export audio. Compatible audio outputs keep the first clip’s artwork by default when present.
 
+Use **Speed** for 0.25×–4× playback and export. Audio pitch stays unchanged by default; disable preservation for the classic pitch-shifting effect. Speed also applies to each source in a merge. Trim boundaries stay in source time, while output duration reflects the speed. Older project files default to 1× with pitch preservation.
+
 ## Batch export
 
 Open **Batch export**, select library files, and choose each file’s recipe, current output settings, or all current edits. Jobs run sequentially with per-file progress and errors. Desktop asks for one output folder and numbers conflicting filenames; the browser offers a separate download per result. Cancelling preserves completed results. Browser batch downloads have a 500 MB retention guard; save and clear results before running more jobs.

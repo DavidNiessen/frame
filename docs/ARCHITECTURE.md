@@ -27,6 +27,8 @@ Version 1 `.frame.json` documents contain source metadata and edit recipes, with
 
 Export presets store a validated output-only snapshot, separate from source trim, crop, and gain. Built-in presets are capability-filtered; custom presets use versioned, bounded local storage and can be replaced by name or deleted. Storage failure falls back to the session with a visible message.
 
+Speed is recipe data, not an output preset. Source time remains the basis for cuts and playback; output duration divides retained source time by speed. Shared audio/video filters apply after retained sections are joined. Pitch preservation uses chained `atempo` stages; pitch shifting resamples at a changed rate. Version 1 projects without the new fields receive compatible defaults.
+
 ## Composition
 
 A composition is an ordered list of source assets and recipe snapshots. Its planner applies each source’s retained ranges, crop, and gain, normalizes frames and audio formats, and concatenates labeled streams. Missing video audio becomes a duration-matched silent stream. Source metadata and compatible first-source artwork can be retained. Native and browser engines use the same plan; source files remain immutable. Drag ordering has keyboard-accessible move buttons.

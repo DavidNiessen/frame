@@ -12,8 +12,8 @@ export function keptRanges(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'>): 
   if (cursor < edit.end) ranges.push({ start: cursor, end: edit.end });
   return ranges;
 }
-export function editedDuration(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'>): number {
-  return keptRanges(edit).reduce((total, range) => total + range.end - range.start, 0);
+export function editedDuration(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'> & Partial<Pick<EditSettings, 'speed'>>): number {
+  return keptRanges(edit).reduce((total, range) => total + range.end - range.start, 0) / (edit.speed ?? 1);
 }
 export function timelineSections(edit: EditSettings): TimeRange[] {
   return keptRanges(edit).flatMap(range => {

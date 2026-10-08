@@ -8,8 +8,8 @@ Features are implemented and pushed individually in this order. Each implementat
 | 2 | Audio waveforms | Implemented |
 | 3 | Timeline thumbnails | Implemented |
 | 4 | Merge clips | Implemented |
-| 5 | Playback speed with pitch preservation | Next |
-| 6 | Fades and transitions | Planned |
+| 5 | Playback speed with pitch preservation | Implemented |
+| 6 | Fades and transitions | Next |
 | 7 | Audio cleanup and equalizer | Planned |
 | 8 | Subtitles | Planned |
 | 9 | Text and watermarks | Planned |

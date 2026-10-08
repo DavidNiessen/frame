@@ -1,3 +1,4 @@
+import { audioFilters, videoFilters as recipeVideoFilters } from './filters';
 import { getFormat } from './formats';
 import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
@@ -8,6 +9,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   if (edit.start < 0 || edit.end > asset.duration + 0.05 || edit.end - edit.start < 0.05) throw new Error('Choose a trim range of at least 0.05 seconds within the media.');
   if (!Array.isArray(edit.cuts) || !Array.isArray(edit.splits) || edit.cuts.some(c => !Number.isFinite(c.start) || !Number.isFinite(c.end) || c.start < 0 || c.end <= c.start || c.end > asset.duration + 0.05) || edit.splits.some(s => !Number.isFinite(s) || s < 0 || s > asset.duration)) throw new Error('Invalid timeline sections.');
   if (editedDuration(edit) < 0.05) throw new Error('Keep at least 0.05 seconds of media.');
+  if (!Number.isFinite(edit.speed) || edit.speed < 0.25 || edit.speed > 4 || typeof edit.preservePitch !== 'boolean') throw new Error('Playback speed must be between 0.25× and 4×.');
   if (edit.volume < 0 || edit.volume > 3) throw new Error('Volume must be between 0% and 300%.');
   if (edit.audioBitrate < 32 || edit.audioBitrate > 320) throw new Error('Audio bitrate must be between 32 and 320 kbps.');
   if (edit.videoBitrate !== null && (!Number.isFinite(edit.videoBitrate) || edit.videoBitrate < 100 || edit.videoBitrate > 100000)) throw new Error('Video bitrate must be between 100 and 100,000 kbps.');
@@ -30,10 +32,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   if (artwork) args.push('-i', input);
   args.push('-t', String(editedDuration(edit)), '-map_metadata', edit.keepMetadata ? '0' : '-1');
   args.push('-filter_threads', '2', '-filter_complex_threads', '1');
-  const videoFilters: string[] = [];
-  if (edit.crop && format.kind === 'video') {
-    const c = edit.crop; videoFilters.push(`crop=${c.width}:${c.height}:${c.x}:${c.y}`);
-  }
+  const videoFilters = format.kind === 'video' ? recipeVideoFilters(asset, edit) : [];
   if (format.kind === 'video' && edit.format !== 'gif') videoFilters.push('scale=trunc(iw/2)*2:trunc(ih/2)*2');
   const hasVideo = format.kind === 'video';
   const hasAudio = asset.hasAudio && edit.format !== 'gif';
@@ -44,12 +43,14 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   if (complex) {
     ranges.forEach((range, i) => {
       const trim = `start=${range.start - edit.start}:end=${range.end - edit.start}`;
-      if (hasVideo) graph.push(`[0:V:0]trim=${trim},setpts=PTS-STARTPTS${videoFilters.length ? ',' + videoFilters.join(',') : ''}[v${i}]`);
-      if (hasAudio) graph.push(`[0:a:0]atrim=${trim},asetpts=PTS-STARTPTS,volume=${edit.volume}[a${i}]`);
+      if (hasVideo) graph.push(`[0:V:0]trim=${trim},setpts=PTS-STARTPTS[v${i}]`);
+      if (hasAudio) graph.push(`[0:a:0]atrim=${trim},asetpts=PTS-STARTPTS[a${i}]`);
     });
     const inputs = ranges.map((_, i) => `${hasVideo ? `[v${i}]` : ''}${hasAudio ? `[a${i}]` : ''}`).join('');
     graph.push(`${inputs}concat=n=${ranges.length}:v=${hasVideo ? 1 : 0}:a=${hasAudio ? 1 : 0}${hasVideo ? '[joinedv]' : ''}${hasAudio ? '[joineda]' : ''}`);
     videoInput = '[joinedv]'; audioInput = '[joineda]';
+    if (hasVideo && videoFilters.length) { graph.push(`[joinedv]${videoFilters.join(',')}[editedv]`); videoInput = '[editedv]'; }
+    if (hasAudio) { graph.push(`[joineda]${audioFilters(edit).join(',')}[editeda]`); audioInput = '[editeda]'; }
   }
   if (edit.format === 'gif') {
     const prefix = complex ? videoInput : '[0:V:0]';
@@ -78,7 +79,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
     } else args.push('-vn');
   }
   if (graph.length) args.push('-filter_complex', graph.join(';'));
-  if (hasAudio && !complex) args.push('-af', `volume=${edit.volume}`);
+  if (hasAudio && !complex) args.push('-af', audioFilters(edit).join(','));
   if (['mp4', 'mov', 'm4a'].includes(edit.format)) args.push('-movflags', '+faststart');
   args.push('-threads', '2', output);
   return args;

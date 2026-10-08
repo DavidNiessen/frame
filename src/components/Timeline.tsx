@@ -19,7 +19,7 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
     update({ splits: [...edit.splits, current] });
   }
   function remove() {
-    if (!active || editedDuration(edit) - (active.end - active.start) < 0.05) { notify('Keep at least one section in the timeline.'); return; }
+    if (!active || editedDuration(edit) - (active.end - active.start) / edit.speed < 0.05) { notify('Keep at least one section in the timeline.'); return; }
     update({ cuts: [...edit.cuts, active] });
   }
   return <section className="timeline panel">
