@@ -1,0 +1,59 @@
+:root, [data-theme='dark'] {
+  --bg: #101311; --surface: #151917; --surface-raised: #1b201d; --surface-hover: #222a25;
+  --stage: #0b0f0d; --border: #29322c; --border-soft: #202823;
+  --text: #e9efeb; --muted: #a0aea5; --quiet: #7e9085;
+  --accent: #04d982; --accent-hover: #39eca0; --accent-text: #7cfcc8; --accent-dim: #123c29;
+  --accent-ink: #082416; --grid: #203228; --shadow: 0 12px 48px #0004;
+  --audio: #aaa1e4; --audio-dim: #2e2942;
+  font-family: 'Public Sans', system-ui, sans-serif; font-synthesis: none;
+  color: var(--text); background: var(--bg); font-size: 13px;
+}
+[data-theme='light'] {
+  --bg: #f4f7f5; --surface: #fff; --surface-raised: #f0f4f1; --surface-hover: #e7eee9;
+  --stage: #e8eeea; --border: #d5e0d9; --border-soft: #e5ebe7;
+  --text: #17251c; --muted: #53695b; --quiet: #607466;
+  --accent: #008b53; --accent-hover: #007346; --accent-text: #007849; --accent-dim: #d9f5e5;
+  --accent-ink: #fff; --grid: #cdded2; --shadow: 0 12px 48px #16322212;
+  --audio: #6252a9; --audio-dim: #ece8f8;
+}
+[data-theme='midnight'] {
+  --bg: #0c1020; --surface: #12182a; --surface-raised: #1a2236; --surface-hover: #252e45;
+  --stage: #080d1a; --border: #2b354c; --border-soft: #202a3e;
+  --text: #edf0fc; --muted: #a4aec9; --quiet: #8e9bb8;
+  --accent: #a5b4fc; --accent-hover: #c1caff; --accent-text: #c1caff; --accent-dim: #263054;
+  --accent-ink: #151c37; --grid: #283453; --audio: #e7b5e7; --audio-dim: #3e2a46;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select { font: inherit; }
+button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
+button { color: inherit; cursor: pointer; }
+button:disabled, input:disabled, select:disabled { cursor: not-allowed; opacity: .45; }
+button, input, select { transition: background-color .15s, border-color .15s, color .15s; }
+button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+button { border: 0; background: none; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, p { margin: 0; }
+h2 { font-size: 13px; font-weight: 600; }
+h3 { font-size: 12px; font-weight: 600; }
+ul { padding: 0; margin: 0; list-style: none; }
+fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+::selection { background: var(--accent-dim); color: var(--accent-text); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.eyebrow { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.6px; color: var(--quiet); }
+.accent-text { color: var(--accent-text); }
+.status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; color: var(--muted); flex-shrink: 0; }
+.icon-button:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid transparent; border-radius: 7px; padding: 11px 16px; font-weight: 600; font-size: 12px; min-height: 40px; }
+.button.primary { background: var(--accent); color: var(--accent-ink); }
+.button.primary:hover:not(:disabled) { background: var(--accent-hover); }
+.button.subtle { background: var(--surface-raised); border-color: var(--border); color: var(--text); }
+.button.subtle:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--quiet); }
+.button.small { padding: 7px 11px; min-height: 32px; font-size: 11px; gap: 6px; }
+.badge { display: inline-flex; gap: 7px; align-items: center; padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px; font-size: 10px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.badge span { color: var(--quiet); }
+kbd { font-family: inherit; font-size: 10px; border: 1px solid var(--border); background: var(--surface-raised); color: var(--muted); padding: 3px 5px; border-radius: 4px; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
