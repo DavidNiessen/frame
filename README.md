@@ -24,8 +24,9 @@ The browser's first import loads the self-hosted WebAssembly engine (about 32 MB
 2. Adjust the trim range. Split at the playhead and select/remove unwanted sections.
 3. Choose a video crop preset, drag the crop frame/corners, or enter precise dimensions.
 4. Adjust volume and choose an output format.
-5. Open Advanced settings for bitrate, GIF frame rate, embedded artwork, and metadata.
-6. Export: desktop opens a save dialog; the browser provides a downloadable file.
+5. Choose a built-in export preset or save your own format/quality settings for reuse. Presets keep trim, crop, and volume unchanged. Custom presets persist on this device (up to 20).
+6. Open Advanced settings for bitrate, GIF frame rate, embedded artwork, and metadata.
+7. Export: desktop opens a save dialog; the browser provides a downloadable file.
 
 Edits are nondestructive and support undo/redo. Artwork is enabled by default for MP3, FLAC, and M4A if embedded in the source. GIF has no audio. WAV/FLAC use lossless encoding rather than a target audio bitrate. The default export name has an `-edited` suffix; the desktop app rejects exporting over the source file. Save a `.frame.json` project to retain edits across sessions. Project files contain recipes and source metadata, without media bytes or machine paths. Open a project and relink its original media to restore edits; you can undo the restore. Keep the original files alongside your projects. Theme preference persists locally.
 

@@ -3,7 +3,7 @@
 The renderer is shared by Electron and the web. Core logic has no dependency on React, Electron, the filesystem, or WebAssembly.
 
 ```text
-src/core       Media assets, edit recipes, formats, probe interpretation, timeline rules, versioned projects
+src/core       Media assets, edit recipes, formats, probe interpretation, timeline rules, versioned projects, output presets
 src/engines    MediaEngine interface adapters: browser worker or desktop bridge
 src/hooks      Application state, per-asset undo/redo, theme preference, project relinking
 src/components Focused editing and export components
@@ -24,6 +24,8 @@ The application owns the media library and bounded per-asset undo/redo histories
 ## Project persistence
 
 Version 1 `.frame.json` documents contain source metadata and edit recipes, without source paths, preview URLs, or embedded media. The parser validates structure, numeric limits, recipes, and bounded collections before restoring. Reopening matches source metadata against the library; missing or renamed sources can be imported and explicitly relinked. Restoring validates recipes against the actual sources again, then records the change in undo history. Project schemas are independent of engines; bump the version and provide explicit migrations when changing incompatible recipe fields.
+
+Export presets store a validated output-only snapshot, separate from source trim, crop, and gain. Built-in presets are capability-filtered; custom presets use versioned, bounded local storage and can be replaced by name or deleted. Storage failure falls back to the session with a visible message.
 
 ## Desktop boundary
 

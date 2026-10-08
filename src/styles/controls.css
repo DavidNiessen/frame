@@ -1,10 +1,10 @@
-input[type='number'], select { width: 100%; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text); border-radius: 5px; padding: 9px 10px; font-size: 11px; outline-offset: 2px; min-height: 34px; }
-input[type='number']:hover, select:hover { border-color: var(--quiet); }
+input[type='number'], input[type='text'], select { width: 100%; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text); border-radius: 5px; padding: 9px 10px; font-size: 11px; outline-offset: 2px; min-height: 34px; }
+input[type='number']:hover, input[type='text']:hover, select:hover { border-color: var(--quiet); }
 input[type='range'] { accent-color: var(--accent); height: 4px; cursor: pointer; width: 100%; margin: 12px 0; }
 input[type='checkbox'] { accent-color: var(--accent); width: 30px; height: 18px; cursor: pointer; flex-shrink: 0; }
 select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m1 1 4 4 4-4' fill='none' stroke='%237e9085' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 26px; }
 .inspector { display: flex; flex-direction: column; min-width: 0; max-height: calc(100dvh - 200px); min-height: 630px; }
-.inspector-scroll { overflow: auto; flex: 1; }
+.inspector-scroll { overflow: auto; flex: 1; min-height: 0; }
 .control-section { padding: 20px 18px; border-bottom: 1px solid var(--border-soft); }
 .section-title { display: flex; align-items: center; gap: 8px; color: var(--muted); margin-bottom: 17px; }
 .section-title h3 { color: var(--text); }
@@ -40,7 +40,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg widt
 .advanced > summary > svg:last-child { margin-left: auto; }
 .advanced[open] > summary > svg:last-child { transform: rotate(180deg); }
 .advanced-content { padding: 0 18px 20px; display: flex; flex-direction: column; gap: 19px; }
-.export-footer { padding: 20px 18px 14px; border-top: 1px solid var(--border-soft); background: var(--surface); }
+.export-footer { flex-shrink: 0; padding: 20px 18px 14px; border-top: 1px solid var(--border-soft); background: var(--surface); }
 .export-summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 9px; color: var(--quiet); margin-bottom: 14px; }
 .export-summary strong { color: var(--muted); font-size: 10px; font-weight: 500; }
 .export-summary i { font-style: normal; color: var(--quiet); padding: 0 4px; }
@@ -70,4 +70,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg widt
 .export-result .button { width: 100%; margin-top: 10px; }
 .saved-path { font-size: 9px; color: var(--muted); }
 @media (max-width: 1200px) { .control-section, .export-footer, .advanced > summary { padding-left: 14px; padding-right: 14px; } .advanced-content { padding-left: 14px; padding-right: 14px; } .crop-presets button { padding-left: 8px; padding-right: 8px; } }
-@media (max-width: 700px) { .inspector { max-height: none; min-height: 0; } .inspector-empty { display: none; } .inspector:has(.inspector-empty) { display: none; } .control-section { padding: 21px 18px; } .crop-presets button, .segmented button { min-height: 36px; font-size: 11px; } input[type='number'], select { min-height: 40px; font-size: 13px; } input[type='range'] { min-height: 20px; } .inline-actions button, .range-labels { font-size: 11px; } .switch-row { font-size: 12px; } .switch-row small { font-size: 10px; } .export-footer { padding: 20px; } .export-button { min-height: 46px; } }
+@media (max-width: 700px) { .inspector { max-height: none; min-height: 0; } .inspector-empty { display: none; } .inspector:has(.inspector-empty) { display: none; } .control-section { padding: 21px 18px; } .crop-presets button, .segmented button { min-height: 36px; font-size: 11px; } input[type='number'], input[type='text'], select { min-height: 40px; font-size: 13px; } input[type='range'] { min-height: 20px; } .inline-actions button, .range-labels { font-size: 11px; } .switch-row { font-size: 12px; } .switch-row small { font-size: 10px; } .export-footer { flex-shrink: 0; padding: 20px; } .export-button { min-height: 46px; } }
+.preset-controls { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border-soft); }
+.preset-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.preset-form { padding: 12px; margin-top: 10px; border: 1px solid var(--border); background: var(--surface-raised); border-radius: 7px; }
