@@ -3,5 +3,5 @@ await build({
   entryPoints: ['electron/main.ts', 'electron/preload.ts'],
   outdir: 'dist-electron', outExtension: { '.js': '.cjs' },
   bundle: true, platform: 'node', format: 'cjs', target: 'node22',
-  external: ['electron', 'ffmpeg-static', 'ffprobe-static'], sourcemap: true,
+  external: ['electron', 'ffmpeg-static', '@ffprobe-installer/ffprobe'], sourcemap: true,
 });

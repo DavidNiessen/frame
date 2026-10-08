@@ -23,7 +23,11 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
 export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: string, output: string): string[] {
   validateEdit(asset, edit);
   const format = getFormat(edit.format);
+  const artwork = format.kind === 'audio' && edit.includeArtwork && format.artwork && asset.artworkIndex !== undefined;
   const args = ['-y', '-ss', String(edit.start), '-i', input, '-t', String(editedDuration(edit)), '-map_metadata', edit.keepMetadata ? '0' : '-1'];
+  // An unseeked second input keeps the single artwork packet when audio is trimmed.
+  if (artwork) args.splice(5, 0, '-i', input);
+  args.push('-filter_threads', '2', '-filter_complex_threads', '1');
   const videoFilters: string[] = [];
   if (edit.crop && format.kind === 'video') {
     const c = edit.crop; videoFilters.push(`crop=${c.width}:${c.height}:${c.x}:${c.y}`);
@@ -66,8 +70,8 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   } else {
     args.push('-map', audioInput, '-c:a', format.audioCodec!);
     if (!['wav', 'flac'].includes(edit.format)) args.push('-b:a', `${edit.audioBitrate}k`);
-    if (edit.includeArtwork && format.artwork && asset.artworkIndex !== undefined) {
-      args.push('-map', `0:${asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
+    if (artwork) {
+      args.push('-map', `1:${asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
       if (edit.format === 'mp3') args.push('-id3v2_version', '3');
     } else args.push('-vn');
   }

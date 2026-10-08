@@ -3,8 +3,9 @@ interface Stream {
   index: number; codec_type: string; width?: number; height?: number; duration?: string;
   disposition?: { attached_pic?: number };
 }
-export interface ProbeData { streams?: Stream[]; format?: { duration?: string; size?: string } }
+export interface ProbeData { error?: { string?: string }; streams?: Stream[]; format?: { duration?: string; size?: string } }
 export function parseProbe(data: ProbeData): Omit<MediaAsset, 'id' | 'name' | 'size' | 'previewUrl'> {
+  if (data.error) throw new Error(data.error.string || 'Unable to read this media file.');
   const streams = data.streams ?? [];
   const video = streams.find(s => s.codec_type === 'video' && !s.disposition?.attached_pic);
   const audio = streams.find(s => s.codec_type === 'audio');
