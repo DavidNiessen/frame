@@ -6,6 +6,7 @@ const bridge: DesktopBridge = {
   export: (id, settings, token) => ipcRenderer.invoke('media:export', id, settings, token),
   saveProject: project => ipcRenderer.invoke('project:save', project),
   merge: (clips, settings, transition) => ipcRenderer.invoke('media:merge', clips, settings, transition),
+  previewFrame: (id, edit, time) => ipcRenderer.invoke('media:frame-preview', id, edit, time),
   previewAudio: (id, edit) => ipcRenderer.invoke('media:audio-preview', id, edit),
   thumbnails: id => ipcRenderer.invoke('media:thumbnails', id),
   waveform: id => ipcRenderer.invoke('media:waveform', id),

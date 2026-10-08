@@ -9,6 +9,7 @@ export interface DesktopBridge {
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
   saveProject(project: ProjectDocument): Promise<boolean>;
   merge(clips: { id: string; edit: EditSettings }[], settings: OutputSettings, transition?: TransitionSettings): Promise<ExportResult | null>;
+  previewFrame(id: string, edit: EditSettings, time: number): Promise<Uint8Array>;
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;
   thumbnails(id: string): Promise<Uint8Array>;
   waveform(id: string): Promise<WaveformPoint[]>;

@@ -1,3 +1,4 @@
+import { colorFilters } from './color';
 import { geometryFilters } from './geometry';
 import { overlayFilters } from './overlays';
 import { filterPath, resourcePaths, type RecipeResources } from './resources';
@@ -8,7 +9,7 @@ import { editedDuration } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 export function videoFilters(asset: MediaAsset, edit: EditSettings, resources: RecipeResources = resourcePaths()): string[] {
   const c = edit.crop; const filters = c ? [`crop=${c.width}:${c.height}:${c.x}:${c.y}`] : [];
-  filters.push(...geometryFilters(edit));
+  filters.push(...geometryFilters(edit), ...colorFilters(edit.color, resources));
   if (edit.speed !== 1) filters.push(`setpts=(PTS-STARTPTS)/${edit.speed}`);
   if (edit.subtitles.mode === 'burn' && outputCues(edit).length) filters.push(`subtitles=filename=${filterPath(resources.captions)}:fontsdir=${filterPath(resources.fonts)}:force_style='FontName=DejaVu Sans,FontSize=22'`);
   return [...filters, ...overlayFilters(asset, edit, resources), ...fadeFilters(edit, 'video')];

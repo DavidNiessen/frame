@@ -1,3 +1,4 @@
+import { parseColor } from './color';
 import { parseGeometry } from './geometry';
 import { parseOverlays } from './overlays';
 import { parseSubtitles } from './subtitles';
@@ -28,6 +29,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const c = e.crop === null ? null : record(e.crop);
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
+    color: parseColor(e.color),
     geometry: parseGeometry(e.geometry),
     overlays: parseOverlays(e.overlays),
     subtitles: parseSubtitles(e.subtitles),

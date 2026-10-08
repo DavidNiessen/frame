@@ -1,3 +1,5 @@
+import { withResources } from './resources';
+import { framePreviewArgs } from '../src/core/frame-preview';
 import { ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -23,6 +25,14 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       await execute(runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration, progress(event, 'Reading audio peaks…'), line => collector.push(line)));
       if (!collector.points.length) throw new Error('No audio peaks could be read.'); return collector.points;
     });
+  });
+  ipcMain.handle('media:frame-preview', (event, id: string, value: unknown, time: number) => {
+    const item = source(event, id); const edit = parseEdit(value, item.asset);
+    return jobs.run(execute => withResources([edit], async (paths, directory) => {
+      const output = join(directory, 'frame.png');
+      await execute(runFfmpeg(framePreviewArgs(item.asset, edit, time, item.path, output, paths[0]), 1, progress(event, 'Rendering edited frame…')));
+      return new Uint8Array(await readFile(output));
+    }, [item.asset]));
   });
   ipcMain.handle('media:audio-preview', (event, id: string, value: unknown) => {
     const item = source(event, id); const edit = parseEdit(value, item.asset);

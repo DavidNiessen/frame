@@ -107,3 +107,5 @@ Subtitles: import SRT or WebVTT, edit source cue timing/text, and preview captio
 Text and watermarks: add multiline text or a PNG/JPEG/WebP image, position it, and adjust size/color/opacity. Images are normalized to portable PNG assets stored in the project. FFmpeg uses bundled-font ASS text and image overlays, including for merged clips; text is never interpreted as a filter expression.
 
 Geometry: rotate by 90° increments, flip horizontally/vertically, and resize with letterbox, fill/crop or stretch. Portrait, square, 720p and 1080p presets are available, plus custom dimensions and an aspect-ratio lock. Transforms follow the source crop and also apply to merged clips; crop editing remains in source coordinates.
+
+Color: adjust brightness, contrast, saturation and temperature; import complete 2–33 point 3D `.cube` LUTs. LUT content is validated and travels with projects. Render the playhead frame through FFmpeg to inspect the actual edits at up to 720 pixels, including crop, transforms, captions, overlays and fades.

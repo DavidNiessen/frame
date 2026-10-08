@@ -1,3 +1,4 @@
+import { defaultColor, type ColorSettings } from './color';
 import { defaultGeometry, type Geometry } from './geometry';
 import type { Overlays } from './overlays';
 import { defaultOverlays } from './overlays';
@@ -24,6 +25,7 @@ export interface MediaAsset {
 export interface Crop { x: number; y: number; width: number; height: number }
 export interface TimeRange { start: number; end: number }
 export interface EditSettings {
+  color: ColorSettings;
   geometry: Geometry;
   overlays: Overlays;
   subtitles: Subtitles;
@@ -53,6 +55,7 @@ export interface MediaEngine {
   importSample(): Promise<MediaAsset[]>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
   merge(clips: MediaClip[], output: OutputSettings, onProgress: (p: ExportProgress) => void, transition?: TransitionSettings): Promise<ExportResult | null>;
+  previewFrame(asset: MediaAsset, edit: EditSettings, time: number, onProgress: (p: ExportProgress) => void): Promise<string>;
   previewAudio(asset: MediaAsset, edit: EditSettings, onProgress: (p: ExportProgress) => void): Promise<string>;
   thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;
   waveform(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<WaveformPoint[]>;
@@ -64,7 +67,7 @@ export interface MediaEngine {
 export const supportedExtensions = ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', 'gif', 'mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'opus', 'aiff'];
 export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
-  return { geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
+  return { color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
     format: asset.kind === 'audio' ? 'mp3' : 'mp4', quality: 'balanced',
     videoBitrate: null, audioBitrate: 192, fps: 15, includeArtwork: true, keepMetadata: true };
 }

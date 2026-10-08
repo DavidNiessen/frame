@@ -14,8 +14,8 @@ Features are implemented and pushed individually in this order. Each implementat
 | 8 | Subtitles | Implemented |
 | 9 | Text and watermarks | Implemented |
 | 10 | Rotate, flip, resize | Implemented |
-| 11 | Color adjustments and LUTs | Next |
-| 12 | Reviewed silence removal | Planned |
+| 11 | Color adjustments and LUTs | Implemented |
+| 12 | Reviewed silence removal | Next |
 | 13 | Export size estimation and target-size mode | Planned |
 | 14 | Autosave and recovery | Planned |
 | 15 | Desktop acceleration and preview proxies | Planned |
