@@ -1,3 +1,4 @@
+import { silenceArgs, SilenceCollector, parseSilence } from '../src/core/silence';
 import { withResources } from './resources';
 import { framePreviewArgs } from '../src/core/frame-preview';
 import { ipcMain, type IpcMainInvokeEvent } from 'electron';
@@ -18,6 +19,14 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
   const progress = (event: IpcMainInvokeEvent, message: string) => (ratio: number) => {
     if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
   };
+  ipcMain.handle('media:silence', (event, id: string, options: unknown) => {
+    const item = source(event, id); const settings = parseSilence(options);
+    return jobs.run(async execute => {
+      const collector = new SilenceCollector();
+      await execute(runFfmpeg(silenceArgs(item.asset, item.path, settings), item.asset.duration, progress(event, 'Detecting silent sections…'), line => collector.push(line)));
+      return collector.finish(item.asset.duration);
+    });
+  });
   ipcMain.handle('media:waveform', (event, id: string) => {
     const item = source(event, id);
     return jobs.run(async execute => {

@@ -1,3 +1,4 @@
+import type { SilenceOptions } from './silence';
 import { defaultColor, type ColorSettings } from './color';
 import { defaultGeometry, type Geometry } from './geometry';
 import type { Overlays } from './overlays';
@@ -55,6 +56,7 @@ export interface MediaEngine {
   importSample(): Promise<MediaAsset[]>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
   merge(clips: MediaClip[], output: OutputSettings, onProgress: (p: ExportProgress) => void, transition?: TransitionSettings): Promise<ExportResult | null>;
+  detectSilence(asset: MediaAsset, options: SilenceOptions, onProgress: (p: ExportProgress) => void): Promise<TimeRange[]>;
   previewFrame(asset: MediaAsset, edit: EditSettings, time: number, onProgress: (p: ExportProgress) => void): Promise<string>;
   previewAudio(asset: MediaAsset, edit: EditSettings, onProgress: (p: ExportProgress) => void): Promise<string>;
   thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;

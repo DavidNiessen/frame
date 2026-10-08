@@ -14,6 +14,9 @@ export function createDesktopEngine(): MediaEngine {
       const remove = bridge.onProgress(onProgress);
       try { return await bridge.merge(clips.map(c => ({ id: c.asset.id, edit: c.edit })), settings, transition); } finally { remove(); }
     },
+    async detectSilence(asset, options, onProgress) {
+      const remove = bridge.onProgress(onProgress); try { return await bridge.detectSilence(asset.id, options); } finally { remove(); }
+    },
     async previewFrame(asset, edit, time, onProgress) {
       const remove = bridge.onProgress(onProgress);
       try { return URL.createObjectURL(new Blob([new Uint8Array(await bridge.previewFrame(asset.id, edit, time))], { type: 'image/png' })); } finally { remove(); }

@@ -25,6 +25,10 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByLabel('Normalize loudness', { exact: true }).check();
     await page.getByRole('button', { name: 'Preview audio effects', exact: true }).click();
     await expect(page.getByLabel('Processed audio preview', { exact: true })).toHaveJSProperty('readyState', 4);
+    await page.getByText('Remove silence', { exact: true }).click();
+    await page.getByLabel('Silence threshold').fill('-10');
+    await page.getByRole('button', { name: 'Find silent sections' }).click();
+    await expect(page.getByLabel('Remove silent section 1')).toBeVisible();
     await page.getByText('Subtitles', { exact: true }).click();
     await page.getByRole('button', { name: 'Add caption', exact: true }).click();
     await page.getByLabel('Subtitle 1 text').fill('Portable caption');

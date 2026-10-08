@@ -1,4 +1,5 @@
-import type { EditSettings, ExportProgress, ExportResult, MediaAsset } from '../core/types';
+import type { SilenceOptions } from '../core/silence';
+import type { EditSettings, ExportProgress, ExportResult, MediaAsset, TimeRange } from '../core/types';
 import type { ProjectDocument } from '../core/project';
 import type { WaveformPoint } from '../core/waveform';
 import type { OutputSettings } from '../core/presets';
@@ -9,6 +10,7 @@ export interface DesktopBridge {
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
   saveProject(project: ProjectDocument): Promise<boolean>;
   merge(clips: { id: string; edit: EditSettings }[], settings: OutputSettings, transition?: TransitionSettings): Promise<ExportResult | null>;
+  detectSilence(id: string, options: SilenceOptions): Promise<TimeRange[]>;
   previewFrame(id: string, edit: EditSettings, time: number): Promise<Uint8Array>;
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;
   thumbnails(id: string): Promise<Uint8Array>;

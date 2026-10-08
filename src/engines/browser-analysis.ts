@@ -1,3 +1,4 @@
+import { silenceArgs, SilenceCollector } from '../core/silence';
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import { browserResources } from './browser-resources';
 import { framePreviewArgs } from '../core/frame-preview';
@@ -5,8 +6,15 @@ import { previewAudioArgs } from '../core/audio-preview';
 import { thumbnailArgs } from '../core/thumbnails';
 import { waveformArgs, WaveformCollector } from '../core/waveform';
 import type { MediaEngine } from '../core/types';
-export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string, File>): Pick<MediaEngine, 'previewFrame' | 'previewAudio' | 'thumbnails' | 'waveform'> {
+export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string, File>): Pick<MediaEngine, 'detectSilence' | 'previewFrame' | 'previewAudio' | 'thumbnails' | 'waveform'> {
   return {
+    async detectSilence(asset, options, onProgress) {
+      const file = files.get(asset.id); if (!file) throw new Error('Import the source again.'); const ff = await ready(); const input = `silence-${asset.id}`; const collector = new SilenceCollector();
+      const log = ({ message }: { message: string }) => collector.push(message); const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(1, time / 1e6 / asset.duration), message: 'Detecting silent sections…' });
+      ff.on('log', log); ff.on('progress', progress);
+      try { await ff.writeFile(input, new Uint8Array(await file.arrayBuffer())); if (await ff.exec(silenceArgs(asset, input, options)) !== 0) throw new Error('Could not detect silence.'); return collector.finish(asset.duration); }
+      finally { ff.off('log', log); ff.off('progress', progress); await ff.deleteFile(input).catch(() => {}); }
+    },
     async previewFrame(asset, edit, time, onProgress) {
       const source = files.get(asset.id); if (!source) throw new Error('Import the source again.'); const ff = await ready();
       const resources = await browserResources(ff, [edit], [asset]); const input = `frame-source-${asset.id}`, output = 'frame-preview.png';
