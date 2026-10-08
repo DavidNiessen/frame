@@ -1,19 +1,19 @@
 import { availableFormats } from './formats';
 import { parseEdit } from './project';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
-export type OutputSettings = Pick<EditSettings, 'format' | 'quality' | 'videoBitrate' | 'audioBitrate' | 'fps' | 'includeArtwork' | 'keepMetadata'>;
+export type OutputSettings = Pick<EditSettings, 'targetSizeMb' | 'format' | 'quality' | 'videoBitrate' | 'audioBitrate' | 'fps' | 'includeArtwork' | 'keepMetadata'>;
 export interface ExportPreset { id: string; name: string; settings: OutputSettings }
 const sample: MediaAsset = { id: '', name: '', size: 0, duration: 1, kind: 'video', width: 640, height: 360, hasAudio: true, previewUrl: '' };
 export function outputSettings(edit: OutputSettings): OutputSettings {
-  const { format, quality, videoBitrate, audioBitrate, fps, includeArtwork, keepMetadata } = edit;
-  return { format, quality, videoBitrate, audioBitrate, fps, includeArtwork, keepMetadata };
+  const { targetSizeMb, format, quality, videoBitrate, audioBitrate, fps, includeArtwork, keepMetadata } = edit;
+  return { targetSizeMb: targetSizeMb ?? null, format, quality, videoBitrate, audioBitrate, fps, includeArtwork, keepMetadata };
 }
 export function parseOutputSettings(value: unknown): OutputSettings {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid export preset.');
   const s = value as Record<string, unknown>;
   // Read output fields explicitly: saved presets cannot replace source-specific editing data.
   return outputSettings(parseEdit({ ...defaultSettings(sample), format: s.format, quality: s.quality,
-    videoBitrate: s.videoBitrate, audioBitrate: s.audioBitrate, fps: s.fps,
+    targetSizeMb: s.targetSizeMb, videoBitrate: s.videoBitrate, audioBitrate: s.audioBitrate, fps: s.fps,
     includeArtwork: s.includeArtwork, keepMetadata: s.keepMetadata }, sample));
 }
 const preset = (id: string, name: string, patch: Partial<OutputSettings>): ExportPreset => ({ id, name, settings: outputSettings({ ...defaultSettings(sample), ...patch }) });

@@ -16,6 +16,6 @@ Features are implemented and pushed individually in this order. Each implementat
 | 10 | Rotate, flip, resize | Implemented |
 | 11 | Color adjustments and LUTs | Implemented |
 | 12 | Reviewed silence removal | Implemented |
-| 13 | Export size estimation and target-size mode | Next |
-| 14 | Autosave and recovery | Planned |
+| 13 | Export size estimation and target-size mode | Implemented |
+| 14 | Autosave and recovery | Next |
 | 15 | Desktop acceleration and preview proxies | Planned |

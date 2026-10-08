@@ -111,3 +111,5 @@ Geometry: rotate by 90° increments, flip horizontally/vertically, and resize wi
 Color: adjust brightness, contrast, saturation and temperature; import complete 2–33 point 3D `.cube` LUTs. LUT content is validated and travels with projects. Render the playhead frame through FFmpeg to inspect the actual edits at up to 720 pixels, including crop, transforms, captions, overlays and fades.
 
 Silence removal: analyze original audio with a configurable dB threshold, minimum duration and retained padding. Review and select proposed source-time cuts before applying; changes are undoable and exports remove only the selected sections.
+
+Export size: see bitrate-based estimates, a broad range for quality-mode/lossless output, or PCM estimates for WAV. Target-size mode derives average bitrates from edited duration with a 5% overhead allowance and is available for lossy formats. Targets use decimal MB and are approximate rather than hard limits; content, artwork and short-file overhead can vary. Targets also work in output presets, batches and merges.

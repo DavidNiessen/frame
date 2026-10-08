@@ -1,3 +1,4 @@
+import { resolveSizeTarget } from './size';
 import { frameDimensions } from './geometry';
 import { resourcePaths, type RecipeResources } from './resources';
 import { outputCues, subtitleCodec, type SubtitleCue } from './subtitles';
@@ -20,7 +21,7 @@ export function compositionAsset(clips: MediaClip[], transition: TransitionSetti
 }
 export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition, resources: RecipeResources[] = clips.map((_, i) => resourcePaths(`clip${i}`)), captionPath = 'merge-captions.srt'): string[] {
   if (clips.length < 2 || inputs.length !== clips.length) throw new Error('Choose at least two clips to merge.');
-  const asset = compositionAsset(clips, transition); const settings = parseOutputSettings(output); const edit = { ...defaultSettings(asset), ...settings };
+  const asset = compositionAsset(clips, transition); const settings = parseOutputSettings(output); const edit = resolveSizeTarget(asset, { ...defaultSettings(asset), ...settings });
   validateEdit(asset, edit); const format = getFormat(edit.format); const video = format.kind === 'video'; const audio = asset.hasAudio && edit.format !== 'gif';
   const args: string[] = ['-y', '-filter_complex_threads', '2']; const graph: string[] = [];
   clips.forEach(({ asset: source, edit: recipe }, index) => {

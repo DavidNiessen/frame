@@ -44,6 +44,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     splits: e.splits.map(number),
     crop: c ? { x: number(c.x), y: number(c.y), width: number(c.width), height: number(c.height) } : null,
     format: text(e.format, 10) as EditSettings['format'], quality: text(e.quality, 10) as EditSettings['quality'],
+    targetSizeMb: e.targetSizeMb === undefined || e.targetSizeMb === null ? null : number(e.targetSizeMb),
     videoBitrate: e.videoBitrate === null ? null : number(e.videoBitrate), audioBitrate: number(e.audioBitrate), fps: number(e.fps),
     includeArtwork: boolean(e.includeArtwork), keepMetadata: boolean(e.keepMetadata),
   };

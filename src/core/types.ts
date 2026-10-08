@@ -20,6 +20,7 @@ export interface MediaAsset {
   height?: number;
   hasAudio: boolean;
   audioChannels?: number;
+  audioSampleRate?: number;
   artworkIndex?: number;
   previewUrl: string;
 }
@@ -42,6 +43,7 @@ export interface EditSettings {
   crop: Crop | null;
   format: FormatId;
   quality: 'high' | 'balanced' | 'small';
+  targetSizeMb: number | null;
   videoBitrate: number | null;
   audioBitrate: number;
   fps: number;
@@ -71,5 +73,5 @@ export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return { color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
     format: asset.kind === 'audio' ? 'mp3' : 'mp4', quality: 'balanced',
-    videoBitrate: null, audioBitrate: 192, fps: 15, includeArtwork: true, keepMetadata: true };
+    targetSizeMb: null, videoBitrate: null, audioBitrate: 192, fps: 15, includeArtwork: true, keepMetadata: true };
 }

@@ -1,3 +1,4 @@
+import { validateSizeTarget, resolveSizeTarget } from './size';
 import { parseColor } from './color';
 import { parseGeometry } from './geometry';
 import { parseOverlays } from './overlays';
@@ -10,7 +11,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
-  parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
+  validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
   const format = getFormat(edit.format);
   if (![edit.start, edit.end, edit.volume, edit.audioBitrate, edit.fps].every(Number.isFinite)) throw new Error('Enter valid numeric settings.');
@@ -32,7 +33,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
 
 /** Pure argument planning shared by native FFmpeg and WebAssembly. Never uses shell strings. */
 export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: string, output: string, resources: RecipeResources = resourcePaths()): string[] {
-  validateEdit(asset, edit);
+  validateEdit(asset, edit); edit = resolveSizeTarget(asset, edit);
   const format = getFormat(edit.format);
   const artwork = format.kind === 'audio' && edit.includeArtwork && format.artwork && asset.artworkIndex !== undefined;
   // Limit decoding to the source selection, including palette generation for GIF.
