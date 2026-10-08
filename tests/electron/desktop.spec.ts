@@ -28,6 +28,8 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByText('Subtitles', { exact: true }).click();
     await page.getByRole('button', { name: 'Add caption', exact: true }).click();
     await page.getByLabel('Subtitle 1 text').fill('Portable caption');
+    await page.getByText('Text & watermark', { exact: true }).click();
+    await page.getByLabel('Overlay text', { exact: true }).fill('Desktop title');
     const captionPath = join(directory, 'caption.mp4');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, captionPath);
     await page.getByRole('button', { name: 'Export MP4', exact: true }).click();

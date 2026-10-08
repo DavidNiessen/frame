@@ -1,3 +1,4 @@
+import { parseOverlays } from './overlays';
 import { parseSubtitles } from './subtitles';
 import { validateEdit } from './export-plan';
 import { type EditSettings, type MediaAsset } from './types';
@@ -26,6 +27,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const c = e.crop === null ? null : record(e.crop);
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
+    overlays: parseOverlays(e.overlays),
     subtitles: parseSubtitles(e.subtitles),
     normalizeLoudness: e.normalizeLoudness === undefined ? false : boolean(e.normalizeLoudness), targetLufs: e.targetLufs === undefined ? -16 : number(e.targetLufs),
     reduceNoise: e.reduceNoise === undefined ? false : boolean(e.reduceNoise), noiseStrength: e.noiseStrength === undefined ? 12 : number(e.noiseStrength), noiseFloor: e.noiseFloor === undefined ? -50 : number(e.noiseFloor),

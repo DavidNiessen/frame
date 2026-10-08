@@ -20,7 +20,7 @@ it('maps imported source cues through removed sections and speed changes', () =>
 it('embeds a selectable caption stream and burns captions using the bundled font', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-captions-'));
   try {
-    const paths = { captions: join(directory, 'captions.srt'), fonts: resolve('public/fonts') };
+    const paths = { captions: join(directory, 'captions.srt'), fonts: resolve('public/fonts'), text: join(directory, 'text.txt'), image: join(directory, 'image.png') };
     const edit = { ...defaultSettings(asset), end: 1, subtitles: importSubtitles('1\n00:00:00,000 --> 00:00:01,000\nA real caption') };
     await writeFile(paths.captions, serializeSrt(outputCues(edit)));
     const embedded = join(directory, 'embedded.mp4'); const burned = join(directory, 'burned.mp4');

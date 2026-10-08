@@ -32,7 +32,7 @@ export function registerMerge(assets: Map<string, { path: string; asset: MediaAs
           await execute(runFfmpeg(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions), asset.duration, ratio => {
             if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Merging your clips…' });
           }));
-        });
+        }, clips.map(c => c.asset));
         const { size } = await stat(temporary); await rename(temporary, destination.filePath);
         return { name: basename(destination.filePath), path: destination.filePath, size };
       } finally { await rm(temporary, { force: true }); }

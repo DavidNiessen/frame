@@ -103,3 +103,5 @@ Vite's development and preview servers already set the isolation headers. `base:
 [Architecture](docs/ARCHITECTURE.md) describes the extension points. [Cloud setup](docs/CLOUD_SETUP.md) records the validated container workflow.
 
 Subtitles: import SRT or WebVTT, edit source cue timing/text, and preview captions. Burn-in uses a bundled DejaVu Sans font on both platforms; MP4/MOV/MKV/WebM also support selectable subtitle streams. Output SRT timing follows trims, cuts and speed. Merges retain per-clip burn-in or combine embedded cues.
+
+Text and watermarks: add multiline text or a PNG/JPEG/WebP image, position it, and adjust size/color/opacity. Images are normalized to portable PNG assets stored in the project. FFmpeg uses bundled-font ASS text and image overlays, including for merged clips; text is never interpreted as a filter expression.

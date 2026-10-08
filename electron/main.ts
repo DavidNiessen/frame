@@ -93,7 +93,7 @@ app.whenReady().then(() => {
         await execute(transcode(item.path, temporary!, item.asset, settings, ratio => {
           if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Encoding your media…' });
         }, paths[0]));
-      });
+      }, [item.asset]);
       const { size } = await stat(temporary);
       const savedPath = batchToken ? await batchFolders.publish(temporary, batchToken, batchName) : destination.filePath;
       if (!batchToken) await rename(temporary, savedPath);

@@ -72,7 +72,7 @@ export function createBrowserEngine(): MediaEngine {
       const ff = await ready();
       const input = `source-${asset.id}`;
       const output = `export.${settings.format}`;
-      const resources = await browserResources(ff, [settings]);
+      const resources = await browserResources(ff, [settings], [asset]);
       const errors: string[] = [];
       const log = ({ message }: { message: string }) => { errors.push(message); if (errors.length > 15) errors.shift(); };
       const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(0.99, Math.max(0, time / 1e6 / editedDuration(settings))), message: 'Encoding your media locally…' });
@@ -102,7 +102,7 @@ export function createBrowserEngine(): MediaEngine {
       const paths = clips.map(c => `merge-${c.asset.id}`); const output = `merged.${settings.format}`; cancelled = false;
       const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(0.99, time / 1e6 / asset.duration), message: 'Merging your clips…' });
       ff.on('progress', progress);
-      const resources = await browserResources(ff, clips.map(c => c.edit)); const captions = 'merged-captions.srt';
+      const resources = await browserResources(ff, clips.map(c => c.edit), clips.map(c => c.asset)); const captions = 'merged-captions.srt';
       try {
         await ff.writeFile(captions, serializeSrt(mergedCues(clips, transition)));
         for (const id of inputs) { const file = files.get(id); if (!file) throw new Error('Import each merge source again.'); await ff.writeFile(`merge-${id}`, new Uint8Array(await file.arrayBuffer())); }
