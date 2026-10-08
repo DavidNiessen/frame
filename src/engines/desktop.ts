@@ -6,10 +6,12 @@ export function createDesktopEngine(): MediaEngine {
     platform: 'desktop',
     importFiles: files => bridge.importFiles(files),
     importSample: () => bridge.importSample(),
-    async export(asset, settings, onProgress) {
+    async export(asset, settings, onProgress, batchToken) {
       const remove = bridge.onProgress(onProgress);
-      try { return await bridge.export(asset.id, settings); } finally { remove(); }
+      try { return await bridge.export(asset.id, settings, batchToken); } finally { remove(); }
     },
+    beginBatch: () => bridge.beginBatch(),
+    endBatch: token => bridge.endBatch(token),
     cancel: () => bridge.cancel(),
     release: asset => bridge.release(asset.id),
   };

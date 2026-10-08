@@ -35,7 +35,9 @@ export interface MediaEngine {
   platform: 'desktop' | 'web';
   importFiles(files?: File[]): Promise<MediaAsset[]>;
   importSample(): Promise<MediaAsset[]>;
-  export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void): Promise<ExportResult | null>;
+  export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
+  beginBatch(): Promise<string | null>;
+  endBatch(token: string): Promise<void>;
   cancel(): void;
   release(asset: MediaAsset): Promise<void>;
 }

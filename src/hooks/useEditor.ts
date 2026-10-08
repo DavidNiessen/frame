@@ -10,7 +10,7 @@ export function useEditor() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [histories, setHistories] = useState<Record<string, History>>({});
-  const [busy, setBusy] = useState<'import' | 'export' | null>(null);
+  const [busy, setBusy] = useState<'import' | 'export' | 'batch' | null>(null);
   const [notice, setNotice] = useState('');
   const [progress, setProgress] = useState<ExportProgress | null>(null);
   const [result, setResult] = useState<ExportResult | null>(null);
@@ -100,11 +100,17 @@ export function useEditor() {
     });
     setSelected(selectedId);
   }
+  async function runExclusive<T>(kind: 'batch', task: (engine: MediaEngine) => Promise<T>): Promise<T> {
+    if (busyRef.current) throw new Error('Wait for processing to finish.');
+    busyRef.current = true; setBusy(kind);
+    try { return await task(await engine()); }
+    finally { busyRef.current = false; setBusy(null); }
+  }
   function dismissResult() { if (result?.url) URL.revokeObjectURL(result.url); setResult(null); }
   return { assets, asset, edit, selected, busy, notice, setNotice, progress, result, dismissResult,
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,
     select: (id: string) => { if (!busyRef.current) setSelected(id); },
-    importMedia, update, remove, exportMedia, restoreEdits,
+    importMedia, update, remove, exportMedia, restoreEdits, runExclusive,
     settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),
     cancel: () => void engine().then(e => e.cancel()),
     undo: () => travel('undo'), redo: () => travel('redo'),

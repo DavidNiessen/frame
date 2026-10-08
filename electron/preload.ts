@@ -3,8 +3,10 @@ import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
   importFiles: files => ipcRenderer.invoke('media:import', files?.map(file => webUtils.getPathForFile(file))),
   importSample: () => ipcRenderer.invoke('media:sample'),
-  export: (id, settings) => ipcRenderer.invoke('media:export', id, settings),
+  export: (id, settings, token) => ipcRenderer.invoke('media:export', id, settings, token),
   saveProject: project => ipcRenderer.invoke('project:save', project),
+  beginBatch: () => ipcRenderer.invoke('batch:begin'),
+  endBatch: token => ipcRenderer.invoke('batch:end', token),
   cancel: () => ipcRenderer.send('media:cancel'),
   release: id => ipcRenderer.invoke('media:release', id),
   onProgress: callback => {

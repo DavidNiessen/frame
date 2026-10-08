@@ -40,6 +40,16 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     expect(info.streams[0].codec_name).toBe('flac');
     expect(Number(info.format.duration)).toBeCloseTo(1, 1);
     expect((await readdir(directory)).some(name => name.startsWith('.frame-'))).toBe(false);
+    await app.evaluate(({ dialog }, directory) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] }); }, directory);
+    await page.getByRole('button', { name: 'Start with a sample A short studio study' }).click();
+    await page.getByLabel('Output format').selectOption('flac');
+    await page.getByRole('button', { name: 'Batch export', exact: true }).click();
+    const batch = page.getByRole('dialog', { name: 'Batch export', exact: true });
+    await batch.getByLabel('Batch settings').selectOption('output');
+    await batch.getByRole('button', { name: 'Start batch export' }).click();
+    await expect(batch.getByText('done', { exact: true })).toHaveCount(2);
+    expect((await readdir(directory)).filter(name => name.startsWith('sample-edited') && name.endsWith('.flac'))).toHaveLength(2);
+    await batch.getByRole('button', { name: 'Close batch export' }).click();
     const source = await app.evaluate(({ app }) => app.isPackaged ? app.getAppPath().replace(/[/\\]app\.asar$/, '') + '/sample.mp4' : app.getAppPath() + '/public/sample.mp4');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, source);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();

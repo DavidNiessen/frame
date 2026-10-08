@@ -90,6 +90,8 @@ export function createBrowserEngine(): MediaEngine {
         }
       }
     },
+    beginBatch: async () => 'web',
+    endBatch: async () => {},
     cancel() { cancelled = true; ffmpeg?.terminate(); ffmpeg = null; loading = null; },
     async release(asset) { files.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
   };

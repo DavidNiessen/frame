@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { rename, rm, stat, realpath } from 'node:fs/promises';
 import type { ChildProcess } from 'node:child_process';
+import { createBatchFolders } from './batch';
 import { registerProjectSaving } from './projects';
 import { probeFile, transcode } from './native';
 import { outputName, validateEdit } from '../src/core/export-plan';
@@ -44,6 +45,7 @@ function createWindow() {
   mainWindow.on('closed', () => { currentProcess?.kill(); assets.clear(); mainWindow = null; });
 }
 app.whenReady().then(() => {
+  const batchFolders = createBatchFolders(() => mainWindow!, trusted);
   protocol.handle('media', request => {
     const url = new URL(request.url);
     const item = url.hostname === 'asset' ? assets.get(url.pathname.slice(1)) : undefined;
@@ -66,7 +68,7 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('media:release', (event, id: string) => { trusted(event); if (!exporting) assets.delete(id); });
   ipcMain.on('media:cancel', event => { trusted(event); currentProcess?.kill(); });
-  ipcMain.handle('media:export', async (event, id: string, settings: EditSettings) => {
+  ipcMain.handle('media:export', async (event, id: string, settings: EditSettings, batchToken?: string) => {
     trusted(event);
     if (exporting) throw new Error('An export is already running.');
     const item = assets.get(id);
@@ -75,7 +77,8 @@ app.whenReady().then(() => {
     exporting = true;
     let temporary: string | undefined;
     try {
-      const destination = await dialog.showSaveDialog(mainWindow!, { defaultPath: outputName(item.asset.name, settings.format), filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }] });
+      const batchName = outputName(item.asset.name, settings.format);
+      const destination = batchToken ? { canceled: false, filePath: join(batchFolders.directory(batchToken), batchName) } : await dialog.showSaveDialog(mainWindow!, { defaultPath: outputName(item.asset.name, settings.format), filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }] });
       if (destination.canceled || !destination.filePath) return null;
       const sourcePath = await realpath(item.path);
       const destinationPath = await realpath(destination.filePath).catch(() => destination.filePath!);
@@ -88,8 +91,9 @@ app.whenReady().then(() => {
       currentProcess = job.child;
       await job.done;
       const { size } = await stat(temporary);
-      await rename(temporary, destination.filePath);
-      return { name: basename(destination.filePath), path: destination.filePath, size };
+      const savedPath = batchToken ? await batchFolders.publish(temporary, batchToken, batchName) : destination.filePath;
+      if (!batchToken) await rename(temporary, savedPath);
+      return { name: basename(savedPath), path: savedPath, size };
     } finally {
       currentProcess = null; exporting = false;
       if (temporary) await rm(temporary, { force: true });
