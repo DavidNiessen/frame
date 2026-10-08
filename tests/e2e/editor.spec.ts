@@ -22,7 +22,10 @@ test('imports, previews, edits, undoes, and exports a real GIF in the browser', 
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
   await page.getByRole('button', { name: 'Try a sample' }).click();
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible({ timeout: 45000 });
-  await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+  await expect.poll(() => page.locator('video').evaluate(node => {
+    const video = node as HTMLVideoElement;
+    return { readyState: video.readyState, error: video.error?.message ?? null };
+  }), { timeout: 15000 }).toEqual({ readyState: 4, error: null });
   await page.getByLabel('Trim start', { exact: true }).fill('1');
   await page.getByLabel('Trim end').fill('3');
   await page.getByRole('button', { name: '1:1', exact: true }).click();
