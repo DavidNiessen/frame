@@ -1,3 +1,4 @@
+import { parseAcceleration } from './hardware';
 import { validateSizeTarget, resolveSizeTarget } from './size';
 import { parseColor } from './color';
 import { parseGeometry } from './geometry';
@@ -11,7 +12,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
-  validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
+  parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
   const format = getFormat(edit.format);
   if (![edit.start, edit.end, edit.volume, edit.audioBitrate, edit.fps].every(Number.isFinite)) throw new Error('Enter valid numeric settings.');

@@ -66,3 +66,5 @@ Core 0.12 returns `-1` when FFprobe returns normally without updating its exit s
 - **Future composition:** evolve the recipe into source-referenced clips/tracks before adding multitrack mixing. Keep timeline algebra independent of playback and UI rendering.
 
 Files should remain focused on one responsibility. There is no untrusted plugin loader in this version; extension points are source-level modules.
+
+Recipe resources (caption/text files, PNG overlays and LUTs) use engine-generated temporary paths, with a bundled font, and are cleaned up after each operation. Browser analysis is a separate adapter. Native jobs latch cancellation across hardware detection and retries; only encoders that complete a real short encode are offered. Proxy files are served through opaque media URLs and never replace source paths in export planning. Recovery stores validated portable recipes in IndexedDB and waits for explicit relinking before replacing a pending draft.

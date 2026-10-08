@@ -1,3 +1,4 @@
+import { parseAcceleration, type Acceleration, type DesktopCapabilities, type PreviewProxy } from './hardware';
 import type { SilenceOptions } from './silence';
 import { defaultColor, type ColorSettings } from './color';
 import { defaultGeometry, type Geometry } from './geometry';
@@ -43,6 +44,7 @@ export interface EditSettings {
   crop: Crop | null;
   format: FormatId;
   quality: 'high' | 'balanced' | 'small';
+  acceleration: Acceleration;
   targetSizeMb: number | null;
   videoBitrate: number | null;
   audioBitrate: number;
@@ -54,6 +56,9 @@ export interface ExportProgress { ratio: number; message: string }
 export interface ExportResult { name: string; url?: string; path?: string; size: number }
 export interface MediaEngine {
   platform: 'desktop' | 'web';
+  desktopCapabilities?(onProgress: (p: ExportProgress) => void): Promise<DesktopCapabilities>;
+  previewProxy?(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<PreviewProxy>;
+  releaseProxy?(id: string): Promise<void>;
   importFiles(files?: File[]): Promise<MediaAsset[]>;
   importSample(): Promise<MediaAsset[]>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
@@ -73,5 +78,5 @@ export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return { color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
     format: asset.kind === 'audio' ? 'mp3' : 'mp4', quality: 'balanced',
-    targetSizeMb: null, videoBitrate: null, audioBitrate: 192, fps: 15, includeArtwork: true, keepMetadata: true };
+    acceleration: parseAcceleration(undefined), targetSizeMb: null, videoBitrate: null, audioBitrate: 192, fps: 15, includeArtwork: true, keepMetadata: true };
 }

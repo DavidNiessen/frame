@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm, readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import ffmpeg from 'ffmpeg-static';
 import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 test('runs the desktop editor and portable media tools with an empty PATH', async () => {
@@ -19,6 +20,15 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await page.getByRole('button', { name: 'Generate thumbnails' }).click();
     await expect(page.getByRole('group', { name: 'Timeline thumbnails', exact: true }).getByRole('button')).toHaveCount(12);
+    await page.getByText('Desktop performance', { exact: true }).click();
+    await page.getByLabel('Desktop export encoder').selectOption('auto');
+    await page.getByRole('button', { name: 'Check hardware encoders' }).click();
+    await expect(page.getByText(/Usable encoders:|No usable hardware encoder found/)).toBeVisible();
+    await page.getByRole('button', { name: 'Create lightweight preview' }).click();
+    await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/proxy\//);
+    await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await page.getByRole('button', { name: 'Use original preview' }).click();
+    await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/asset\//);
     await page.getByRole('button', { name: 'Generate waveform' }).click();
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
     await page.getByText('Audio cleanup & EQ', { exact: true }).click();
@@ -49,7 +59,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     const projectPath = join(directory, 'edit.frame.json');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, projectPath);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('Project saved');
+    await expect(page.locator('.toast')).toContainText('Project saved');
     const project = JSON.parse(await readFile(projectPath, 'utf8'));
     expect(project.sources[0].edit.start).toBe(1);
     expect(JSON.stringify(project)).not.toContain('media://');
@@ -93,7 +103,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect(page.locator('.toast')).toContainText('Choose a different project path');
     await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('Choose a different output path');
+    await expect(page.locator('.toast')).toContainText('Choose a different output path');
     await app.evaluate(({ dialog }) => { dialog.showSaveDialog = async () => ({ canceled: true, filePath: '' }); });
     await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Export FLAC', exact: true })).toBeEnabled();
@@ -109,4 +119,19 @@ test('recovers desktop recipes after restarting the same profile', async () => {
     await app.close(); app = await launch(); page = await app.firstWindow(); await expect(page.getByRole('button', { name: 'Recover workspace' })).toBeVisible();
     await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByRole('button', { name: 'Recover workspace' }).click(); await page.getByRole('button', { name: 'Restore edits' }).click(); await expect(page.getByLabel('Trim start', { exact: true })).toHaveValue('1'); await expect(page.getByLabel('Trim end')).toHaveValue('2');
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+});
+
+test('previews an unsupported source through a temporary proxy and exports from the original', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-proxy-test-')), input = join(directory, 'lossless.mkv'), output = join(directory, 'converted.mp4');
+  await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'testsrc2=s=320x180:d=1', '-c:v', 'ffv1', '-threads', '1', input]); const original = await readFile(input);
+  const previous = new Set((await readdir(tmpdir())).filter(name => name.startsWith('frame-proxy-'))); const executablePath = process.env.FRAME_TEST_EXECUTABLE;
+  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  try {
+    const page = await app.firstWindow(); await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, input);
+    await page.getByRole('button', { name: 'Add media', exact: true }).click(); await expect(page.getByLabel('Trim end')).toHaveValue('1');
+    await page.getByText('Desktop performance', { exact: true }).click(); await page.getByRole('button', { name: 'Create lightweight preview' }).click(); await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/proxy\//); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output); await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByText('Export ready', { exact: true })).toBeVisible();
+    const probe = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', output]); const video = JSON.parse(probe.stdout).streams[0]; expect([video.width, video.height]).toEqual([320, 180]); expect((await readFile(input)).equals(original)).toBe(true);
+  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+  expect((await readdir(tmpdir())).filter(name => name.startsWith('frame-proxy-') && !previous.has(name))).toEqual([]);
 });

@@ -1,3 +1,4 @@
+import { encodeNative } from './acceleration';
 import { withResources } from './resources';
 import { serializeSrt } from '../src/core/subtitles';
 import { dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
@@ -10,7 +11,6 @@ import { parseEdit } from '../src/core/project';
 import { parseOutputSettings } from '../src/core/presets';
 import type { MediaAsset } from '../src/core/types';
 import type { MediaJobs } from './jobs';
-import { runFfmpeg } from './native';
 export function registerMerge(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void) {
   ipcMain.handle('media:merge', async (event, entries: { id: string; edit: unknown }[], value: unknown, transitionValue?: unknown) => {
     trusted(event);
@@ -29,9 +29,9 @@ export function registerMerge(assets: Map<string, { path: string; asset: MediaAs
       try {
         await withResources(clips.map(c => c.edit), async (paths, directory) => {
           const captions = join(directory, 'merged.srt'); await writeFile(captions, serializeSrt(mergedCues(clips, transition)));
-          await execute(runFfmpeg(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions), asset.duration, ratio => {
-            if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Merging your clips…' });
-          }));
+          await encodeNative(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions), asset.duration, settings.acceleration, Math.max(1000, (asset.width ?? 640) * (asset.height ?? 360) * 30 * .07 / 1000), execute, jobs, (ratio, message) => {
+            if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
+          });
         }, clips.map(c => c.asset));
         const { size } = await stat(temporary); await rename(temporary, destination.filePath);
         return { name: basename(destination.filePath), path: destination.filePath, size };

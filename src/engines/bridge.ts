@@ -1,3 +1,4 @@
+import type { DesktopCapabilities, PreviewProxy } from '../core/hardware';
 import type { SilenceOptions } from '../core/silence';
 import type { EditSettings, ExportProgress, ExportResult, MediaAsset, TimeRange } from '../core/types';
 import type { ProjectDocument } from '../core/project';
@@ -5,6 +6,9 @@ import type { WaveformPoint } from '../core/waveform';
 import type { OutputSettings } from '../core/presets';
 import type { TransitionSettings } from '../core/transitions';
 export interface DesktopBridge {
+  desktopCapabilities(): Promise<DesktopCapabilities>;
+  previewProxy(id: string): Promise<PreviewProxy>;
+  releaseProxy(id: string): Promise<void>;
   importFiles(files?: File[]): Promise<MediaAsset[]>;
   importSample(): Promise<MediaAsset[]>;
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;

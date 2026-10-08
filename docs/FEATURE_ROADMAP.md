@@ -18,4 +18,4 @@ Features are implemented and pushed individually in this order. Each implementat
 | 12 | Reviewed silence removal | Implemented |
 | 13 | Export size estimation and target-size mode | Implemented |
 | 14 | Autosave and recovery | Implemented |
-| 15 | Desktop acceleration and preview proxies | Next |
+| 15 | Desktop acceleration and preview proxies | Implemented |

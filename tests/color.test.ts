@@ -13,7 +13,7 @@ const exec = promisify(execFile);
 export const invertedCube = 'LUT_3D_SIZE 2\n1 1 1\n0 1 1\n1 0 1\n0 0 1\n1 1 0\n0 1 0\n1 0 0\n0 0 0\n';
 it('rejects incomplete or unsupported LUTs', () => { expect(() => parseCube('LUT_3D_SIZE 33\n0 0 0')).toThrow(); expect(() => parseCube('LUT_1D_SIZE 2\n0 0 0\n1 1 1')).toThrow(); expect(parseCube(invertedCube)).toContain('DOMAIN_MAX 1 1 1'); });
 it('renders measured grayscale correction and an actual inverted LUT', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'frame-color-'));
+  const directory = await mkdtemp(join(tmpdir(), process.platform === 'win32' ? "frame-color '[],-" : "frame-color :'[],;-"));
   try {
     const input = join(directory, 'red.mp4'), output = join(directory, 'frame.png');
     await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'color=red:s=100x60:d=1', '-threads', '1', input]);

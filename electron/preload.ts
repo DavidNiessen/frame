@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  desktopCapabilities: () => ipcRenderer.invoke('media:capabilities'),
+  previewProxy: id => ipcRenderer.invoke('media:proxy', id),
+  releaseProxy: id => ipcRenderer.invoke('media:release-proxy', id),
   importFiles: files => ipcRenderer.invoke('media:import', files?.map(file => webUtils.getPathForFile(file))),
   importSample: () => ipcRenderer.invoke('media:sample'),
   export: (id, settings, token) => ipcRenderer.invoke('media:export', id, settings, token),

@@ -1,3 +1,7 @@
+import { registerAcceleration, encodeNative } from './acceleration';
+import { createProxies } from './proxies';
+import { editedDuration } from '../src/core/timeline';
+import { frameDimensions } from '../src/core/geometry';
 import { withResources } from './resources';
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, type IpcMainInvokeEvent } from 'electron';
 import { join, basename, dirname } from 'node:path';
@@ -9,12 +13,13 @@ import { registerMerge } from './merge';
 import { registerAnalysis } from './analysis';
 import { createBatchFolders } from './batch';
 import { registerProjectSaving } from './projects';
-import { probeFile, transcode } from './native';
-import { outputName, validateEdit } from '../src/core/export-plan';
+import { probeFile } from './native';
+import { buildExportArgs, outputName, validateEdit } from '../src/core/export-plan';
 import { supportedExtensions, type EditSettings, type MediaAsset } from '../src/core/types';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 const assets = new Map<string, { path: string; asset: MediaAsset }>();
+let clearProxies = () => {};
 let mainWindow: BrowserWindow | null = null;
 const jobs = new MediaJobs();
 const devUrl = !app.isPackaged ? process.env.FRAME_DEV_URL : undefined;
@@ -44,15 +49,17 @@ function createWindow() {
         : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: media:; media-src 'self' blob: media:; connect-src 'self'; font-src 'self'"] } });
   });
   if (devUrl) void mainWindow.loadURL(devUrl); else void mainWindow.loadFile(join(__dirname, '../dist/index.html'));
-  mainWindow.on('closed', () => { jobs.cancel(); assets.clear(); mainWindow = null; });
+  mainWindow.on('closed', () => { jobs.cancel(); clearProxies(); assets.clear(); mainWindow = null; });
 }
 app.whenReady().then(() => {
+  registerAcceleration(jobs, trusted);
+  const proxies = createProxies(assets, jobs, trusted); clearProxies = proxies.clear;
   const batchFolders = createBatchFolders(() => mainWindow!, trusted);
   protocol.handle('media', request => {
     const url = new URL(request.url);
-    const item = url.hostname === 'asset' ? assets.get(url.pathname.slice(1)) : undefined;
-    if (!item) return new Response('Not found', { status: 404 });
-    return net.fetch(pathToFileURL(item.path).toString(), { headers: request.headers });
+    const id = url.pathname.slice(1); const path = url.hostname === 'asset' ? assets.get(id)?.path : url.hostname === 'proxy' ? proxies.path(id) : undefined;
+    if (!path) return new Response('Not found', { status: 404 });
+    return net.fetch(pathToFileURL(path).toString(), { headers: request.headers });
   });
   ipcMain.handle('media:import', async (event, paths?: string[]) => {
     trusted(event);
@@ -70,7 +77,7 @@ app.whenReady().then(() => {
   });
   registerAnalysis(assets, jobs, trusted);
   registerMerge(assets, jobs, () => mainWindow!, trusted);
-  ipcMain.handle('media:release', (event, id: string) => { trusted(event); if (!jobs.busy) assets.delete(id); });
+  ipcMain.handle('media:release', async (event, id: string) => { trusted(event); if (!jobs.busy) { assets.delete(id); await proxies.releaseAsset(id); } });
   ipcMain.on('media:cancel', event => { trusted(event); jobs.cancel(); });
   ipcMain.handle('media:export', async (event, id: string, settings: EditSettings, batchToken?: string) => {
     trusted(event);
@@ -90,9 +97,10 @@ app.whenReady().then(() => {
       if (comparable(destinationPath) === comparable(sourcePath)) throw new Error('Choose a different output path to preserve the original.');
       temporary = join(dirname(destination.filePath), `.frame-${randomUUID()}.${settings.format}`);
       await withResources([settings], async paths => {
-        await execute(transcode(item.path, temporary!, item.asset, settings, ratio => {
-          if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Encoding your media…' });
-        }, paths[0]));
+        const { width, height } = frameDimensions(item.asset, settings);
+        await encodeNative(buildExportArgs(item.asset, settings, item.path, temporary!, paths[0]), editedDuration(settings), settings.acceleration, Math.max(1000, width * height * 30 * .07 / 1000), execute, jobs, (ratio, message) => {
+          if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
+        });
       }, [item.asset]);
       const { size } = await stat(temporary);
       const savedPath = batchToken ? await batchFolders.publish(temporary, batchToken, batchName) : destination.filePath;
@@ -108,4 +116,4 @@ app.whenReady().then(() => {
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('before-quit', () => jobs.cancel());
+app.on('before-quit', () => { jobs.cancel(); clearProxies(); });
