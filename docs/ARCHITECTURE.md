@@ -27,6 +27,10 @@ Version 1 `.frame.json` documents contain source metadata and edit recipes, with
 
 Export presets store a validated output-only snapshot, separate from source trim, crop, and gain. Built-in presets are capability-filtered; custom presets use versioned, bounded local storage and can be replaced by name or deleted. Storage failure falls back to the session with a visible message.
 
+## Composition
+
+A composition is an ordered list of source assets and recipe snapshots. Its planner applies each source’s retained ranges, crop, and gain, normalizes frames and audio formats, and concatenates labeled streams. Missing video audio becomes a duration-matched silent stream. Source metadata and compatible first-source artwork can be retained. Native and browser engines use the same plan; source files remain immutable. Drag ordering has keyboard-accessible move buttons.
+
 ## Desktop boundary
 
 The preload exposes only import, sample import, export, validated project saving, cancellation, release, and progress subscription. It does not expose Node.js or arbitrary IPC. File-drop paths are derived from real File objects in the isolated preload. Main-process requests are accepted only from the application's main frame; source paths are stored behind opaque IDs. The renderer cannot choose an arbitrary input or output path for FFmpeg.

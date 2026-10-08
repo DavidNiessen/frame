@@ -1,0 +1,23 @@
+import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import ffprobe from '@ffprobe-installer/ffprobe';
+const exec = promisify(execFile);
+test('reorders and merges edited source clips in the browser', async ({ page }, testInfo) => {
+  await page.goto('/'); const buffer = await readFile('public/sample.mp4');
+  await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
+  await page.getByLabel('Trim end').fill('0.5');
+  await page.locator('.asset-select').filter({ hasText: 'two.mp4' }).click();
+  await page.getByLabel('Trim end').fill('0.5');
+  await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Merge clips', exact: true });
+  await dialog.getByRole('button', { name: 'Move clip 2 up' }).click();
+  await expect(dialog.locator('li').first()).toContainText('two.mp4');
+  await dialog.getByRole('button', { name: 'Export merged file' }).click();
+  await expect(dialog.getByRole('link', { name: 'Save merged file' })).toBeVisible({ timeout: 45000 });
+  const pending = page.waitForEvent('download'); await dialog.getByRole('link', { name: 'Save merged file' }).click();
+  const output = testInfo.outputPath('merged.mp4'); await (await pending).saveAs(output);
+  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]);
+  expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(1, 1);
+});

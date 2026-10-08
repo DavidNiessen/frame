@@ -1,11 +1,13 @@
 import type { EditSettings, ExportProgress, ExportResult, MediaAsset } from '../core/types';
 import type { ProjectDocument } from '../core/project';
 import type { WaveformPoint } from '../core/waveform';
+import type { OutputSettings } from '../core/presets';
 export interface DesktopBridge {
   importFiles(files?: File[]): Promise<MediaAsset[]>;
   importSample(): Promise<MediaAsset[]>;
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
   saveProject(project: ProjectDocument): Promise<boolean>;
+  merge(clips: { id: string; edit: EditSettings }[], settings: OutputSettings): Promise<ExportResult | null>;
   thumbnails(id: string): Promise<Uint8Array>;
   waveform(id: string): Promise<WaveformPoint[]>;
   beginBatch(): Promise<string | null>;

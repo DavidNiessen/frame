@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { rename, rm, stat, realpath } from 'node:fs/promises';
 import { MediaJobs } from './jobs';
+import { registerMerge } from './merge';
 import { registerAnalysis } from './analysis';
 import { createBatchFolders } from './batch';
 import { registerProjectSaving } from './projects';
@@ -67,6 +68,7 @@ app.whenReady().then(() => {
     return importPaths([app.isPackaged ? join(process.resourcesPath, 'sample.mp4') : join(__dirname, '../public/sample.mp4')]);
   });
   registerAnalysis(assets, jobs, trusted);
+  registerMerge(assets, jobs, () => mainWindow!, trusted);
   ipcMain.handle('media:release', (event, id: string) => { trusted(event); if (!jobs.busy) assets.delete(id); });
   ipcMain.on('media:cancel', event => { trusted(event); jobs.cancel(); });
   ipcMain.handle('media:export', async (event, id: string, settings: EditSettings, batchToken?: string) => {

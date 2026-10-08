@@ -36,6 +36,8 @@ Generate an **audio waveform** from the Timeline to see measured source peaks be
 
 For video, **Generate thumbnails** adds a strip of twelve source frames. Click a thumbnail to seek to that part of the source. Thumbnails are generated locally and released when their media leaves the library.
 
+**Merge clips** combines imported sources in your chosen order. Drag clips or use the up/down buttons; each clip keeps its recipe. Video outputs require video sources, fit frames to the first clip, and use silence for missing audio. Mixed video/audio selections can export audio. Compatible audio outputs keep the first clip’s artwork by default when present.
+
 ## Batch export
 
 Open **Batch export**, select library files, and choose each file’s recipe, current output settings, or all current edits. Jobs run sequentially with per-file progress and errors. Desktop asks for one output folder and numbers conflicting filenames; the browser offers a separate download per result. Cancelling preserves completed results. Browser batch downloads have a 500 MB retention guard; save and clear results before running more jobs.

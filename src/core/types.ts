@@ -1,4 +1,6 @@
 import type { WaveformPoint } from './waveform';
+import type { MediaClip } from './composition';
+import type { OutputSettings } from './presets';
 export type MediaKind = 'video' | 'audio';
 export type FormatId = 'mp4' | 'webm' | 'mov' | 'mkv' | 'gif' | 'mp3' | 'wav' | 'flac' | 'ogg' | 'm4a';
 export interface MediaAsset {
@@ -37,6 +39,7 @@ export interface MediaEngine {
   importFiles(files?: File[]): Promise<MediaAsset[]>;
   importSample(): Promise<MediaAsset[]>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
+  merge(clips: MediaClip[], output: OutputSettings, onProgress: (p: ExportProgress) => void): Promise<ExportResult | null>;
   thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;
   waveform(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<WaveformPoint[]>;
   beginBatch(): Promise<string | null>;
