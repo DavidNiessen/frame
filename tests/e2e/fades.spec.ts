@@ -1,0 +1,32 @@
+import { test, expect } from '@playwright/test';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { readFile } from 'node:fs/promises';
+import ffprobe from '@ffprobe-installer/ffprobe';
+const exec = promisify(execFile);
+test('previews and exports video/audio fades after a speed edit', async ({ page }, testInfo) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
+  await page.getByLabel('Trim end').fill('2'); await page.getByLabel('Playback speed').selectOption('2');
+  await page.getByLabel('Video fade in', { exact: true }).fill('0.2'); await page.getByLabel('Audio fade in', { exact: true }).fill('0.2');
+  await expect(page.locator('video')).toHaveCSS('opacity', '0');
+  await page.getByLabel('Seek playhead').fill('0.2');
+  await expect.poll(() => page.locator('video').evaluate(v => Number((v as HTMLVideoElement).style.opacity))).toBeCloseTo(0.5, 1);
+  await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 45000 });
+  const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file' }).click();
+  const output = testInfo.outputPath('faded.mp4'); await (await pending).saveAs(output);
+  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]); expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(1, 1);
+});
+test('crossfades browser clips with audio and video', async ({ page }, testInfo) => {
+  await page.goto('/'); const buffer = await readFile('public/sample.mp4');
+  await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
+  await page.getByLabel('Trim end').fill('1'); await page.locator('.asset-select').filter({ hasText: 'two.mp4' }).click(); await page.getByLabel('Trim end').fill('1');
+  await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Merge clips', exact: true });
+  await dialog.getByLabel('Merge transition').selectOption('fade');
+  await dialog.getByRole('button', { name: 'Export merged file' }).click();
+  await expect(dialog.getByRole('link', { name: 'Save merged file' })).toBeVisible({ timeout: 45000 });
+  const pending = page.waitForEvent('download'); await dialog.getByRole('link', { name: 'Save merged file' }).click();
+  const output = testInfo.outputPath('crossfade.mp4'); await (await pending).saveAs(output);
+  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]); expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(1.7, 1);
+});

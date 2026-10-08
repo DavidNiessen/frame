@@ -10,9 +10,9 @@ export function createDesktopEngine(): MediaEngine {
       const remove = bridge.onProgress(onProgress);
       try { return await bridge.export(asset.id, settings, batchToken); } finally { remove(); }
     },
-    async merge(clips, settings, onProgress) {
+    async merge(clips, settings, onProgress, transition) {
       const remove = bridge.onProgress(onProgress);
-      try { return await bridge.merge(clips.map(c => ({ id: c.asset.id, edit: c.edit })), settings); } finally { remove(); }
+      try { return await bridge.merge(clips.map(c => ({ id: c.asset.id, edit: c.edit })), settings, transition); } finally { remove(); }
     },
     async thumbnails(asset, onProgress) {
       const remove = bridge.onProgress(onProgress);

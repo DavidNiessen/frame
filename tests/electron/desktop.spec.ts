@@ -59,10 +59,11 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
     const merge = page.getByRole('dialog', { name: 'Merge clips', exact: true });
     await merge.getByLabel('Merge format').selectOption('flac');
+    await merge.getByLabel('Merge transition').selectOption('fade');
     await merge.getByRole('button', { name: 'Export merged file' }).click();
     await expect(merge.getByText('Saved to', { exact: false })).toBeVisible();
     const mergedInfo = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', mergedPath]);
-    expect(Number(JSON.parse(mergedInfo.stdout).format.duration)).toBeCloseTo(7, 1);
+    expect(Number(JSON.parse(mergedInfo.stdout).format.duration)).toBeCloseTo(6.7, 1);
     await merge.getByRole('button', { name: 'Close merge' }).click();
     const source = await app.evaluate(({ app }) => app.isPackaged ? app.getAppPath().replace(/[/\\]app\.asar$/, '') + '/sample.mp4' : app.getAppPath() + '/public/sample.mp4');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, source);

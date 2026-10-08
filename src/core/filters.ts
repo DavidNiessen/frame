@@ -1,9 +1,10 @@
+import { fadeFilters } from './fades';
 import { editedDuration } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 export function videoFilters(_asset: MediaAsset, edit: EditSettings): string[] {
   const c = edit.crop; const filters = c ? [`crop=${c.width}:${c.height}:${c.x}:${c.y}`] : [];
   if (edit.speed !== 1) filters.push(`setpts=(PTS-STARTPTS)/${edit.speed}`);
-  return filters;
+  return [...filters, ...fadeFilters(edit, 'video')];
 }
 export function audioFilters(edit: EditSettings): string[] {
   const filters = [`volume=${edit.volume}`];
@@ -17,5 +18,5 @@ export function audioFilters(edit: EditSettings): string[] {
     }
     filters.push(`apad=whole_dur=${editedDuration(edit)}`);
   }
-  return filters;
+  return [...filters, ...fadeFilters(edit, 'audio')];
 }

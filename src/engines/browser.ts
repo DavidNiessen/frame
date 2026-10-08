@@ -93,14 +93,14 @@ export function createBrowserEngine(): MediaEngine {
         }
       }
     },
-    async merge(clips, settings, onProgress) {
-      const asset = compositionAsset(clips); const ff = await ready(); const inputs = [...new Set(clips.map(c => c.asset.id))];
+    async merge(clips, settings, onProgress, transition) {
+      const asset = compositionAsset(clips, transition); const ff = await ready(); const inputs = [...new Set(clips.map(c => c.asset.id))];
       const paths = clips.map(c => `merge-${c.asset.id}`); const output = `merged.${settings.format}`; cancelled = false;
       const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(0.99, time / 1e6 / asset.duration), message: 'Merging your clips…' });
       ff.on('progress', progress);
       try {
         for (const id of inputs) { const file = files.get(id); if (!file) throw new Error('Import each merge source again.'); await ff.writeFile(`merge-${id}`, new Uint8Array(await file.arrayBuffer())); }
-        if (await ff.exec(buildMergeArgs(clips, settings, paths, output)) !== 0) throw new Error('Could not merge these clips. Try a smaller selection or the desktop editor.');
+        if (await ff.exec(buildMergeArgs(clips, settings, paths, output, transition)) !== 0) throw new Error('Could not merge these clips. Try a smaller selection or the desktop editor.');
         const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid merge output.');
         return { name: output, url: URL.createObjectURL(new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime })), size: data.length };
       } catch (error) { if (cancelled) throw new Error('Merge cancelled.'); throw error; }

@@ -1,3 +1,4 @@
+import { defaultTransition, validateTransition, type TransitionSettings } from './transitions';
 import { getFormat } from './formats';
 import { validateEdit } from './export-plan';
 import { editedDuration, keptRanges } from './timeline';
@@ -5,17 +6,18 @@ import { audioFilters, videoFilters } from './filters';
 import { parseOutputSettings, type OutputSettings } from './presets';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 export interface MediaClip { asset: MediaAsset; edit: EditSettings }
-export function compositionAsset(clips: MediaClip[]): MediaAsset {
+export function compositionAsset(clips: MediaClip[], transition: TransitionSettings = defaultTransition): MediaAsset {
   if (!clips.length || clips.length > 100) throw new Error('Choose 1–100 clips.');
   clips.forEach(clip => validateEdit(clip.asset, clip.edit));
+  const blend = validateTransition(clips, transition);
   const first = clips[0]; const width = first.edit.crop?.width ?? first.asset.width; const height = first.edit.crop?.height ?? first.asset.height;
   return { id: 'composition', name: 'Merged clips', previewUrl: '', size: clips.reduce((n, c) => n + c.asset.size, 0),
     kind: clips.every(c => c.asset.kind === 'video') ? 'video' : 'audio', hasAudio: clips.some(c => c.asset.hasAudio),
-    duration: clips.reduce((n, c) => n + editedDuration(c.edit), 0), width: width ? Math.floor(width / 2) * 2 : undefined, height: height ? Math.floor(height / 2) * 2 : undefined };
+    duration: clips.reduce((n, c) => n + editedDuration(c.edit), 0) - (blend.type === 'fade' ? blend.duration * (clips.length - 1) : 0), width: width ? Math.floor(width / 2) * 2 : undefined, height: height ? Math.floor(height / 2) * 2 : undefined };
 }
-export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string): string[] {
+export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition): string[] {
   if (clips.length < 2 || inputs.length !== clips.length) throw new Error('Choose at least two clips to merge.');
-  const asset = compositionAsset(clips); const settings = parseOutputSettings(output); const edit = { ...defaultSettings(asset), ...settings };
+  const asset = compositionAsset(clips, transition); const settings = parseOutputSettings(output); const edit = { ...defaultSettings(asset), ...settings };
   validateEdit(asset, edit); const format = getFormat(edit.format); const video = format.kind === 'video'; const audio = asset.hasAudio && edit.format !== 'gif';
   const args: string[] = ['-y', '-filter_complex_threads', '2']; const graph: string[] = [];
   clips.forEach(({ asset: source, edit: recipe }, index) => {
@@ -28,13 +30,23 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
     });
     const stream = (type: string) => ranges.length === 1 ? `c${index}r0${type}` : `c${index}cut${type}`;
     if (ranges.length > 1 && (v || a)) graph.push(`${ranges.map((_, r) => `${v ? `[c${index}r${r}v]` : ''}${a ? `[c${index}r${r}a]` : ''}`).join('')}concat=n=${ranges.length}:v=${v ? 1 : 0}:a=${a ? 1 : 0}${v ? `[${stream('v')}]` : ''}${a ? `[${stream('a')}]` : ''}`);
-    if (v) graph.push(`[${stream('v')}]${[...videoFilters(source, recipe), `scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease`, `pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2`, 'setsar=1', 'fps=30', 'format=yuv420p'].join(',')}[v${index}]`);
+    if (v) graph.push(`[${stream('v')}]${[...videoFilters(source, recipe), `scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease`, `pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2`, 'setsar=1', 'fps=30', 'format=yuv420p', 'settb=AVTB'].join(',')}[v${index}]`);
     if (a) graph.push(`[${stream('a')}]${[...audioFilters(recipe), 'aresample=48000', 'aformat=sample_fmts=fltp:channel_layouts=stereo'].join(',')}[a${index}]`);
     else if (audio) graph.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${editedDuration(recipe)},asetpts=PTS-STARTPTS[a${index}]`);
   });
   const artwork = format.kind === 'audio' && format.artwork && settings.includeArtwork && clips[0].asset.artworkIndex !== undefined;
   if (artwork) args.push('-i', inputs[0]);
+  if (transition.type === 'fade') {
+    let elapsed = editedDuration(clips[0].edit); let v = 'v0'; let a = 'a0';
+    for (let i = 1; i < clips.length; i++) {
+      const nextV = i === clips.length - 1 ? 'mergedv' : `blend${i}v`; const nextA = i === clips.length - 1 ? 'mergeda' : `blend${i}a`;
+      if (video) graph.push(`[${v}][v${i}]xfade=transition=fade:duration=${transition.duration}:offset=${elapsed - transition.duration}[${nextV}]`);
+      if (audio) graph.push(`[${a}][a${i}]acrossfade=d=${transition.duration}:c1=tri:c2=tri[${nextA}]`);
+      elapsed += editedDuration(clips[i].edit) - transition.duration; v = nextV; a = nextA;
+    }
+  } else {
   graph.push(`${clips.map((_, i) => `${video ? `[v${i}]` : ''}${audio ? `[a${i}]` : ''}`).join('')}concat=n=${clips.length}:v=${video ? 1 : 0}:a=${audio ? 1 : 0}${video ? '[mergedv]' : ''}${audio ? '[mergeda]' : ''}`);
+  }
   if (edit.format === 'gif') {
     graph.push(`[mergedv]fps=${edit.fps},split[ga][gb];[ga]palettegen[p];[gb][p]paletteuse[gif]`); args.push('-map', '[gif]', '-an', '-loop', '0');
   } else {

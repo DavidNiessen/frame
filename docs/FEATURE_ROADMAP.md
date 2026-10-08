@@ -9,8 +9,8 @@ Features are implemented and pushed individually in this order. Each implementat
 | 3 | Timeline thumbnails | Implemented |
 | 4 | Merge clips | Implemented |
 | 5 | Playback speed with pitch preservation | Implemented |
-| 6 | Fades and transitions | Next |
-| 7 | Audio cleanup and equalizer | Planned |
+| 6 | Fades and transitions | Implemented |
+| 7 | Audio cleanup and equalizer | Next |
 | 8 | Subtitles | Planned |
 | 9 | Text and watermarks | Planned |
 | 10 | Rotate, flip, resize | Planned |

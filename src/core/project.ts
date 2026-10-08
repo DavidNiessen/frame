@@ -24,6 +24,8 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   if (!Array.isArray(e.cuts) || e.cuts.length > 1000 || !Array.isArray(e.splits) || e.splits.length > 1000) return fail();
   const c = e.crop === null ? null : record(e.crop);
   const edit: EditSettings = {
+    audioFadeIn: e.audioFadeIn === undefined ? 0 : number(e.audioFadeIn), audioFadeOut: e.audioFadeOut === undefined ? 0 : number(e.audioFadeOut),
+    videoFadeIn: e.videoFadeIn === undefined ? 0 : number(e.videoFadeIn), videoFadeOut: e.videoFadeOut === undefined ? 0 : number(e.videoFadeOut),
     speed: e.speed === undefined ? 1 : number(e.speed), preservePitch: e.preservePitch === undefined ? true : boolean(e.preservePitch),
     start: number(e.start), end: number(e.end), volume: number(e.volume),
     cuts: e.cuts.map(value => { const r = record(value); return { start: number(r.start), end: number(r.end) }; }),
