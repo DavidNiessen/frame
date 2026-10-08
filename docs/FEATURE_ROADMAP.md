@@ -17,5 +17,5 @@ Features are implemented and pushed individually in this order. Each implementat
 | 11 | Color adjustments and LUTs | Implemented |
 | 12 | Reviewed silence removal | Implemented |
 | 13 | Export size estimation and target-size mode | Implemented |
-| 14 | Autosave and recovery | Next |
-| 15 | Desktop acceleration and preview proxies | Planned |
+| 14 | Autosave and recovery | Implemented |
+| 15 | Desktop acceleration and preview proxies | Next |

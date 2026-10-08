@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createProject, matchSources, parseProject, projectFilename, type ProjectDocument } from '../core/project';
 import type { Editor } from './useEditor';
 export function useProjects(editor: Editor) {
+  const [restoreGeneration, setRestoreGeneration] = useState(0);
   const [name, setName] = useState('');
   const [pending, setPending] = useState<ProjectDocument | null>(null);
   const [overrides, setOverrides] = useState<Record<number, string>>({});
@@ -16,7 +17,7 @@ export function useProjects(editor: Editor) {
   async function open(file: File) {
     if (editor.busy || saving) return;
     try {
-      if (file.size > 5 * 1024 * 1024) throw new Error('Project files must be smaller than 5 MB.');
+      if (file.size > 16 * 1024 * 1024) throw new Error('Project files must be smaller than 16 MB.');
       const project = parseProject(JSON.parse(await file.text()));
       setError(''); setOverrides({}); setPending(project);
     } catch (error) { report(error); }
@@ -42,10 +43,10 @@ export function useProjects(editor: Editor) {
     if (!pending || !canRestore || editor.busy) return;
     try {
       editor.restoreEdits(pending.sources.map((entry, index) => ({ id: links[index]!, edit: entry.edit })), links[pending.selectedSource]!);
-      setName(pending.name); setPending(null); editor.setNotice('Project opened. Your saved edits are ready.');
+      setName(pending.name); setPending(null); setRestoreGeneration(n => n + 1); editor.setNotice('Project opened. Your saved edits are ready.');
     } catch (error) { report(error); }
   }
-  return { name, pending, links, saving, canRestore, error, open, save, restore,
+  return { restoreGeneration, loadDocument: (project: ProjectDocument) => { setError(''); setOverrides({}); setPending(parseProject(project)); }, name, pending, links, saving, canRestore, error, open, save, restore,
     close: () => setPending(null), link: (index: number, id: string) => setOverrides(current => ({ ...current, [index]: id })) };
 }
 export type Projects = ReturnType<typeof useProjects>;

@@ -99,3 +99,14 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.getByRole('button', { name: 'Export FLAC', exact: true })).toBeEnabled();
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
 });
+
+test('recovers desktop recipes after restarting the same profile', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-recovery-test-')); const executablePath = process.env.FRAME_TEST_EXECUTABLE;
+  const launch = () => _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  let app = await launch();
+  try {
+    let page = await app.firstWindow(); await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByLabel('Trim start', { exact: true }).fill('1'); await page.getByLabel('Trim end').fill('2'); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
+    await app.close(); app = await launch(); page = await app.firstWindow(); await expect(page.getByRole('button', { name: 'Recover workspace' })).toBeVisible();
+    await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByRole('button', { name: 'Recover workspace' }).click(); await page.getByRole('button', { name: 'Restore edits' }).click(); await expect(page.getByLabel('Trim start', { exact: true })).toHaveValue('1'); await expect(page.getByLabel('Trim end')).toHaveValue('2');
+  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+});
