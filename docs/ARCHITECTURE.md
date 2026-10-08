@@ -1,0 +1,46 @@
+# Architecture
+
+The renderer is shared by Electron and the web. Core logic has no dependency on React, Electron, the filesystem, or WebAssembly.
+
+```text
+src/core       Media assets, edit recipes, formats, probe interpretation, timeline rules
+src/engines    MediaEngine interface adapters: browser worker or desktop bridge
+src/hooks      Application state, per-asset undo/redo, theme preference
+src/components Focused editing and export components
+src/styles     Tokens, layout, editing surface, controls
+
+electron       Sandboxed preload, main-process IPC, portable native tool adapter
+scripts        Asset preparation, development startup, bundling, package verification
+```
+
+## Edit model
+
+A source asset has metadata and an opaque ID. Its recipe records source trim boundaries, split markers, removed ranges, crop geometry, gain, output format, and encoder options. `keptRanges` merges overlapping removals and finds the retained source ranges. Splits change selection boundaries; they only change the output after a section is removed.
+
+`buildExportArgs` validates the recipe and returns an argument array. Single-range output uses accurate FFmpeg seeking/re-encoding. Multiple retained sections use trim/atrim, timestamp resets, and concat. Both engines execute exactly this plan. Embedded artwork uses a separate unseeked input so trimming audio does not discard the single image packet.
+
+The application owns the media library and bounded per-asset undo/redo histories. The interface sends edit patches rather than constructing FFmpeg commands. Exports use a snapshot of the selected recipe. Imports and exports are serialized by application state, and exports can be cancelled.
+
+## Desktop boundary
+
+The preload exposes only import, sample import, export, cancellation, release, and progress subscription. It does not expose Node.js or arbitrary IPC. File-drop paths are derived from real File objects in the isolated preload. Main-process requests are accepted only from the application's main frame; source paths are stored behind opaque IDs. The renderer cannot choose an arbitrary input or output path for FFmpeg.
+
+Native tools run through `spawn` with arrays, never a shell. The app imports platform-specific FFmpeg and FFprobe packages and resolves paths outside ASAR before execution. FFprobe discovers stream capabilities. Export destinations come from the native save dialog. Output is written beside the destination under a temporary filename and moved only after encoding succeeds; failed/cancelled jobs clean up that temporary file. The sample is an external resource because native subprocesses cannot read inside ASAR.
+
+The window uses context isolation, renderer sandboxing, disabled Node integration, a content security policy, denied new windows/navigation, and denied browser permission requests. The preview protocol serves only registered assets.
+
+## Web boundary
+
+The FFmpeg WebAssembly adapter and its worker load on first use. Core files are copied from the lockfile-installed package and hosted by the application. Files remain in a renderer-owned map; temporary worker filesystem files are removed after probing/export. Blob URLs are released when library items or export results are removed. Cancellation terminates the worker; a later job reloads the engine without losing imported source Files.
+
+Core 0.12 returns `-1` when FFprobe returns normally without updating its exit sentinel. Imports accept that sentinel only with fresh JSON output and validated stream/duration data; FFprobe's explicit error section is rejected. This compatibility behavior is exercised by valid and corrupt browser imports.
+
+## Extending
+
+- **Output formats:** add a format descriptor in `src/core/formats.ts`, its type ID, and any necessary encoder options in the planner. Verify native and browser codec support with real output tests before advertising it.
+- **Editing operations:** add serializable recipe data, validation/planning, and a focused control component. Engines stay unchanged when the operation maps to FFmpeg arguments.
+- **Media kinds:** add the kind and metadata, supported import/probe handling, appropriate preview/control components, and capability-aware format filtering.
+- **Alternative engines:** implement `MediaEngine` and select it in `src/engines/index.ts`. Platform-specific options should be represented by capabilities and only shown when supported.
+- **Future composition:** evolve the recipe into source-referenced clips/tracks before adding multitrack mixing. Keep timeline algebra independent of playback and UI rendering.
+
+Files should remain focused on one responsibility. There is no untrusted plugin loader in this version; extension points are source-level modules.

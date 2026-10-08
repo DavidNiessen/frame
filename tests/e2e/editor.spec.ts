@@ -101,3 +101,34 @@ test('rejects corrupt imports and recovers with a valid file', async ({ page }) 
   await page.getByRole('button', { name: 'Try a sample' }).click();
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
 });
+test('cancels browser processing and can export again', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try a sample' }).click();
+  await page.getByLabel('Trim start', { exact: true }).waitFor();
+  await page.getByLabel('Output format').selectOption('gif');
+  await page.getByRole('button', { name: 'Export GIF', exact: true }).click();
+  await page.getByRole('button', { name: 'Cancel export' }).click();
+  await expect(page.getByRole('status')).toContainText('Export cancelled.');
+  await page.getByLabel('Trim end').fill('0.5');
+  await page.getByLabel('Output format').selectOption('mp4');
+  await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
+});
+test('imports WAV audio and converts it to FLAC', async ({ page }, testInfo) => {
+  const { default: ffmpeg } = await import('ffmpeg-static');
+  const wav = testInfo.outputPath('tone.wav');
+  await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', wav]);
+  await page.goto('/');
+  await page.getByLabel('Choose media files').setInputFiles(wav);
+  await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
+  await expect(page.locator('audio')).toHaveJSProperty('readyState', 4);
+  await expect(page.getByRole('button', { name: '1:1', exact: true })).toHaveCount(0);
+  await page.getByLabel('Output format').selectOption('flac');
+  await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
+  const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file' }).click();
+  const output = testInfo.outputPath('tone.flac'); await (await pending).saveAs(output);
+  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', output]);
+  const info = JSON.parse(stdout);
+  expect(info.streams[0].codec_name).toBe('flac'); expect(Number(info.format.duration)).toBeCloseTo(2, 1);
+});

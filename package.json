@@ -12,10 +12,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "build": "npm run typecheck && vite build && node scripts/build-electron.mjs",
+    "build": "npm run typecheck && node scripts/prepare-assets.mjs && vite build && node scripts/build-electron.mjs",
     "preview": "vite preview --host 0.0.0.0",
-    "package": "npm run build && electron-builder",
-    "package:dir": "npm run build && electron-builder --dir"
+    "package": "npm run build && electron-builder --publish never",
+    "package:dir": "npm run build && electron-builder --dir --publish never",
+    "test:desktop": "npm run build && playwright test --config playwright.electron.config.ts"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",
@@ -72,6 +73,25 @@
         "AppImage"
       ],
       "category": "AudioVideo"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "public/sample.mp4",
+        "to": "sample.mp4"
+      },
+      {
+        "from": "public/notices",
+        "to": "notices"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "beforePack": "scripts/verify-package.cjs",
+    "icon": "build/icon.png"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

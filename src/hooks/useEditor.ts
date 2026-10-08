@@ -3,7 +3,8 @@ import { createEngine } from '../engines';
 import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type MediaAsset, type MediaEngine } from '../core/types';
 import { validateEdit } from '../core/export-plan';
 interface History { past: EditSettings[]; present: EditSettings; future: EditSettings[] }
-const messageOf = (error: unknown) => error instanceof Error ? error.message : String(error);
+const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
+  .replace(/^Error invoking remote method '[^']+': (Error: )?/, '').slice(0, 600);
 export function useEditor() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [selected, setSelected] = useState<string | null>(null);

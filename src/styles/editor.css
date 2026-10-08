@@ -60,12 +60,12 @@
 .timeline-ruler { display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 9px; color: var(--quiet); margin-bottom: 17px; }
 .timeline-track { position: relative; height: 59px; border: 1px solid var(--border-soft); border-radius: 5px; background: var(--stage); margin-bottom: 9px; }
 .track-baseline { position: absolute; height: 1px; background: var(--border); left: 0; right: 0; top: 50%; }
-.timeline-clip { position: absolute; height: 100%; top: 0; background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 4px; overflow: hidden; padding: 10px 9px; text-align: left; color: var(--accent-text); min-width: 2px; }
+.timeline-clip { position: absolute; height: 100%; top: 0; background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 4px; overflow: hidden; padding: 0; text-align: left; color: var(--accent-text); min-width: 2px; }
 .timeline-clip.active { border-color: var(--accent); }
 .timeline-clip.audio { background: var(--audio-dim); color: var(--audio); border-color: color-mix(in srgb, var(--audio) 40%, var(--border)); }
 .timeline-clip.audio.active { border-color: var(--audio); }
-.clip-text { display: block; font-size: 9px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.clip-lines { display: block; margin-top: 10px; height: 12px; opacity: .35; background: repeating-linear-gradient(90deg, currentColor 0, currentColor 1px, transparent 1px, transparent 8px); mask-image: linear-gradient(transparent, #000, transparent); }
+.clip-text { padding: 10px 9px 0; display: block; font-size: 9px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.clip-lines { display: block; margin: 10px 9px 0; height: 12px; opacity: .35; background: repeating-linear-gradient(90deg, currentColor 0, currentColor 1px, transparent 1px, transparent 8px); mask-image: linear-gradient(transparent, #000, transparent); }
 .playhead { position: absolute; top: -12px; bottom: -5px; width: 1px; background: var(--text); pointer-events: none; z-index: 2; }
 .playhead > span { display: block; width: 9px; height: 10px; background: var(--text); margin-left: -4px; clip-path: polygon(0 0,100% 0,100% 60%,50% 100%,0 60%); }
 .seek-slider { width: 100%; display: block; }

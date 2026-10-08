@@ -38,6 +38,16 @@ describe('portable native media engine', () => {
       expect(video.width).toBe(320); expect(video.height).toBe(180);
     } else expect(info.streams.some((s: { codec_type: string }) => s.codec_type === 'audio')).toBe(true);
   });
+  it('crops autorotated phone footage in displayed coordinates', async () => {
+    const rotated = join(directory, 'rotated.mp4');
+    await exec(ffmpegPath(), ['-y', '-display_rotation', '90', '-i', source, '-c', 'copy', rotated]);
+    const phone: MediaAsset = { ...await probeFile(rotated), id: 'phone', name: 'phone.mp4', previewUrl: '' };
+    expect([phone.width, phone.height]).toEqual([360, 640]);
+    const output = join(directory, 'phone-crop.mp4');
+    await transcode(rotated, output, phone, { ...defaultSettings(phone), end: 1, crop: { x: 100, y: 400, width: 200, height: 200 } }, () => {}).done;
+    const info = await inspect(output);
+    expect([info.streams[0].width, info.streams[0].height]).toEqual([200, 200]);
+  });
   it('joins retained video and audio sections after removal', async () => {
     const output = join(directory, 'cut.mp4');
     await transcode(source, output, asset, { ...defaultSettings(asset), start: 1, end: 5, cuts: [{ start: 2, end: 4 }] }, () => {}).done;

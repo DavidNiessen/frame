@@ -24,9 +24,11 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   validateEdit(asset, edit);
   const format = getFormat(edit.format);
   const artwork = format.kind === 'audio' && edit.includeArtwork && format.artwork && asset.artworkIndex !== undefined;
-  const args = ['-y', '-ss', String(edit.start), '-i', input, '-t', String(editedDuration(edit)), '-map_metadata', edit.keepMetadata ? '0' : '-1'];
+  // Limit decoding to the source selection, including palette generation for GIF.
+  const args = ['-y', '-ss', String(edit.start), '-t', String(edit.end - edit.start), '-i', input];
   // An unseeked second input keeps the single artwork packet when audio is trimmed.
-  if (artwork) args.splice(5, 0, '-i', input);
+  if (artwork) args.push('-i', input);
+  args.push('-t', String(editedDuration(edit)), '-map_metadata', edit.keepMetadata ? '0' : '-1');
   args.push('-filter_threads', '2', '-filter_complex_threads', '1');
   const videoFilters: string[] = [];
   if (edit.crop && format.kind === 'video') {

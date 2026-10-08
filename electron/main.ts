@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, net, protocol, type IpcMainInvokeE
 import { join, basename, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { rename, rm, stat } from 'node:fs/promises';
+import { rename, rm, stat, realpath } from 'node:fs/promises';
 import type { ChildProcess } from 'node:child_process';
 import { probeFile, transcode } from './native';
 import { outputName, validateEdit } from '../src/core/export-plan';
@@ -27,7 +27,7 @@ async function importPaths(paths: string[]) {
   return imported.map(item => item.asset);
 }
 function createWindow() {
-  mainWindow = new BrowserWindow({ width: 1440, height: 960, minWidth: 760, minHeight: 600, backgroundColor: '#101311', title: 'Frame',
+  mainWindow = new BrowserWindow({ width: 1440, height: 960, minWidth: 760, minHeight: 600, backgroundColor: '#101311', title: 'Frame', icon: app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(__dirname, '../build/icon.png'),
     webPreferences: { preload: join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
   mainWindow.setMenuBarVisibility(false);
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -61,7 +61,7 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('media:sample', async event => {
     trusted(event);
-    return importPaths([join(__dirname, '../', app.isPackaged ? 'dist' : 'public', 'sample.mp4')]);
+    return importPaths([app.isPackaged ? join(process.resourcesPath, 'sample.mp4') : join(__dirname, '../public/sample.mp4')]);
   });
   ipcMain.handle('media:release', (event, id: string) => { trusted(event); if (!exporting) assets.delete(id); });
   ipcMain.on('media:cancel', event => { trusted(event); currentProcess?.kill(); });
@@ -76,7 +76,10 @@ app.whenReady().then(() => {
     try {
       const destination = await dialog.showSaveDialog(mainWindow!, { defaultPath: outputName(item.asset.name, settings.format), filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }] });
       if (destination.canceled || !destination.filePath) return null;
-      if (destination.filePath === item.path) throw new Error('Choose a different output path to preserve the original.');
+      const sourcePath = await realpath(item.path);
+      const destinationPath = await realpath(destination.filePath).catch(() => destination.filePath!);
+      const comparable = (path: string) => process.platform === 'win32' ? path.toLowerCase() : path;
+      if (comparable(destinationPath) === comparable(sourcePath)) throw new Error('Choose a different output path to preserve the original.');
       temporary = join(dirname(destination.filePath), `.frame-${randomUUID()}.${settings.format}`);
       const job = transcode(item.path, temporary, item.asset, settings, ratio => {
         if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Encoding your media…' });

@@ -1,0 +1,40 @@
+import { test, expect, _electron } from '@playwright/test';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { mkdtemp, rm, readdir } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import ffprobe from '@ffprobe-installer/ffprobe';
+const exec = promisify(execFile);
+test('runs the desktop editor and portable media tools with an empty PATH', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-desktop-test-'));
+  const executablePath = process.env.FRAME_TEST_EXECUTABLE;
+  const args = [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])];
+  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args, env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  try {
+    const page = await app.firstWindow();
+    expect(await page.evaluate(() => Boolean(window.frameDesktop))).toBe(true);
+    await page.getByRole('button', { name: /Start with a sample/ }).click();
+    await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
+    await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await page.getByLabel('Trim start', { exact: true }).fill('1');
+    await page.getByLabel('Trim end').fill('2');
+    await page.getByLabel('Output format').selectOption('flac');
+    const output = join(directory, 'output.flac');
+    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
+    await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+    await expect(page.getByText('Export ready', { exact: true })).toBeVisible();
+    const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', output], { env: { ...process.env, PATH: '' } });
+    const info = JSON.parse(stdout);
+    expect(info.streams[0].codec_name).toBe('flac');
+    expect(Number(info.format.duration)).toBeCloseTo(1, 1);
+    expect((await readdir(directory)).some(name => name.startsWith('.frame-'))).toBe(false);
+    const source = await app.evaluate(({ app }) => app.isPackaged ? app.getAppPath().replace(/[/\\]app\.asar$/, '') + '/sample.mp4' : app.getAppPath() + '/public/sample.mp4');
+    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, source);
+    await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+    await expect(page.getByRole('status')).toContainText('Choose a different output path');
+    await app.evaluate(({ dialog }) => { dialog.showSaveDialog = async () => ({ canceled: true, filePath: '' }); });
+    await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Export FLAC', exact: true })).toBeEnabled();
+  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+});
