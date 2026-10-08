@@ -1,3 +1,4 @@
+import { frameDimensions } from './geometry';
 import { filterPath, type RecipeResources } from './resources';
 import type { MediaAsset, EditSettings } from './types';
 export interface Overlays { text: string; x: number; y: number; size: number; color: string; opacity: number; image: string | null; imageWidth: number }
@@ -13,14 +14,14 @@ export function overlayFilters(asset: MediaAsset, edit: EditSettings, paths: Rec
   const o = edit.overlays; const filters: string[] = [];
   if (o.text) filters.push(`subtitles=filename=${filterPath(paths.text)}:fontsdir=${filterPath(paths.fonts)}`);
   if (o.image) {
-    const id = paths.image.replace(/[^a-z0-9]/gi, ''); const width = Math.max(1, Math.round((edit.crop?.width ?? asset.width ?? 640) * o.imageWidth / 100));
+    const id = paths.image.replace(/[^a-z0-9]/gi, ''); const width = Math.max(1, Math.round(frameDimensions(asset, edit).width * o.imageWidth / 100));
     filters.push(`null[base${id}];movie=filename=${filterPath(paths.image)}:dec_threads=1,scale=${width}:-1,format=rgba,colorchannelmixer=aa=${o.opacity}[mark${id}];[base${id}][mark${id}]overlay=x=(W-w)*${o.x / 100}:y=(H-h)*${o.y / 100}:eof_action=repeat`);
   }
   return filters;
 }
 
 export function textAss(edit: EditSettings, asset?: MediaAsset): string {
-  const o = edit.overlays; const width = edit.crop?.width ?? asset?.width ?? 640, height = edit.crop?.height ?? asset?.height ?? 360;
+  const o = edit.overlays; const { width, height } = asset ? frameDimensions(asset, edit) : { width: 640, height: 360 };
   const color = `&H${Math.round((1 - o.opacity) * 255).toString(16).padStart(2, '0')}${o.color.slice(5, 7)}${o.color.slice(3, 5)}${o.color.slice(1, 3)}`;
   const alignment = (o.y < 50 ? 6 : 0) + (o.x < 50 ? 1 : 3);
   const text = o.text.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}').replace(/\r/g, '').replace(/\n/g, '\\N');

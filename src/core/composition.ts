@@ -1,3 +1,4 @@
+import { frameDimensions } from './geometry';
 import { resourcePaths, type RecipeResources } from './resources';
 import { outputCues, subtitleCodec, type SubtitleCue } from './subtitles';
 import { defaultTransition, validateTransition, type TransitionSettings } from './transitions';
@@ -12,7 +13,7 @@ export function compositionAsset(clips: MediaClip[], transition: TransitionSetti
   if (!clips.length || clips.length > 100) throw new Error('Choose 1–100 clips.');
   clips.forEach(clip => validateEdit(clip.asset, clip.edit));
   const blend = validateTransition(clips, transition);
-  const first = clips[0]; const width = first.edit.crop?.width ?? first.asset.width; const height = first.edit.crop?.height ?? first.asset.height;
+  const first = clips[0]; const { width, height } = frameDimensions(first.asset, first.edit);
   return { id: 'composition', name: 'Merged clips', previewUrl: '', size: clips.reduce((n, c) => n + c.asset.size, 0),
     kind: clips.every(c => c.asset.kind === 'video') ? 'video' : 'audio', hasAudio: clips.some(c => c.asset.hasAudio),
     duration: clips.reduce((n, c) => n + editedDuration(c.edit), 0) - (blend.type === 'fade' ? blend.duration * (clips.length - 1) : 0), width: width ? Math.floor(width / 2) * 2 : undefined, height: height ? Math.floor(height / 2) * 2 : undefined };

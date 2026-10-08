@@ -4,6 +4,7 @@ import type { EditSettings, MediaAsset } from '../core/types';
 import { nextPlayableTime } from '../core/timeline';
 import { time } from '../core/format';
 import { applyPreviewEffects, usePreviewEffects, pauseOtherMedia } from '../hooks/usePreviewEffects';
+import { frameDimensions, geometryPreview } from '../core/geometry';
 import { OverlayPreview } from './OverlayPreview';
 import { CropOverlay } from './CropOverlay';
 export function Preview({ asset, edit, mediaRef, current, setCurrent, update, disabled }: {
@@ -12,6 +13,7 @@ export function Preview({ asset, edit, mediaRef, current, setCurrent, update, di
 }) {
   const [playing, setPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
+  const dimensions = edit.crop ? { width: asset.width ?? 640, height: asset.height ?? 360 } : frameDimensions(asset, edit);
   const gif = /\.gif$/i.test(asset.name);
   useEffect(() => { setFailed(false); setPlaying(false); setCurrent(edit.start); }, [asset.id]); // Source changes reset playback.
   usePreviewEffects(mediaRef, edit, playing, current, asset.id);
@@ -42,8 +44,8 @@ export function Preview({ asset, edit, mediaRef, current, setCurrent, update, di
   return <section className="preview-panel">
     <div className="workspace-heading"><div><span className="eyebrow">Preview</span><h2 title={asset.name}>{asset.name}</h2></div><span className="badge">{asset.kind === 'video' ? `${asset.width} × ${asset.height}` : 'Audio'} <span>·</span> {time(asset.duration)}</span></div>
     <div className={`preview-stage ${asset.kind === 'audio' ? 'audio-stage' : ''}`}>
-      {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${asset.width ?? 16} / ${asset.height ?? 9}`, maxWidth: `${370 * (asset.width ?? 16) / (asset.height ?? 9)}px` }}>
-        {gif ? <img src={asset.previewUrl} alt="Animated source preview" /> : <video ref={node => { mediaRef.current = node; }} src={asset.previewUrl} {...mediaEvents} playsInline preload="metadata" />}
+      {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}`, maxWidth: `${370 * dimensions.width / dimensions.height}px` }}>
+        {gif ? <img style={geometryPreview(asset, edit)} src={asset.previewUrl} alt="Animated source preview" /> : <video style={geometryPreview(asset, edit)} ref={node => { mediaRef.current = node; }} src={asset.previewUrl} {...mediaEvents} playsInline preload="metadata" />}
         <OverlayPreview edit={edit} asset={asset} />
         {edit.subtitles.mode !== 'none' && <div className="caption-preview">{edit.subtitles.cues.filter(c => current >= c.start && current < c.end).map((c, i) => <span key={i}>{c.text}</span>)}</div>}
         {edit.crop && asset.width && asset.height && <CropOverlay crop={edit.crop} width={asset.width} height={asset.height} disabled={disabled} onChange={crop => update({ crop })} />}

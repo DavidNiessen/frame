@@ -13,8 +13,8 @@ Features are implemented and pushed individually in this order. Each implementat
 | 7 | Audio cleanup and equalizer | Implemented |
 | 8 | Subtitles | Implemented |
 | 9 | Text and watermarks | Implemented |
-| 10 | Rotate, flip, resize | Next |
-| 11 | Color adjustments and LUTs | Planned |
+| 10 | Rotate, flip, resize | Implemented |
+| 11 | Color adjustments and LUTs | Next |
 | 12 | Reviewed silence removal | Planned |
 | 13 | Export size estimation and target-size mode | Planned |
 | 14 | Autosave and recovery | Planned |
