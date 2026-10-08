@@ -28,5 +28,5 @@ export function createProxies(assets: Map<string, { path: string; asset: MediaAs
   });
   const release = async (id: string) => { const entry = entries.get(id); if (!entry) return; await rm(entry.directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); entries.delete(id); };
   ipcMain.handle('media:release-proxy', (event, id: string) => { trusted(event); return release(id); });
-  return { path: (id: string) => entries.get(id)?.path, releaseAsset: async (source: string) => { for (const [id, entry] of entries) if (entry.source === source) await release(id).catch(() => {}); }, clear: () => { for (const entry of entries.values()) { try { rmSync(entry.directory, { recursive: true, force: true, maxRetries: 3 }); } catch { /* OS may still hold a closing preview stream. */ } } entries.clear(); } };
+  return { path: (id: string) => entries.get(id)?.path, releaseAsset: async (source: string) => { for (const [id, entry] of entries) if (entry.source === source) await release(id).catch(() => {}); }, clear: () => { for (const [id, entry] of entries) { try { rmSync(entry.directory, { recursive: true, force: true, maxRetries: 3 }); entries.delete(id); } catch { /* Keep the entry so window-close cleanup can retry a held stream. */ } } } };
 }

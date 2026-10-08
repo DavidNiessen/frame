@@ -24,3 +24,7 @@ export async function hardwareFallback(software: string[], hardware: string[] | 
   if (hardware) { try { await execute(hardware); return; } catch (error) { if (cancelled()) throw error; } }
   if (cancelled()) throw new Error('Processing cancelled.'); await execute(software);
 }
+
+export function hardwareBitrate(width: number, height: number, quality: 'high' | 'balanced' | 'small'): number {
+  return Math.max(300, Math.round(width * height * 30 * ({ high: .12, balanced: .07, small: .035 }[quality]) / 1000));
+}

@@ -1,3 +1,4 @@
+import { hardwareBitrate } from '../src/core/hardware';
 import { encodeNative } from './acceleration';
 import { withResources } from './resources';
 import { serializeSrt } from '../src/core/subtitles';
@@ -29,7 +30,7 @@ export function registerMerge(assets: Map<string, { path: string; asset: MediaAs
       try {
         await withResources(clips.map(c => c.edit), async (paths, directory) => {
           const captions = join(directory, 'merged.srt'); await writeFile(captions, serializeSrt(mergedCues(clips, transition)));
-          await encodeNative(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions), asset.duration, settings.acceleration, Math.max(1000, (asset.width ?? 640) * (asset.height ?? 360) * 30 * .07 / 1000), execute, jobs, (ratio, message) => {
+          await encodeNative(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions), asset.duration, settings.acceleration, hardwareBitrate(asset.width ?? 640, asset.height ?? 360, settings.quality), execute, jobs, (ratio, message) => {
             if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
           });
         }, clips.map(c => c.asset));
