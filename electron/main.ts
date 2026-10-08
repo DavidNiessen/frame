@@ -6,7 +6,8 @@ import { rename, rm, stat, realpath } from 'node:fs/promises';
 import type { ChildProcess } from 'node:child_process';
 import { createBatchFolders } from './batch';
 import { registerProjectSaving } from './projects';
-import { probeFile, transcode } from './native';
+import { probeFile, transcode, runFfmpeg } from './native';
+import { waveformArgs, WaveformCollector } from '../src/core/waveform';
 import { outputName, validateEdit } from '../src/core/export-plan';
 import { supportedExtensions, type EditSettings, type MediaAsset } from '../src/core/types';
 
@@ -65,6 +66,20 @@ app.whenReady().then(() => {
   ipcMain.handle('media:sample', async event => {
     trusted(event);
     return importPaths([app.isPackaged ? join(process.resourcesPath, 'sample.mp4') : join(__dirname, '../public/sample.mp4')]);
+  });
+  ipcMain.handle('media:waveform', async (event, id: string) => {
+    trusted(event);
+    if (exporting) throw new Error('Wait for processing to finish.');
+    const item = assets.get(id); if (!item) throw new Error('Import the source file again.');
+    exporting = true;
+    try {
+      const collector = new WaveformCollector();
+      const job = runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration,
+        ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Reading audio peaks…' }); }, line => collector.push(line));
+      currentProcess = job.child; await job.done;
+      if (!collector.points.length) throw new Error('No audio peaks could be read.');
+      return collector.points;
+    } finally { currentProcess = null; exporting = false; }
   });
   ipcMain.handle('media:release', (event, id: string) => { trusted(event); if (!exporting) assets.delete(id); });
   ipcMain.on('media:cancel', event => { trusted(event); currentProcess?.kill(); });

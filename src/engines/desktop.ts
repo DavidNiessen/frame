@@ -10,6 +10,10 @@ export function createDesktopEngine(): MediaEngine {
       const remove = bridge.onProgress(onProgress);
       try { return await bridge.export(asset.id, settings, batchToken); } finally { remove(); }
     },
+    async waveform(asset, onProgress) {
+      const remove = bridge.onProgress(onProgress);
+      try { return await bridge.waveform(asset.id); } finally { remove(); }
+    },
     beginBatch: () => bridge.beginBatch(),
     endBatch: token => bridge.endBatch(token),
     cancel: () => bridge.cancel(),

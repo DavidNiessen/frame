@@ -10,7 +10,7 @@ export function useEditor() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [histories, setHistories] = useState<Record<string, History>>({});
-  const [busy, setBusy] = useState<'import' | 'export' | 'batch' | null>(null);
+  const [busy, setBusy] = useState<'import' | 'export' | 'batch' | 'analysis' | null>(null);
   const [notice, setNotice] = useState('');
   const [progress, setProgress] = useState<ExportProgress | null>(null);
   const [result, setResult] = useState<ExportResult | null>(null);
@@ -100,7 +100,7 @@ export function useEditor() {
     });
     setSelected(selectedId);
   }
-  async function runExclusive<T>(kind: 'batch', task: (engine: MediaEngine) => Promise<T>): Promise<T> {
+  async function runExclusive<T>(kind: 'batch' | 'analysis', task: (engine: MediaEngine) => Promise<T>): Promise<T> {
     if (busyRef.current) throw new Error('Wait for processing to finish.');
     busyRef.current = true; setBusy(kind);
     try { return await task(await engine()); }

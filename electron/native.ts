@@ -27,7 +27,10 @@ export async function probeFile(path: string) {
 }
 
 export function transcode(input: string, output: string, asset: MediaAsset, edit: EditSettings, progress: (ratio: number) => void): { child: ChildProcess; done: Promise<void> } {
-  const args = ['-hide_banner', '-nostdin', '-progress', 'pipe:1', '-nostats', ...buildExportArgs(asset, edit, input, output)];
+  return runFfmpeg(buildExportArgs(asset, edit, input, output), editedDuration(edit), progress);
+}
+export function runFfmpeg(plan: string[], duration: number, progress: (ratio: number) => void, onLog?: (line: string) => void): { child: ChildProcess; done: Promise<void> } {
+  const args = ['-hide_banner', '-nostdin', '-progress', 'pipe:1', '-nostats', '-filter_threads', '2', '-filter_complex_threads', '2', '-threads', '2', ...plan];
   const child = spawn(ffmpegPath(), args, { windowsHide: true });
   let errors = ''; let pending = '';
   child.stdout!.on('data', data => {
@@ -35,10 +38,15 @@ export function transcode(input: string, output: string, asset: MediaAsset, edit
     const lines = pending.split('\n'); pending = lines.pop()!;
     for (const line of lines) if (line.startsWith('out_time_us=')) {
       const value = Number(line.split('=')[1]);
-      if (Number.isFinite(value)) progress(Math.min(0.99, Math.max(0, value / 1e6 / editedDuration(edit))));
+      if (Number.isFinite(value)) progress(Math.min(0.99, Math.max(0, value / 1e6 / duration)));
     }
   });
-  child.stderr!.on('data', data => { errors = (errors + data).slice(-8000); });
+  let logBuffer = '';
+  child.stderr!.on('data', data => {
+    errors = (errors + data).slice(-8000); logBuffer += data;
+    const lines = logBuffer.split('\n'); logBuffer = lines.pop()!;
+    for (const line of lines) onLog?.(line);
+  });
   const done = new Promise<void>((resolve, reject) => {
     child.on('error', reject);
     child.on('close', (code, signal) => code === 0 ? resolve() : reject(new Error(signal || child.killed ? 'Export cancelled.' : errors || `FFmpeg exited with code ${code}.`)));

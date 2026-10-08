@@ -1,3 +1,4 @@
+import { waveformArgs, WaveformCollector } from '../core/waveform';
 import { editedDuration } from '../core/timeline';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { buildExportArgs, outputName } from '../core/export-plan';
@@ -89,6 +90,18 @@ export function createBrowserEngine(): MediaEngine {
           await ff.deleteFile(output).catch(() => {});
         }
       }
+    },
+    async waveform(asset, onProgress) {
+      const source = files.get(asset.id); if (!source) throw new Error('Import the source file again.');
+      const ff = await ready(); const input = `analysis-${asset.id}`; const collector = new WaveformCollector(); const messages: string[] = [];
+      const log = ({ message }: { message: string }) => { collector.push(message); messages.push(message); if (messages.length > 15) messages.shift(); };
+      const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(1, time / 1e6 / asset.duration), message: 'Reading audio peaks…' });
+      ff.on('log', log); ff.on('progress', progress);
+      try {
+        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        if (await ff.exec(waveformArgs(asset, input)) !== 0 || !collector.points.length) throw new Error(`Could not read this file’s audio waveform. ${messages.slice(-5).join(' ')}`);
+        return collector.points;
+      } finally { ff.off('log', log); ff.off('progress', progress); await ff.deleteFile(input).catch(() => {}); }
     },
     beginBatch: async () => 'web',
     endBatch: async () => {},
