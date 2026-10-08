@@ -1,10 +1,13 @@
+import { filterPath, resourcePaths, type RecipeResources } from './resources';
+import { outputCues } from './subtitles';
 import { cleanupFilters } from './audio-effects';
 import { fadeFilters } from './fades';
 import { editedDuration } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
-export function videoFilters(_asset: MediaAsset, edit: EditSettings): string[] {
+export function videoFilters(_asset: MediaAsset, edit: EditSettings, resources: RecipeResources = resourcePaths()): string[] {
   const c = edit.crop; const filters = c ? [`crop=${c.width}:${c.height}:${c.x}:${c.y}`] : [];
   if (edit.speed !== 1) filters.push(`setpts=(PTS-STARTPTS)/${edit.speed}`);
+  if (edit.subtitles.mode === 'burn' && outputCues(edit).length) filters.push(`subtitles=filename=${filterPath(resources.captions)}:fontsdir=${filterPath(resources.fonts)}:force_style='FontName=DejaVu Sans,FontSize=22'`);
   return [...filters, ...fadeFilters(edit, 'video')];
 }
 export function audioFilters(edit: EditSettings, asset?: MediaAsset): string[] {

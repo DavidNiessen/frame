@@ -1,9 +1,11 @@
+import { withResources } from './resources';
+import { serializeSrt } from '../src/core/subtitles';
 import { dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, basename } from 'node:path';
-import { realpath, rename, rm, stat } from 'node:fs/promises';
+import { realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { parseTransition } from '../src/core/transitions';
-import { buildMergeArgs, compositionAsset } from '../src/core/composition';
+import { buildMergeArgs, compositionAsset, mergedCues } from '../src/core/composition';
 import { parseEdit } from '../src/core/project';
 import { parseOutputSettings } from '../src/core/presets';
 import type { MediaAsset } from '../src/core/types';
@@ -25,9 +27,12 @@ export function registerMerge(assets: Map<string, { path: string; asset: MediaAs
       for (const source of sources) if (normalize(await realpath(source.path)) === target) throw new Error('Choose a different output path to preserve the original.');
       const temporary = join(dirname(destination.filePath), `.frame-${randomUUID()}.${settings.format}`);
       try {
-        await execute(runFfmpeg(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition), asset.duration, ratio => {
-          if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Merging your clips…' });
-        }));
+        await withResources(clips.map(c => c.edit), async (paths, directory) => {
+          const captions = join(directory, 'merged.srt'); await writeFile(captions, serializeSrt(mergedCues(clips, transition)));
+          await execute(runFfmpeg(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions), asset.duration, ratio => {
+            if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Merging your clips…' });
+          }));
+        });
         const { size } = await stat(temporary); await rename(temporary, destination.filePath);
         return { name: basename(destination.filePath), path: destination.filePath, size };
       } finally { await rm(temporary, { force: true }); }

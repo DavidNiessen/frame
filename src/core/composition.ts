@@ -1,3 +1,5 @@
+import { resourcePaths, type RecipeResources } from './resources';
+import { outputCues, subtitleCodec, type SubtitleCue } from './subtitles';
 import { defaultTransition, validateTransition, type TransitionSettings } from './transitions';
 import { getFormat } from './formats';
 import { validateEdit } from './export-plan';
@@ -15,7 +17,7 @@ export function compositionAsset(clips: MediaClip[], transition: TransitionSetti
     kind: clips.every(c => c.asset.kind === 'video') ? 'video' : 'audio', hasAudio: clips.some(c => c.asset.hasAudio),
     duration: clips.reduce((n, c) => n + editedDuration(c.edit), 0) - (blend.type === 'fade' ? blend.duration * (clips.length - 1) : 0), width: width ? Math.floor(width / 2) * 2 : undefined, height: height ? Math.floor(height / 2) * 2 : undefined };
 }
-export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition): string[] {
+export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition, resources: RecipeResources[] = clips.map((_, i) => resourcePaths(`clip${i}`)), captionPath = 'merge-captions.srt'): string[] {
   if (clips.length < 2 || inputs.length !== clips.length) throw new Error('Choose at least two clips to merge.');
   const asset = compositionAsset(clips, transition); const settings = parseOutputSettings(output); const edit = { ...defaultSettings(asset), ...settings };
   validateEdit(asset, edit); const format = getFormat(edit.format); const video = format.kind === 'video'; const audio = asset.hasAudio && edit.format !== 'gif';
@@ -30,12 +32,14 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
     });
     const stream = (type: string) => ranges.length === 1 ? `c${index}r0${type}` : `c${index}cut${type}`;
     if (ranges.length > 1 && (v || a)) graph.push(`${ranges.map((_, r) => `${v ? `[c${index}r${r}v]` : ''}${a ? `[c${index}r${r}a]` : ''}`).join('')}concat=n=${ranges.length}:v=${v ? 1 : 0}:a=${a ? 1 : 0}${v ? `[${stream('v')}]` : ''}${a ? `[${stream('a')}]` : ''}`);
-    if (v) graph.push(`[${stream('v')}]${[...videoFilters(source, recipe), `scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease`, `pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2`, 'setsar=1', 'fps=30', 'format=yuv420p', 'settb=AVTB'].join(',')}[v${index}]`);
+    if (v) graph.push(`[${stream('v')}]${[...videoFilters(source, recipe, resources[index]), `scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease`, `pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2`, 'setsar=1', 'fps=30', 'format=yuv420p', 'settb=AVTB'].join(',')}[v${index}]`);
     if (a) graph.push(`[${stream('a')}]${[...audioFilters(recipe, source), 'aresample=48000', 'aformat=sample_fmts=fltp:channel_layouts=stereo'].join(',')}[a${index}]`);
     else if (audio) graph.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${editedDuration(recipe)},asetpts=PTS-STARTPTS[a${index}]`);
   });
   const artwork = format.kind === 'audio' && format.artwork && settings.includeArtwork && clips[0].asset.artworkIndex !== undefined;
   if (artwork) args.push('-i', inputs[0]);
+  const captions = video && subtitleCodec(settings.format) && mergedCues(clips, transition).length > 0;
+  if (captions) args.push('-i', captionPath);
   if (transition.type === 'fade') {
     let elapsed = editedDuration(clips[0].edit); let v = 'v0'; let a = 'a0';
     for (let i = 1; i < clips.length; i++) {
@@ -60,7 +64,17 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
     if (audio) { args.push('-map', '[mergeda]', '-c:a', format.audioCodec!); if (!['wav', 'flac'].includes(edit.format)) args.push('-b:a', `${edit.audioBitrate}k`); }
   }
   if (artwork) { args.push('-map', `${clips.length}:${clips[0].asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic'); if (settings.format === 'mp3') args.push('-id3v2_version', '3'); }
+  if (captions) args.push('-map', `${clips.length + (artwork ? 1 : 0)}:s:0`, '-c:s', subtitleCodec(settings.format)!);
   args.push('-filter_complex', graph.join(';'), '-map_metadata', edit.keepMetadata ? '0' : '-1');
   if (['mp4', 'mov', 'm4a'].includes(edit.format)) args.push('-movflags', '+faststart');
   args.push('-t', String(asset.duration), '-threads', '2', destination); return args;
+}
+
+export function mergedCues(clips: MediaClip[], transition: TransitionSettings = defaultTransition): SubtitleCue[] {
+  let offset = 0; const cues: SubtitleCue[] = [];
+  for (const clip of clips) {
+    if (clip.edit.subtitles.mode === 'embed') cues.push(...outputCues(clip.edit).map(c => ({ ...c, start: c.start + offset, end: c.end + offset })));
+    offset += editedDuration(clip.edit) - (transition.type === 'fade' ? transition.duration : 0);
+  }
+  return cues.sort((a, b) => a.start - b.start);
 }

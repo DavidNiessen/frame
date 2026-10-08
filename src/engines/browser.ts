@@ -1,5 +1,7 @@
+import { serializeSrt } from '../core/subtitles';
+import { browserResources } from './browser-resources';
 import { previewAudioArgs } from '../core/audio-preview';
-import { buildMergeArgs, compositionAsset } from '../core/composition';
+import { buildMergeArgs, compositionAsset, mergedCues } from '../core/composition';
 import { thumbnailArgs } from '../core/thumbnails';
 import { waveformArgs, WaveformCollector } from '../core/waveform';
 import { editedDuration } from '../core/timeline';
@@ -70,13 +72,14 @@ export function createBrowserEngine(): MediaEngine {
       const ff = await ready();
       const input = `source-${asset.id}`;
       const output = `export.${settings.format}`;
+      const resources = await browserResources(ff, [settings]);
       const errors: string[] = [];
       const log = ({ message }: { message: string }) => { errors.push(message); if (errors.length > 15) errors.shift(); };
       const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(0.99, Math.max(0, time / 1e6 / editedDuration(settings))), message: 'Encoding your media locally…' });
       ff.on('progress', progress); ff.on('log', log);
       try {
         await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
-        const code = await ff.exec(buildExportArgs(asset, settings, input, output));
+        const code = await ff.exec(buildExportArgs(asset, settings, input, output, resources.paths[0]));
         if (code !== 0) throw new Error(`Export failed. ${errors.slice(-4).join(' ')}`);
         const data = await ff.readFile(output);
         if (typeof data === 'string') throw new Error('Invalid export output.');
@@ -87,7 +90,7 @@ export function createBrowserEngine(): MediaEngine {
         if (cancelled) throw new Error('Export cancelled.');
         throw error;
       } finally {
-        ff.off('progress', progress); ff.off('log', log);
+        ff.off('progress', progress); ff.off('log', log); await resources.cleanup();
         if (!cancelled) {
           await ff.deleteFile(input).catch(() => {});
           await ff.deleteFile(output).catch(() => {});
@@ -99,13 +102,15 @@ export function createBrowserEngine(): MediaEngine {
       const paths = clips.map(c => `merge-${c.asset.id}`); const output = `merged.${settings.format}`; cancelled = false;
       const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(0.99, time / 1e6 / asset.duration), message: 'Merging your clips…' });
       ff.on('progress', progress);
+      const resources = await browserResources(ff, clips.map(c => c.edit)); const captions = 'merged-captions.srt';
       try {
+        await ff.writeFile(captions, serializeSrt(mergedCues(clips, transition)));
         for (const id of inputs) { const file = files.get(id); if (!file) throw new Error('Import each merge source again.'); await ff.writeFile(`merge-${id}`, new Uint8Array(await file.arrayBuffer())); }
-        if (await ff.exec(buildMergeArgs(clips, settings, paths, output, transition)) !== 0) throw new Error('Could not merge these clips. Try a smaller selection or the desktop editor.');
+        if (await ff.exec(buildMergeArgs(clips, settings, paths, output, transition, resources.paths, captions)) !== 0) throw new Error('Could not merge these clips. Try a smaller selection or the desktop editor.');
         const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid merge output.');
         return { name: output, url: URL.createObjectURL(new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime })), size: data.length };
       } catch (error) { if (cancelled) throw new Error('Merge cancelled.'); throw error; }
-      finally { ff.off('progress', progress); for (const name of [...inputs.map(id => `merge-${id}`), output]) await ff.deleteFile(name).catch(() => {}); }
+      finally { ff.off('progress', progress); await resources.cleanup(); await ff.deleteFile(captions).catch(() => {}); for (const name of [...inputs.map(id => `merge-${id}`), output]) await ff.deleteFile(name).catch(() => {}); }
     },
     async previewAudio(asset, edit, onProgress) {
       const source = files.get(asset.id); if (!source) throw new Error('Import the source file again.');

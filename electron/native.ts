@@ -1,3 +1,4 @@
+import type { RecipeResources } from '../src/core/resources';
 import { editedDuration } from '../src/core/timeline';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { stat } from 'node:fs/promises';
@@ -26,8 +27,8 @@ export async function probeFile(path: string) {
   return { ...parseProbe(JSON.parse(metadata)), size: info.size };
 }
 
-export function transcode(input: string, output: string, asset: MediaAsset, edit: EditSettings, progress: (ratio: number) => void): { child: ChildProcess; done: Promise<void> } {
-  return runFfmpeg(buildExportArgs(asset, edit, input, output), editedDuration(edit), progress);
+export function transcode(input: string, output: string, asset: MediaAsset, edit: EditSettings, progress: (ratio: number) => void, resources?: RecipeResources): { child: ChildProcess; done: Promise<void> } {
+  return runFfmpeg(buildExportArgs(asset, edit, input, output, resources), editedDuration(edit), progress);
 }
 export function runFfmpeg(plan: string[], duration: number, progress: (ratio: number) => void, onLog?: (line: string) => void): { child: ChildProcess; done: Promise<void> } {
   const args = ['-hide_banner', '-nostdin', '-progress', 'pipe:1', '-nostats', '-filter_threads', '2', '-filter_complex_threads', '2', '-threads', '2', ...plan];

@@ -25,6 +25,15 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByLabel('Normalize loudness', { exact: true }).check();
     await page.getByRole('button', { name: 'Preview audio effects', exact: true }).click();
     await expect(page.getByLabel('Processed audio preview', { exact: true })).toHaveJSProperty('readyState', 4);
+    await page.getByText('Subtitles', { exact: true }).click();
+    await page.getByRole('button', { name: 'Add caption', exact: true }).click();
+    await page.getByLabel('Subtitle 1 text').fill('Portable caption');
+    const captionPath = join(directory, 'caption.mp4');
+    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, captionPath);
+    await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
+    await expect(page.getByText('Export ready', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Dismiss export result' }).click();
+    await page.getByLabel('Subtitle export').selectOption('none');
     await page.getByLabel('Trim start', { exact: true }).fill('1');
     await page.getByLabel('Trim end').fill('2');
     const projectPath = join(directory, 'edit.frame.json');

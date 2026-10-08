@@ -1,3 +1,4 @@
+import { withResources } from './resources';
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, type IpcMainInvokeEvent } from 'electron';
 import { join, basename, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -88,10 +89,11 @@ app.whenReady().then(() => {
       const comparable = (path: string) => process.platform === 'win32' ? path.toLowerCase() : path;
       if (comparable(destinationPath) === comparable(sourcePath)) throw new Error('Choose a different output path to preserve the original.');
       temporary = join(dirname(destination.filePath), `.frame-${randomUUID()}.${settings.format}`);
-      const job = transcode(item.path, temporary, item.asset, settings, ratio => {
-        if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Encoding your media…' });
+      await withResources([settings], async paths => {
+        await execute(transcode(item.path, temporary!, item.asset, settings, ratio => {
+          if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Encoding your media…' });
+        }, paths[0]));
       });
-      await execute(job);
       const { size } = await stat(temporary);
       const savedPath = batchToken ? await batchFolders.publish(temporary, batchToken, batchName) : destination.filePath;
       if (!batchToken) await rename(temporary, savedPath);

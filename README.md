@@ -101,3 +101,5 @@ Content-Type: application/wasm  # for .wasm files
 Vite's development and preview servers already set the isolation headers. `base: './'` permits hosting under a subdirectory; the core assets resolve relative to the page. An example Nginx configuration is in [docs/nginx.conf](docs/nginx.conf).
 
 [Architecture](docs/ARCHITECTURE.md) describes the extension points. [Cloud setup](docs/CLOUD_SETUP.md) records the validated container workflow.
+
+Subtitles: import SRT or WebVTT, edit source cue timing/text, and preview captions. Burn-in uses a bundled DejaVu Sans font on both platforms; MP4/MOV/MKV/WebM also support selectable subtitle streams. Output SRT timing follows trims, cuts and speed. Merges retain per-clip burn-in or combine embedded cues.

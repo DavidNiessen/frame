@@ -43,6 +43,7 @@ export function Preview({ asset, edit, mediaRef, current, setCurrent, update, di
     <div className={`preview-stage ${asset.kind === 'audio' ? 'audio-stage' : ''}`}>
       {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${asset.width ?? 16} / ${asset.height ?? 9}`, maxWidth: `${370 * (asset.width ?? 16) / (asset.height ?? 9)}px` }}>
         {gif ? <img src={asset.previewUrl} alt="Animated source preview" /> : <video ref={node => { mediaRef.current = node; }} src={asset.previewUrl} {...mediaEvents} playsInline preload="metadata" />}
+        {edit.subtitles.mode !== 'none' && <div className="caption-preview">{edit.subtitles.cues.filter(c => current >= c.start && current < c.end).map((c, i) => <span key={i}>{c.text}</span>)}</div>}
         {edit.crop && asset.width && asset.height && <CropOverlay crop={edit.crop} width={asset.width} height={asset.height} disabled={disabled} onChange={crop => update({ crop })} />}
       </div> : <div className="audio-preview"><span className="audio-orbit" /><span className="audio-orbit second" /><div className="audio-art"><AudioLines size={54} strokeWidth={1.25} /></div><h3>{asset.name.replace(/\.[^.]+$/, '')}</h3><p>Sound, with a little more intention.</p><audio ref={node => { mediaRef.current = node; }} src={asset.previewUrl} {...mediaEvents} preload="metadata" /></div>}
       {failed && <div className="preview-error"><p>This format cannot be previewed here.</p><span>You can still edit and convert it to MP4 or MP3.</span></div>}

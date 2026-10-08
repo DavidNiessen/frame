@@ -11,8 +11,8 @@ Features are implemented and pushed individually in this order. Each implementat
 | 5 | Playback speed with pitch preservation | Implemented |
 | 6 | Fades and transitions | Implemented |
 | 7 | Audio cleanup and equalizer | Implemented |
-| 8 | Subtitles | Next |
-| 9 | Text and watermarks | Planned |
+| 8 | Subtitles | Implemented |
+| 9 | Text and watermarks | Next |
 | 10 | Rotate, flip, resize | Planned |
 | 11 | Color adjustments and LUTs | Planned |
 | 12 | Reviewed silence removal | Planned |

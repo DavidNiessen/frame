@@ -1,3 +1,5 @@
+import { resourcePaths, type RecipeResources } from './resources';
+import { parseSubtitles, outputCues, subtitleCodec } from './subtitles';
 import { validateAudioEffects } from './audio-effects';
 import { audioFilters, videoFilters as recipeVideoFilters } from './filters';
 import { getFormat } from './formats';
@@ -5,7 +7,8 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
-  validateAudioEffects(edit);
+  validateAudioEffects(edit); parseSubtitles(edit.subtitles);
+  if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
   const format = getFormat(edit.format);
   if (![edit.start, edit.end, edit.volume, edit.audioBitrate, edit.fps].every(Number.isFinite)) throw new Error('Enter valid numeric settings.');
   if (edit.start < 0 || edit.end > asset.duration + 0.05 || edit.end - edit.start < 0.05) throw new Error('Choose a trim range of at least 0.05 seconds within the media.');
@@ -25,7 +28,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
 }
 
 /** Pure argument planning shared by native FFmpeg and WebAssembly. Never uses shell strings. */
-export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: string, output: string): string[] {
+export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: string, output: string, resources: RecipeResources = resourcePaths()): string[] {
   validateEdit(asset, edit);
   const format = getFormat(edit.format);
   const artwork = format.kind === 'audio' && edit.includeArtwork && format.artwork && asset.artworkIndex !== undefined;
@@ -33,9 +36,11 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   const args = ['-y', '-ss', String(edit.start), '-t', String(edit.end - edit.start), '-i', input];
   // An unseeked second input keeps the single artwork packet when audio is trimmed.
   if (artwork) args.push('-i', input);
+  const captions = format.kind === 'video' && edit.subtitles.mode === 'embed' && outputCues(edit).length > 0;
+  if (captions) args.push('-i', resources.captions);
   args.push('-t', String(editedDuration(edit)), '-map_metadata', edit.keepMetadata ? '0' : '-1');
   args.push('-filter_threads', '2', '-filter_complex_threads', '1');
-  const videoFilters = format.kind === 'video' ? recipeVideoFilters(asset, edit) : [];
+  const videoFilters = format.kind === 'video' ? recipeVideoFilters(asset, edit, resources) : [];
   if (format.kind === 'video' && edit.format !== 'gif') videoFilters.push('scale=trunc(iw/2)*2:trunc(ih/2)*2');
   const hasVideo = format.kind === 'video';
   const hasAudio = asset.hasAudio && edit.format !== 'gif';
@@ -81,6 +86,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
       if (edit.format === 'mp3') args.push('-id3v2_version', '3');
     } else args.push('-vn');
   }
+  if (captions) args.push('-map', `${artwork ? 2 : 1}:s:0`, '-c:s', subtitleCodec(edit.format)!, '-metadata:s:s:0', 'language=und');
   if (graph.length) args.push('-filter_complex', graph.join(';'));
   if (hasAudio && !complex) args.push('-af', audioFilters(edit, asset).join(','));
   if (['mp4', 'mov', 'm4a'].includes(edit.format)) args.push('-movflags', '+faststart');
