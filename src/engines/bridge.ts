@@ -6,6 +6,7 @@ export interface DesktopBridge {
   importSample(): Promise<MediaAsset[]>;
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
   saveProject(project: ProjectDocument): Promise<boolean>;
+  thumbnails(id: string): Promise<Uint8Array>;
   waveform(id: string): Promise<WaveformPoint[]>;
   beginBatch(): Promise<string | null>;
   endBatch(token: string): Promise<void>;

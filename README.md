@@ -34,6 +34,8 @@ Keyboard shortcuts: Ctrl/Cmd+O imports, Space plays/pauses, I/O set trim boundar
 
 Generate an **audio waveform** from the Timeline to see measured source peaks before cutting. This runs locally, works for video with audio and audio-only files, and can be cancelled. Source peaks remain visible as you adjust cuts.
 
+For video, **Generate thumbnails** adds a strip of twelve source frames. Click a thumbnail to seek to that part of the source. Thumbnails are generated locally and released when their media leaves the library.
+
 ## Batch export
 
 Open **Batch export**, select library files, and choose each file’s recipe, current output settings, or all current edits. Jobs run sequentially with per-file progress and errors. Desktop asks for one output folder and numbers conflicting filenames; the browser offers a separate download per result. Cancelling preserves completed results. Browser batch downloads have a 500 MB retention guard; save and clear results before running more jobs.

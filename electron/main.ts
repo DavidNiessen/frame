@@ -3,19 +3,18 @@ import { join, basename, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { rename, rm, stat, realpath } from 'node:fs/promises';
-import type { ChildProcess } from 'node:child_process';
+import { MediaJobs } from './jobs';
+import { registerAnalysis } from './analysis';
 import { createBatchFolders } from './batch';
 import { registerProjectSaving } from './projects';
-import { probeFile, transcode, runFfmpeg } from './native';
-import { waveformArgs, WaveformCollector } from '../src/core/waveform';
+import { probeFile, transcode } from './native';
 import { outputName, validateEdit } from '../src/core/export-plan';
 import { supportedExtensions, type EditSettings, type MediaAsset } from '../src/core/types';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 const assets = new Map<string, { path: string; asset: MediaAsset }>();
 let mainWindow: BrowserWindow | null = null;
-let currentProcess: ChildProcess | null = null;
-let exporting = false;
+const jobs = new MediaJobs();
 const devUrl = !app.isPackaged ? process.env.FRAME_DEV_URL : undefined;
 function trusted(event: IpcMainInvokeEvent | Electron.IpcMainEvent) {
   if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('Untrusted request.');
@@ -43,7 +42,7 @@ function createWindow() {
         : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: media:; media-src 'self' blob: media:; connect-src 'self'; font-src 'self'"] } });
   });
   if (devUrl) void mainWindow.loadURL(devUrl); else void mainWindow.loadFile(join(__dirname, '../dist/index.html'));
-  mainWindow.on('closed', () => { currentProcess?.kill(); assets.clear(); mainWindow = null; });
+  mainWindow.on('closed', () => { jobs.cancel(); assets.clear(); mainWindow = null; });
 }
 app.whenReady().then(() => {
   const batchFolders = createBatchFolders(() => mainWindow!, trusted);
@@ -55,7 +54,7 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('media:import', async (event, paths?: string[]) => {
     trusted(event);
-    if (exporting) throw new Error('Wait for the current export.');
+    if (jobs.busy) throw new Error('Wait for the current export.');
     if (!paths) {
       const selected = await dialog.showOpenDialog(mainWindow!, { properties: ['openFile', 'multiSelections'], filters: [{ name: 'Video and audio', extensions: supportedExtensions }] });
       paths = selected.canceled ? [] : selected.filePaths;
@@ -67,29 +66,16 @@ app.whenReady().then(() => {
     trusted(event);
     return importPaths([app.isPackaged ? join(process.resourcesPath, 'sample.mp4') : join(__dirname, '../public/sample.mp4')]);
   });
-  ipcMain.handle('media:waveform', async (event, id: string) => {
-    trusted(event);
-    if (exporting) throw new Error('Wait for processing to finish.');
-    const item = assets.get(id); if (!item) throw new Error('Import the source file again.');
-    exporting = true;
-    try {
-      const collector = new WaveformCollector();
-      const job = runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration,
-        ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Reading audio peaks…' }); }, line => collector.push(line));
-      currentProcess = job.child; await job.done;
-      if (!collector.points.length) throw new Error('No audio peaks could be read.');
-      return collector.points;
-    } finally { currentProcess = null; exporting = false; }
-  });
-  ipcMain.handle('media:release', (event, id: string) => { trusted(event); if (!exporting) assets.delete(id); });
-  ipcMain.on('media:cancel', event => { trusted(event); currentProcess?.kill(); });
+  registerAnalysis(assets, jobs, trusted);
+  ipcMain.handle('media:release', (event, id: string) => { trusted(event); if (!jobs.busy) assets.delete(id); });
+  ipcMain.on('media:cancel', event => { trusted(event); jobs.cancel(); });
   ipcMain.handle('media:export', async (event, id: string, settings: EditSettings, batchToken?: string) => {
     trusted(event);
-    if (exporting) throw new Error('An export is already running.');
+    if (jobs.busy) throw new Error('An export is already running.');
     const item = assets.get(id);
     if (!item) throw new Error('Import the media file again.');
     validateEdit(item.asset, settings);
-    exporting = true;
+    return jobs.run(async execute => {
     let temporary: string | undefined;
     try {
       const batchName = outputName(item.asset.name, settings.format);
@@ -103,20 +89,19 @@ app.whenReady().then(() => {
       const job = transcode(item.path, temporary, item.asset, settings, ratio => {
         if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message: 'Encoding your media…' });
       });
-      currentProcess = job.child;
-      await job.done;
+      await execute(job);
       const { size } = await stat(temporary);
       const savedPath = batchToken ? await batchFolders.publish(temporary, batchToken, batchName) : destination.filePath;
       if (!batchToken) await rename(temporary, savedPath);
       return { name: basename(savedPath), path: savedPath, size };
     } finally {
-      currentProcess = null; exporting = false;
       if (temporary) await rm(temporary, { force: true });
     }
+    });
   });
   registerProjectSaving(() => mainWindow!, trusted, () => Array.from(assets.values(), item => item.path));
   createWindow();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('before-quit', () => currentProcess?.kill());
+app.on('before-quit', () => jobs.cancel());

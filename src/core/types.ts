@@ -37,6 +37,7 @@ export interface MediaEngine {
   importFiles(files?: File[]): Promise<MediaAsset[]>;
   importSample(): Promise<MediaAsset[]>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
+  thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;
   waveform(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<WaveformPoint[]>;
   beginBatch(): Promise<string | null>;
   endBatch(token: string): Promise<void>;

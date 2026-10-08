@@ -6,8 +6,8 @@ Features are implemented and pushed individually in this order. Each implementat
 | --- | --- | --- |
 | 1 | Batch processing and export queue | Implemented |
 | 2 | Audio waveforms | Implemented |
-| 3 | Timeline thumbnails | Next |
-| 4 | Merge clips | Planned |
+| 3 | Timeline thumbnails | Implemented |
+| 4 | Merge clips | Next |
 | 5 | Playback speed with pitch preservation | Planned |
 | 6 | Fades and transitions | Planned |
 | 7 | Audio cleanup and equalizer | Planned |

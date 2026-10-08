@@ -1,3 +1,4 @@
+import { thumbnailArgs } from '../core/thumbnails';
 import { waveformArgs, WaveformCollector } from '../core/waveform';
 import { editedDuration } from '../core/timeline';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
@@ -90,6 +91,18 @@ export function createBrowserEngine(): MediaEngine {
           await ff.deleteFile(output).catch(() => {});
         }
       }
+    },
+    async thumbnails(asset, onProgress) {
+      const source = files.get(asset.id); if (!source) throw new Error('Import the source file again.');
+      const ff = await ready(); const input = `thumb-source-${asset.id}`; const output = `thumb-${asset.id}.png`;
+      const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(1, time / 1e6 / asset.duration), message: 'Reading video frames…' });
+      ff.on('progress', progress);
+      try {
+        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        if (await ff.exec(thumbnailArgs(asset, input, output)) !== 0) throw new Error('Could not generate video thumbnails.');
+        const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid thumbnail output.');
+        return URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'image/png' }));
+      } finally { ff.off('progress', progress); await ff.deleteFile(input).catch(() => {}); await ff.deleteFile(output).catch(() => {}); }
     },
     async waveform(asset, onProgress) {
       const source = files.get(asset.id); if (!source) throw new Error('Import the source file again.');

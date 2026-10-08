@@ -17,6 +17,8 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByRole('button', { name: /Start with a sample/ }).click();
     await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await page.getByRole('button', { name: 'Generate thumbnails' }).click();
+    await expect(page.getByRole('group', { name: 'Timeline thumbnails', exact: true }).getByRole('button')).toHaveCount(12);
     await page.getByRole('button', { name: 'Generate waveform' }).click();
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
     await page.getByLabel('Trim start', { exact: true }).fill('1');

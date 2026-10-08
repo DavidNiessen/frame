@@ -5,6 +5,7 @@ const bridge: DesktopBridge = {
   importSample: () => ipcRenderer.invoke('media:sample'),
   export: (id, settings, token) => ipcRenderer.invoke('media:export', id, settings, token),
   saveProject: project => ipcRenderer.invoke('project:save', project),
+  thumbnails: id => ipcRenderer.invoke('media:thumbnails', id),
   waveform: id => ipcRenderer.invoke('media:waveform', id),
   beginBatch: () => ipcRenderer.invoke('batch:begin'),
   endBatch: token => ipcRenderer.invoke('batch:end', token),
