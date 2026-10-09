@@ -5,6 +5,7 @@ import { parseOverlays } from './overlays';
 import { parseSubtitles } from './subtitles';
 import { validateEdit } from './export-plan';
 import { type EditSettings, type MediaAsset } from './types';
+import { MAX_IMPORT_FILES } from './imports';
 export type SourceIdentity = Pick<MediaAsset, 'name' | 'size' | 'kind' | 'duration' | 'width' | 'height' | 'hasAudio'>;
 export interface ProjectDocument {
   version: 1;
@@ -56,7 +57,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
 export function parseProject(value: unknown): ProjectDocument {
   const doc = record(value);
   if (doc.version !== 1) throw new Error('This project version is unsupported. Use a version 1 Frame project.');
-  if (!Array.isArray(doc.sources) || doc.sources.length < 1 || doc.sources.length > 100) return fail();
+  if (!Array.isArray(doc.sources) || doc.sources.length < 1 || doc.sources.length > MAX_IMPORT_FILES) return fail();
   const selectedSource = number(doc.selectedSource);
   if (!Number.isInteger(selectedSource) || selectedSource < 0 || selectedSource >= doc.sources.length) return fail();
   const sources = doc.sources.map(value => {

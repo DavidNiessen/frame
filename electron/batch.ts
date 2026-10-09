@@ -40,7 +40,7 @@ export function createBatchFolders(window: () => BrowserWindow, trusted: (event:
   async function publish(temporary: string, token: string, name: string): Promise<string> {
     const target = await destination(token, name); const folder = dirname(target); const parts = parse(target);
     for (let index = 0; index < 10000; index++) {
-      const destination = join(folder, index ? `${parts.name}-${index}${parts.ext}` : name);
+      const destination = join(folder, index ? `${parts.name}-${index}${parts.ext}` : parts.base);
       try { await copyFile(temporary, destination, constants.COPYFILE_EXCL); return destination; }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
     }

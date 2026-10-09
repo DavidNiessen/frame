@@ -1,6 +1,6 @@
 # Frame
 
-A desktop-first video and audio editor with a shared web application. Trim, split and remove sections, crop video, adjust volume, extract audio, and convert formats. Processing happens on your device; no media is uploaded.
+A desktop-first video and audio editor with a shared web application. Trim, split and remove sections, crop video, adjust volume, extract audio, and bulk-convert entire media folders. Processing happens on your device; no media is uploaded.
 
 The interface adapts the typography, green accents, and restrained surfaces in [DESIGN.md](DESIGN.md). System appearance is the default; Light, Dark, and Midnight can be selected and are remembered locally.
 
@@ -45,6 +45,19 @@ Node 24.16.0 can silently stop while extracting Electron with the older ZIP read
 
 The browser's first import loads the self-hosted WebAssembly engine (about 32 MB). There are no external CDNs, remote fonts, media APIs, or API keys. Use “Try a sample” to explore with a small bundled video.
 
+## Convert a collection
+
+Choose **Convert** in the header for a dedicated conversion workspace without editing panels or a timeline. Your last workflow and conversion output settings are remembered on this device.
+
+1. **Add folder** reads supported video/audio files in all subfolders. Desktop uses its native folder picker; supported browsers use directory selection. You can also add files or drop files/folders. Non-media files are skipped, and unreadable files are reported without discarding valid songs or videos.
+2. Search the queue and select the files to convert. Choose one format and quality for the selection. Advanced options include bitrate, artwork (enabled by default for supported formats), and metadata retention. Audio formats also extract sound from videos; video-only sources cannot produce audio, and audio-only sources cannot produce video.
+3. Choose whether to **Keep folder structure** (enabled by default). Desktop asks for one output folder and saves there; web offers **Download all (ZIP)** and individual downloads. Conversion keeps original basenames and numbers conflicting names rather than overwriting files. Preserved folder paths start below the folder you imported, so album folders remain organized.
+4. Follow per-file progress. Cancel if needed; completed files stay available. Correct any errors and **Retry unfinished files**, which retries selected failed/cancelled sources while retaining completed results. **Clear results** prepares the collection for another conversion without deleting saved outputs or source files.
+
+Conversion processes each **complete original source** independently of trims, cuts, volume, speed, and other recipes in Editor. Switch back to **Editor** to continue working with those drafts. Waveforms are generated when editing audio, rather than while building a conversion queue.
+
+The library supports up to 2,000 media files. Large collections use searchable, paginated queues. Browser limits remain 500 MB per source, 800 MB in the library, and 500 MB of retained converted results; ZIP preparation uses additional memory. Save and clear completed downloads before the next group, or use desktop for large libraries. Directory picking varies by browser, with regular multi-file selection available as a fallback.
+
 ## Editing
 
 1. Import or drop video/audio files and choose a file in the library.
@@ -85,6 +98,8 @@ Open **Batch export**, select library files, and choose each file’s recipe, cu
 | MP3, WAV, FLAC, OGG, M4A export | Native FFmpeg | FFmpeg WebAssembly |
 | Trim, split/remove, crop, volume | Yes | Yes |
 | Metadata and artwork retention | Compatible formats | Compatible formats |
+| Recursive folder import and conversion queue | Native folder picker / drop | Supported directory picker / drop |
+| Bulk conversion downloads | One destination, organized subfolders | ZIP and individual files |
 | Native open/save dialogs and filesystem paths | Yes | Browser picker/download |
 | Large-file processing | Reads directly from disk | 500 MB/file, 800 MB library guard |
 | Progress and export cancellation | Yes | Yes |

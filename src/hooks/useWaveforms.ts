@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Editor } from './useEditor';
 import type { WaveformPoint } from '../core/waveform';
-export function useWaveforms(editor: Editor) {
+export function useWaveforms(editor: Editor, enabled = true) {
   const [waveforms, setWaveforms] = useState<Record<string, WaveformPoint[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false), [progress, setProgress] = useState(0);
@@ -32,8 +32,8 @@ export function useWaveforms(editor: Editor) {
   useEffect(() => {
     const asset = editor.asset;
     // Mark attempts before awaiting the engine, so errors and cancellation never start a retry loop.
-    if (asset?.kind === 'audio' && asset.hasAudio && !editor.busy && !waveforms[asset.id] && !attempted.current.has(asset.id)) void generate(true);
-  }, [editor.asset, editor.busy, waveforms, generate]);
+    if (enabled && asset?.kind === 'audio' && asset.hasAudio && !editor.busy && !waveforms[asset.id] && !attempted.current.has(asset.id)) void generate(true);
+  }, [enabled, editor.asset, editor.busy, waveforms, generate]);
   return { points: editor.asset ? waveforms[editor.asset.id] : undefined, error: editor.asset ? errors[editor.asset.id] : undefined,
     generate, progress, loading, cancel: () => { cancelled.current = true; latest.current.cancel(); } };
 }

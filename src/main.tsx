@@ -11,5 +11,6 @@ import './styles/controls.css';
 import './styles/workspace.css';
 import './styles/timeline.css';
 import './styles/captions.css';
+import './styles/conversion.css';
 import App from './App';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
