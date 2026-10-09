@@ -12,8 +12,8 @@ export function Library({ editor, onImport, onUrl }: { editor: Editor; onImport:
             <span className="asset-info"><strong title={asset.name}>{asset.name}</strong><span>{time(asset.duration)} <i>·</i> {bytes(asset.size)}</span></span>
           </button><button className="icon-button asset-remove" aria-label={`Remove ${asset.name}`} disabled={!!editor.busy} onClick={() => void editor.remove(asset)}><Trash2 size={14} /></button>
         </li>)}</ul>}
-      <div className="library-import-actions"><button className="library-import" disabled={!!editor.busy} onClick={onImport}><Plus size={16} /> Import media <span>⌘ / Ctrl O</span></button><button className="library-url" disabled={!!editor.busy} onClick={onUrl}><Link size={14} />Load from URL</button></div>
     </div>
+    <div className="library-import-actions"><button className="library-import" disabled={!!editor.busy} onClick={onImport}><Plus size={16} /> Import media <span>⌘ / Ctrl O</span></button><button className="library-url" disabled={!!editor.busy} onClick={onUrl}><Link size={14} />Load from URL</button></div>
     <div className="library-bottom"><button className="sample-card" disabled={!!editor.busy} onClick={() => void editor.importMedia(undefined, true)}>
       <span className="sample-art"><span /><Film size={24} strokeWidth={1.4} /></span><span><strong>Start with a sample</strong><small>A short studio study</small></span><ArrowUpRight size={16} />
     </button></div>

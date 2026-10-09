@@ -16,7 +16,7 @@ test('downloads raw URLs natively without CORS and cleans up on error, cancellat
   try {
     const page = await app.firstWindow();
     await expect(page.evaluate(() => window.frameDesktop!.importUrl('file:///tmp/media.mp3'))).rejects.toThrow('HTTP and HTTPS');
-    await page.getByRole('button', { name: 'Load from URL', exact: true }).click();
+    await page.locator('.empty-stage').getByRole('button', { name: 'Load from URL', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Load from URL' });
     for (const [route, message] of [['/page.mp4', 'direct video or audio'], ['/broken.wav', 'could not be read']] as const) {
       await page.getByLabel('Media URL', { exact: true }).fill(server.url + route);
