@@ -8,10 +8,9 @@ export function shellStartupCommand(argv: string[]) {
   return args.includes('--install-shell-actions') ? 'install' : args.includes('--remove-shell-actions') ? 'remove' : null;
 }
 export function configureSystemIntegration(command: 'install' | 'remove' | null, trusted: (event: IpcMainInvokeEvent) => void): boolean {
-  const location = { platform: process.platform, home: app.getPath('home'), dataHome: process.env.XDG_DATA_HOME, resources: process.resourcesPath, executable: process.env.APPIMAGE || process.execPath };
+  const location = { platform: process.platform, home: app.getPath('home'), dataHome: process.env.XDG_DATA_HOME, resources: process.resourcesPath, executable: app.isPackaged ? process.env.APPIMAGE || process.execPath : process.execPath, args: app.isPackaged ? [] : [app.getAppPath()] };
   let changing = false;
   const integrate = async (remove: boolean) => {
-    if (!app.isPackaged) return Promise.reject(new Error('Install the packaged Frame application before adding file-manager actions.'));
     if (changing) throw new Error('A file-manager integration change is already running.');
     changing = true;
     try { return await installShellActions(location, remove); } finally { changing = false; }
@@ -23,9 +22,9 @@ export function configureSystemIntegration(command: 'install' | 'remove' | null,
   }
   const status = async (): Promise<ShellIntegrationStatus> => {
     const supported = ['win32', 'darwin', 'linux'].includes(process.platform);
-    const available = supported && app.isPackaged;
+    const available = supported;
     return { platform: process.platform, available, state: available ? await shellActionState(location) : 'not-installed',
-      detail: !supported ? 'File-manager actions are not available on this operating system.' : !app.isPackaged ? 'Install the packaged Frame application to manage file-manager actions.' : process.platform === 'win32' ? 'Right-click media in File Explorer. On Windows 11, choose Show more options.' : process.platform === 'darwin' ? 'In Finder, look under Quick Actions or Services. If hidden, enable Frame in System Settings → Keyboard → Keyboard Shortcuts → Services.' : 'Available in KDE Dolphin. Restart Dolphin after changing these actions.' };
+      detail: !supported ? 'File-manager actions are not available on this operating system.' : (process.platform === 'win32' ? 'Right-click media in File Explorer. On Windows 11, choose Show more options.' : process.platform === 'darwin' ? 'In Finder, look under Quick Actions or Services. If hidden, enable Frame in System Settings → Keyboard → Keyboard Shortcuts → Services.' : 'Available in KDE Dolphin. Restart Dolphin after changing these actions.') + (!app.isPackaged ? ' These actions open this development checkout. Reinstall them if you move the project.' : '') };
   };
   ipcMain.handle('desktop:shell-status', event => { trusted(event); return status(); });
   ipcMain.handle('desktop:set-shell-actions', async (event, enabled: unknown) => {
@@ -41,8 +40,8 @@ export function configureSystemIntegration(command: 'install' | 'remove' | null,
     };
     Menu.setApplicationMenu(Menu.buildFromTemplate([
       { label: 'Frame', submenu: [{ role: 'about' }, { type: 'separator' },
-        { label: 'Install Finder Quick Actions…', enabled: app.isPackaged, click: () => void show(false) },
-        { label: 'Remove Finder Quick Actions…', enabled: app.isPackaged, click: () => void show(true) },
+        { label: 'Install Finder Quick Actions…', click: () => void show(false) },
+        { label: 'Remove Finder Quick Actions…', click: () => void show(true) },
         { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
       { role: 'editMenu' }, { role: 'windowMenu' },
     ]));

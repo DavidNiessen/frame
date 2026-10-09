@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { createServer } from 'vite';
+import { build, createServer } from 'vite';
 import { ensureElectronRuntime } from './electron-runtime.mjs';
 let electron;
 try {
@@ -9,6 +9,8 @@ try {
   process.exit(1);
 }
 await import('./build-electron.mjs');
+// File-manager actions can cold-start this checkout after the development server stops.
+await build();
 const server = await createServer({ server: { host: '127.0.0.1', port: 5173, strictPort: true } });
 await server.listen();
 const child = spawn(electron, ['.'], { stdio: 'inherit', env: { ...process.env, FRAME_DEV_URL: 'http://127.0.0.1:5173' } });

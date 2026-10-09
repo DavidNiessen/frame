@@ -18,6 +18,6 @@ FRAME_TEST_NO_SANDBOX=1 npm run test:desktop
 
 The test-only no-sandbox launcher option is needed by this container; it is not added to application startup or distributable builds. For a new environment without the retained local Xvfb, install Xvfb using the system's supported package manager, or validate Electron in the native CI jobs. Full Playwright Chromium is retained under `/workspace/.cache/playwright`. Set `PLAYWRIGHT_BROWSERS_PATH=/workspace/.cache/playwright` when running browser tests. An explicit `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` can select another installed browser; codec support may differ.
 
-Use `npm run dev:desktop` in a graphical session when developing desktop interactions. Packaging requires `electron_config_cache` and `ELECTRON_BUILDER_CACHE` to point to writable directories in this container. `npm run package:dir` produces `release/linux-unpacked/`; the desktop suite accepts `FRAME_TEST_EXECUTABLE` to validate that artifact.
+Use `npm run desktop` in a graphical session when developing desktop interactions. Packaging requires `electron_config_cache` and `ELECTRON_BUILDER_CACHE` to point to writable directories in this container. `npm run package:dir` produces `release/linux-unpacked/`; the desktop suite accepts `FRAME_TEST_EXECUTABLE` to validate that artifact.
 
 Saved setup/start instructions do not publish the environment. Review and save them in environment settings, then publish the prepared environment to snapshot dependencies and retained helper files.

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { dolphinActions, extensions, finderAction, shellActions, windowsInstaller } from '../electron/shell-action-definitions';
 import { installShellActions, shellActionState } from '../electron/shell-actions';
+import { windowsShellCommand } from '../electron/shell-command';
 
 it('registers both verbs for every supported extension and only removes commands owned by this install', () => {
   const installer = windowsInstaller();
@@ -88,4 +89,26 @@ it('offers an initially checked installer checkbox, restores the preference, and
   expect(installer).toContain('/NOFRAMECONTEXTMENU');
   expect(installer).toContain('/FRAMECONTEXTMENU');
   expect(installer).toContain('${If} $FrameShellEnabled == 1');
+});
+it('launches a development checkout using the Electron executable and safely quoted project arguments', () => {
+  const launch = { executable: 'C:\\Program Files\\Electron\\electron.exe', args: ['C:\\Projects\\Frame & songs\\'] };
+  expect(windowsShellCommand(launch, 'convert')).toBe('"C:\\Program Files\\Electron\\electron.exe" "C:\\Projects\\Frame & songs\\\\" --frame-workflow=convert -- "%1"');
+  expect(windowsShellCommand({ executable: 'C:\\Frame\\Frame.exe' }, 'edit')).toBe('"C:\\Frame\\Frame.exe" --frame-workflow=edit -- "%1"');
+  const finder = finderAction(shellActions[1], { executable: '/Applications/Electron.app/Contents/MacOS/Electron', args: ["/Projects/Frame's media"] });
+  expect(finder.document).toContain("'/Projects/Frame'\\''s media'");
+  expect(finder.document).not.toContain('path to application id');
+  expect(finder.document).toContain('--frame-workflow=convert -- &quot;$@&quot;');
+  expect(dolphinActions('/opt/Electron/electron', ['/Projects/Frame songs'])).toContain('Exec="/opt/Electron/electron" "/Projects/Frame songs" --frame-workflow=convert -- %F');
+});
+it('installs development Finder workflows with a direct checkout launch without packaged resources', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'frame-finder-development-'));
+  const location = { platform: 'darwin' as const, home, executable: '/Electron.app/Contents/MacOS/Electron', args: ["/Projects/Frame's media"], resources: '' };
+  try {
+    await installShellActions(location);
+    expect(await shellActionState(location)).toBe('installed');
+    const workflow = await readFile(join(home, 'Library', 'Services', 'Edit in Frame.workflow', 'Contents', 'document.wflow'), 'utf8');
+    expect(workflow).toContain("'/Projects/Frame'\\''s media'");
+    await installShellActions(location, true);
+    expect(await shellActionState(location)).toBe('not-installed');
+  } finally { await rm(home, { recursive: true, force: true }); }
 });

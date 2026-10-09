@@ -6,6 +6,18 @@ import { join, resolve } from 'node:path';
 import { conversionLibrary } from '../helpers/conversion-library';
 
 const exec = promisify(execFile);
+test('cold-starts a development checkout from an absolute path without Vite or the project working directory', async () => {
+  test.skip(!!process.env.FRAME_TEST_EXECUTABLE, 'Development checkout launch only.');
+  const library = await conversionLibrary();
+  const app = await _electron.launch({ cwd: library.directory, args: [`--user-data-dir=${join(library.directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), resolve('.'), '--frame-workflow=convert', '--', ...library.sources], env: { ...process.env, FRAME_DEV_URL: '', PATH: '' } });
+  try {
+    const page = await app.firstWindow();
+    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await expect(page.locator('.integration-detail')).toContainText('These actions open this development checkout.');
+    expect(await page.evaluate(() => window.frameDesktop!.shellIntegrationStatus().then(status => status.available))).toBe(true);
+  } finally { await app.close(); await rm(library.directory, { recursive: true, force: true }); }
+});
 test('opens selections in one instance, reuses drafts, and queues file launches during processing', async () => {
   const library = await conversionLibrary(), profile = join(library.directory, 'profile');
   const executablePath = process.env.FRAME_TEST_EXECUTABLE ? resolve(process.env.FRAME_TEST_EXECUTABLE) : undefined;

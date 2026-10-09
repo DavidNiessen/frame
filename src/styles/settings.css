@@ -11,10 +11,6 @@
 .settings-section-heading p, .integration-detail { color: var(--muted); font-size: 12px; line-height: 1.7; }
 .integration-badge { margin-left: auto; flex-shrink: 0; font-size: 10px; color: var(--muted); background: var(--surface-raised); padding: 5px 8px; border-radius: 5px; }
 .integration-badge.installed { color: var(--accent-text); background: var(--accent-dim); }
-.integration-example { margin: 22px 0 18px; padding: 18px; border: 1px solid var(--border-soft); background: var(--bg); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-.integration-example > span { color: var(--muted); font-size: 11px; display: flex; align-items: center; gap: 8px; }
-.integration-example > div { border: 1px solid var(--border); padding: 5px; border-radius: 7px; background: var(--surface-raised); min-width: 175px; }
-.integration-example > div span { display: block; padding: 7px 12px; font-size: 11px; }
 .integration-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .settings-note { display: flex; align-items: flex-start; gap: 7px; color: var(--quiet); font-size: 10px; line-height: 1.6; margin-top: 20px; }
 .settings-note svg { flex-shrink: 0; margin-top: 1px; }
@@ -43,6 +39,8 @@
 .theme-preview-stage > span { flex: 1; border-radius: 2px; background: var(--preview-stage); border: 1px solid var(--preview-line); }
 .theme-preview-stage > i { display: block; height: 9px; background: var(--preview-accent); border-radius: 2px; opacity: .7; }
 @media (prefers-color-scheme: light) { .theme-preview[data-preview='system'] { --preview-bg: #f4f7f5; --preview-panel: #fff; --preview-stage: #e8eeea; --preview-line: #c5d5cc; --preview-accent: #008b53; } }
-@media (max-width: 700px) { .settings-page { padding: 20px 16px 32px; } .settings-card { padding: 18px; } .theme-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .settings-section-heading { flex-wrap: wrap; } .settings-section-heading > div { flex: 1; min-width: 170px; } .integration-example { flex-wrap: wrap; gap: 12px; } .integration-example > div { width: 100%; } .header-settings { flex-shrink: 0; } }
+@media (max-width: 700px) { .settings-page { padding: 20px 16px 32px; } .settings-card { padding: 18px; } .theme-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .settings-section-heading { flex-wrap: wrap; } .settings-section-heading > div { flex: 1; min-width: 170px; } .header-settings { flex-shrink: 0; } }
 
 .theme-choice input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; }
+
+.integration-detail { margin-top: 18px; }

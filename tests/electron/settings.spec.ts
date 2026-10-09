@@ -11,26 +11,21 @@ async function windowsRegistry(script: string) {
   return stdout.trim();
 }
 
-test('manages real packaged integrations and clearly disables them in development', async () => {
+test('manages file-manager actions in packaged and development builds', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-settings-'));
   const executablePath = process.env.FRAME_TEST_EXECUTABLE ? resolve(process.env.FRAME_TEST_EXECUTABLE) : undefined;
   const app = await _electron.launch({ executablePath, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, FRAME_DEV_URL: '', XDG_DATA_HOME: join(directory, 'data') } });
   try {
     const page = await app.firstWindow();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    const available = await app.evaluate(({ app }) => app.isPackaged);
-    if (!available) {
-      await expect(page.getByText('Install the packaged Frame application to manage file-manager actions.')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
-      await expect(page.getByRole('button', { name: 'Remove actions' })).toBeDisabled();
-      return;
-    }
     // Finder tests use temporary Services folders in the unit suite. Never alter real user services here.
     test.skip(process.platform === 'darwin', 'Real Finder integration is validated separately.');
     test.skip(process.platform === 'win32' && process.env.FRAME_TEST_SHELL_ACTIONS !== '1', 'Run Windows registration checks through the isolated installer test.');
     const status = () => page.evaluate(() => window.frameDesktop!.shellIntegrationStatus());
     await expect(page.evaluate(() => window.frameDesktop!.setShellIntegration('invalid' as unknown as boolean))).rejects.toThrow('Invalid integration setting');
     const initial = await status();
+    expect(initial.available).toBe(true);
+    await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
     if (initial.state !== 'not-installed') {
       await page.getByRole('button', { name: 'Remove actions' }).click();
       await expect(page.locator('.integration-badge')).toHaveText('Not installed');
@@ -41,7 +36,10 @@ test('manages real packaged integrations and clearly disables them in developmen
     await expect(page.getByRole('button', { name: 'Remove actions' })).toBeEnabled();
     if (process.platform === 'linux') {
       const path = join(directory, 'data', 'kio', 'servicemenus', 'frame-media-editor.desktop');
-      expect(await readFile(path, 'utf8')).toContain('--frame-workflow=convert');
+      const entry = await readFile(path, 'utf8');
+      expect(entry).toContain('--frame-workflow=convert');
+      const launch = await app.evaluate(({ app }) => ({ packaged: app.isPackaged, path: app.getAppPath() }));
+      if (!launch.packaged) expect(entry).toContain(`"${launch.path}" --frame-workflow=convert`);
       await writeFile(path, 'stale command');
       await page.getByRole('button', { name: 'Refresh integration status' }).click();
       await expect(page.locator('.integration-badge')).toHaveText('Needs repair');

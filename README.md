@@ -11,12 +11,12 @@ Use Node.js 22.12+ (Node 24 LTS recommended) and npm, or pnpm 10.26+ / 11 / 12.
 ```sh
 npm ci
 npm run dev          # Web editor
-npm run dev:desktop  # Electron + the Vite development server
+npm run desktop  # Electron + the Vite development server
 ```
 
 Desktop development needs a graphical session. Electron, portable FFmpeg, and portable FFprobe are installed by npm. **End users do not need FFmpeg or FFprobe installed**: the desktop package includes both tools for its OS and architecture.
 
-With pnpm, run `pnpm install` followed by `pnpm run dev:desktop` (or `pnpm run dev` for the web editor). The committed `pnpm-workspace.yaml` permits the dependency scripts that download Electron/FFmpeg and prepare the build tools. npm's `package-lock.json` remains the canonical lockfile; `pnpm import` can create a matching pnpm lockfile before installation.
+With pnpm, run `pnpm install` followed by `pnpm desktop` (or `pnpm run dev` for the web editor). The committed `pnpm-workspace.yaml` permits the dependency scripts that download Electron/FFmpeg and prepare the build tools. npm's `package-lock.json` remains the canonical lockfile; `pnpm import` can create a matching pnpm lockfile before installation.
 
 If an earlier pnpm install skipped those scripts and reports a missing `ffmpeg.exe` / `ENOENT`, update the repository and repair the existing installation:
 
@@ -24,7 +24,7 @@ If an earlier pnpm install skipped those scripts and reports a missing `ffmpeg.e
 git pull
 pnpm rebuild
 pnpm run postinstall
-pnpm run dev:desktop
+pnpm desktop
 ```
 
 If you maintain your own pnpm build policy, allow `ffmpeg-static`, `electron`, `electron-winstaller`, `esbuild`, and the `@ffprobe-installer` package for your platform. `pnpm approve-builds` lets you review blocked dependency scripts. Missing tools are downloaded into dependencies; a system FFmpeg installation is not required.
@@ -36,7 +36,7 @@ If rebuilding reports success but Electron still says it “failed to install co
 ```bat
 set ELECTRON_SKIP_BINARY_DOWNLOAD=
 pnpm run setup:desktop
-pnpm run dev:desktop
+pnpm desktop
 ```
 
 In PowerShell use `Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction SilentlyContinue`; in a POSIX shell use `unset ELECTRON_SKIP_BINARY_DOWNLOAD`. A custom `ELECTRON_OVERRIDE_DIST_PATH` must point to a complete runtime; fix or unset it if startup reports that it is incomplete. Setup verifies the executable after the installer finishes and reports download failures or an installation that still lacks its runtime.
@@ -66,7 +66,7 @@ The library supports up to 2,000 media files. Large collections use searchable, 
 
 **Linux (optional, Dolphin):** keep the AppImage at a stable path and choose **Settings → File-manager actions → Install actions**, or run `./Frame.AppImage --install-shell-actions`. This adds both actions for local audio/video/GIF files in Dolphin. Restart Dolphin if needed. Run `./Frame.AppImage --remove-shell-actions` before deleting or moving the AppImage; rerun installation after moving it. Other Linux file managers are not integrated in this version.
 
-File-manager requests wait while Frame imports, analyzes, or exports media, or while a project/batch/merge dialog is open. Existing sources are selected without resetting their editor recipes. Conversion opens the queue for review; it does not start encoding automatically. The web Settings page shows the file-manager controls disabled, with an explanation. Theme selection lives in **Settings → Appearance**, with previews for System, Light, Dark, and Midnight. System is the default and follows the device’s light/dark preference.
+File-manager requests wait while Frame imports, analyzes, or exports media, or while a project/batch/merge dialog is open. Existing sources are selected without resetting their editor recipes. Conversion opens the queue for review; it does not start encoding automatically. File-manager actions also work when running `pnpm desktop`: they launch Electron with this checkout’s absolute path and can open its built UI after the development server closes. Remove them before moving/deleting the project, or reinstall from the new location. The web Settings page shows the file-manager controls disabled, with an explanation. Theme selection lives in **Settings → Appearance**, with previews for System, Light, Dark, and Midnight. System is the default and follows the device’s light/dark preference.
 
 **Convert in Frame** selects the files from that file-manager action, leaving other library files unchecked. Consecutive per-file launches in one Explorer selection are grouped together; previously imported files and drafts remain in the shared library.
 

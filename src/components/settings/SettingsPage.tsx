@@ -36,7 +36,6 @@ export function SettingsPage({ theme, setTheme, back }: { theme: Theme; setTheme
     </section>
     <section className="settings-card" aria-labelledby="integration-heading">
       <div className="settings-section-heading"><FolderOpen size={19} /><div><h2 id="integration-heading">File-manager actions</h2><p>Start editing or converting directly from your files.</p></div><span className={`integration-badge ${installed ? 'installed' : ''}`}>{pending === 'checking' ? 'Checking…' : !status ? 'Status unavailable' : !status.available ? status.platform === 'web' ? 'Desktop only' : 'Unavailable' : installed ? 'Installed' : partial ? 'Needs repair' : 'Not installed'}</span></div>
-      <div className="integration-example" aria-label="File context menu preview"><span><FolderOpen size={15} />Selected audio & video files</span><div><span>Edit in Frame</span><span>Convert in Frame</span></div></div>
       <p className="integration-detail">{status?.detail || 'Refresh to check your file-manager actions.'}</p>
       <div className="integration-controls">
         <button className="button primary" disabled={!status?.available || !!pending || installed} onClick={() => void update(true)}>{pending === 'installing' && <LoaderCircle size={14} className="spinner" />}{pending === 'installing' ? 'Installing…' : partial ? 'Repair actions' : 'Install actions'}</button>

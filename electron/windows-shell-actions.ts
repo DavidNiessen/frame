@@ -1,13 +1,14 @@
 import { execFile } from 'node:child_process';
 import { join } from 'node:path';
 import { extensions, shellActions } from './shell-action-definitions';
+import { windowsShellCommand, type ShellLaunch } from './shell-command';
 
 // Use .NET registry APIs instead of interpolating filenames into shell commands.
 // All registrations are per-user; default file associations are never modified.
-export async function windowsShellActions(executable: string, operation: 'status' | 'install' | 'remove') {
+export async function windowsShellActions(launch: ShellLaunch, operation: 'status' | 'install' | 'remove') {
   const entries = extensions.flatMap(extension => shellActions.map(action => ({
     key: `Software\\Classes\\SystemFileAssociations\\.${extension}\\shell\\${action.verb}`,
-    label: action.label, icon: `"${executable}",0`, command: `"${executable}" --frame-workflow=${action.workflow} -- "%1"`,
+    label: action.label, icon: `"${launch.executable}",0`, command: windowsShellCommand(launch, action.workflow),
   })));
   const script = `
 $ErrorActionPreference = 'Stop'

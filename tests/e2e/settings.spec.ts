@@ -12,7 +12,7 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Remove actions' })).toBeDisabled();
   await expect(page.getByText('Desktop only', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('File context menu preview')).toContainText('Edit in Frame');
+  await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
   await page.getByRole('radio', { name: 'Light theme', exact: true }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.getByRole('radio', { name: 'Midnight theme', exact: true }).check();
