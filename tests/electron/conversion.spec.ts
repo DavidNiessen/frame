@@ -1,5 +1,5 @@
 import { test, expect, _electron } from '@playwright/test';
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { conversionLibrary, probeConversion } from '../helpers/conversion-library';
 
@@ -19,9 +19,13 @@ test('bulk converts native folders, numbers collisions, and retries only unfinis
     await page.getByRole('button', { name: 'Add folder', exact: true }).click();
     await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
     await expect(page.locator('.conversion-import-report')).toContainText('1 file could not be read');
-    await expect(page.locator('.conversion-import-report')).toContainText('1 other files skipped');
+    await expect(page.locator('.conversion-import-report')).toContainText('1 other file skipped');
     await expect(page.locator('audio, video, .timeline-track')).toHaveCount(0);
     await page.getByLabel('Conversion format').selectOption('flac');
+    await app.evaluate(({ dialog }) => { dialog.showOpenDialog = async () => ({ canceled: true, filePaths: [] }); });
+    await page.getByRole('button', { name: 'Convert 2 files', exact: true }).click();
+    await expect(page.getByText('Cancelled', { exact: true })).toHaveCount(2);
+    await expect(page.getByRole('button', { name: 'Clear results', exact: true })).toBeEnabled();
     // A source removed after import must fail alone; the other song remains downloadable/saved.
     await rm(library.sources[1]);
     await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, output);
@@ -35,7 +39,7 @@ test('bulk converts native folders, numbers collisions, and retries only unfinis
     await writeFile(library.sources[1], original);
     await page.getByRole('button', { name: 'Retry unfinished files' }).click();
     await expect(page.getByText('Converted', { exact: true })).toHaveCount(2);
-    expect(await readdir(join(output, 'Album One'))).toEqual(['Song-1.flac', 'Song.flac']);
+    expect((await readdir(join(output, 'Album One'))).sort()).toEqual(['Song-1.flac', 'Song.flac']);
     expect((await readFile(first)).equals(firstBytes)).toBe(true);
     for (const path of [first, join(output, 'Album Two', 'Song.flac')]) {
       const info = await probeConversion(path);
@@ -44,6 +48,16 @@ test('bulk converts native folders, numbers collisions, and retries only unfinis
       expect((await readdir(join(path, '..'))).some(name => name.startsWith('.frame-'))).toBe(false);
     }
     await expect(page.getByRole('button', { name: 'Open output folder' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Conversion complete', exact: true })).toBeDisabled();
+    // Editor batches share the native coordinator but must not redirect conversion results.
+    await app.evaluate(({ dialog, shell }, path) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] });
+      (globalThis as typeof globalThis & { openedConversionFolder: string }).openedConversionFolder = '';
+      shell.openPath = async value => { (globalThis as typeof globalThis & { openedConversionFolder: string }).openedConversionFolder = value; return ''; };
+    }, library.root);
+    await page.evaluate(async () => { const token = await window.frameDesktop!.beginBatch(); if (token) await window.frameDesktop!.endBatch(token); });
+    await page.getByRole('button', { name: 'Open output folder' }).click();
+    await expect.poll(() => app.evaluate(() => (globalThis as typeof globalThis & { openedConversionFolder: string }).openedConversionFolder)).toBe(await realpath(output));
     await page.getByRole('button', { name: 'Clear results', exact: true }).click();
     await page.getByLabel('Conversion format').selectOption('wav');
     await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, library.root);

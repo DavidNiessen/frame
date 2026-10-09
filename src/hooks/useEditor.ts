@@ -44,7 +44,7 @@ export function useEditor() {
         return next;
       });
       setSelected(imported[0].id);
-      setNotice(`Imported ${imported.length} ${imported.length === 1 ? 'file' : 'files'}.${report.issues.length ? ` ${report.issues.length} could not be read.` : ''}${report.skipped ? ` Skipped ${report.skipped} non-media files.` : ''}`);
+      setNotice(`Imported ${imported.length} ${imported.length === 1 ? 'file' : 'files'}.${report.issues.length ? ` ${report.issues.length} could not be read.` : ''}${report.skipped ? ` Skipped ${report.skipped} non-media ${report.skipped === 1 ? 'file' : 'files'}.` : ''}`);
     } catch (error) { setNotice(messageOf(error)); }
     finally { busyRef.current = false; setBusy(null); setProgress(null); }
   }

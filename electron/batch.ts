@@ -7,17 +7,17 @@ import { conversionName } from '../src/core/conversion';
 import type { BatchOptions, MediaAsset } from '../src/core/types';
 export function createBatchFolders(window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void) {
   const folders = new Map<string, { path: string; options: BatchOptions }>();
-  let lastFolder = '';
+  let lastConversionFolder = '';
   ipcMain.handle('batch:begin', async (event, options: BatchOptions = {}) => {
     trusted(event);
     if (!options || typeof options !== 'object' || ['conversion', 'keepFolders'].some(key => options[key as keyof BatchOptions] !== undefined && typeof options[key as keyof BatchOptions] !== 'boolean')) throw new Error('Invalid batch options.');
-    const choice = await dialog.showOpenDialog(window(), { title: 'Choose batch export folder', properties: ['openDirectory', 'createDirectory'] });
+    const choice = await dialog.showOpenDialog(window(), { title: options.conversion ? 'Choose conversion output folder' : 'Choose batch export folder', defaultPath: options.conversion ? lastConversionFolder || undefined : undefined, properties: ['openDirectory', 'createDirectory'] });
     if (choice.canceled || !choice.filePaths.length) return null;
     folders.clear(); const token = randomUUID(); const path = await realpath(choice.filePaths[0]);
-    folders.set(token, { path, options }); lastFolder = path; return token;
+    folders.set(token, { path, options }); if (options.conversion) lastConversionFolder = path; return token;
   });
   ipcMain.handle('batch:end', (event, token: string) => { trusted(event); folders.delete(token); });
-  ipcMain.handle('batch:open-folder', async event => { trusted(event); if (!lastFolder) throw new Error('Convert some files first.'); const error = await shell.openPath(lastFolder); if (error) throw new Error(error); });
+  ipcMain.handle('batch:open-folder', async event => { trusted(event); if (!lastConversionFolder) throw new Error('Convert some files first.'); const error = await shell.openPath(lastConversionFolder); if (error) throw new Error(error); });
   function directory(token: string): string {
     const folder = folders.get(token); if (!folder) throw new Error('Choose the batch export folder again.'); return folder.path;
   }
