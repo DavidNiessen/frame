@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  miniConversion: process.argv.includes('--frame-mini-conversion'),
+  setMiniExpanded: (expanded, reducedMotion) => ipcRenderer.invoke('desktop:mini-expanded', expanded, reducedMotion),
+  finishMini: () => ipcRenderer.invoke('desktop:mini-finish'),
+  dismissMini: () => ipcRenderer.invoke('desktop:mini-dismiss'),
   shellIntegrationStatus: () => ipcRenderer.invoke('desktop:shell-status'),
   setShellIntegration: enabled => ipcRenderer.invoke('desktop:set-shell-actions', enabled),
   changeShellCertificate: action => ipcRenderer.invoke('desktop:shell-certificate', action),

@@ -1,3 +1,4 @@
+import type { WindowIpc } from './window-ipc';
 import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { basename, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -10,7 +11,7 @@ import type { MediaJobs } from './jobs';
 import type { LaunchInbox } from './launch-inbox';
 import { registerUrlImports } from './url-imports';
 
-export function registerImports(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void, launches: LaunchInbox) {
+export function registerImports(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void, launches: LaunchInbox, ipc: WindowIpc = ipcMain) {
   async function read(event: IpcMainInvokeEvent, inputs: { path: string; relativePath?: string }[], skipped = 0, folderName?: string, reuse = false, rawOnly = false): Promise<ImportReport> {
     const key = (path: string) => process.platform === 'win32' ? path.toLowerCase() : path;
     const existing = new Map(reuse ? [...assets.values()].map(item => [key(item.path), item.asset]) : []);
@@ -34,8 +35,8 @@ export function registerImports(assets: Map<string, { path: string; asset: Media
     }
     return report;
   }
-  ipcMain.handle('desktop:next-launch', event => { trusted(event); return launches.peek(); });
-  ipcMain.handle('desktop:import-launch', async (event, id: string) => {
+  ipc.handle('desktop:next-launch', event => { trusted(event); return launches.peek(); });
+  ipc.handle('desktop:import-launch', async (event, id: string) => {
     trusted(event);
     return jobs.run(async () => {
       const request = launches.consume(id);
@@ -43,7 +44,7 @@ export function registerImports(assets: Map<string, { path: string; asset: Media
       return read(event, request.paths.map(path => ({ path })), 0, undefined, true);
     });
   });
-  ipcMain.handle('media:import-folder', async event => {
+  ipc.handle('media:import-folder', async event => {
     trusted(event);
     return jobs.run(async () => {
       const choice = await dialog.showOpenDialog(window(), { title: 'Choose a media folder', properties: ['openDirectory'] });
@@ -52,7 +53,7 @@ export function registerImports(assets: Map<string, { path: string; asset: Media
       return read(event, folder.files, folder.skipped, basename(choice.filePaths[0]));
     });
   });
-  ipcMain.handle('media:import', async (event, paths?: string[]) => {
+  ipc.handle('media:import', async (event, paths?: string[]) => {
     trusted(event);
     return jobs.run(async () => {
       if (!paths) {
@@ -69,9 +70,9 @@ export function registerImports(assets: Map<string, { path: string; asset: Media
       return read(event, inputs, skipped);
     });
   });
-  ipcMain.handle('media:sample', async event => {
+  ipc.handle('media:sample', async event => {
     trusted(event);
     return jobs.run(() => read(event, [{ path: app.isPackaged ? join(process.resourcesPath, 'sample.mp4') : join(__dirname, '../public/sample.mp4') }]));
   });
-  return registerUrlImports(assets, jobs, trusted, (event, inputs) => read(event, inputs, 0, undefined, false, true));
+  return registerUrlImports(assets, jobs, trusted, (event, inputs) => read(event, inputs, 0, undefined, false, true), ipc);
 }

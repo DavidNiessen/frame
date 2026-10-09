@@ -1,3 +1,4 @@
+import type { WindowIpc } from './window-ipc';
 import { silenceArgs, SilenceCollector, parseSilence } from '../src/core/silence';
 import { withResources } from './resources';
 import { framePreviewArgs } from '../src/core/frame-preview';
@@ -12,14 +13,14 @@ import { waveformArgs, WaveformCollector } from '../src/core/waveform';
 import { thumbnailArgs } from '../src/core/thumbnails';
 import { runFfmpeg } from './native';
 import type { MediaJobs } from './jobs';
-export function registerAnalysis(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void) {
+export function registerAnalysis(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain) {
   function source(event: IpcMainInvokeEvent, id: string) {
     trusted(event); const item = assets.get(id); if (!item) throw new Error('Import the source file again.'); return item;
   }
   const progress = (event: IpcMainInvokeEvent, message: string) => (ratio: number) => {
     if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
   };
-  ipcMain.handle('media:silence', (event, id: string, options: unknown) => {
+  ipc.handle('media:silence', (event, id: string, options: unknown) => {
     const item = source(event, id); const settings = parseSilence(options);
     return jobs.run(async execute => {
       const collector = new SilenceCollector();
@@ -27,7 +28,7 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       return collector.finish(item.asset.duration);
     });
   });
-  ipcMain.handle('media:waveform', (event, id: string) => {
+  ipc.handle('media:waveform', (event, id: string) => {
     const item = source(event, id);
     return jobs.run(async execute => {
       const collector = new WaveformCollector();
@@ -35,7 +36,7 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       if (!collector.points.length) throw new Error('No audio peaks could be read.'); return collector.points;
     });
   });
-  ipcMain.handle('media:frame-preview', (event, id: string, value: unknown, time: number) => {
+  ipc.handle('media:frame-preview', (event, id: string, value: unknown, time: number) => {
     const item = source(event, id); const edit = parseEdit(value, item.asset);
     return jobs.run(execute => withResources([edit], async (paths, directory) => {
       const output = join(directory, 'frame.png');
@@ -43,7 +44,7 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       return new Uint8Array(await readFile(output));
     }, [item.asset]));
   });
-  ipcMain.handle('media:audio-preview', (event, id: string, value: unknown) => {
+  ipc.handle('media:audio-preview', (event, id: string, value: unknown) => {
     const item = source(event, id); const edit = parseEdit(value, item.asset);
     return jobs.run(async execute => {
       const directory = await mkdtemp(join(tmpdir(), 'frame-audio-preview-')); const output = join(directory, 'preview.wav');
@@ -53,7 +54,7 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       } finally { await rm(directory, { recursive: true, force: true }); }
     });
   });
-  ipcMain.handle('media:thumbnails' , (event, id: string) => {
+  ipc.handle('media:thumbnails' , (event, id: string) => {
     const item = source(event, id);
     return jobs.run(async execute => {
       const directory = await mkdtemp(join(tmpdir(), 'frame-thumbnails-')); const output = join(directory, 'strip.png');

@@ -13,12 +13,12 @@ test('cold-starts a development checkout from an absolute path without Vite or t
   try {
     const page = await app.firstWindow();
     await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
-    await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await expect(page.locator('.integration-detail')).toContainText('These actions open this development checkout.');
+    await expect(page.getByRole('main', { name: 'Quick conversion' })).toBeVisible();
+    expect(await page.evaluate(() => window.frameDesktop!.shellIntegrationStatus().then(status => status.detail))).toContain('These actions open this development checkout.');
     expect(await page.evaluate(() => window.frameDesktop!.shellIntegrationStatus().then(status => status.available))).toBe(true);
   } finally { await app.close(); await rm(library.directory, { recursive: true, force: true }); }
 });
-test('opens selections in one instance, reuses drafts, and queues file launches during processing', async () => {
+test('groups and queues mini selections while editor launches retain their drafts', async () => {
   const library = await conversionLibrary(), profile = join(library.directory, 'profile');
   const executablePath = process.env.FRAME_TEST_EXECUTABLE ? resolve(process.env.FRAME_TEST_EXECUTABLE) : undefined;
   const base = [`--user-data-dir=${profile}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])];
@@ -26,47 +26,40 @@ test('opens selections in one instance, reuses drafts, and queues file launches 
   const command = await app.evaluate(() => process.execPath);
   const launch = (mode: string, paths: string[]) => exec(command, [...base, `--frame-workflow=${mode}`, '--', ...paths], { env: { ...process.env, PATH: '', FRAME_DEV_URL: '' }, timeout: 15000 });
   try {
-    const page = await app.firstWindow(), workflow = page.getByRole('navigation', { name: 'Workflow' });
-    await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
-    await expect(page.locator('.conversion-import-report')).toContainText('1 file could not be read');
-    await expect(page.locator('audio, video, .timeline-track')).toHaveCount(0);
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].minimize());
+    const mini = await app.firstWindow();
+    await expect(mini.locator('.conversion-table tbody tr')).toHaveCount(2);
+    await expect(mini.locator('.mini-import-errors')).toContainText('could not be read');
+    await expect(mini.locator('audio, video, .timeline-track')).toHaveCount(0);
+    const created = app.waitForEvent('window');
     await launch('edit', [library.sources[0]]);
-    await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByLabel('Trim start', { exact: true })).toBeEnabled();
-    await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
-    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
-    expect(await app.evaluate(({ BrowserWindow }) => ({ count: BrowserWindow.getAllWindows().length, minimized: BrowserWindow.getAllWindows()[0].isMinimized() }))).toEqual({ count: 1, minimized: false });
-    await page.getByLabel('Trim start', { exact: true }).press('ArrowRight');
-    const draft = await page.getByLabel('Trim start', { exact: true }).getAttribute('aria-valuenow');
-    await launch('convert', library.sources);
-    await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
-    await page.getByLabel('Conversion format').selectOption('flac');
+    const editor = await created;
+    await expect(editor.getByLabel('Trim start', { exact: true })).toBeEnabled();
+    await expect(editor.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(2);
+    await editor.getByLabel('Trim start', { exact: true }).press('ArrowRight');
+    const draft = await editor.getByLabel('Trim start', { exact: true }).getAttribute('aria-valuenow');
+    const editorWindow = await app.browserWindow(editor); await editorWindow.evaluate(window => window.minimize());
+    await launch('edit', [library.sources[0]]);
+    await expect.poll(() => editorWindow.evaluate(window => window.isMinimized())).toBe(false);
+    await expect(editor.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', draft!);
+    await mini.getByLabel('Conversion format').selectOption('flac');
     await app.evaluate(({ dialog }) => {
       dialog.showOpenDialog = () => new Promise(resolve => { (globalThis as typeof globalThis & { finishPicker: () => void }).finishPicker = () => resolve({ canceled: true, filePaths: [] }); });
     });
-    await page.getByRole('button', { name: 'Convert 2 files', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Cancel conversion' })).toBeVisible();
+    await mini.getByRole('button', { name: 'Convert 2 files', exact: true }).click();
+    await expect(mini.getByRole('button', { name: 'Cancel conversion' })).toBeVisible();
     const video = join(library.directory, 'Selected $video.mp4'); await copyFile('public/sample.mp4', video);
-    await launch('edit', [video]);
-    await expect.poll(() => page.evaluate(() => window.frameDesktop!.nextLaunch().then(request => request?.count))).toBe(1);
-    await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
-    await app.evaluate(() => (globalThis as typeof globalThis & { finishPicker: () => void }).finishPicker());
-    await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
-    await launch('edit', [library.sources[0]]);
-    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', draft!);
-    await expect.poll(() => page.evaluate(() => window.frameDesktop!.nextLaunch())).toBeNull();
     await launch('convert', [video]);
-    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(3);
-    await expect(page.getByRole('button', { name: 'Convert 1 file', exact: true })).toBeEnabled();
-    await expect(page.getByLabel('Convert Selected $video.mp4', { exact: true })).toBeChecked();
-    await expect(page.getByLabel('Convert Song.wav', { exact: true }).first()).not.toBeChecked();
-    // A renderer cannot use the OS import channel to submit arbitrary filesystem paths.
-    expect(await page.evaluate(async () => { try { await window.frameDesktop!.importLaunch('forged-id'); return false; } catch { return true; } })).toBe(true);
+    await expect.poll(() => mini.evaluate(() => window.frameDesktop!.nextLaunch().then(request => request?.count))).toBe(1);
+    await launch('edit', [video]);
+    await expect(editor.locator('video')).toHaveJSProperty('readyState', 4);
+    await expect(mini.locator('.conversion-table tbody tr')).toHaveCount(2);
+    await app.evaluate(() => (globalThis as typeof globalThis & { finishPicker: () => void }).finishPicker());
+    await expect(mini.locator('.conversion-table tbody tr')).toHaveCount(3);
+    await expect.poll(() => mini.evaluate(() => window.frameDesktop!.nextLaunch())).toBeNull();
+    await launch('edit', [library.sources[0]]);
+    await expect(editor.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', draft!);
+    expect(await mini.evaluate(async () => { try { await window.frameDesktop!.importLaunch('forged-id'); return false; } catch { return true; } })).toBe(true);
   } finally { await app.close(); await rm(library.directory, { recursive: true, force: true }); }
 });
 
@@ -96,12 +89,18 @@ test('invokes installed Windows classic and primary commands on a mixed multi-fi
     const invoke = (mode: string, primary = false) => exec(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', resolve(`tests/helpers/invoke-windows-${primary ? 'primary' : 'action'}.ps1`), '-Directory', library.directory, '-Workflow', mode], { timeout: 30000 });
     for (const primary of [false, ...(process.env.FRAME_TEST_PRIMARY_MENU === '1' ? [true] : [])]) {
       await invoke('Convert', primary);
-      await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
-      await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
-      await expect(page.getByText('Selection song & Björk %10.wav', { exact: true })).toBeVisible();
+      await expect.poll(() => app.windows().length).toBe(2);
+      const mini = app.windows().find(window => window !== page)!;
+      await expect(mini.getByRole('main', { name: 'Quick conversion' })).toBeVisible();
+      await expect(mini.locator('.conversion-table tbody tr')).toHaveCount(2);
+      await mini.locator('.mini-files > summary').click();
+      await expect(mini.getByText('Selection song & Björk %10.wav', { exact: true })).toBeVisible();
       await invoke('Edit', primary);
       await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
-      expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+      expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(2);
+      const dismissed = mini.waitForEvent('close');
+      await mini.getByRole('button', { name: 'Dismiss', exact: true }).click().catch(error => { if (!mini.isClosed()) throw error; });
+      await dismissed;
       await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
       await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
       await workflow.getByRole('button', { name: 'Editor', exact: true }).click();

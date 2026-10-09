@@ -1,3 +1,4 @@
+import type { WindowIpc } from './window-ipc';
 import { hardwareBitrate } from '../src/core/hardware';
 import { encodeNative } from './acceleration';
 import { withResources } from './resources';
@@ -12,8 +13,8 @@ import { parseEdit } from '../src/core/project';
 import { parseOutputSettings } from '../src/core/presets';
 import type { MediaAsset } from '../src/core/types';
 import type { MediaJobs } from './jobs';
-export function registerMerge(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void) {
-  ipcMain.handle('media:merge', async (event, entries: { id: string; edit: unknown }[], value: unknown, transitionValue?: unknown) => {
+export function registerMerge(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain) {
+  ipc.handle('media:merge', async (event, entries: { id: string; edit: unknown }[], value: unknown, transitionValue?: unknown) => {
     trusted(event);
     if (!Array.isArray(entries) || entries.length < 2 || entries.length > 100) throw new Error('Choose 2–100 clips.');
     const sources = entries.map(entry => { const source = assets.get(entry?.id); if (!source) throw new Error('Import each merge source again.'); return { ...source, edit: parseEdit(entry.edit, source.asset) }; });

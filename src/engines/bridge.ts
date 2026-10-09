@@ -9,6 +9,10 @@ import type { TransitionSettings } from '../core/transitions';
 import type { DesktopLaunchRequest } from '../core/launch';
 import type { ShellIntegrationStatus } from '../core/system-integration';
 export interface DesktopBridge {
+  miniConversion: boolean;
+  setMiniExpanded(expanded: boolean, reducedMotion: boolean): Promise<void>;
+  finishMini(): Promise<boolean>;
+  dismissMini(): Promise<void>;
   shellIntegrationStatus(): Promise<ShellIntegrationStatus>;
   setShellIntegration(enabled: boolean): Promise<ShellIntegrationStatus>;
   changeShellCertificate(action: 'trust' | 'revoke'): Promise<ShellIntegrationStatus>;

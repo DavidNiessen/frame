@@ -8,6 +8,10 @@ export function useTheme() {
     } catch { return 'system'; }
   });
   useEffect(() => {
+    const sync = (event: StorageEvent) => { if (event.key === 'frame-theme' && ['system', 'light', 'dark', 'midnight'].includes(event.newValue ?? '')) setTheme(event.newValue as Theme); };
+    window.addEventListener('storage', sync); return () => window.removeEventListener('storage', sync);
+  }, []);
+  useEffect(() => {
     const preference = matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
       document.documentElement.dataset.theme = theme === 'system' ? preference.matches ? 'dark' : 'light' : theme;

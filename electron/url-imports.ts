@@ -1,3 +1,4 @@
+import type { WindowIpc } from './window-ipc';
 import { ipcMain, net, type IpcMainInvokeEvent } from 'electron';
 import { mkdtemp, open, rm, type FileHandle } from 'node:fs/promises';
 import { rmSync } from 'node:fs';
@@ -11,9 +12,9 @@ import { downloadRemoteMedia } from '../src/engines/remote-download';
 import type { ExportProgress, ImportReport, MediaAsset } from '../src/core/types';
 import type { MediaJobs } from './jobs';
 
-export function registerUrlImports(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, read: (event: IpcMainInvokeEvent, inputs: { path: string }[]) => Promise<ImportReport>) {
+export function registerUrlImports(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, read: (event: IpcMainInvokeEvent, inputs: { path: string }[]) => Promise<ImportReport>, ipc: WindowIpc = ipcMain) {
   const directories = new Map<string, string>(), pending = new Set<string>();
-  ipcMain.handle('media:import-url', (event, input: unknown, options: unknown) => {
+  ipc.handle('media:import-url', (event, input: unknown, options: unknown) => {
     trusted(event);
     const url = mediaUrl(input).href;
     const youtube = youtubeVideo(url);

@@ -31,6 +31,7 @@ export class LaunchInbox {
     const request = this.pending[0] || this.overflow;
     return request ? { id: request.id, group: request.group, workflow: request.workflow, count: request.paths.length } : null;
   }
+  clear() { this.pending = []; this.overflow = null; this.lastSelection = null; }
   consume(id: string): LaunchFiles {
     if (typeof id !== 'string' || this.peek()?.id !== id) throw new Error('This file-open request is no longer available.');
     const request = this.pending.shift() || this.overflow!;

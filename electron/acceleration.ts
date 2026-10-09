@@ -1,3 +1,4 @@
+import type { WindowIpc } from './window-ipc';
 import { ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { hardwareEncoders, hardwarePlan, hardwareFallback, type Acceleration, type DesktopCapabilities } from '../src/core/hardware';
 import { runFfmpeg } from './native';
@@ -15,8 +16,8 @@ async function capabilities(execute: Execute, jobs: MediaJobs, progress: (ratio:
   }
   cached = { encoders }; return cached;
 }
-export function registerAcceleration(jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void) {
-  ipcMain.handle('media:capabilities', event => { trusted(event); return jobs.run(execute => capabilities(execute, jobs, (ratio, message) => { if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message }); })); });
+export function registerAcceleration(jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain) {
+  ipc.handle('media:capabilities', event => { trusted(event); return jobs.run(execute => capabilities(execute, jobs, (ratio, message) => { if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message }); })); });
 }
 export async function encodeNative(plan: string[], duration: number, mode: Acceleration, bitrate: number, execute: Execute, jobs: MediaJobs, progress: (ratio: number, message: string) => void) {
   let hardware: string[] | null = null;

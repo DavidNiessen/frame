@@ -1,3 +1,4 @@
+import type { WindowIpc } from './window-ipc';
 import { ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { mkdtemp, stat, rm } from 'node:fs/promises';
 import { rmSync } from 'node:fs';
@@ -8,9 +9,9 @@ import { encodeNative } from './acceleration';
 import type { MediaAsset } from '../src/core/types';
 import type { PreviewProxy } from '../src/core/hardware';
 import type { MediaJobs } from './jobs';
-export function createProxies(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void) {
+export function createProxies(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain) {
   const entries = new Map<string, { source: string; path: string; directory: string; proxy: PreviewProxy }>();
-  ipcMain.handle('media:proxy', (event, id: string) => {
+  ipc.handle('media:proxy', (event, id: string) => {
     trusted(event); const source = assets.get(id); if (!source) throw new Error('Import the source again.');
     const existing = [...entries.values()].find(e => e.source === id); if (existing) return existing.proxy;
     return jobs.run(async execute => {
@@ -27,6 +28,6 @@ export function createProxies(assets: Map<string, { path: string; asset: MediaAs
     });
   });
   const release = async (id: string) => { const entry = entries.get(id); if (!entry) return; await rm(entry.directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); entries.delete(id); };
-  ipcMain.handle('media:release-proxy', (event, id: string) => { trusted(event); return release(id); });
+  ipc.handle('media:release-proxy', (event, id: string) => { trusted(event); return release(id); });
   return { path: (id: string) => entries.get(id)?.path, releaseAsset: async (source: string) => { for (const [id, entry] of entries) if (entry.source === source) await release(id).catch(() => {}); }, clear: () => { for (const [id, entry] of entries) { try { rmSync(entry.directory, { recursive: true, force: true, maxRetries: 3 }); entries.delete(id); } catch { /* Keep the entry so window-close cleanup can retry a held stream. */ } } } };
 }

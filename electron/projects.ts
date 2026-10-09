@@ -1,10 +1,11 @@
+import type { WindowIpc } from './window-ipc';
 import { dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { rename, rm, writeFile, realpath } from 'node:fs/promises';
 import { parseProject, projectFilename } from '../src/core/project';
-export function registerProjectSaving(window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void, sourcePaths: () => string[]) {
-  ipcMain.handle('project:save', async (event, value: unknown) => {
+export function registerProjectSaving(window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void, sourcePaths: () => string[], ipc: WindowIpc = ipcMain) {
+  ipc.handle('project:save', async (event, value: unknown) => {
     trusted(event);
     const project = parseProject(value);
     const destination = await dialog.showSaveDialog(window(), { defaultPath: projectFilename(project.name), filters: [{ name: 'Frame project', extensions: ['json'] }] });
