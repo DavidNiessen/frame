@@ -21,6 +21,24 @@ async function dragDivider(page: Page, name: string, x: number, y: number) {
   await expect(divider.locator('span')).toHaveCSS('box-shadow', 'none');
   await page.mouse.move(bounds.x + bounds.width / 2 + x, bounds.y + bounds.height / 2 + y, { steps: 8 }); await page.mouse.up();
 }
+test('fits the empty preview at short desktop heights and contains genuine overflow inside its rounded border', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 829 }); await page.goto('/');
+  await page.evaluate(() => document.fonts.ready);
+  const scroller = page.locator('.empty-stage-scroll');
+  expect(await scroller.evaluate(node => node.scrollHeight)).toBe(await scroller.evaluate(node => node.clientHeight));
+  await page.getByRole('button', { name: 'Try a sample', exact: true }).scrollIntoViewIfNeeded();
+  expect(await scroller.evaluate(node => node.scrollTop)).toBe(0);
+  await expect(page.locator('.empty-stage')).toHaveCSS('overflow', 'hidden');
+  const panel = (await page.locator('.empty-stage').boundingBox())!, inner = (await scroller.boundingBox())!;
+  expect(inner.x + inner.width).toBeLessThan(panel.x + panel.width - 6);
+  const art = (await page.locator('.art-window').boundingBox())!, eyebrow = (await page.locator('.empty-stage .eyebrow').boundingBox())!;
+  expect(art.y + art.height).toBeLessThan(eyebrow.y);
+  await page.screenshot({ path: 'test-results/empty-preview-short.png' });
+  // A narrow, short preview still scrolls rather than clipping the import actions.
+  await page.getByRole('separator', { name: 'Resize media library' }).press('End');
+  await page.getByRole('separator', { name: 'Resize edit and export panel' }).press('End');
+  await expect(page.getByRole('button', { name: 'Import media', exact: true }).last()).toBeVisible();
+});
 test('bounds a crowded timeline without shrinking the preview and scrolls zoomed tracks', async ({ page }) => {
   await sample(page);
   const before = (await page.locator('.preview-panel').boundingBox())!;
