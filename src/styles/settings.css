@@ -47,3 +47,12 @@
 .settings-preference { margin-top: 22px; align-items: flex-start; }
 .settings-preference input { margin-top: 1px; }
 .settings-preference small { max-width: 600px; }
+.certificate-trust { border-top: 1px solid var(--border); margin-top: 22px; padding-top: 20px; }
+.certificate-trust-heading { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; }
+.certificate-trust-heading svg { flex-shrink: 0; color: var(--accent); }
+.certificate-trust p { font-size: 12px; line-height: 1.7; color: var(--muted); margin: 10px 0 16px; }
+.certificate-trust details { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+.certificate-trust summary { cursor: pointer; }
+.certificate-trust dl { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; margin-top: 14px; }
+.certificate-trust dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+.certificate-fingerprint { font-family: ui-monospace, monospace; }

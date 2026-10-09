@@ -1,4 +1,5 @@
 import extensions from '../src/core/media-extensions.json';
+import signature from '../native/windows-shell/package/signature.json';
 import { posixShellCommand, type ShellLaunch } from './shell-command';
 export const shellActions = [
   { verb: 'Frame.Edit', label: 'Edit in Frame', workflow: 'edit' },
@@ -50,7 +51,7 @@ Function FrameShellPage
   $\{NSD_CreateCheckbox} 0 40u 100% 28u 'Add "Edit in Frame" and "Convert in Frame" to file context menus'
   Pop $FrameShellCheckbox
   $\{NSD_SetState} $FrameShellCheckbox $FrameShellEnabled
-  $\{NSD_CreateLabel} 0 82u 100% 62u "Applies to supported media and multiple selections. Windows 11 adds a Frame entry in the primary menu and keeps Show more options entries. Local unsigned builds require Developer Mode for the primary menu; distributed builds require a trusted signed shell package. You can change actions later in Frame Settings."
+  $\{NSD_CreateLabel} 0 82u 100% 62u "Applies to supported media and multiple selections. Windows 11 adds a Frame entry in the primary menu and keeps Show more options entries. If needed, Frame asks separately before trusting its signing certificate for this PC, then Windows asks for administrator approval. You can change actions later in Frame Settings."
   Pop $R0
   nsDialogs::Show
 FunctionEnd
@@ -71,22 +72,40 @@ FunctionEnd
   DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}"
 !macroend
 !macro FramePrimaryMenu Operation
+  !if "$\{Operation}" == "Trust"
+    !define FrameShellTimeout 300000
+  !else
+    !define FrameShellTimeout 60000
+  !endif
   ; NSIS is 32-bit; use native PowerShell so Appx deployment is available on x64 Windows.
   StrCpy $R2 "$SYSDIR\\WindowsPowerShell\\v1.0\\powershell.exe"
   IfFileExists "$WINDIR\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe" 0 +2
   StrCpy $R2 "$WINDIR\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe"
-  nsExec::ExecToStack /TIMEOUT=60000 '\"$R2\" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1\" -Operation $\{Operation} -Executable \"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}\"'
+  nsExec::ExecToStack /TIMEOUT=$\{FrameShellTimeout} '\"$R2\" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1\" -Operation $\{Operation} -Executable \"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}\"'
+  !undef FrameShellTimeout
   Pop $R0
   Pop $R1
   $\{If} $R0 != 0
     DetailPrint "Windows 11 primary-menu registration needs attention. Open Frame Settings to repair or remove it. Classic entries are managed separately."
   $\{EndIf}
 !macroend
+!ifndef BUILD_UNINSTALLER
+Function FrameTrustAndInstall
+  !insertmacro FramePrimaryMenu "Trust"
+  $\{If} $R0 == 0
+    !insertmacro FramePrimaryMenu "Install"
+  $\{EndIf}
+FunctionEnd
+!endif
 !macro customInstall
   WriteRegDWORD HKCU "Software\\Frame\\ShellActions" "Enabled" $FrameShellEnabled
   $\{If} $FrameShellEnabled == 1
 ${install}
   !insertmacro FramePrimaryMenu "Install"
+  $\{If} $R0 == 17
+    MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "Trust Frame's signing certificate to enable the Windows 11 menu without Developer Mode?$\\r$\\n$\\r$\\nThis trusts packages signed with the Frame certificate for all users of this PC in Trusted People. Windows will ask for administrator approval. You can remove the trust later in Frame Settings.$\\r$\\n$\\r$\\nPublisher: CN=Frame$\\r$\\nSHA-256: ${signature.certificateSha256}" /SD IDNO IDNO +2
+    Call FrameTrustAndInstall
+  $\{EndIf}
   $\{Else}
 ${uninstall}
   !insertmacro FramePrimaryMenu "Remove"

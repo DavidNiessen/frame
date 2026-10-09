@@ -3,12 +3,13 @@ import { ArrowLeft, AudioLines, FolderOpen, LoaderCircle, Monitor, Palette, Refr
 import type { ShellIntegrationStatus } from '../../core/system-integration';
 import type { Theme } from '../../hooks/useTheme';
 import { ThemeChoices } from './ThemeChoices';
+import { CertificateTrust } from './CertificateTrust';
 
 const webStatus: ShellIntegrationStatus = { platform: 'web', available: false, state: 'not-installed', detail: 'Available in the desktop app. Browsers cannot add actions to your file manager.' };
 export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms, back }: { theme: Theme; setTheme: (theme: Theme) => void; autoWaveforms: boolean; setAutoWaveforms: (enabled: boolean) => void; back: () => void }) {
   const bridge = window.frameDesktop;
   const [status, setStatus] = useState<ShellIntegrationStatus | null>(bridge ? null : webStatus);
-  const [pending, setPending] = useState<'checking' | 'installing' | 'removing' | null>(bridge ? 'checking' : null);
+  const [pending, setPending] = useState<'checking' | 'installing' | 'removing' | 'certificate' | null>(bridge ? 'checking' : null);
   const [error, setError] = useState('');
   useEffect(() => {
     if (!bridge) return;
@@ -26,7 +27,17 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
       try { setStatus(await bridge.shellIntegrationStatus()); } catch { setStatus(null); }
     } finally { setPending(null); }
   }
+  async function certificate(action: 'trust' | 'revoke') {
+    if (!bridge || pending) return;
+    setPending('certificate'); setError('');
+    try { setStatus(await bridge.changeShellCertificate(action)); }
+    catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      try { setStatus(await bridge.shellIntegrationStatus()); } catch { setStatus(null); }
+    } finally { setPending(null); }
+  }
   const installed = status?.state === 'installed', partial = status?.state === 'partial';
+  const needsCertificate = !!status?.certificate && !status.certificate.trusted;
   return <main className="settings-page">
     <button className="settings-back" onClick={back}><ArrowLeft size={15} />Back to workspace</button>
     <div className="settings-heading"><h1>Settings</h1><p>Make Frame feel at home.</p></div>
@@ -42,12 +53,13 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
       <div className="settings-section-heading"><FolderOpen size={19} /><div><h2 id="integration-heading">File-manager actions</h2><p>Start editing or converting directly from your files.</p></div><span className={`integration-badge ${installed ? 'installed' : ''}`}>{pending === 'checking' ? 'Checking…' : !status ? 'Status unavailable' : !status.available ? status.platform === 'web' ? 'Desktop only' : 'Unavailable' : installed ? 'Installed' : partial ? 'Needs repair' : 'Not installed'}</span></div>
       <p className="integration-detail">{status?.detail || 'Refresh to check your file-manager actions.'}</p>
       <div className="integration-controls">
-        <button className="button primary" disabled={!status?.available || !!pending || installed} onClick={() => void update(true)}>{pending === 'installing' && <LoaderCircle size={14} className="spinner" />}{pending === 'installing' ? 'Installing…' : partial ? 'Repair actions' : 'Install actions'}</button>
+        <button className="button primary" disabled={!status?.available || !!pending || (needsCertificate ? !status?.certificate?.canTrust : installed)} onClick={() => void (needsCertificate ? certificate('trust') : update(true))}>{(pending === 'installing' || pending === 'certificate') && <LoaderCircle size={14} className="spinner" />}{pending === 'certificate' ? 'Waiting for Windows…' : pending === 'installing' ? 'Installing…' : needsCertificate ? 'Trust certificate and enable menu…' : partial ? 'Repair actions' : 'Install actions'}</button>
         <button className="button subtle" disabled={!status?.available || !!pending || (!installed && !partial)} onClick={() => void update(false)}>{pending === 'removing' ? 'Removing…' : 'Remove actions'}</button>
         {bridge && <button className="icon-button" disabled={!!pending} aria-label="Refresh integration status" title="Refresh integration status" onClick={() => void update()}><RefreshCw size={16} /></button>}
       </div>
       {error && <p className="settings-error" role="alert">{error}</p>}
       <p className="settings-note"><Monitor size={13} />Applies to your user account. Your default media apps stay the same.</p>
+      {status?.certificate && <CertificateTrust certificate={status.certificate} pending={!!pending} change={action => void certificate(action)} />}
     </section>
   </main>;
 }

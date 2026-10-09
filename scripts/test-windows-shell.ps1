@@ -6,6 +6,14 @@ $extensions = Get-Content 'src/core/media-extensions.json' -Raw | ConvertFrom-Js
 $root = 'HKCU:\Software\Classes\SystemFileAssociations'
 $primarySupported = [Environment]::OSVersion.Version.Build -ge 22000 -and $env:PROCESSOR_ARCHITECTURE -ne 'ARM64' -and $env:PROCESSOR_ARCHITEW6432 -ne 'ARM64'
 $identity = Get-Content 'native/windows-shell/identity.json' -Raw | ConvertFrom-Json
+$signature = Get-Content 'native/windows-shell/package/signature.json' -Raw | ConvertFrom-Json
+$certificatePath = Join-Path (Get-Location) 'native/windows-shell/package/Frame.cer'
+$certificateWasTrusted = Test-Path "Cert:\LocalMachine\TrustedPeople\$($signature.thumbprint)"
+$helperRoot = Join-Path $env:TEMP "Frame Certificate Test $([guid]::NewGuid())"
+function CertificateHelper([string]$action) {
+  $process = Start-Process -FilePath (Join-Path $helperRoot 'FrameCertificateHelper.exe') -ArgumentList "--$action" -Wait -PassThru
+  return $process.ExitCode
+}
 function AssertPrimaryMenu([bool]$installed) {
   if (!$primarySupported) { return }
   $key = Get-Item 'HKCU:\Software\Frame\ShellActions' -ErrorAction SilentlyContinue
@@ -14,6 +22,7 @@ function AssertPrimaryMenu([bool]$installed) {
   if ($installed) {
     if ($null -eq $key) { throw 'Windows 11 primary-menu settings are missing.' }
     if (!$fullName -or $null -eq $package -or $package.PackageFullName -ne $fullName -or $package.Status -ne 'Ok') { throw "Windows 11 primary-menu package is not registered: $($key.GetValue('PrimaryError'))" }
+    if ($key.GetValue('PrimaryMode') -ne 'signed' -or $package.IsDevelopmentMode) { throw 'Primary-menu tests must use signed deployment without Developer Mode.' }
     foreach ($name in @('FrameShell.dll', 'FrameShellLauncher.exe')) {
       if (!(Test-Path -LiteralPath (Join-Path ($key.GetValue('PrimaryRoot')) $name))) { throw "Missing native shell component $name." }
     }
@@ -25,6 +34,18 @@ foreach ($extension in $extensions) {
   $defaults[$extension] = if ($null -eq $association) { $null } else { $association.GetValue('') }
 }
 try {
+  if ($primarySupported) {
+    $developer = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -ErrorAction SilentlyContinue
+    if ($developer -eq 1) { throw 'Run these signing tests with Developer Mode disabled. This script does not change Windows policy.' }
+    if ((Get-FileHash -LiteralPath $certificatePath).Hash -ne $signature.certificateSha256) { throw 'Unexpected Frame certificate.' }
+    New-Item -ItemType Directory -Path $helperRoot | Out-Null
+    Copy-Item -LiteralPath 'build/generated/shell-actions/windows/FrameCertificateHelper.exe' -Destination $helperRoot
+    $changed = [IO.File]::ReadAllBytes($certificatePath); $changed[$changed.Length - 1] = $changed[$changed.Length - 1] -bxor 1
+    [IO.File]::WriteAllBytes((Join-Path $helperRoot 'Frame.cer'), $changed)
+    if ((CertificateHelper 'trust') -ne 13) { throw 'The trust helper must reject an altered certificate.' }
+    Copy-Item -LiteralPath $certificatePath -Destination (Join-Path $helperRoot 'Frame.cer') -Force
+    if ((CertificateHelper 'trust') -ne 0 -or !(Test-Path "Cert:\LocalMachine\TrustedPeople\$($signature.thumbprint)")) { throw 'The pinned certificate helper did not trust Frame.' }
+  }
   $process = Start-Process -FilePath $installer.FullName -ArgumentList '/S', "/D=$installDir" -Wait -PassThru
   if ($process.ExitCode -ne 0) { throw "Installer failed with exit code $($process.ExitCode)." }
   $executable = Join-Path $installDir 'Frame.exe'
@@ -90,4 +111,10 @@ try {
     AssertPrimaryMenu $false
   }
   Remove-Item $installDir -Recurse -Force -ErrorAction SilentlyContinue
+  if ($primarySupported -and !$certificateWasTrusted -and (Test-Path (Join-Path $helperRoot 'FrameCertificateHelper.exe'))) {
+    # A failed tampering test can leave the rejected certificate in the helper directory.
+    Copy-Item -LiteralPath $certificatePath -Destination (Join-Path $helperRoot 'Frame.cer') -Force
+    if ((CertificateHelper 'revoke') -ne 0 -or (Test-Path "Cert:\LocalMachine\TrustedPeople\$($signature.thumbprint)")) { throw 'The pinned helper did not remove its certificate.' }
+  }
+  Remove-Item $helperRoot -Recurse -Force -ErrorAction SilentlyContinue
 }

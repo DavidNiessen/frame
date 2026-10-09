@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import type { BaseWindow, MessageBoxOptions } from 'electron';
 
 const execute = promisify(execFile);
 async function windowsRegistry(script: string) {
@@ -24,6 +25,8 @@ test('manages file-manager actions in packaged and development builds', async ()
     test.skip(process.platform === 'win32' && process.env.FRAME_TEST_SHELL_ACTIONS !== '1', 'Run Windows registration checks through the isolated installer test.');
     const status = () => page.evaluate(() => window.frameDesktop!.shellIntegrationStatus());
     await expect(page.evaluate(() => window.frameDesktop!.setShellIntegration('invalid' as unknown as boolean))).rejects.toThrow('Invalid integration setting');
+    await expect(page.evaluate(() => window.frameDesktop!.changeShellCertificate('invalid' as 'trust'))).rejects.toThrow('Invalid certificate action');
+    if (process.platform === 'linux') await expect(page.evaluate(() => window.frameDesktop!.changeShellCertificate('trust'))).rejects.toThrow('Windows 11');
     const initial = await status();
     expect(initial.available).toBe(true);
     await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
@@ -35,6 +38,18 @@ test('manages file-manager actions in packaged and development builds', async ()
     await expect(page.locator('.integration-badge')).toHaveText('Installed');
     await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Remove actions' })).toBeEnabled();
+    if (process.platform === 'win32' && initial.certificate?.trusted) {
+      await expect(page.getByRole('button', { name: 'Remove certificate trust…' })).toBeEnabled();
+      await app.evaluate(({ dialog }) => { dialog.showMessageBox = async (first: BaseWindow | MessageBoxOptions, second?: MessageBoxOptions) => {
+        const options = (second ?? first) as MessageBoxOptions;
+        if (!options.detail?.includes('Trusted People for all users') || options.defaultId !== 0) throw new Error('Certificate revocation must explain scope and default to Cancel.');
+        return { response: 0, checkboxChecked: false };
+      }; });
+      await page.getByRole('button', { name: 'Remove certificate trust…' }).click();
+      await expect(page.getByRole('button', { name: 'Remove certificate trust…' })).toBeEnabled();
+      expect((await status()).certificate?.trusted).toBe(true);
+      expect((await status()).state).toBe('installed');
+    }
     if (process.platform === 'linux') {
       const path = join(directory, 'data', 'kio', 'servicemenus', 'frame-media-editor.desktop');
       const entry = await readFile(path, 'utf8');

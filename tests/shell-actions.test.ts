@@ -95,6 +95,10 @@ it('offers an initially checked installer checkbox, restores the preference, and
   expect(installer).toContain('"$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1"');
   expect(installer).toContain('$WINDIR\\Sysnative\\WindowsPowerShell');
   expect(installer).toContain('Windows 11 adds a Frame entry in the primary menu');
+  expect(installer).toContain('MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2');
+  expect(installer).toContain('/SD IDNO IDNO +2');
+  expect(installer).toContain('Call FrameTrustAndInstall');
+  expect(installer).toContain('!insertmacro FramePrimaryMenu "Trust"');
 });
 it('reports repair when either supported Windows menu component is incomplete', () => {
   const primary = { supported: true, owned: true, state: 'installed' as const, detail: '' };
