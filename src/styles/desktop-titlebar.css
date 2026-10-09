@@ -6,8 +6,8 @@ html[data-desktop-window], html[data-desktop-window] body { background: transpar
 .desktop-chrome { position: absolute; inset: auto 0 calc(var(--desktop-content-height) - 2px); height: var(--desktop-chrome-height); z-index: 1000; pointer-events: none; }
 .desktop-chrome-trigger { position: fixed; inset: auto 0 calc(var(--desktop-content-height) - 8px); height: 8px; pointer-events: auto; }
 .desktop-titlebar {
-  position: absolute; inset: 0 0 auto; height: var(--desktop-chrome-height); display: flex; align-items: center; gap: 8px;
-  padding: 5px; border: 0; background: transparent;
+  position: absolute; inset: 0 0 auto; height: var(--desktop-chrome-height); display: flex; align-items: center; gap: 6px;
+  padding: 3px; border: 0; background: transparent;
   opacity: 0; visibility: hidden;
   transform: translateY(6px); pointer-events: none;
   transition: transform .2s ease, opacity .12s ease, visibility 0s .2s;
@@ -19,7 +19,7 @@ html[data-desktop-window], html[data-desktop-window] body { background: transpar
 .desktop-titlebar-drag { align-self: stretch; flex: 1; min-width: 32px; -webkit-app-region: drag; }
 .desktop-window-buttons { display: flex; gap: 2px; -webkit-app-region: no-drag; }
 .desktop-window-buttons button {
-  display: grid; place-items: center; width: 32px; height: 26px; border-radius: 6px; color: var(--muted);
+  display: grid; place-items: center; width: 28px; height: 22px; border-radius: 5px; color: var(--muted);
   transition: background-color .18s ease, color .18s ease, transform .18s ease;
 }
 .desktop-window-buttons button svg { transition: transform .22s cubic-bezier(.22, 1, .36, 1); }

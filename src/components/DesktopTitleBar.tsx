@@ -72,11 +72,11 @@ export function DesktopTitleBar({ state }: { state: WindowState }) {
       <div className="desktop-titlebar-drag" aria-hidden="true" />
       {error && <span className="desktop-titlebar-error" role="alert">{error}</span>}
       <div className="desktop-window-buttons">
-        <button ref={first} type="button" tabIndex={revealed ? 0 : -1} aria-label="Minimize window" title="Minimize" onClick={() => act('minimize')}><Minus size={14} /></button>
+        <button ref={first} type="button" tabIndex={revealed ? 0 : -1} aria-label="Minimize window" title="Minimize" onClick={() => act('minimize')}><Minus size={12} /></button>
         <button type="button" tabIndex={revealed ? 0 : -1} aria-label={restore ? 'Restore window' : 'Maximize window'} title={restore ? 'Restore' : 'Maximize'} onClick={() => act('toggle-maximize')}>
-          {restore ? <Copy size={13} /> : <Square size={13} />}
+          {restore ? <Copy size={12} /> : <Square size={12} />}
         </button>
-        <button type="button" tabIndex={revealed ? 0 : -1} className="desktop-window-close" aria-label="Close window" title="Close" onClick={() => act('close')}><X size={15} /></button>
+        <button type="button" tabIndex={revealed ? 0 : -1} className="desktop-window-close" aria-label="Close window" title="Close" onClick={() => act('close')}><X size={13} /></button>
       </div>
     </div>
   </div>;
