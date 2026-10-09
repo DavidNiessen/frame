@@ -1,3 +1,4 @@
+import { gifPaletteFilters } from './gif-output';
 import { audioOutputArgs, outputAudioCodec } from './audio-output';
 import { clipFilterGraph } from './clip-filters';
 import { resolveSizeTarget } from './size';
@@ -64,7 +65,7 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
   graph.push(`${clips.map((_, i) => `${video ? `[v${i}]` : ''}${audio ? `[a${i}]` : ''}`).join('')}concat=n=${clips.length}:v=${video ? 1 : 0}:a=${audio ? 1 : 0}${video ? '[mergedv]' : ''}${audio ? '[mergeda]' : ''}`);
   }
   if (edit.format === 'gif') {
-    graph.push(`[mergedv]fps=${edit.fps},split[ga][gb];[ga]palettegen[p];[gb][p]paletteuse[gif]`); args.push('-map', '[gif]', '-an', '-loop', '0');
+    graph.push(`[mergedv]${gifPaletteFilters(edit, 'mergedgif').join(',')}[gif]`); args.push('-map', '[gif]', '-an', '-loop', String(edit.gifLoop));
   } else {
     if (video) {
       args.push('-map', '[mergedv]', '-c:v', format.videoCodec!, '-pix_fmt', 'yuv420p');

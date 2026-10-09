@@ -5,7 +5,7 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Idea | Benefit | Status |
 | --- | --- | --- |
 | Audio sample rate, channel layout and WAV bit depth | Prepare songs, speech and production audio for the intended destination | Implemented |
-| GIF repeat, palette and dithering options | Control animation behavior and file size | Planned |
+| GIF repeat, palette and dithering options | Control animation behavior and file size | Implemented |
 | Bulk filename templates | Organize converted collections with predictable names | Planned |
 | Timeline markers with names and navigation | Bookmark important moments and review points | Planned |
 | Timeline snapping | Make precise cuts and align timed elements | Planned |

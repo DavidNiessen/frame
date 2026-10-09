@@ -1,3 +1,4 @@
+import { GifOutputControls } from './GifOutputControls';
 import { AudioOutputControls } from './AudioOutputControls';
 import { SizeControls } from './SizeControls';
 import { ChevronDown, Settings2 } from 'lucide-react';
@@ -17,6 +18,7 @@ export function ExportControls({ asset, edit, update }: { asset: MediaAsset; edi
       {format.kind === 'video' && edit.format !== 'gif' && <label className="stacked-label">Video bitrate <span className="unit">kbps</span><input type="number" aria-label="Video bitrate" disabled={edit.targetSizeMb !== null} placeholder="Auto (quality preset)" min={100} max={100000} step={100} value={edit.videoBitrate ?? ''} onChange={event => update({ videoBitrate: event.target.value === '' ? null : Number(event.target.value) })} /></label>}
       {asset.hasAudio && edit.format !== 'gif' && !lossless && <label className="stacked-label">Audio bitrate<select aria-label="Audio bitrate" value={edit.audioBitrate} onChange={event => update({ audioBitrate: Number(event.target.value) })}>{[64, 96, 128, 192, 256, 320].map(value => <option value={value} key={value}>{value} kbps</option>)}</select></label>}
       {edit.format === 'gif' && <label className="stacked-label">GIF frame rate <span className="unit">fps</span><input type="number" aria-label="GIF frame rate" min={1} max={60} value={edit.fps} onChange={event => update({ fps: Number(event.target.value) })} /></label>}
+      {edit.format === 'gif' && <GifOutputControls settings={edit} update={update} />}
       {asset.hasAudio && edit.format !== 'gif' && <AudioOutputControls settings={edit} update={update} />}
       <label className="switch-row"><span>Include artwork<small>{format.artwork ? asset.artworkIndex === undefined ? 'No embedded artwork in this file' : 'Keep the embedded cover image' : 'Not supported by this output format'}</small></span><input type="checkbox" role="switch" aria-label="Include artwork" checked={edit.includeArtwork} disabled={!format.artwork} onChange={event => update({ includeArtwork: event.target.checked })} /></label>
       <label className="switch-row"><span>Keep metadata<small>Titles, artists, and source tags</small></span><input type="checkbox" role="switch" aria-label="Keep metadata" checked={edit.keepMetadata} onChange={event => update({ keepMetadata: event.target.checked })} /></label>

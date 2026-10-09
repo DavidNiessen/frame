@@ -1,3 +1,4 @@
+import { gifPaletteFilters, validateGifOutput } from './gif-output';
 import { audioOutputArgs, outputAudioCodec, validateAudioOutput } from './audio-output';
 import { clipEffectKeys, clipRecipe } from './clips';
 import { clipFilterGraph } from './clip-filters';
@@ -15,7 +16,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
-  validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
+  validateGifOutput(edit); validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
   if (edit.clips) {
     if (!Array.isArray(edit.clips) || !edit.clips.length || edit.clips.length > 1000 || new Set(edit.clips.map(clip => clip.id)).size !== edit.clips.length) throw new Error('Invalid ordered clips.');
@@ -81,9 +82,9 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   }
   if (edit.format === 'gif') {
     const prefix = complex ? videoInput : '[0:V:0]';
-    const filters = [...(complex ? [] : videoFilters), `fps=${edit.fps}`, 'split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=sierra2_4a'];
+    const filters = [...(complex ? [] : videoFilters), ...gifPaletteFilters(edit)];
     graph.push(`${prefix}${filters.join(',')}[gif]`);
-    args.push('-map', '[gif]', '-an', '-loop', '0');
+    args.push('-map', '[gif]', '-an', '-loop', String(edit.gifLoop));
   } else if (hasVideo) {
     args.push('-map', videoInput);
     if (hasAudio) args.push('-map', complex ? audioInput : '0:a:0?');
