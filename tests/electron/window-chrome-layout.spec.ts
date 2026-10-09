@@ -2,6 +2,7 @@ import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { desktopChromeSpace } from '../../src/core/window-controls';
 
 test('keeps the video steady when chrome extends, handles resizing and preserves the maximized content area', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-chrome-layout-'));
@@ -27,11 +28,11 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
     await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click();
     await page.locator('.preview-panel').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
     const video = await videoBounds(); await show(); expect(await videoBounds()).toEqual(video); await hide(); expect(await videoBounds()).toEqual(video);
-    await settle(); expect(await corners(56)).toEqual([0, 0, 0, 0, 255]);
-    await native.evaluate(window => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: 1200, height: 896 }); });
+    await settle(); expect(await corners(desktopChromeSpace)).toEqual([0, 0, 0, 0, 255]);
+    await native.evaluate((window, height) => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: 1200, height }); }, 840 + desktopChromeSpace);
     await expect(page.locator('.desktop-window-content')).toHaveCSS('height', '838px');
     await show();
-    await native.evaluate(window => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: 1300, height: 896 }); });
+    await native.evaluate((window, height) => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: 1300, height }); }, 840 + desktopChromeSpace);
     await expect(page.locator('.desktop-window-frame')).toHaveCSS('width', '1300px');
     await expect(page.locator('.desktop-window-content')).toHaveCSS('height', '838px');
     const resized = await videoBounds(); await hide(); expect(await videoBounds()).toEqual(resized);

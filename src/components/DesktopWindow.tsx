@@ -12,7 +12,7 @@ export function DesktopWindow({ children }: { children: ReactNode }) {
     void bridge.windowState().then(update).catch(() => {});
     return () => { active = false; unsubscribe(); };
   }, [bridge]);
-  const style = { '--desktop-content-height': `${state.contentHeight}px`, '--app-height': `${state.contentHeight - 2}px` } as CSSProperties;
+  const style = { '--desktop-chrome-height': `${desktopChromeSpace}px`, '--desktop-content-height': `${state.contentHeight}px`, '--app-height': `${state.contentHeight - 2}px` } as CSSProperties;
   return <div className="desktop-window" style={style}>
     <div className="desktop-window-frame" data-chrome-expanded={state.chromeExpanded}>
       <DesktopTitleBar state={state} />

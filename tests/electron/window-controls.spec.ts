@@ -2,6 +2,7 @@ import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { desktopChromeSpace } from '../../src/core/window-controls';
 
 test('reveals frameless controls without moving panels, supports keyboard access and closes the window', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-window-controls-'));
@@ -29,7 +30,7 @@ test('reveals frameless controls without moving panels, supports keyboard access
       return boxes;
     });
     for (const frame of frames) expect(frame.content).toEqual(before);
-    expect(frames.some(frame => frame.chromeTop > 0 && frame.chromeTop < 56)).toBe(true);
+    expect(frames.some(frame => frame.chromeTop > 0 && frame.chromeTop < desktopChromeSpace)).toBe(true);
     for (let index = 1; index < frames.length; index++) expect(frames[index].chromeTop).toBeLessThanOrEqual(frames[index - 1].chromeTop);
     await page.locator('.desktop-window-frame').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
     expect(await contentBounds()).toEqual(before);
