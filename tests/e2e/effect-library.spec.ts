@@ -4,6 +4,18 @@ import { promisify } from 'node:util';
 import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 
+test('keeps the opposite caption boundary when resizing a cue that spans split clips', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByRole('button', { name: 'Add Captions', exact: true }).click();
+  await page.getByLabel('Import subtitle file').setInputFiles({ name: 'spanning.srt', mimeType: 'text/plain', buffer: Buffer.from('1\n00:00:01,000 --> 00:00:05,000\nAcross both clips\n') });
+  await page.locator('.timeline-track-filters').getByRole('button', { name: 'captions', exact: true }).click();
+  await page.getByLabel('Caption 1 start', { exact: true }).first().press('Shift+ArrowRight');
+  await expect(page.locator('.cue-timing')).toHaveText('Caption 1 · 1.10–5.00s');
+  await page.getByLabel('Caption 1 end', { exact: true }).last().press('Shift+ArrowLeft');
+  await expect(page.locator('.cue-timing')).toHaveText('Caption 1 · 1.10–4.90s');
+});
+
 test('plays reordered clips across the source end and restarts at the sequence beginning', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
   const video = page.locator('video'); await expect(video).toHaveJSProperty('readyState', 4);
@@ -39,6 +51,11 @@ test('applies an effect to one split clip, reorders it and exports the sequence'
   await page.getByLabel('Fullscreen playback position').fill('1'); await expect(page.locator('video')).toHaveJSProperty('currentTime', 4);
   await page.getByLabel('Fullscreen playback position').fill('2.5'); await expect(page.locator('video')).toHaveJSProperty('currentTime', .5);
   await page.getByRole('button', { name: 'Exit fullscreen preview', exact: true }).click();
+  await page.getByRole('button', { name: 'Generate thumbnails', exact: true }).click();
+  await page.getByRole('button', { name: 'Seek thumbnail 1', exact: true }).click();
+  await expect.poll(() => page.locator('video').evaluate(node => (node as HTMLVideoElement).currentTime)).toBeCloseTo(2 + 1 / 3, 2);
+  await page.getByRole('button', { name: 'Seek thumbnail 12', exact: true }).click();
+  await expect.poll(() => page.locator('video').evaluate(node => (node as HTMLVideoElement).currentTime)).toBeCloseTo(2 - 1 / 6, 2);
   await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
   const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file', exact: true }).click(); const output = testInfo.outputPath('sequence.mp4'); await (await pending).saveAs(output);
   const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]); expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(4, 1);
@@ -46,13 +63,18 @@ test('applies an effect to one split clip, reorders it and exports the sequence'
 
 test('keeps waveform generation and cancellation independent of editing and export', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toBeVisible({ timeout: 45000 });
+  // Hold the background worker's download so cancellation cannot race a completed waveform.
+  let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/ffmpeg-core.wasm', async route => { await pending; await route.continue().catch(() => {}); });
   await page.getByRole('button', { name: 'Generate waveform', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Split', exact: true })).toBeEnabled();
   await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.locator('video')).toHaveJSProperty('volume', .5);
   await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
-  const cancel = page.getByRole('button', { name: 'Cancel waveform', exact: true }); if (await cancel.isVisible()) await cancel.click();
+  await page.getByRole('button', { name: 'Cancel waveform', exact: true }).click(); release();
+  await page.unroute('**/ffmpeg-core.wasm');
   await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
-  const retry = page.getByRole('button', { name: /Retry waveform|Generate waveform/ }); if (await retry.isVisible()) await retry.click();
+  await page.getByRole('button', { name: 'Retry waveform', exact: true }).click();
   await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({ timeout: 45000 });
 });
 

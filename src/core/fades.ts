@@ -3,7 +3,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings } from './types';
 export function outputTimeAtSource(edit: EditSettings, sourceTime: number): number {
   if (edit.clips) {
-    const positions = clipPositions(edit), segment = positions.find(({ clip }) => sourceTime >= clip.start && sourceTime <= clip.end);
+    const positions = clipPositions(edit), segment = positions.find(({ clip }) => sourceTime >= clip.start && sourceTime < clip.end) ?? positions.find(({ clip }) => sourceTime === clip.end);
     return segment ? segment.start + (sourceTime - segment.clip.start) / segment.speed : 0;
   }
   return keptRanges(edit).reduce((time, range) => time + Math.max(0, Math.min(sourceTime, range.end) - range.start), 0) / edit.speed;

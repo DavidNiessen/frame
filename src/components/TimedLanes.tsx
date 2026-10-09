@@ -32,7 +32,7 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
         {row.map((cue, index) => <TimelineRange selectOnPointer key={`${cue.index}-${index}`} range={cue} displayRange={cue.shown} displaySpeed={cue.speed} limits={{ start: 0, end: asset.duration }} duration={total}
           label={`Caption ${cue.index + 1}`} text={cue.text} className={`caption-bar ${edit.subtitles.mode === 'none' ? 'inactive' : ''}`} disabled={disabled}
           onSelect={() => seek(cue.start)} onChange={range => update({ subtitles: { ...edit.subtitles,
-            cues: edit.subtitles.cues.map((original, i) => i === cue.index ? { ...original, start: range.start, end: range.end } : original) } })} />)}
+            cues: edit.subtitles.cues.map((original, i) => i === cue.index ? { ...original, start: range.start === cue.start ? original.start : range.start, end: range.end === cue.end ? original.end : range.end } : original) } })} />)}
       </div>)}
     </details>}
     {filter !== 'clips' && filter !== 'captions' && (fades.length > 0 || clipEffects.length > 0) && <details className="timeline-lane-group" open={!compact || filter === 'effects'}>

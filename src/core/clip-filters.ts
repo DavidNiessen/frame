@@ -18,7 +18,7 @@ export function clipFilterGraph(asset: MediaAsset, edit: EditSettings, input: st
     if (audio) graph.push(`[${input}:a:0]atrim=${trim},asetpts=PTS-STARTPTS,${[...audioFilters(recipe, asset), 'aresample=48000', 'aformat=sample_fmts=fltp'].join(',')}[${prefix}${index}a]`);
   });
   graph.push(`${clips.map((_, i) => `${video ? `[${prefix}${i}v]` : ''}${audio ? `[${prefix}${i}a]` : ''}`).join('')}concat=n=${clips.length}:v=${video ? 1 : 0}:a=${audio ? 1 : 0}${video ? `[${prefix}joinedv]` : ''}${audio ? `[${prefix}joineda]` : ''}`);
-  const shared = { ...edit, speed: 1, crop: null, geometry: defaultGeometry(), color: defaultColor(), volume: 1, normalizeLoudness: false, reduceNoise: false, equalizer: { bass: 0, mid: 0, treble: 0 } };
+  const shared = { ...edit, clips: clips.map(clip => ({ ...clip, effects: { ...clip.effects, speed: clip.effects.speed ?? edit.speed } })), speed: 1, crop: null, geometry: defaultGeometry(), color: defaultColor(), volume: 1, normalizeLoudness: false, reduceNoise: false, equalizer: { bass: 0, mid: 0, treble: 0 } };
   if (video) graph.push(`[${prefix}joinedv]${videoFilters(asset, shared, paths).join(',') || 'null'}[${prefix}v]`);
   if (audio) graph.push(`[${prefix}joineda]${audioFilters(shared, asset).join(',')}[${prefix}a]`);
   return { graph };

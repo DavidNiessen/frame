@@ -25,14 +25,16 @@ function recipe() {
 }
 describe('ordered clips with scoped effects', () => {
   it('persists independent effects, order and source/output time mappings', () => {
-    const original = { ...defaultSettings(asset), splits: [2] }, snapshot = JSON.stringify(original);
-    reorderClip(original, editClips(original)[1].id, 0); expect(JSON.stringify(original)).toBe(snapshot);
+    const original = recipe(), snapshot = JSON.stringify(original);
+    reorderClip(original, original.clips![0].id, 1); expect(JSON.stringify(original)).toBe(snapshot);
     const edit = recipe(), restored = parseEdit(JSON.parse(JSON.stringify(edit)), asset);
     expect(restored.clips!.map(c => c.start)).toEqual([2, 0]);
     expect(restored.clips![1].effects).toEqual({});
     expect(editedDuration(restored)).toBe(3);
     expect(outputTimeAtSource(restored, 3)).toBe(.5);
     expect(sourceTimeAtOutput(restored, 1.5)).toBe(.5);
+    const boundaries = { ...defaultSettings(asset), clips: [{ id: 'a', start: 0, end: 2, effects: {} }, { id: 'b', start: 4, end: 6, effects: {} }, { id: 'c', start: 2, end: 4, effects: {} }] };
+    expect(outputTimeAtSource(boundaries, sourceTimeAtOutput(boundaries, 4))).toBe(4);
     expect(outputCues({ ...restored, subtitles: { mode: 'burn', cues: [{ start: 2, end: 3, text: 'first in output' }, { start: .5, end: 1, text: 'second' }] } })).toEqual([{ start: 0, end: .5, text: 'first in output' }, { start: 1.5, end: 2, text: 'second' }]);
   });
   it('keeps a split clip’s effects on both children and rejects malformed projects', () => {
@@ -56,5 +58,16 @@ describe('ordered clips with scoped effects', () => {
     await exec(ffmpegPath(), buildMergeArgs([{ asset, edit }, { asset, edit: { ...defaultSettings(asset), end: 1 } }], defaultSettings(asset), [source, source], output));
     const { stdout } = await exec(ffprobePath(), ['-v', 'error', '-show_format', '-of', 'json', output]);
     expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(4, 1);
+  });
+  it('places output-wide fades at the actual end when clips inherit shared speed', async () => {
+    const base = { ...defaultSettings(asset), end: 4, speed: 2, audioFadeOut: 1 };
+    let edit = { ...base, ...splitClip(base, editClips(base)[0].id, 2) };
+    edit = { ...edit, ...patchClip(edit, edit.clips![1].id, { speed: 1 }) };
+    const output = join(directory, 'shared-fade.mp4'); await exec(ffmpegPath(), buildExportArgs(asset, edit, source, output));
+    const volume = async (start: number) => {
+      const result = await exec(ffmpegPath(), ['-ss', String(start), '-i', output, '-t', '0.15', '-map', '0:a', '-af', 'volumedetect', '-f', 'null', '-']);
+      return Number(/mean_volume: (-?[\d.]+)/.exec(result.stderr)![1]);
+    };
+    expect(await volume(2.8)).toBeLessThan(await volume(1.4) - 10);
   });
 });
