@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useState, type CSSProperties, type RefObject } from 'react';
 import { AudioLines, Maximize, Pause, Play, SkipBack, Volume2 } from 'lucide-react';
 import type { EditSettings, MediaAsset } from '../core/types';
 import { nextPlayableTime } from '../core/timeline';
@@ -43,14 +43,14 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
     },
   };
   return <section className="preview-panel">
-    <div className="workspace-heading"><div><span className="eyebrow">Preview</span><h2 title={asset.name}>{asset.name}</h2></div><span className="badge">{asset.kind === 'video' ? `${asset.width} × ${asset.height}` : 'Audio'} <span>·</span> {time(asset.duration)}</span></div>
+    <div className="workspace-heading"><div><h2 title={asset.name}>{asset.name}</h2></div><span className="badge">{asset.kind === 'video' ? `${asset.width} × ${asset.height}` : 'Audio'} <span>·</span> {time(asset.duration)}</span></div>
     <div className={`preview-stage ${asset.kind === 'audio' ? 'audio-stage' : ''}`}>
-      {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}`, maxWidth: `${370 * dimensions.width / dimensions.height}px` }}>
+      {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}`, maxWidth: `${370 * dimensions.width / dimensions.height}px`, '--frame-ratio': dimensions.width / dimensions.height } as CSSProperties}>
         {gif ? <img style={geometryPreview(asset, edit)} src={sourceUrl} alt="Animated source preview" /> : <video style={geometryPreview(asset, edit)} ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} playsInline preload="metadata" />}
         <OverlayPreview edit={edit} asset={asset} />
         {edit.subtitles.mode !== 'none' && <div className="caption-preview">{edit.subtitles.cues.filter(c => current >= c.start && current < c.end).map((c, i) => <span key={i}>{c.text}</span>)}</div>}
         {edit.crop && asset.width && asset.height && <CropOverlay crop={edit.crop} width={asset.width} height={asset.height} disabled={disabled} onChange={crop => update({ crop })} />}
-      </div> : <div className="audio-preview"><span className="audio-orbit" /><span className="audio-orbit second" /><div className="audio-art"><AudioLines size={54} strokeWidth={1.25} /></div><h3>{asset.name.replace(/\.[^.]+$/, '')}</h3><p>Sound, with a little more intention.</p><audio ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} preload="metadata" /></div>}
+      </div> : <div className="audio-preview"><span className="audio-orbit" /><span className="audio-orbit second" /><div className="audio-art"><AudioLines size={54} strokeWidth={1.25} /></div><h3>{asset.name.replace(/\.[^.]+$/, '')}</h3><p>{asset.audioChannels ? `${asset.audioChannels === 1 ? 'Mono' : asset.audioChannels === 2 ? 'Stereo' : `${asset.audioChannels} channels`}${asset.audioSampleRate ? ` · ${asset.audioSampleRate / 1000} kHz` : ''}` : 'Audio source'}</p><audio ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} preload="metadata" /></div>}
       {failed && <div className="preview-error"><p>This format cannot be previewed here.</p><span>You can still edit and convert it to MP4 or MP3.</span></div>}
       <span className="preview-label">{edit.crop ? 'Drag the crop or its corners' : gif ? 'GIF source loops · edits apply on export' : edit.videoFadeIn || edit.videoFadeOut ? 'Fade preview • source frame' : previewUrl ? 'Lightweight proxy preview' : 'Original preview'}</span>
     </div>

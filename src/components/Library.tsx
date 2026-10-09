@@ -1,4 +1,4 @@
-import { Film, Music2, Plus, Trash2, FolderOpen, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { Film, Music2, Plus, Trash2, FolderOpen, ArrowUpRight } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import { bytes, time } from '../core/format';
 export function Library({ editor, onImport }: { editor: Editor; onImport: () => void }) {
@@ -14,8 +14,8 @@ export function Library({ editor, onImport }: { editor: Editor; onImport: () => 
         </li>)}</ul>}
       <button className="library-import" disabled={!!editor.busy} onClick={onImport}><Plus size={16} /> Import media <span>⌘ / Ctrl O</span></button>
     </div>
-    <div className="library-bottom"><span className="eyebrow">A little inspiration</span><button className="sample-card" disabled={!!editor.busy} onClick={() => void editor.importMedia(undefined, true)}>
+    <div className="library-bottom"><button className="sample-card" disabled={!!editor.busy} onClick={() => void editor.importMedia(undefined, true)}>
       <span className="sample-art"><span /><Film size={24} strokeWidth={1.4} /></span><span><strong>Start with a sample</strong><small>A short studio study</small></span><ArrowUpRight size={16} />
-    </button><div className="privacy-note"><ShieldCheck size={15} /><span>Local files. Private by design.</span></div></div>
+    </button></div>
   </aside>;
 }

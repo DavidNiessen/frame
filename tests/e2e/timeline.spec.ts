@@ -20,7 +20,11 @@ test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard se
   await page.getByRole('button', { name: 'Remove selected section' }).click();
   // Source time stays proportional even in the removed gap and the shorter remaining clip.
   await clickAt(0.1);
+  await expect(page.getByRole('button', { name: 'Remove selected section' })).toBeDisabled();
+  await expect(page.locator('.timeline-clip.active')).toHaveCount(0);
   await clickAt(0.95);
+  await page.mouse.click(bounds.x + bounds.width * 0.5, y, { button: 'right' });
+  await expect.poll(async () => Number(await playhead.inputValue())).toBeCloseTo(5.7, 1);
   await page.mouse.move(bounds.x + bounds.width * 0.9, y);
   await page.mouse.down();
   await page.mouse.move(bounds.x + bounds.width * 0.92, y, { steps: 3 });
@@ -43,4 +47,12 @@ test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard se
   await page.mouse.click(bounds.x + bounds.width * 0.5, y);
   await expect(playhead).toHaveValue('5.55');
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
+  // A removed tail must not select the last retained section when seeking to source end.
+  await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
+  await clickAt(0.9);
+  await page.getByRole('button', { name: 'Remove selected section' }).click();
+  await playhead.focus(); await playhead.press('End');
+  await expect(page.locator('.timeline-clip.active')).toHaveCount(0);
+  await playhead.fill('5');
+  await expect(page.locator('.timeline-clip.active')).toHaveCount(1);
 });

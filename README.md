@@ -21,12 +21,14 @@ The browser's first import loads the self-hosted WebAssembly engine (about 32 MB
 ## Editing
 
 1. Import or drop video/audio files and choose a file in the library.
-2. Adjust the trim range. Split at the playhead and select/remove unwanted sections.
+2. In **Edit**, adjust the trim range. Click or drag anywhere on the timeline to seek to that source position, then split and remove unwanted sections. The timeline also supports touch and keyboard seeking.
 3. Choose a video crop preset, drag the crop frame/corners, or enter precise dimensions.
 4. Adjust volume and choose an output format.
-5. Choose a built-in export preset or save your own format/quality settings for reuse. Presets keep trim, crop, and volume unchanged. Custom presets persist on this device (up to 20).
-6. Open Advanced settings for bitrate, GIF frame rate, embedded artwork, and metadata.
+5. In **Export**, choose a built-in export preset or save your own format/quality settings for reuse. Presets keep trim, crop, and volume unchanged. Custom presets persist on this device (up to 20).
+6. In **Export**, open Advanced settings for bitrate, GIF frame rate, embedded artwork, and metadata.
 7. Export: desktop opens a save dialog; the browser provides a downloadable file.
+
+**Edit** contains trim, crop, and volume. **Effects** contains speed, fades, audio cleanup, silence removal, transforms, color, subtitles, and watermarks. Applied effects are summarized in Edit. **Export** contains presets, quality, size, advanced encoding options, and desktop performance tools. Output format and the export action remain available in every tab. Open **Project tools** for project opening, merge, and batch export; saving a project stays directly available.
 
 Edits are nondestructive and support undo/redo. Artwork is enabled by default for MP3, FLAC, and M4A if embedded in the source. GIF has no audio. WAV/FLAC use lossless encoding rather than a target audio bitrate. The default export name has an `-edited` suffix; the desktop app rejects exporting over the source file. Save a `.frame.json` project to retain edits across sessions. Project files contain recipes and source metadata, without media bytes or machine paths. Open a project and relink its original media to restore edits; you can undo the restore. Keep the original files alongside your projects. Theme preference persists locally.
 

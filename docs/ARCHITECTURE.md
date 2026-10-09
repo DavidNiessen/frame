@@ -21,6 +21,12 @@ A source asset has metadata and an opaque ID. Its recipe records source trim bou
 
 The application owns the media library and bounded per-asset undo/redo histories. The interface sends edit patches rather than constructing FFmpeg commands. Exports use a snapshot of the selected recipe. Imports and exports are serialized by application state, and exports can be cancelled.
 
+## Workspace presentation
+
+`InspectorTabs` separates basic edits, effects, and output settings while keeping panels mounted so preview results and specialist control state survive navigation. Hidden preview players are paused on tab changes. `ExportFooter` keeps format selection, progress, cancellation, and export results outside the scrolling controls. Keyboard tab navigation uses the standard arrow/Home/End keys and a single tab stop.
+
+Timeline pointer gestures map against the full source track bounds, retain pointer capture while dragging, and clamp to the source duration. A transparent native range occupies the same track for keyboard and assistive technology; its focus indicator appears around the track. Section buttons still support keyboard selection. Removed gaps have no active section.
+
 ## Project persistence
 
 Version 1 `.frame.json` documents contain source metadata and edit recipes, without source paths, preview URLs, or embedded media. The parser validates structure, numeric limits, recipes, and bounded collections before restoring. Reopening matches source metadata against the library; missing or renamed sources can be imported and explicitly relinked. Restoring validates recipes against the actual sources again, then records the change in undo history. Project schemas are independent of engines; bump the version and provide explicit migrations when changing incompatible recipe fields.

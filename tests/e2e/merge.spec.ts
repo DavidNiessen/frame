@@ -7,10 +7,10 @@ const exec = promisify(execFile);
 test('reorders and merges edited source clips in the browser', async ({ page }, testInfo) => {
   await page.goto('/'); const buffer = await readFile('public/sample.mp4');
   await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
-  await page.getByLabel('Trim end').fill('0.5');
+  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim end').fill('0.5');
   await page.locator('.asset-select').filter({ hasText: 'two.mp4' }).click();
-  await page.getByLabel('Trim end').fill('0.5');
-  await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
+  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim end').fill('0.5');
+  await page.getByText('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Merge clips', exact: true });
   await dialog.getByRole('button', { name: 'Move clip 2 up' }).click();
   await expect(dialog.locator('li').first()).toContainText('two.mp4');
