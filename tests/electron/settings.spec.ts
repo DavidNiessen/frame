@@ -1,0 +1,71 @@
+import { test, expect, _electron } from '@playwright/test';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execute = promisify(execFile);
+async function windowsRegistry(script: string) {
+  const { stdout } = await execute(join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'), ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')]);
+  return stdout.trim();
+}
+
+test('manages real packaged integrations and clearly disables them in development', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-settings-'));
+  const executablePath = process.env.FRAME_TEST_EXECUTABLE ? resolve(process.env.FRAME_TEST_EXECUTABLE) : undefined;
+  const app = await _electron.launch({ executablePath, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, FRAME_DEV_URL: '', XDG_DATA_HOME: join(directory, 'data') } });
+  try {
+    const page = await app.firstWindow();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const available = await app.evaluate(({ app }) => app.isPackaged);
+    if (!available) {
+      await expect(page.getByText('Install the packaged Frame application to manage file-manager actions.')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
+      await expect(page.getByRole('button', { name: 'Remove actions' })).toBeDisabled();
+      return;
+    }
+    // Finder tests use temporary Services folders in the unit suite. Never alter real user services here.
+    test.skip(process.platform === 'darwin', 'Real Finder integration is validated separately.');
+    test.skip(process.platform === 'win32' && process.env.FRAME_TEST_SHELL_ACTIONS !== '1', 'Run Windows registration checks through the isolated installer test.');
+    const status = () => page.evaluate(() => window.frameDesktop!.shellIntegrationStatus());
+    await expect(page.evaluate(() => window.frameDesktop!.setShellIntegration('invalid' as unknown as boolean))).rejects.toThrow('Invalid integration setting');
+    const initial = await status();
+    if (initial.state !== 'not-installed') {
+      await page.getByRole('button', { name: 'Remove actions' }).click();
+      await expect(page.locator('.integration-badge')).toHaveText('Not installed');
+    }
+    await page.getByRole('button', { name: 'Install actions' }).click();
+    await expect(page.locator('.integration-badge')).toHaveText('Installed');
+    await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Remove actions' })).toBeEnabled();
+    if (process.platform === 'linux') {
+      const path = join(directory, 'data', 'kio', 'servicemenus', 'frame-media-editor.desktop');
+      expect(await readFile(path, 'utf8')).toContain('--frame-workflow=convert');
+      await writeFile(path, 'stale command');
+      await page.getByRole('button', { name: 'Refresh integration status' }).click();
+      await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+      await page.getByRole('button', { name: 'Repair actions' }).click();
+      await expect(page.locator('.integration-badge')).toHaveText('Installed');
+    }
+    if (process.platform === 'win32') {
+      // A different Frame installation can own one verb; removal must leave that command alone.
+      await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\\Classes\\SystemFileAssociations\\.mp3\\shell\\Frame.Convert\\command'); $key.SetValue('', 'other-installation'); $key.Dispose()`);
+      await page.getByRole('button', { name: 'Refresh integration status' }).click();
+      await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+    }
+    await page.getByRole('button', { name: 'Remove actions' }).click();
+    await expect(page.locator('.integration-badge')).toHaveText('Not installed');
+    expect((await status()).state).toBe('not-installed');
+    if (process.platform === 'win32') {
+      expect(await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Classes\\SystemFileAssociations\\.mp3\\shell\\Frame.Convert\\command'); try { $key.GetValue('') } finally { $key.Dispose() }`)).toBe('other-installation');
+      expect(await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Frame\\ShellActions'); try { $key.GetValue('Enabled') } finally { $key.Dispose() }`)).toBe('0');
+    }
+    if (process.platform === 'linux') await expect(readFile(join(directory, 'data', 'kio', 'servicemenus', 'frame-media-editor.desktop'))).rejects.toThrow();
+    // Windows installer launch tests still need the registrations enabled.
+    if (initial.state === 'installed') {
+      await page.getByRole('button', { name: 'Install actions' }).click();
+      await expect(page.locator('.integration-badge')).toHaveText('Installed');
+    }
+  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+});

@@ -27,8 +27,24 @@ try {
   }
   $env:FRAME_TEST_EXECUTABLE = $executable
   $env:FRAME_TEST_SHELL_ACTIONS = '1'
-  & npx playwright test --config playwright.electron.config.ts tests/electron/launch.spec.ts
-  if ($LASTEXITCODE -ne 0) { throw 'Installed shell launch tests failed.' }
+  & npx playwright test --config playwright.electron.config.ts tests/electron/launch.spec.ts tests/electron/settings.spec.ts
+  if ($LASTEXITCODE -ne 0) { throw 'Installed shell launch/settings tests failed.' }
+  foreach ($mode in @('opt-out', 'remember', 'opt-in')) {
+    $arguments = @('/S')
+    if ($mode -eq 'opt-out') { $arguments += '/NOFRAMECONTEXTMENU' }
+    if ($mode -eq 'opt-in') { $arguments += '/FRAMECONTEXTMENU' }
+    $arguments += "/D=$installDir"
+    $process = Start-Process -FilePath $installer.FullName -ArgumentList $arguments -Wait -PassThru
+    if ($process.ExitCode -ne 0) { throw "Installer failed during $mode." }
+    foreach ($extension in $extensions) {
+      foreach ($workflow in @('Edit', 'Convert')) {
+        $exists = Test-Path (Join-Path $root ".$extension\shell\Frame.$workflow")
+        if ($exists -ne ($mode -eq 'opt-in')) { throw "Incorrect context-menu registration during $mode for .$extension." }
+      }
+    }
+    $expectedPreference = if ($mode -eq 'opt-in') { 1 } else { 0 }
+    if ((Get-Item 'HKCU:\Software\Frame\ShellActions').GetValue('Enabled') -ne $expectedPreference) { throw "Incorrect remembered preference during $mode." }
+  }
 } finally {
   Remove-Item Env:FRAME_TEST_EXECUTABLE -ErrorAction SilentlyContinue
   Remove-Item Env:FRAME_TEST_SHELL_ACTIONS -ErrorAction SilentlyContinue

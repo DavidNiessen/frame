@@ -8,7 +8,6 @@
 .header-right { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 .platform-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; }
 .platform-badge i { width: 4px; height: 4px; background: var(--accent); border-radius: 50%; margin-left: 2px; }
-.theme-picker select { max-width: 110px; background: var(--surface); padding: 7px 24px 7px 10px; font-size: 11px; }
 .workspace-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; }
 .workspace-bar > div { display: flex; align-items: center; gap: 10px; }
 .workspace-bar strong { font-size: 13px; font-weight: 500; }

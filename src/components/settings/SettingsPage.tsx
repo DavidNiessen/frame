@@ -1,0 +1,50 @@
+import { useEffect, useState } from 'react';
+import { ArrowLeft, FolderOpen, LoaderCircle, Monitor, Palette, RefreshCw } from 'lucide-react';
+import type { ShellIntegrationStatus } from '../../core/system-integration';
+import type { Theme } from '../../hooks/useTheme';
+import { ThemeChoices } from './ThemeChoices';
+
+const webStatus: ShellIntegrationStatus = { platform: 'web', available: false, state: 'not-installed', detail: 'Available in the desktop app. Browsers cannot add actions to your file manager.' };
+export function SettingsPage({ theme, setTheme, back }: { theme: Theme; setTheme: (theme: Theme) => void; back: () => void }) {
+  const bridge = window.frameDesktop;
+  const [status, setStatus] = useState<ShellIntegrationStatus | null>(bridge ? null : webStatus);
+  const [pending, setPending] = useState<'checking' | 'installing' | 'removing' | null>(bridge ? 'checking' : null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    if (!bridge) return;
+    let active = true;
+    bridge.shellIntegrationStatus().then(result => { if (active) setStatus(result); }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : String(cause)); }).finally(() => { if (active) setPending(null); });
+    return () => { active = false; };
+  }, [bridge]);
+  async function update(enabled?: boolean) {
+    if (!bridge || pending) return;
+    setPending(enabled === undefined ? 'checking' : enabled ? 'installing' : 'removing'); setError('');
+    try { setStatus(await (enabled === undefined ? bridge.shellIntegrationStatus() : bridge.setShellIntegration(enabled))); }
+    catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      // A filesystem or registry change can fail halfway through. Report the actual state.
+      try { setStatus(await bridge.shellIntegrationStatus()); } catch { setStatus(null); }
+    } finally { setPending(null); }
+  }
+  const installed = status?.state === 'installed', partial = status?.state === 'partial';
+  return <main className="settings-page">
+    <button className="settings-back" onClick={back}><ArrowLeft size={15} />Back to workspace</button>
+    <div className="settings-heading"><h1>Settings</h1><p>Make Frame feel at home.</p></div>
+    <section className="settings-card" aria-labelledby="appearance-heading">
+      <div className="settings-section-heading"><Palette size={19} /><div><h2 id="appearance-heading">Appearance</h2><p>Choose a theme, or let Frame follow your device.</p></div></div>
+      <ThemeChoices theme={theme} setTheme={setTheme} />
+    </section>
+    <section className="settings-card" aria-labelledby="integration-heading">
+      <div className="settings-section-heading"><FolderOpen size={19} /><div><h2 id="integration-heading">File-manager actions</h2><p>Start editing or converting directly from your files.</p></div><span className={`integration-badge ${installed ? 'installed' : ''}`}>{pending === 'checking' ? 'Checking…' : !status ? 'Status unavailable' : !status.available ? status.platform === 'web' ? 'Desktop only' : 'Unavailable' : installed ? 'Installed' : partial ? 'Needs repair' : 'Not installed'}</span></div>
+      <div className="integration-example" aria-label="File context menu preview"><span><FolderOpen size={15} />Selected audio & video files</span><div><span>Edit in Frame</span><span>Convert in Frame</span></div></div>
+      <p className="integration-detail">{status?.detail || 'Refresh to check your file-manager actions.'}</p>
+      <div className="integration-controls">
+        <button className="button primary" disabled={!status?.available || !!pending || installed} onClick={() => void update(true)}>{pending === 'installing' && <LoaderCircle size={14} className="spinner" />}{pending === 'installing' ? 'Installing…' : partial ? 'Repair actions' : 'Install actions'}</button>
+        <button className="button subtle" disabled={!status?.available || !!pending || (!installed && !partial)} onClick={() => void update(false)}>{pending === 'removing' ? 'Removing…' : 'Remove actions'}</button>
+        {bridge && <button className="icon-button" disabled={!!pending} aria-label="Refresh integration status" title="Refresh integration status" onClick={() => void update()}><RefreshCw size={16} /></button>}
+      </div>
+      {error && <p className="settings-error" role="alert">{error}</p>}
+      <p className="settings-note"><Monitor size={13} />Applies to your user account. Your default media apps stay the same.</p>
+    </section>
+  </main>;
+}

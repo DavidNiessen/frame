@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowDownUp, Clapperboard, Monitor, Globe, Keyboard, Scissors, Upload, X, LoaderCircle } from 'lucide-react';
+import { ArrowDownUp, Clapperboard, Monitor, Globe, Keyboard, Scissors, Upload, X, LoaderCircle, Settings } from 'lucide-react';
 import { acceptMedia } from './core/types';
 import { useProxies } from './hooks/useProxies';
 import { useAutosave } from './hooks/useAutosave';
 import { WorkspaceActions } from './components/WorkspaceActions';
 import { RecoveryBanner } from './components/RecoveryBanner';
 import { useEditor } from './hooks/useEditor';
-import { useTheme, type Theme } from './hooks/useTheme';
+import { useTheme } from './hooks/useTheme';
 import { useMerge } from './hooks/useMerge';
 import { MergeDialog } from './components/MergeDialog';
 import { useThumbnails } from './hooks/useThumbnails';
@@ -25,14 +25,16 @@ import { useConversion } from './hooks/useConversion';
 import { ConversionWorkspace } from './components/conversion/ConversionWorkspace';
 import { droppedFiles } from './engines/folder-drop';
 import { useDesktopLaunches } from './hooks/useDesktopLaunches';
+import { SettingsPage } from './components/settings/SettingsPage';
 export default function App() {
   const editor = useEditor(); const { theme, setTheme } = useTheme();
   const [workflow, setWorkflow] = useState<'edit' | 'convert'>(() => { try { return localStorage.getItem('frame:workflow') === 'convert' ? 'convert' : 'edit'; } catch { return 'edit'; } });
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const conversion = useConversion(editor);
   const proxies = useProxies(editor);
   const merge = useMerge(editor); const [mergeOpen, setMergeOpen] = useState(false);
   const thumbnails = useThumbnails(editor);
-  const waves = useWaveforms(editor, workflow === 'edit');
+  const waves = useWaveforms(editor, !settingsOpen && workflow === 'edit');
   const batch = useBatch(editor); const [batchOpen, setBatchOpen] = useState(false);
   const projects = useProjects(editor);
   const autosave = useAutosave(editor, projects.name, projects.restoreGeneration);
@@ -47,10 +49,11 @@ export default function App() {
   const [shortcuts, setShortcuts] = useState(false);
   function onImport() { if (editor.platform === 'desktop') void editor.importMedia(); else input.current?.click(); }
   function onFolder() { if (editor.platform === 'desktop') void editor.importFolder(); else folderInput.current?.click(); }
-  function changeWorkflow(next: 'edit' | 'convert') { mediaRef.current?.pause(); setWorkflow(next); try { localStorage.setItem('frame:workflow', next); } catch { /* Session navigation still works. */ } }
+  function changeWorkflow(next: 'edit' | 'convert') { setSettingsOpen(false); mediaRef.current?.pause(); setWorkflow(next); try { localStorage.setItem('frame:workflow', next); } catch { /* Session navigation still works. */ } }
   useDesktopLaunches(editor, changeWorkflow, conversion.archive.busy || !!projects.pending || batchOpen || mergeOpen, (ids, append) => conversion.setIds(current => append ? [...new Set([...current, ...ids])] : ids));
   async function onDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault(); dragDepth.current = 0; setDragging(false);
+    setSettingsOpen(false);
     const files = Array.from(event.dataTransfer.files);
     if (files.length === 1 && files[0].name.endsWith('.frame.json')) { changeWorkflow('edit'); void projects.open(files[0]); }
     else if (editor.platform === 'desktop') { if (files.length) void editor.importMedia(files); }
@@ -60,7 +63,7 @@ export default function App() {
   useEffect(() => {
     function key(event: KeyboardEvent) {
       const tag = (event.target as HTMLElement)?.tagName;
-      if (['INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY'].includes(tag) || (event.target as HTMLElement)?.isContentEditable || shortcuts || projects.pending || batchOpen || mergeOpen) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY'].includes(tag) || (event.target as HTMLElement)?.isContentEditable || settingsOpen || shortcuts || projects.pending || batchOpen || mergeOpen) return;
       const modified = event.metaKey || event.ctrlKey;
       if (modified && event.key.toLowerCase() === 'o') { event.preventDefault(); if (!editor.busy) onImport(); }
       if (workflow === 'convert') return;
@@ -74,13 +77,13 @@ export default function App() {
   });
   return <div className={`app-shell workflow-${workflow}`} onDragEnter={event => { event.preventDefault(); if (event.dataTransfer.types.includes('Files')) { dragDepth.current++; setDragging(true); } }} onDragOver={event => event.preventDefault()} onDragLeave={event => { event.preventDefault(); if (--dragDepth.current <= 0) { dragDepth.current = 0; setDragging(false); } }} onDrop={event => void onDrop(event)}>
     <header className="app-header"><a className="brand" href="#" aria-label="Frame home" onClick={event => event.preventDefault()}><span className="brand-mark"><Clapperboard size={20} strokeWidth={1.75} /></span>frame<span className="brand-dot">.</span></a>
-      <nav className="workflow-nav" aria-label="Workflow"><button aria-pressed={workflow === 'edit'} disabled={conversion.busy} onClick={() => changeWorkflow('edit')}><Scissors size={14} />Editor</button><button aria-pressed={workflow === 'convert'} disabled={conversion.busy} onClick={() => changeWorkflow('convert')}><ArrowDownUp size={14} />Convert</button></nav>
-      <div className="header-right"><span className="platform-badge">{editor.platform === 'desktop' ? <Monitor size={13} /> : <Globe size={13} />}{editor.platform === 'desktop' ? 'Desktop' : 'Web'}<i /></span><label className="theme-picker"><span className="sr-only">Theme</span><select aria-label="Theme" value={theme} onChange={event => setTheme(event.target.value as Theme)}><option value="system">System theme</option><option value="light">Light theme</option><option value="dark">Dark theme</option><option value="midnight">Midnight theme</option></select></label>{workflow === 'edit' && <button className="button subtle small header-import" onClick={onImport} disabled={!!editor.busy}><Upload size={14} />Import</button>}</div>
+      <nav className="workflow-nav" aria-label="Workflow"><button aria-pressed={!settingsOpen && workflow === 'edit'} disabled={conversion.busy} onClick={() => changeWorkflow('edit')}><Scissors size={14} />Editor</button><button aria-pressed={!settingsOpen && workflow === 'convert'} disabled={conversion.busy} onClick={() => changeWorkflow('convert')}><ArrowDownUp size={14} />Convert</button></nav>
+      <div className="header-right"><span className="platform-badge">{editor.platform === 'desktop' ? <Monitor size={13} /> : <Globe size={13} />}{editor.platform === 'desktop' ? 'Desktop' : 'Web'}<i /></span><button className="icon-button header-settings" aria-label="Settings" aria-pressed={settingsOpen} title="Settings" onClick={() => { mediaRef.current?.pause(); setSettingsOpen(value => !value); }}><Settings size={18} /></button>{!settingsOpen && workflow === 'edit' && <button className="button subtle small header-import" onClick={onImport} disabled={!!editor.busy}><Upload size={14} />Import</button>}</div>
     </header>
-    {workflow === 'edit' && <div className="workspace-bar"><div><span className="status-dot" /><strong>Workspace</strong><span className="workspace-subtitle">{projects.name || 'Local session'}</span></div><WorkspaceActions hasMedia={!!editor.asset} busy={!!editor.busy} saving={projects.saving} merge={() => setMergeOpen(true)} batch={() => setBatchOpen(true)} open={() => projectInput.current?.click()} save={() => void projects.save()} /></div>}
+    {!settingsOpen && workflow === 'edit' && <div className="workspace-bar"><div><span className="status-dot" /><strong>Workspace</strong><span className="workspace-subtitle">{projects.name || 'Local session'}</span></div><WorkspaceActions hasMedia={!!editor.asset} busy={!!editor.busy} saving={projects.saving} merge={() => setMergeOpen(true)} batch={() => setBatchOpen(true)} open={() => projectInput.current?.click()} save={() => void projects.save()} /></div>}
     <RecoveryBanner autosave={autosave} disabled={!!editor.busy} restore={() => { if (autosave.recovery) { changeWorkflow('edit'); autosave.prepareRecovery(); projects.loadDocument(autosave.recovery.project); } }} />
-    {workflow === 'convert' ? <ConversionWorkspace editor={editor} conversion={conversion} onFiles={onImport} onFolder={onFolder} folderSupported={folderSupported} /> : <main className="workspace"><Library editor={editor} onImport={onImport} /><div className="editor-center">{editor.asset && editor.edit ? <><Preview previewUrl={proxies.proxy?.url} asset={editor.asset} edit={editor.edit} mediaRef={mediaRef} current={current} setCurrent={setCurrent} update={editor.update} disabled={!!editor.busy} /><Timeline thumbnails={thumbnails.url} generateThumbnails={() => void thumbnails.generate()} thumbnailLoading={thumbnails.loading} thumbnailProgress={thumbnails.progress} waveformLoading={waves.loading} waveformError={waves.error} cancelAnalysis={waves.loading ? waves.cancel : editor.cancel} waveform={waves.points} generateWaveform={() => void waves.generate()} analysisProgress={waves.progress} asset={editor.asset} edit={editor.edit} current={current} seek={seek} update={editor.update} undo={editor.undo} redo={editor.redo} canUndo={editor.canUndo} canRedo={editor.canRedo} disabled={!!editor.busy} notify={editor.setNotice} /></> : <EmptyState busy={!!editor.busy} onImport={onImport} onSample={() => void editor.importMedia(undefined, true)} />}</div><Inspector proxies={proxies} editor={editor} current={current} seek={seek} /></main>}
-    <footer className="app-footer"><span><span className="status-dot" />{editor.busy === 'import' ? 'Reading your files locally…' : editor.busy === 'export' || editor.busy === 'batch' ? 'Processing locally…' : 'All processing happens on your device'}</span>{workflow === 'edit' ? <button onClick={() => setShortcuts(true)}><Keyboard size={14} />Keyboard shortcuts</button> : <button disabled={conversion.busy} onClick={onImport}><Keyboard size={14} />Ctrl / Cmd O to add files</button>}{workflow === 'edit' && <span className="footer-version" aria-label="Autosave status">{autosave.loading ? 'Checking autosave…' : autosave.recovery ? 'Recovery pending' : autosave.error ? 'Autosave paused' : autosave.saving ? 'Saving workspace…' : autosave.savedAt ? 'Workspace autosaved' : 'Autosave ready'}</span>}</footer>
+    {settingsOpen ? <SettingsPage theme={theme} setTheme={setTheme} back={() => setSettingsOpen(false)} /> : workflow === 'convert' ? <ConversionWorkspace editor={editor} conversion={conversion} onFiles={onImport} onFolder={onFolder} folderSupported={folderSupported} /> : <main className="workspace"><Library editor={editor} onImport={onImport} /><div className="editor-center">{editor.asset && editor.edit ? <><Preview previewUrl={proxies.proxy?.url} asset={editor.asset} edit={editor.edit} mediaRef={mediaRef} current={current} setCurrent={setCurrent} update={editor.update} disabled={!!editor.busy} /><Timeline thumbnails={thumbnails.url} generateThumbnails={() => void thumbnails.generate()} thumbnailLoading={thumbnails.loading} thumbnailProgress={thumbnails.progress} waveformLoading={waves.loading} waveformError={waves.error} cancelAnalysis={waves.loading ? waves.cancel : editor.cancel} waveform={waves.points} generateWaveform={() => void waves.generate()} analysisProgress={waves.progress} asset={editor.asset} edit={editor.edit} current={current} seek={seek} update={editor.update} undo={editor.undo} redo={editor.redo} canUndo={editor.canUndo} canRedo={editor.canRedo} disabled={!!editor.busy} notify={editor.setNotice} /></> : <EmptyState busy={!!editor.busy} onImport={onImport} onSample={() => void editor.importMedia(undefined, true)} />}</div><Inspector proxies={proxies} editor={editor} current={current} seek={seek} /></main>}
+    <footer className="app-footer"><span><span className="status-dot" />{editor.busy === 'import' ? 'Reading your files locally…' : editor.busy === 'export' || editor.busy === 'batch' ? 'Processing locally…' : 'All processing happens on your device'}</span>{!settingsOpen && (workflow === 'edit' ? <button onClick={() => setShortcuts(true)}><Keyboard size={14} />Keyboard shortcuts</button> : <button disabled={conversion.busy} onClick={onImport}><Keyboard size={14} />Ctrl / Cmd O to add files</button>)}{workflow === 'edit' && <span className="footer-version" aria-label="Autosave status">{autosave.loading ? 'Checking autosave…' : autosave.recovery ? 'Recovery pending' : autosave.error ? 'Autosave paused' : autosave.saving ? 'Saving workspace…' : autosave.savedAt ? 'Workspace autosaved' : 'Autosave ready'}</span>}</footer>
     {editor.notice && <div className="toast" role="status"><span>{editor.notice}</span><button className="icon-button" aria-label="Dismiss message" onClick={() => editor.setNotice('')}><X size={16} /></button></div>}
     {editor.busy === 'import' && workflow === 'edit' && <div className="import-status" role="status"><LoaderCircle className="spinner" size={18} /><span>{editor.progress?.message || 'Preparing your media…'}<small>Reading files locally.</small></span></div>}
     {dragging && <div className="drop-overlay"><Upload size={36} /><h2>{workflow === 'convert' ? 'Drop your collection here.' : 'Drop it. Make it yours.'}</h2><p>Video and audio files & folders welcome.</p></div>}

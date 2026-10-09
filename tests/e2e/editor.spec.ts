@@ -10,7 +10,8 @@ test('follows system theme, switches themes, and fits a mobile viewport', async 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await page.getByLabel('Theme', { exact: true }).selectOption('midnight');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('radio', { name: 'Midnight theme', exact: true }).check();
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
   await page.setViewportSize({ width: 390, height: 844 });

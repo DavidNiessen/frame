@@ -1,0 +1,56 @@
+import { test, expect } from '@playwright/test';
+
+test('shows disabled file-manager actions on web and previewed themes that persist', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/');
+  await expect(page.locator('.app-header select')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'System theme' })).toBeChecked();
+  await expect(page.locator('.theme-preview')).toHaveCount(4);
+  await expect(page.getByRole('button', { name: 'Install actions' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Remove actions' })).toBeDisabled();
+  await expect(page.getByText('Desktop only', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('File context menu preview')).toContainText('Edit in Frame');
+  await page.getByRole('radio', { name: 'Light theme', exact: true }).check();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('radio', { name: 'Midnight theme', exact: true }).check();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.getByRole('radio', { name: 'Midnight theme', exact: true })).toBeInViewport();
+  await page.screenshot({ path: 'test-results/settings-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({ path: 'test-results/settings-desktop.png', fullPage: true });
+  await page.reload();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Midnight theme', exact: true })).toBeChecked();
+  await page.getByRole('radio', { name: 'System theme' }).check();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('button', { name: 'Back to workspace' }).click();
+  await expect(page.getByRole('button', { name: 'Try a sample' })).toBeVisible();
+});
+
+test('preserves timeline edits and the conversion selection when navigating through settings', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try a sample' }).click();
+  const start = page.getByLabel('Trim start', { exact: true });
+  await expect(start).toBeVisible({ timeout: 45000 });
+  await start.press('ArrowRight');
+  const value = await start.getAttribute('aria-valuenow');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.keyboard.press('i');
+  await page.getByRole('button', { name: 'Back to workspace' }).click();
+  await expect(start).toHaveAttribute('aria-valuenow', value!);
+  const workflows = page.getByRole('navigation', { name: 'Workflow' });
+  await workflows.getByRole('button', { name: 'Convert', exact: true }).click();
+  await page.getByLabel('Conversion format').selectOption('gif');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to workspace' }).click();
+  await expect(workflows.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Conversion format')).toHaveValue('gif');
+  await expect(page.locator('.conversion-table tbody tr')).toHaveCount(1);
+});
