@@ -6,7 +6,7 @@ Both commands validate the complete selection: local supported media only, at mo
 
 Setup copies the native DLL and launcher into a per-user directory named by the DLL hash. The sparse package contains only manifest and image files and points to this external directory. Updates avoid overwriting a DLL still loaded by Explorer. Settings checks package registration, launch ownership, and the copied binaries; removal unregisters only Frame's recorded package and leaves commands owned by another installation alone. Explorer may need a restart to refresh its menu cache.
 
-Current native binaries target x64 Windows 11. They are statically linked, about 530 KiB combined, and verified against `binaries.json` before packaging. Git preserves native source bytes so Windows checkout line endings do not change the source fingerprint. Ordinary `pnpm desktop` and packaging use these checked-in binaries and do not require a compiler.
+Current native binaries target x64 Windows 11. They are statically linked, about 530 KiB combined, and verified against `binaries.json` before packaging. Source fingerprints normalize CRLF to LF, including existing Windows checkouts created before the Git attributes were added; actual source edits and binary icon changes still require a rebuild. Ordinary `pnpm desktop` and packaging use these checked-in binaries and do not require a compiler.
 
 To rebuild after changing the native sources or supported extensions:
 

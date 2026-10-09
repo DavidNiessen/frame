@@ -10,7 +10,7 @@ export async function prepareWindowsShell() {
   const root = resolve('build/generated/shell-actions/windows'), assets = join(root, 'Assets');
   const manifest = JSON.parse(await readFile(join(nativeRoot, 'binaries.json'))), identity = JSON.parse(await readFile(join(nativeRoot, 'identity.json')));
   if (process.env.FRAME_WINDOWS_SHELL_PUBLISHER) identity.publisher = process.env.FRAME_WINDOWS_SHELL_PUBLISHER;
-  if (await sourceFingerprint() !== manifest.sourceSha256) throw new Error('The Windows shell binaries do not match their sources. Run npm run build:windows-shell and commit the updated binaries.');
+  if (await sourceFingerprint() !== manifest.sourceSha256) throw new Error('The Windows shell sources differ from the checked-in binaries. Pull the latest repository changes or review local edits in native/windows-shell, src/core/media-extensions.json and build/icon.png. Rebuilding with npm run build:windows-shell is only needed after intentional native source changes.');
   await mkdir(assets, { recursive: true });
   for (const [name, sha256] of Object.entries(manifest.platforms['win32-x64'])) await prepareToolFile({ source: join(nativeRoot, 'bin/x64', name), destination: join(root, name), sha256 });
   const files = { 'AppxManifest.xml': Buffer.from(shellPackageManifest(identity)) };

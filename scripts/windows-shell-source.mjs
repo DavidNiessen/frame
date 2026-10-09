@@ -3,11 +3,14 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 export const nativeRoot = resolve('native/windows-shell');
 export const sources = ['arguments.hpp', 'shell.hpp', 'launch.cpp', 'selection.cpp', 'command.cpp', 'dll.cpp', 'launcher.cpp', 'FrameShell.def', 'identity.json'];
-export async function sourceFingerprint() {
+export async function sourceFingerprint(readSource = readFile) {
   const hash = createHash('sha256');
-  for (const name of sources) hash.update(name).update(await readFile(join(nativeRoot, name)));
-  hash.update(await readFile('src/core/media-extensions.json'));
-  hash.update(await readFile('build/icon.png'));
+  // Git/editor CRLF conversion does not change these text inputs to the compiler.
+  // Existing Windows checkouts can retain CRLF even after -text attributes are added.
+  const text = async path => (await readSource(path)).toString('utf8').replace(/\r\n/g, '\n');
+  for (const name of sources) hash.update(name).update(await text(join(nativeRoot, name)));
+  hash.update(await text('src/core/media-extensions.json'));
+  hash.update(await readSource('build/icon.png')); // Keep binary inputs byte-exact.
   return hash.digest('hex');
 }
 export async function configHeader() {

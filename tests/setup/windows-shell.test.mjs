@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { unzipSync } from 'fflate';
-import { nativeRoot, sourceFingerprint } from '../../scripts/windows-shell-source.mjs';
+import { nativeRoot, sourceFingerprint, sources } from '../../scripts/windows-shell-source.mjs';
 import { fileDigest } from '../../scripts/media-tool-files.mjs';
 import { shellPackageManifest, sparseMsix } from '../../scripts/windows-shell-package.mjs';
 import { prepareWindowsShell } from '../../scripts/prepare-windows-shell.mjs';
@@ -19,6 +19,28 @@ test('native Explorer binaries match their sources and have no non-Windows runti
     const content = await readFile(path); assert.equal(content.subarray(0, 2).toString(), 'MZ');
     assert.doesNotMatch(content.toString('latin1'), /libstdc\+\+-6\.dll|libgcc_s[^\x00]*\.dll|libwinpthread-1\.dll/i);
   }
+});
+test('accepts Windows CRLF and mixed-line-ending sources while rejecting actual source and icon changes', async () => {
+  const expected = JSON.parse(await readFile(join(nativeRoot, 'binaries.json'))).sourceSha256;
+  const windowsCheckout = async path => {
+    const bytes = await readFile(path);
+    return path.endsWith('.png') ? bytes : Buffer.from(bytes.toString('utf8').replace(/\r?\n/g, '\r\n'));
+  };
+  assert.equal(await sourceFingerprint(windowsCheckout), expected);
+  for (const name of [...sources, 'src/core/media-extensions.json']) {
+    assert.equal(await sourceFingerprint(path => path.endsWith(name) ? windowsCheckout(path) : readFile(path)), expected);
+  }
+  const changedSource = async path => {
+    const bytes = await windowsCheckout(path);
+    return path.endsWith('command.cpp') ? Buffer.from(bytes.toString('utf8').replace('Edit in Frame', 'Different command')) : bytes;
+  };
+  assert.notEqual(await sourceFingerprint(changedSource), expected);
+  const changedIcon = async path => {
+    const bytes = await readFile(path);
+    if (path.endsWith('.png')) bytes[bytes.length - 1] ^= 1;
+    return bytes;
+  };
+  assert.notEqual(await sourceFingerprint(changedIcon), expected);
 });
 test('packs a sparse identity with correct ZIP headers and hashes for every uncompressed block', () => {
   const identity = { name: 'Frame.MediaEditor.Shell', publisher: 'CN=Frame', version: '1.0.0.0', editClsid: 'edit-clsid', convertClsid: 'convert-clsid' };
