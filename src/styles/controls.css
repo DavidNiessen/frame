@@ -2,7 +2,7 @@ input[type='number'], input[type='text'], select { width: 100%; border: 1px soli
 input[type='number']:hover, input[type='text']:hover, select:hover { border-color: var(--quiet); }
 input[type='range'] { accent-color: var(--accent); height: 4px; cursor: pointer; width: 100%; margin: 12px 0; }
 input[type='checkbox'] { accent-color: var(--accent); width: 30px; height: 18px; cursor: pointer; flex-shrink: 0; }
-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m1 1 4 4 4-4' fill='none' stroke='%237e9085' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 26px; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m1 1 4 4 4-4' fill='none' stroke='%2379809e' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 26px; }
 .inspector { display: flex; flex-direction: column; min-width: 0; max-height: none; min-height: 0; }
 .inspector-scroll { overflow: auto; flex: 1; min-height: 0; }
 .control-section { padding: 18px 20px; border-bottom: 1px solid var(--border-soft); }

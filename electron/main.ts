@@ -38,7 +38,7 @@ function openWindow(kind: WindowKind) {
     const window = new BrowserWindow({
       width: mini ? 460 : 1440, height: mini ? 740 : 960,
       ...(mini ? { frame: false, transparent: true, backgroundColor: '#00000000', resizable: false, maximizable: false, minimizable: false, fullscreenable: false, alwaysOnTop: true, skipTaskbar: true, hasShadow: true }
-        : { minWidth: 760, minHeight: 600, backgroundColor: '#101311' }),
+        : { minWidth: 760, minHeight: 600, backgroundColor: '#111218' }),
       show: false, title: mini ? 'Frame — Quick conversion' : 'Frame',
       icon: app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(__dirname, '../build/icon.png'),
       webPreferences: { preload: join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, additionalArguments: mini ? ['--frame-mini-conversion'] : [] },
