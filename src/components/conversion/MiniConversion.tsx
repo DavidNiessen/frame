@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Clapperboard, FolderPlus, Plus, TriangleAlert } from 'lucide-react';
+import { ChevronDown, ChevronUp, Clapperboard, FolderPlus, Plus, TriangleAlert, X } from 'lucide-react';
 import { useEditor } from '../../hooks/useEditor';
 import { useConversion } from '../../hooks/useConversion';
 import { useDesktopLaunches } from '../../hooks/useDesktopLaunches';
@@ -28,7 +28,7 @@ export function MiniConversion() {
         <div className="mini-progress-content"><span className="sr-only" role="status">{conversion.batch.running ? `Converting ${active?.asset.name || 'your files'}` : 'Conversion complete'}</span><div className="progress-track" role="progressbar" aria-label="Conversion progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: `${ratio * 100}%` }} /></div><span className="mini-percentage">{progress}%</span></div>
         <button className="mini-expand" aria-label="Expand conversion" title="Expand conversion" onClick={() => mini.setExpanded(true)}><ChevronUp size={22} /></button>
       </div> : <>
-        <header className="mini-header"><span className="mini-brand" aria-hidden="true"><Clapperboard size={19} /></span><div><h1>Quick conversion<span>.</span></h1><p>{editor.busy === 'import' ? 'Reading your files…' : `${editor.assets.length} ${editor.assets.length === 1 ? 'file' : 'files'} · originals preserved`}</p></div>{conversion.batch.running && <button className="icon-button" aria-label="Collapse conversion" title="Collapse conversion" onClick={() => mini.setExpanded(false)}><ChevronDown size={20} /></button>}</header>
+        <header className="mini-header"><span className="mini-brand" aria-hidden="true"><Clapperboard size={19} /></span><div><h1>Quick conversion<span>.</span></h1><p>{editor.busy === 'import' ? 'Reading your files…' : `${editor.assets.length} ${editor.assets.length === 1 ? 'file' : 'files'} · originals preserved`}</p></div><div className="mini-header-actions">{conversion.batch.running && <button className="icon-button" aria-label="Collapse conversion" title="Collapse conversion" onClick={() => mini.setExpanded(false)}><ChevronDown size={20} /></button>}<button className="icon-button" aria-label="Close conversion" title={conversion.busy ? 'Cancel conversion before closing' : 'Close conversion'} disabled={conversion.busy} onClick={mini.dismiss}><X size={18} /></button></div></header>
         <div className="mini-body">
           {editor.busy === 'import' && <p className="mini-status" role="status">{editor.progress?.message || 'Reading your files…'}</p>}
           {editor.assets.length > 0 && <details className="mini-files"><summary>Selected files <span>{conversion.ids.length}</span></summary><ConversionQueue editor={editor} conversion={conversion} /></details>}
@@ -36,7 +36,7 @@ export function MiniConversion() {
           {jobs.length > 0 && <ConversionResults editor={editor} conversion={conversion} />}
           <ConversionSettings editor={editor} conversion={conversion} />
         </div>
-        <footer className="mini-footer"><div><button disabled={conversion.busy} onClick={() => void editor.importMedia()}><Plus size={14} />Add files</button><button disabled={conversion.busy} onClick={() => void editor.importFolder()}><FolderPlus size={14} />Add folder</button></div><button disabled={conversion.busy} onClick={mini.dismiss}>Dismiss</button></footer>
+        <footer className="mini-footer"><div><button disabled={conversion.busy} onClick={() => void editor.importMedia()}><Plus size={14} />Add files</button><button disabled={conversion.busy} onClick={() => void editor.importFolder()}><FolderPlus size={14} />Add folder</button></div></footer>
         {editor.notice && editor.busy !== 'import' && <p className="mini-notice" role="status">{editor.notice}</p>}
       </>}
     </section>

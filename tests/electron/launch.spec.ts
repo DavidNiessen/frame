@@ -99,7 +99,7 @@ test('invokes installed Windows classic and primary commands on a mixed multi-fi
       await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
       expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(2);
       const dismissed = mini.waitForEvent('close');
-      await mini.getByRole('button', { name: 'Dismiss', exact: true }).click().catch(error => { if (!mini.isClosed()) throw error; });
+      await mini.getByRole('button', { name: 'Close conversion', exact: true }).click().catch(error => { if (!mini.isClosed()) throw error; });
       await dismissed;
       await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
       await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);

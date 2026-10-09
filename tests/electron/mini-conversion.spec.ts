@@ -131,7 +131,7 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
     const next = await reopened; await expect(next.getByRole('button', { name: 'Convert 1 file', exact: true })).toBeEnabled();
     const dismissed = next.waitForEvent('close');
     // Electron may destroy the renderer before Playwright receives the click reply.
-    await next.getByRole('button', { name: 'Dismiss', exact: true }).click().catch(error => { if (!next.isClosed()) throw error; });
+    await next.getByRole('button', { name: 'Close conversion', exact: true }).click().catch(error => { if (!next.isClosed()) throw error; });
     await dismissed;
     expect(editor.isClosed()).toBe(false);
   } finally { await app.close().catch(() => {}); await rm(library.directory, { recursive: true, force: true }); }
