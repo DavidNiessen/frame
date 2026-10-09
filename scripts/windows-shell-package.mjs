@@ -30,7 +30,7 @@ export function shellPackageManifest(identity, arch = 'x64') {
  <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
 </Package>\n`;
 }
-/** Store-only MSIX: block hashes describe uncompressed 64 KiB blocks; code stays external. */
+/** Store payloads for simple block hashes; deflate metadata that the signer rewrites. */
 export function sparseMsix(files) {
   const blockFiles = Object.entries(files).map(([name, content]) => {
     const blocks = [];
@@ -39,5 +39,7 @@ export function sparseMsix(files) {
   });
   const blockMap = `<?xml version="1.0" encoding="utf-8"?><BlockMap xmlns="http://schemas.microsoft.com/appx/2010/blockmap" HashMethod="http://www.w3.org/2001/04/xmlenc#sha256">${blockFiles.join('')}</BlockMap>`;
   const contentTypes = '<?xml version="1.0" encoding="utf-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="png" ContentType="image/png" /><Default Extension="xml" ContentType="application/xml" /><Override PartName="/AppxManifest.xml" ContentType="application/vnd.ms-appx.manifest+xml" /><Override PartName="/AppxBlockMap.xml" ContentType="application/vnd.ms-appx.blockmap+xml" /></Types>';
-  return zipSync({ ...files, 'AppxBlockMap.xml': Buffer.from(blockMap), '[Content_Types].xml': Buffer.from(contentTypes) }, { level: 0 });
+  // osslsigncode deflates rewritten content types but preserves the original method flag.
+  // Starting with DEFLATE keeps both ZIP headers accurate after it adds the signature type.
+  return zipSync({ ...files, 'AppxBlockMap.xml': Buffer.from(blockMap), '[Content_Types].xml': [Buffer.from(contentTypes), { level: 6 }] }, { level: 0 });
 }

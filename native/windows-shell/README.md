@@ -32,7 +32,7 @@ FRAME_OSSLSIGNCODE=/path/to/osslsigncode npm run sign:windows-shell
 FRAME_MINGW_ROOT=/path/to/toolchain/usr npm run build:windows-shell
 ```
 
-Commit the signed package, public certificate, signature metadata, and updated native binaries together. Signing verifies all MSIX digests and the signature before publishing the public artifacts. A new certificate requires a new trust approval. The current package was signed with osslsigncode 2.14.
+Commit the signed package, public certificate, signature metadata, and updated native binaries together. Signing verifies all MSIX digests, the signature, ZIP headers, and file checksums before publishing the public artifacts. Package payloads are stored without compression; content-type metadata uses DEFLATE because osslsigncode preserves its ZIP method when rewriting it. Builds repeat the archive checks before staging it. A new certificate requires a new trust approval. The current package was signed with osslsigncode 2.14.
 
 For a publicly trusted release, supply `FRAME_WINDOWS_SHELL_PUBLISHER` and `FRAME_WINDOWS_SHELL_PACKAGE` with a matching signed sparse package. The build verifies the exact manifest and signature presence, and Windows validates trust during normal deployment. Guided self-signed trust is disabled for these custom packages because the helper remains pinned to the bundled Frame certificate. Installer/application signing is independent of shell-package signing.
 

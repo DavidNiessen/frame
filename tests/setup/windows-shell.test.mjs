@@ -9,6 +9,7 @@ import { unzipSync } from 'fflate';
 import { nativeRoot, sourceFingerprint, sources } from '../../scripts/windows-shell-source.mjs';
 import { fileDigest } from '../../scripts/media-tool-files.mjs';
 import { shellPackageManifest, sparseMsix } from '../../scripts/windows-shell-package.mjs';
+import { readMsixArchive } from '../../scripts/msix-archive.mjs';
 import { prepareWindowsShell } from '../../scripts/prepare-windows-shell.mjs';
 
 test('native Explorer binaries match their sources and have no non-Windows runtime DLL dependencies', async () => {
@@ -56,6 +57,23 @@ test('packs a sparse identity with correct ZIP headers and hashes for every unco
   }
   assert.equal(Buffer.from(archive).readUInt16LE(8), 0); // ZIP_STORE; no compression-size fields required.
   assert.ok(unpacked['[Content_Types].xml']); assert.ok(!Object.keys(unpacked).some(name => /\.(dll|exe)$/i.test(name)));
+});
+test('checks MSIX checksums and compression headers, including metadata rewritten by the signer', async () => {
+  const archive = Buffer.from(sparseMsix({ 'AppxManifest.xml': Buffer.from('<Package/>'), 'Assets/logo.png': Buffer.from('image bytes') }));
+  assert.ok(readMsixArchive(archive)['[Content_Types].xml']);
+  const name = Buffer.from('[Content_Types].xml');
+  const local = archive.indexOf(name) - 30, central = archive.lastIndexOf(name) - 46;
+  assert.equal(archive.readUInt16LE(local + 8), 8); // The signer deflates its replacement.
+  assert.equal(archive.readUInt16LE(central + 10), 8);
+  const mislabeled = Buffer.from(archive);
+  mislabeled.writeUInt16LE(0, local + 8); mislabeled.writeUInt16LE(0, central + 10);
+  assert.throws(() => readMsixArchive(mislabeled), /Invalid MSIX ZIP/);
+  const corrupted = Buffer.from(archive), image = Buffer.from('Assets/logo.png');
+  corrupted[corrupted.indexOf(image) + image.length] ^= 1;
+  assert.throws(() => readMsixArchive(corrupted), /checksum.*Assets\/logo\.png/);
+  // Check the actual signed artifact, beyond its PKCS#7 signature and pinned SHA-256.
+  const signed = readMsixArchive(await readFile(join(nativeRoot, 'package/FrameShell.msix')));
+  assert.match(Buffer.from(signed['[Content_Types].xml']).toString(), /appx\.signature/);
 });
 test('prepares the pinned signed package, public certificate and native helper without a compiler', async () => {
   const root = await prepareWindowsShell(), files = unzipSync(await readFile(join(root, 'FrameShell.msix')));

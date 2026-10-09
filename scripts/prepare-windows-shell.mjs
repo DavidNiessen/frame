@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { nativeRoot, sourceFingerprint } from './windows-shell-source.mjs';
 import { prepareToolFile } from './media-tool-files.mjs';
 import { shellPackageManifest } from './windows-shell-package.mjs';
-import { unzipSync } from 'fflate';
+import { readMsixArchive } from './msix-archive.mjs';
 
 export async function prepareWindowsShell() {
   const root = resolve('build/generated/shell-actions/windows');
@@ -15,7 +15,7 @@ export async function prepareWindowsShell() {
   for (const [name, sha256] of Object.entries(manifest.platforms['win32-x64'])) await prepareToolFile({ source: join(nativeRoot, 'bin/x64', name), destination: join(root, name), sha256 });
   const custom = process.env.FRAME_WINDOWS_SHELL_PACKAGE;
   const signature = JSON.parse(await readFile(join(nativeRoot, 'package/signature.json')));
-  const archive = await readFile(custom || join(nativeRoot, 'package/FrameShell.msix')), contents = unzipSync(archive);
+  const archive = await readFile(custom || join(nativeRoot, 'package/FrameShell.msix')), contents = readMsixArchive(archive);
   const digest = bytes => createHash('sha256').update(bytes).digest('hex');
   if (!custom && digest(archive) !== signature.packageSha256) throw new Error('The bundled signed shell package is corrupt. Restore native/windows-shell/package from Git.');
   const xml = Buffer.from(contents['AppxManifest.xml'] || []).toString('utf8').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');

@@ -5,6 +5,7 @@ import { createHash, X509Certificate } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { shellPackageFiles } from './windows-shell-assets.mjs';
 import { sparseMsix } from './windows-shell-package.mjs';
+import { readMsixArchive } from './msix-archive.mjs';
 const secrets = resolve('.local/windows-shell-signing'), output = resolve('native/windows-shell/package');
 await mkdir(secrets, { recursive: true, mode: 0o700 });
 await chmod(secrets, 0o700);
@@ -27,7 +28,9 @@ await writeFile(unsigned, sparseMsix(files));
 await rm(signed, { force: true });
 execFileSync(signer, ['sign', '-certs', certificate, '-key', key, '-h', 'sha256', '-in', unsigned, '-out', signed], { stdio: 'inherit' });
 execFileSync(signer, ['verify', '-CAfile', certificate, '-in', signed], { stdio: 'inherit' });
-await writeFile(join(output, 'FrameShell.msix'), await readFile(signed));
+const signedArchive = await readFile(signed);
+readMsixArchive(signedArchive);
+await writeFile(join(output, 'FrameShell.msix'), signedArchive);
 await writeFile(join(output, 'Frame.cer'), cert.raw);
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 await writeFile(join(output, 'signature.json'), JSON.stringify({
