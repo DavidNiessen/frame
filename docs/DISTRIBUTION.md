@@ -43,6 +43,23 @@ The disposable Windows CI runner disables Developer Mode, verifies rejection of 
 
 Local packaging and CI use unsigned application installers by default; the bundled shell MSIX is signed with Frame’s self-signed certificate. Configure Electron Builder's supported certificate, notarization, and signing settings when preparing publicly trusted installers. Do not commit private signing keys, PFX files, passwords, API keys, or developer credentials. Public verification certificates may be committed. Packaging never publishes automatically.
 
+### GitHub Actions shell signing
+
+In the repository's **Settings → Secrets and variables → Actions**, add these two repository secrets using the complete PEM file contents, including the `BEGIN`/`END` lines. No base64 encoding is needed.
+
+| Secret | File |
+| --- | --- |
+| `FRAME_WINDOWS_SHELL_PRIVATE_KEY_PEM` | `.local/windows-shell-signing/private-key.pem` |
+| `FRAME_WINDOWS_SHELL_CERTIFICATE_PEM` | `.local/windows-shell-signing/certificate.pem` |
+
+These files currently live in the cloud workspace where the signing pair was created; Git does not copy them to other checkouts. The key must be unencrypted RSA (at least 2048 bits), and the certificate must be its matching, currently valid, non-CA `CN=Frame` code-signing certificate. Reuse the existing pair to preserve users' certificate trust. The workflow rejects an incomplete pair, malformed credentials, or mismatched/expired certificates rather than generating replacements.
+
+The **Validate and package** workflow signs on pushes to `master` and manual runs selecting `master`. Pull requests and other branches receive no signing secrets and use the committed signed package. With neither secret configured, `master` also uses that committed package. Trigger **Actions → Validate and package → Run workflow** after adding both secrets.
+
+The Ubuntu `windows-shell` job builds SHA-256-pinned osslsigncode 2.14, signs the sparse package, and cross-compiles all native components with MinGW, including the helper's certificate pin. CI keeps the identity's major/minor version and sets its build/revision to `GITHUB_RUN_NUMBER.GITHUB_RUN_ATTEMPT`; these counters must fit 1–65535. This avoids publishing different package contents under the same version. Public signature metadata and source/binary fingerprints are regenerated together and verified before the Windows packaging job downloads them.
+
+Private files use restrictive permissions in `$RUNNER_TEMP/frame-shell-signing` and are deleted by an `always()` cleanup step before artifact upload. The `frame-windows-shell` artifact contains only an explicit list of native binaries, the signed MSIX, public certificate, identity, and integrity metadata. The Windows installer includes those public assets; private PEM files never enter the artifact or installer. CI does not commit generated artifacts or modify GitHub Secrets. Its signing covers the shell MSIX; the NSIS executable and macOS app still need their separate release signing configuration.
+
 ## Third-party notices
 
 The media binaries are distributed under their respective upstream licenses, not merely their npm wrapper licenses. The included builds enable GPL components (including x264); WebAssembly core 0.12.10 is GPL-2.0-or-later, and the current Linux native binaries are GPL-3.0. Platform builds may differ; retain the matching vendor notices and corresponding-source information when distributing artifacts.

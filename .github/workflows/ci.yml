@@ -10,6 +10,58 @@ concurrency:
 permissions:
   contents: read
 jobs:
+  windows-shell:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Prepare signing credentials for trusted master runs
+        id: signing
+        if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          FRAME_WINDOWS_SHELL_PRIVATE_KEY_PEM: ${{ secrets.FRAME_WINDOWS_SHELL_PRIVATE_KEY_PEM }}
+          FRAME_WINDOWS_SHELL_CERTIFICATE_PEM: ${{ secrets.FRAME_WINDOWS_SHELL_CERTIFICATE_PEM }}
+        run: node scripts/ci-shell-signing.mjs
+      - name: Build pinned signing tool and install native compiler
+        if: steps.signing.outputs.enabled == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential cmake libssl-dev zlib1g-dev g++-mingw-w64-x86-64-posix binutils-mingw-w64-x86-64
+          signing_tools="$RUNNER_TEMP/frame-signing-tools"
+          mkdir -p "$signing_tools/source"
+          curl --fail --location --retry 3 --silent --show-error https://api.github.com/repos/mtrojnar/osslsigncode/tarball/2.14 --output "$signing_tools/source.tar.gz"
+          printf '%s  %s\n' bdf249cbf23a84262dd30bb9b3a96a17109ff8de5ea30212e26af173cc8b2195 "$signing_tools/source.tar.gz" | sha256sum --check
+          tar -xzf "$signing_tools/source.tar.gz" --strip-components=1 -C "$signing_tools/source"
+          cmake -S "$signing_tools/source" -B "$signing_tools/build" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$signing_tools/build" --parallel 2
+      - name: Sign shell package and rebuild the pinned Windows helper
+        if: steps.signing.outputs.enabled == 'true'
+        run: |
+          FRAME_OSSLSIGNCODE="$RUNNER_TEMP/frame-signing-tools/build/osslsigncode" npm run sign:windows-shell
+          FRAME_MINGW_ROOT=/usr npm run build:windows-shell
+      - name: Delete temporary signing credentials
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/frame-shell-signing"
+      - name: Verify the public shell package and native fingerprints
+        run: node --test tests/setup/windows-shell.test.mjs
+      - name: Share only public Windows shell assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: frame-windows-shell
+          path: |
+            native/windows-shell/bin/x64/FrameShell.dll
+            native/windows-shell/bin/x64/FrameShellLauncher.exe
+            native/windows-shell/bin/x64/FrameCertificateHelper.exe
+            native/windows-shell/binaries.json
+            native/windows-shell/identity.json
+            native/windows-shell/package/FrameShell.msix
+            native/windows-shell/package/Frame.cer
+            native/windows-shell/package/signature.json
+          if-no-files-found: error
   pnpm-install:
     strategy:
       fail-fast: false
@@ -60,6 +112,7 @@ jobs:
           name: frame-web
           path: dist/
   desktop:
+    needs: windows-shell
     strategy:
       fail-fast: false
       matrix:
@@ -69,6 +122,12 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
+      - name: Use the verified CI shell package
+        if: runner.os == 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: frame-windows-shell
+          path: native/windows-shell
       - uses: actions/setup-node@v4
         with:
           node-version: 24
