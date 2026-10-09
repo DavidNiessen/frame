@@ -1,5 +1,7 @@
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
+import { ensureYoutubeTools } from './prepare-youtube.mjs';
+await ensureYoutubeTools();
 await build({
   entryPoints: ['electron/main.ts', 'electron/preload.ts'],
   outdir: 'dist-electron', outExtension: { '.js': '.cjs' },

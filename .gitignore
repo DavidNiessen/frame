@@ -3,6 +3,7 @@ dist/
 dist-electron/
 release/
 build/generated/
+build/media-tools/
 public/ffmpeg/
 playwright-report/
 test-results/
