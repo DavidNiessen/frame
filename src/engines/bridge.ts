@@ -1,6 +1,6 @@
 import type { DesktopCapabilities, PreviewProxy } from '../core/hardware';
 import type { SilenceOptions } from '../core/silence';
-import type { EditSettings, ExportProgress, ExportResult, MediaAsset, TimeRange } from '../core/types';
+import type { BatchOptions, EditSettings, ExportProgress, ExportResult, ImportReport, TimeRange } from '../core/types';
 import type { ProjectDocument } from '../core/project';
 import type { WaveformPoint } from '../core/waveform';
 import type { OutputSettings } from '../core/presets';
@@ -9,8 +9,9 @@ export interface DesktopBridge {
   desktopCapabilities(): Promise<DesktopCapabilities>;
   previewProxy(id: string): Promise<PreviewProxy>;
   releaseProxy(id: string): Promise<void>;
-  importFiles(files?: File[]): Promise<MediaAsset[]>;
-  importSample(): Promise<MediaAsset[]>;
+  importFiles(files?: File[]): Promise<ImportReport>;
+  importFolder(): Promise<ImportReport>;
+  importSample(): Promise<ImportReport>;
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
   saveProject(project: ProjectDocument): Promise<boolean>;
   merge(clips: { id: string; edit: EditSettings }[], settings: OutputSettings, transition?: TransitionSettings): Promise<ExportResult | null>;
@@ -19,8 +20,9 @@ export interface DesktopBridge {
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;
   thumbnails(id: string): Promise<Uint8Array>;
   waveform(id: string): Promise<WaveformPoint[]>;
-  beginBatch(): Promise<string | null>;
+  beginBatch(options?: BatchOptions): Promise<string | null>;
   endBatch(token: string): Promise<void>;
+  openBatchFolder(): Promise<void>;
   cancel(): void;
   release(id: string): Promise<void>;
   onProgress(callback: (progress: ExportProgress) => void): () => void;

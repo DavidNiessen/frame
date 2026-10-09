@@ -24,7 +24,11 @@ export interface MediaAsset {
   audioSampleRate?: number;
   artworkIndex?: number;
   previewUrl: string;
+  relativePath?: string;
 }
+export interface ImportIssue { name: string; message: string }
+export interface ImportReport { assets: MediaAsset[]; issues: ImportIssue[]; skipped: number; folderName?: string }
+export interface BatchOptions { conversion?: boolean; keepFolders?: boolean }
 export interface Crop { x: number; y: number; width: number; height: number }
 export interface TimeRange { start: number; end: number }
 export interface EditSettings {
@@ -53,14 +57,15 @@ export interface EditSettings {
   keepMetadata: boolean;
 }
 export interface ExportProgress { ratio: number; message: string }
-export interface ExportResult { name: string; url?: string; path?: string; size: number }
+export interface ExportResult { name: string; url?: string; path?: string; size: number; relativePath?: string }
 export interface MediaEngine {
   platform: 'desktop' | 'web';
   desktopCapabilities?(onProgress: (p: ExportProgress) => void): Promise<DesktopCapabilities>;
   previewProxy?(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<PreviewProxy>;
   releaseProxy?(id: string): Promise<void>;
-  importFiles(files?: File[]): Promise<MediaAsset[]>;
-  importSample(): Promise<MediaAsset[]>;
+  importFiles(files?: File[], onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
+  importFolder?(onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
+  importSample(): Promise<ImportReport>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
   merge(clips: MediaClip[], output: OutputSettings, onProgress: (p: ExportProgress) => void, transition?: TransitionSettings): Promise<ExportResult | null>;
   detectSilence(asset: MediaAsset, options: SilenceOptions, onProgress: (p: ExportProgress) => void): Promise<TimeRange[]>;
@@ -68,8 +73,9 @@ export interface MediaEngine {
   previewAudio(asset: MediaAsset, edit: EditSettings, onProgress: (p: ExportProgress) => void): Promise<string>;
   thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;
   waveform(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<WaveformPoint[]>;
-  beginBatch(): Promise<string | null>;
+  beginBatch(options?: BatchOptions): Promise<string | null>;
   endBatch(token: string): Promise<void>;
+  openBatchFolder?(): Promise<void>;
   cancel(): void;
   release(asset: MediaAsset): Promise<void>;
 }

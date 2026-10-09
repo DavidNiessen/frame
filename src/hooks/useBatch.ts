@@ -1,39 +1,55 @@
 import { useEffect, useRef, useState } from 'react';
 import { batchSettings, runBatch, type BatchJob, type BatchMode } from '../core/batch';
+import { conversionSettings } from '../core/conversion';
+import type { OutputSettings } from '../core/presets';
+import type { BatchOptions } from '../core/types';
 import type { Editor } from './useEditor';
 export function useBatch(editor: Editor) {
   const [jobs, setJobs] = useState<BatchJob[]>([]);
+  const [running, setRunning] = useState(false); const runningRef = useRef(false);
   const cancelled = useRef(false); const jobsRef = useRef(jobs); jobsRef.current = jobs;
-  const clear = () => { for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); setJobs([]); };
+  const clear = () => { if (runningRef.current) return; for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); setJobs([]); };
   useEffect(() => () => { for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); }, []);
-  async function start(ids: string[], mode: BatchMode) {
-    if (!editor.asset || !editor.edit || editor.busy || !ids.length) return;
-    clear(); cancelled.current = false;
-    const queue: BatchJob[] = editor.assets.filter(asset => ids.includes(asset.id)).map(asset => ({ id: crypto.randomUUID(), asset,
-      edit: batchSettings(asset, editor.settingsFor(asset.id), editor.asset!, editor.edit!, mode), status: 'waiting', progress: 0 }));
-    setJobs(queue);
+  async function execute(queue: BatchJob[], options?: BatchOptions, keepResults = false) {
+    if (runningRef.current || editor.busy || !queue.length) return;
+    runningRef.current = true; setRunning(true); cancelled.current = false;
+    const retained = keepResults ? jobsRef.current.filter(job => !queue.some(next => next.asset.id === job.asset.id)) : [];
+    for (const job of jobsRef.current) if (!retained.includes(job) && job.result?.url) URL.revokeObjectURL(job.result.url);
+    setJobs([...retained, ...queue]);
     try {
       await editor.runExclusive('batch', async engine => {
-        const token = await engine.beginBatch();
+        const token = await engine.beginBatch(options);
         if (!token) { cancelled.current = true; }
-        let retainedBytes = 0;
+        let retainedBytes = retained.reduce((sum, job) => sum + (job.result?.url ? job.result.size : 0), 0);
         try {
           await runBatch(queue, async (job, progress) => {
             const result = await engine.export(job.asset, job.edit, progress, token!);
             if (result?.url && retainedBytes + result.size > 500 * 1024 * 1024) {
               URL.revokeObjectURL(result.url); throw new Error('Batch downloads reached 500 MB. Save and clear them, then export the remaining files.');
             }
-            retainedBytes += result?.size ?? 0; return result;
+            retainedBytes += result?.url ? result.size : 0; return result;
           }, () => cancelled.current, job => setJobs(current => current.map(item => item.id === job.id ? job : item)));
         } finally { if (token) await engine.endBatch(token); }
       });
       editor.setNotice(cancelled.current ? 'Batch cancelled. Completed exports are still available.' : 'Batch finished. Review the results for each file.');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setJobs(current => current.map(job => job.status === 'waiting' || job.status === 'running' ? { ...job, status: 'failed', error: message } : job));
+      setJobs(current => current.map(job => queue.some(item => item.id === job.id) && (job.status === 'waiting' || job.status === 'running') ? { ...job, status: 'failed', error: message } : job));
       editor.setNotice(message);
-    }
+    } finally { runningRef.current = false; setRunning(false); }
   }
-  return { jobs, start, clear, cancel: () => { cancelled.current = true; editor.cancel(); } };
+  async function start(ids: string[], mode: BatchMode) {
+    if (!editor.asset || !editor.edit) return;
+    const queue: BatchJob[] = editor.assets.filter(asset => ids.includes(asset.id)).map(asset => ({ id: crypto.randomUUID(), asset,
+      edit: batchSettings(asset, editor.settingsFor(asset.id), editor.asset!, editor.edit!, mode), status: 'waiting', progress: 0 }));
+    await execute(queue);
+  }
+  async function convert(ids: string[], output: OutputSettings, keepFolders: boolean) {
+    const queue: BatchJob[] = editor.assets.filter(asset => ids.includes(asset.id)).map(asset => ({ id: crypto.randomUUID(), asset,
+      edit: conversionSettings(asset, output), status: 'waiting', progress: 0 }));
+    await execute(queue, { conversion: true, keepFolders }, true);
+  }
+  async function openFolder() { try { await window.frameDesktop?.openBatchFolder(); } catch (error) { editor.setNotice(error instanceof Error ? error.message : String(error)); } }
+  return { jobs, start, convert, running, clear, openFolder, cancel: () => { if (runningRef.current) { cancelled.current = true; editor.cancel(); } } };
 }
 export type Batch = ReturnType<typeof useBatch>;

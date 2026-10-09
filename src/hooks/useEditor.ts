@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createEngine } from '../engines';
-import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type MediaAsset, type MediaEngine } from '../core/types';
+import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type ImportReport, type MediaAsset, type MediaEngine } from '../core/types';
 import { parseEdit } from '../core/project';
 import { editedDuration } from '../core/timeline';
 import { validateEdit } from '../core/export-plan';
@@ -15,6 +15,7 @@ export function useEditor() {
   const [notice, setNotice] = useState('');
   const [progress, setProgress] = useState<ExportProgress | null>(null);
   const [result, setResult] = useState<ExportResult | null>(null);
+  const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const engineRef = useRef<Promise<MediaEngine> | null>(null);
   const assetsRef = useRef(assets); assetsRef.current = assets;
   const resultRef = useRef(result); resultRef.current = result;
@@ -27,13 +28,15 @@ export function useEditor() {
     if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
     if (engineRef.current) void engineRef.current.then(e => { e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); });
   }, []);
-  async function importMedia(files?: File[], sample = false) {
+  async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' = 'files') {
     if (busyRef.current) return;
-    busyRef.current = true; setBusy('import'); setNotice('');
+    busyRef.current = true; setBusy('import'); setNotice(''); setProgress({ ratio: 0, message: 'Reading your media…' });
     try {
       const e = await engine();
-      const imported = sample ? await e.importSample() : await e.importFiles(files);
-      if (!imported.length) return;
+      const report = mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
+      setImportReport(report);
+      const imported = report.assets;
+      if (!imported.length) { if (report.issues.length) setNotice(`${report.issues[0].name}: ${report.issues[0].message}`); else if (report.skipped || report.folderName) setNotice('No supported video or audio files found in this folder.'); return; }
       setAssets(current => [...current, ...imported]);
       setHistories(current => {
         const next = { ...current };
@@ -41,9 +44,9 @@ export function useEditor() {
         return next;
       });
       setSelected(imported[0].id);
-      setNotice(`Imported ${imported.length} ${imported.length === 1 ? 'file' : 'files'}.`);
+      setNotice(`Imported ${imported.length} ${imported.length === 1 ? 'file' : 'files'}.${report.issues.length ? ` ${report.issues.length} could not be read.` : ''}${report.skipped ? ` Skipped ${report.skipped} non-media files.` : ''}`);
     } catch (error) { setNotice(messageOf(error)); }
-    finally { busyRef.current = false; setBusy(null); }
+    finally { busyRef.current = false; setBusy(null); setProgress(null); }
   }
   const update = useCallback((patch: Partial<EditSettings>) => {
     if (!selected || busyRef.current) return;
@@ -110,10 +113,11 @@ export function useEditor() {
     finally { busyRef.current = false; setBusy(null); }
   }
   function dismissResult() { if (result?.url) URL.revokeObjectURL(result.url); setResult(null); }
-  return { assets, asset, edit, selected, busy, notice, setNotice, progress, result, dismissResult,
+  return { assets, asset, edit, selected, busy, notice, setNotice, progress, result, dismissResult, importReport,
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,
     select: (id: string) => { if (!busyRef.current) setSelected(id); },
-    importMedia, update, remove, exportMedia, restoreEdits, runExclusive,
+    importMedia: (files?: File[], sample = false) => performImport(files, sample ? 'sample' : 'files'),
+    importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive,
     settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),
     cancel: () => void engine().then(e => e.cancel()),
     undo: () => travel('undo'), redo: () => travel('redo'),

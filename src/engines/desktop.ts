@@ -7,7 +7,8 @@ export function createDesktopEngine(): MediaEngine {
     async desktopCapabilities(onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.desktopCapabilities(); } finally { remove(); } },
     async previewProxy(asset, onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.previewProxy(asset.id); } finally { remove(); } },
     releaseProxy: id => bridge.releaseProxy(id),
-    importFiles: files => bridge.importFiles(files),
+    async importFiles(files, onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFiles(files); } finally { remove(); } },
+    async importFolder(onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFolder(); } finally { remove(); } },
     importSample: () => bridge.importSample(),
     async export(asset, settings, onProgress, batchToken) {
       const remove = bridge.onProgress(onProgress);
@@ -38,8 +39,9 @@ export function createDesktopEngine(): MediaEngine {
       const remove = bridge.onProgress(onProgress);
       try { return await bridge.waveform(asset.id); } finally { remove(); }
     },
-    beginBatch: () => bridge.beginBatch(),
+    beginBatch: options => bridge.beginBatch(options),
     endBatch: token => bridge.endBatch(token),
+    openBatchFolder: () => bridge.openBatchFolder(),
     cancel: () => bridge.cancel(),
     release: asset => bridge.release(asset.id),
   };

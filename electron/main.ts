@@ -13,10 +13,10 @@ import { MediaJobs } from './jobs';
 import { registerMerge } from './merge';
 import { registerAnalysis } from './analysis';
 import { createBatchFolders } from './batch';
+import { registerImports } from './imports';
 import { registerProjectSaving } from './projects';
-import { probeFile } from './native';
 import { buildExportArgs, outputName, validateEdit } from '../src/core/export-plan';
-import { supportedExtensions, type EditSettings, type MediaAsset } from '../src/core/types';
+import { type EditSettings, type MediaAsset } from '../src/core/types';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 const assets = new Map<string, { path: string; asset: MediaAsset }>();
@@ -26,15 +26,6 @@ const jobs = new MediaJobs();
 const devUrl = !app.isPackaged ? process.env.FRAME_DEV_URL : undefined;
 function trusted(event: IpcMainInvokeEvent | Electron.IpcMainEvent) {
   if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('Untrusted request.');
-}
-async function importPaths(paths: string[]) {
-  const imported = await Promise.all(paths.map(async path => {
-    const id = randomUUID();
-    const asset: MediaAsset = { ...await probeFile(path), id, name: basename(path), previewUrl: `media://asset/${id}` };
-    return { path, asset };
-  }));
-  for (const item of imported) assets.set(item.asset.id, item);
-  return imported.map(item => item.asset);
 }
 function createWindow() {
   mainWindow = new BrowserWindow({ width: 1440, height: 960, minWidth: 760, minHeight: 600, backgroundColor: '#101311', title: 'Frame', icon: app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(__dirname, '../build/icon.png'),
@@ -62,20 +53,7 @@ app.whenReady().then(() => {
     if (!path) return new Response('Not found', { status: 404 });
     return mediaResponse(path, request);
   });
-  ipcMain.handle('media:import', async (event, paths?: string[]) => {
-    trusted(event);
-    if (jobs.busy) throw new Error('Wait for the current export.');
-    if (!paths) {
-      const selected = await dialog.showOpenDialog(mainWindow!, { properties: ['openFile', 'multiSelections'], filters: [{ name: 'Video and audio', extensions: supportedExtensions }] });
-      paths = selected.canceled ? [] : selected.filePaths;
-    }
-    if (!Array.isArray(paths) || paths.length > 100 || paths.some(path => typeof path !== 'string' || !path)) throw new Error('Select up to 100 valid media files.');
-    return importPaths(paths);
-  });
-  ipcMain.handle('media:sample', async event => {
-    trusted(event);
-    return importPaths([app.isPackaged ? join(process.resourcesPath, 'sample.mp4') : join(__dirname, '../public/sample.mp4')]);
-  });
+  registerImports(assets, jobs, () => mainWindow!, trusted);
   registerAnalysis(assets, jobs, trusted);
   registerMerge(assets, jobs, () => mainWindow!, trusted);
   ipcMain.handle('media:release', async (event, id: string) => { trusted(event); if (!jobs.busy) { assets.delete(id); await proxies.releaseAsset(id); } });
@@ -89,13 +67,13 @@ app.whenReady().then(() => {
     return jobs.run(async execute => {
     let temporary: string | undefined;
     try {
-      const batchName = outputName(item.asset.name, settings.format);
-      const destination = batchToken ? { canceled: false, filePath: join(batchFolders.directory(batchToken), batchName) } : await dialog.showSaveDialog(mainWindow!, { defaultPath: outputName(item.asset.name, settings.format), filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }] });
+      const batchName = batchToken ? batchFolders.name(batchToken, item.asset, settings.format) : outputName(item.asset.name, settings.format);
+      const destination = batchToken ? { canceled: false, filePath: await batchFolders.destination(batchToken, batchName) } : await dialog.showSaveDialog(mainWindow!, { defaultPath: outputName(item.asset.name, settings.format), filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }] });
       if (destination.canceled || !destination.filePath) return null;
       const sourcePath = await realpath(item.path);
       const destinationPath = await realpath(destination.filePath).catch(() => destination.filePath!);
       const comparable = (path: string) => process.platform === 'win32' ? path.toLowerCase() : path;
-      if (comparable(destinationPath) === comparable(sourcePath)) throw new Error('Choose a different output path to preserve the original.');
+      if (!batchToken && comparable(destinationPath) === comparable(sourcePath)) throw new Error('Choose a different output path to preserve the original.');
       temporary = join(dirname(destination.filePath), `.frame-${randomUUID()}.${settings.format}`);
       await withResources([settings], async paths => {
         const { width, height } = frameDimensions(item.asset, settings);
