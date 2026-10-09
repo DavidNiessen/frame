@@ -13,6 +13,7 @@
     "vendor:media-tools": "node scripts/vendor-media-tools.mjs",
     "build:windows-shell": "node scripts/build-windows-shell.mjs",
     "sign:windows-shell": "node scripts/sign-windows-shell.mjs",
+    "verify:windows-shell": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/validate-windows-shell.ps1",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/prepare-ffmpeg.mjs && node scripts/prepare-youtube.mjs && node --test tests/setup/*.test.mjs && vitest run",
     "test:e2e": "playwright test",

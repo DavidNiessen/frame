@@ -128,6 +128,10 @@ jobs:
         with:
           name: frame-windows-shell
           path: native/windows-shell
+      - name: Validate shell package using the Windows Appx reader
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./scripts/validate-windows-shell.ps1
       - uses: actions/setup-node@v4
         with:
           node-version: 24
