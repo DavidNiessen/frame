@@ -1,10 +1,7 @@
-import type { WaveformPoint } from '../core/waveform';
-export function Waveform({ points, duration }: { points: WaveformPoint[]; duration: number }) {
-  const path = points.map((point, index) => {
-    const x = point.time / duration * 1000;
-    const width = Math.max(0.5, ((points[index + 1]?.time ?? duration) - point.time) / duration * 1000);
-    const height = Math.max(0.8, point.peak * 46);
-    return `M${x},${50 - height}h${width}v${height * 2}h-${width}Z`;
-  }).join('');
-  return <svg className="audio-waveform" viewBox="0 0 1000 100" preserveAspectRatio="none" role="img" aria-label="Audio waveform"><path d={path} /></svg>;
+import { useMemo } from 'react';
+import { waveformPath, type WaveformPoint } from '../core/waveform';
+import type { TimeRange } from '../core/types';
+export function Waveform({ points, duration, range }: { points: WaveformPoint[]; duration: number; range: TimeRange }) {
+  const path = useMemo(() => waveformPath(points, duration, range), [points, duration, range.start, range.end]);
+  return <svg className="audio-waveform" viewBox="0 0 1000 100" preserveAspectRatio="none" role="img" aria-label="Audio waveform" data-start={range.start} data-end={range.end}><path d={path} /></svg>;
 }

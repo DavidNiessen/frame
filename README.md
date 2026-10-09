@@ -34,7 +34,7 @@ Edits are nondestructive and support undo/redo. Artwork is enabled by default fo
 
 Keyboard shortcuts: Ctrl/Cmd+O imports, Space plays/pauses, I/O set trim boundaries, Ctrl/Cmd+Z undoes, and Ctrl/Cmd+Shift+Z redoes. A shortcut reference is available in the footer.
 
-Generate an **audio waveform** from the Timeline to see measured source peaks before cutting. This runs locally, works for video with audio and audio-only files, and can be cancelled. Source peaks remain visible as you adjust cuts.
+Audio files automatically generate a **waveform** when selected. For videos with audio, choose Generate waveform in the Timeline. Peaks are cached per source and drawn inside each retained clip: trims and split-section edges crop the matching source peaks live, and removed sections leave empty gaps. Processing runs locally, can be cancelled, and offers a retry if interrupted.
 
 For video, **Generate thumbnails** adds a strip of twelve source frames. Click a thumbnail to seek to that part of the source. Thumbnails are generated locally and released when their media leaves the library.
 

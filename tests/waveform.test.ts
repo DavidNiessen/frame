@@ -5,9 +5,17 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ffmpeg from 'ffmpeg-static';
-import { waveformArgs, WaveformCollector } from '../src/core/waveform';
+import { waveformArgs, waveformPath, WaveformCollector } from '../src/core/waveform';
 import type { MediaAsset } from '../src/core/types';
 const exec = promisify(execFile);
+it('clips partial peak windows and keeps the source shape in independently trimmed sections', () => {
+  const points = [{ time: 0, peak: 1 }, { time: 1, peak: .5 }, { time: 2, peak: 0 }, { time: 3, peak: .25 }];
+  const bars = (start: number, end: number) => [...waveformPath(points, 4, { start, end }).matchAll(/M([\d.e+-]+),([\d.e+-]+)h([\d.e+-]+)/g)].map(m => ({ x: Number(m[1]), top: Number(m[2]), width: Number(m[3]) }));
+  expect(bars(.5, 1.5)).toEqual([{ x: 0, top: 4, width: 500 }, { x: 500, top: 27, width: 500 }]);
+  expect(bars(2, 3)).toEqual([{ x: 0, top: 49.2, width: 1000 }]);
+  expect(bars(3, 4)).toEqual([{ x: 0, top: 38.5, width: 1000 }]);
+  expect(waveformPath(points, 4, { start: 3, end: 3 })).toBe('');
+});
 it('measures audible peaks and quiet windows in real audio', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-wave-'));
   try {

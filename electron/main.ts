@@ -4,9 +4,9 @@ import { hardwareBitrate } from '../src/core/hardware';
 import { editedDuration } from '../src/core/timeline';
 import { frameDimensions } from '../src/core/geometry';
 import { withResources } from './resources';
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, protocol, type IpcMainInvokeEvent } from 'electron';
 import { join, basename, dirname } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { mediaResponse } from './media-response';
 import { randomUUID } from 'node:crypto';
 import { rename, rm, stat, realpath } from 'node:fs/promises';
 import { MediaJobs } from './jobs';
@@ -60,7 +60,7 @@ app.whenReady().then(() => {
     const url = new URL(request.url);
     const id = url.pathname.slice(1); const path = url.hostname === 'asset' ? assets.get(id)?.path : url.hostname === 'proxy' ? proxies.path(id) : undefined;
     if (!path) return new Response('Not found', { status: 404 });
-    return net.fetch(pathToFileURL(path).toString(), { headers: request.headers });
+    return mediaResponse(path, request);
   });
   ipcMain.handle('media:import', async (event, paths?: string[]) => {
     trusted(event);

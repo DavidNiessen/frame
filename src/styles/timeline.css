@@ -39,4 +39,12 @@
 .timeline-lane-group > summary { padding-top: 5px; padding-bottom: 5px; }
 .caption-lane, .effect-lane { height: 26px; margin: 2px 0 4px; }
 .timeline-analysis > .button { min-height: 24px; }
+.timeline-analysis:empty { display: none; }
+.waveform-status, .waveform-error { font-size: 11px; color: var(--muted); }
+.waveform-error { flex-basis: 100%; overflow-wrap: anywhere; }
+.clip-waveform { position: absolute; inset: 20px 0 3px; border-radius: 3px; overflow: hidden; pointer-events: none; }
+.with-waveform > .range-body { display: flex; align-items: flex-start; }
+.with-waveform > .range-body > span { padding-top: 3px; }
+.clip-waveform .audio-waveform { opacity: .8; fill: currentColor; z-index: auto; }
+.playhead { z-index: 5; }
 @media (max-width: 700px) { .timeline-body { padding: 12px 14px; } .timeline-track { height: 60px; } }

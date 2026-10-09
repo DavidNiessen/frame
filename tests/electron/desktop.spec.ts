@@ -155,3 +155,28 @@ test('previews an unsupported source through a temporary proxy and exports from 
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
   expect((await readdir(tmpdir())).filter(name => name.startsWith('frame-proxy-') && !previous.has(name))).toEqual([]);
 });
+
+test('automatically renders native audio waveforms inside trimmed and split clips', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-audio-waveform-')), input = join(directory, 'audio.wav');
+  await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=4', input]);
+  const executablePath = process.env.FRAME_TEST_EXECUTABLE;
+  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  try {
+    const page = await app.firstWindow();
+    await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, input);
+    await page.getByRole('button', { name: 'Add media', exact: true }).click();
+    const waves = page.getByRole('img', { name: 'Audio waveform', exact: true });
+    await expect(waves).toBeVisible(); await expect(page.getByLabel('Trim start', { exact: true })).toBeEnabled();
+    await expect.poll(() => page.locator('audio').evaluate(node => (node as HTMLAudioElement).duration)).toBeCloseTo(4, 2);
+    await expect(page.getByRole('button', { name: 'Generate waveform' })).toHaveCount(0);
+    await trim(page, 'start', .5); await trim(page, 'end', 3.5);
+    await page.getByLabel('Seek playhead').fill('2');
+    await expect(page.getByLabel('Seek playhead')).toHaveValue('2');
+    await page.getByRole('button', { name: 'Split', exact: true }).click();
+    await expect(waves).toHaveCount(2);
+    await expect(waves.nth(0)).toHaveAttribute('data-start', '0.5'); await expect(waves.nth(0)).toHaveAttribute('data-end', '2');
+    await expect(waves.nth(1)).toHaveAttribute('data-start', '2'); await expect(waves.nth(1)).toHaveAttribute('data-end', '3.5');
+    await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
+    await expect(waves).toHaveCount(1); await expect(waves).toHaveAttribute('data-start', '0.5'); await expect(waves).toHaveAttribute('data-end', '3.5');
+  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+});
