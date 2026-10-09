@@ -1,0 +1,14 @@
+/* Keep existing fills, border styles and sticky positioning intact. */
+@property --border-light-x { syntax: '<percentage>'; inherits: false; initial-value: 25%; }
+@property --border-light-y { syntax: '<percentage>'; inherits: false; initial-value: 15%; }
+:where(.app-header, .workspace-bar, .app-footer, .panel, .preview-panel, .empty-stage, .conversion-intro, .settings-card, .recovery-banner, .mini-card) { position: relative; }
+@supports (mask-composite: exclude) {
+  :where(.app-header, .workspace-bar, .app-footer, .panel, .preview-panel, .empty-stage, .conversion-intro, .settings-card, .recovery-banner, .mini-card)::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 4;
+    --border-light-x: inherit; --border-light-y: inherit;
+    background: radial-gradient(ellipse at var(--border-light-x, 25%) var(--border-light-y, 15%), color-mix(in srgb, var(--accent-text) 45%, var(--border)), transparent 70%);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+  .mini-body .conversion-settings::before { content: none; }
+}
