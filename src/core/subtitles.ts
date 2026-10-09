@@ -1,6 +1,8 @@
 import { keptRanges } from './timeline';
 import type { EditSettings } from './types';
-export interface SubtitleCue { start: number; end: number; text: string }
+/** Percentages of the output frame; the anchor is the caption's bottom center. */
+export interface CaptionPosition { x: number; y: number }
+export interface SubtitleCue { start: number; end: number; text: string; position?: CaptionPosition }
 export interface Subtitles { mode: 'none' | 'embed' | 'burn'; cues: SubtitleCue[] }
 export const emptySubtitles = (): Subtitles => ({ mode: 'none', cues: [] });
 export function parseSubtitles(value: unknown): Subtitles {
@@ -9,7 +11,9 @@ export function parseSubtitles(value: unknown): Subtitles {
   if (!s || !['none', 'embed', 'burn'].includes(s.mode) || !Array.isArray(s.cues) || s.cues.length > 1000) throw new Error('Invalid subtitles. Use at most 1,000 cues.');
   return { mode: s.mode, cues: s.cues.map(c => {
     if (!c || !Number.isFinite(c.start) || !Number.isFinite(c.end) || c.start < 0 || c.end <= c.start || c.end > 86400 || typeof c.text !== 'string' || c.text.length > 2000 || c.text.includes('\0')) throw new Error('Invalid subtitle timing or text.');
-    return { start: c.start, end: c.end, text: c.text };
+    const p = c.position;
+    if (p !== undefined && (!p || ![p.x, p.y].every(n => Number.isFinite(n) && n >= 0 && n <= 100))) throw new Error('Invalid caption position.');
+    return { start: c.start, end: c.end, text: c.text, ...(p ? { position: { x: p.x, y: p.y } } : {}) };
   }) };
 }
 function seconds(value: string): number {
@@ -37,7 +41,7 @@ export function outputCues(edit: EditSettings): SubtitleCue[] {
   for (const range of keptRanges(edit)) {
     for (const cue of edit.subtitles.cues) {
       const start = Math.max(cue.start, range.start), end = Math.min(cue.end, range.end);
-      if (end > start) result.push({ text: cue.text, start: elapsed + (start - range.start) / edit.speed, end: elapsed + (end - range.start) / edit.speed });
+      if (end > start) result.push({ ...cue, start: elapsed + (start - range.start) / edit.speed, end: elapsed + (end - range.start) / edit.speed });
     }
     elapsed += (range.end - range.start) / edit.speed;
   }
@@ -48,5 +52,18 @@ function stamp(time: number): string {
 }
 export function serializeSrt(cues: SubtitleCue[]): string {
   return cues.map((c, i) => `${i + 1}\n${stamp(c.start)} --> ${stamp(c.end)}\n${c.text.replace(/\r/g, '').replace(/\n\s*\n/g, '\n')}\n`).join('\n');
+}
+/** ASS preserves per-cue placement. SRT and selectable captions use the player's layout. */
+export function serializeCaptionAss(cues: SubtitleCue[], { width, height }: { width: number; height: number }): string {
+  const assStamp = (time: number) => {
+    const cs = Math.round(time * 100);
+    return `${Math.floor(cs / 360000)}:${String(Math.floor(cs / 6000) % 60).padStart(2, '0')}:${String(Math.floor(cs / 100) % 60).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}`;
+  };
+  const events = cues.map(c => {
+    const position = c.position ? `{\\pos(${width * c.position.x / 100},${height * c.position.y / 100})}` : '';
+    const text = c.text.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}').replace(/\r/g, '').replace(/\n/g, '\\N');
+    return `Dialogue: 0,${assStamp(c.start)},${assStamp(c.end)},Default,${position}${text}`;
+  });
+  return `[Script Info]\nScriptType: v4.00+\nPlayResX: ${width}\nPlayResY: ${height}\nWrapStyle: 0\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,DejaVu Sans,${width * .035},&H00FFFFFF,&H66000000,&H66000000,3,3,0,2,${width * .05},${width * .05},${height * .08},1\n[Events]\nFormat: Layer, Start, End, Style, Text\n${events.join('\n')}\n`;
 }
 export const subtitleCodec = (format: string) => ({ mp4: 'mov_text', mov: 'mov_text', mkv: 'srt', webm: 'webvtt' }[format]);

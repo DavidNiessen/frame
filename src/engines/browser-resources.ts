@@ -3,7 +3,7 @@ import { recipeFiles, resourcePaths } from '../core/resources';
 import type { EditSettings, MediaAsset } from '../core/types';
 let font: Promise<Uint8Array> | undefined;
 export async function browserResources(ff: FFmpeg, edits: EditSettings[], assets?: MediaAsset[]) {
-  const paths = edits.map((_, i) => resourcePaths(`clip${i}`)); const names: string[] = [];
+  const paths = edits.map((edit, i) => resourcePaths(`clip${i}`, edit.subtitles.mode)); const names: string[] = [];
   try {
     if (edits.some(e => e.overlays.text || e.subtitles.mode === 'burn' && e.subtitles.cues.length)) {
       font ??= fetch(new URL('fonts/DejaVuSans.ttf', document.baseURI)).then(async r => { if (!r.ok) throw new Error('Could not load the caption font.'); return new Uint8Array(await r.arrayBuffer()); }).catch(error => { font = undefined; throw error; });

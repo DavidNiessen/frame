@@ -1,0 +1,9 @@
+@font-face { font-family: 'Frame Captions'; src: url('/fonts/DejaVuSans.ttf') format('truetype'); font-display: swap; }
+.caption-preview { position: absolute; inset: 0; z-index: 3; pointer-events: none; container-type: inline-size; }
+.caption-defaults { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; }
+.caption-defaults::after { content: ''; flex: 0 0 8%; }
+.caption-position { width: max-content; max-width: 90%; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.3; font-family: 'Frame Captions', sans-serif; font-weight: 400; font-size: 3.5cqw; background: #0009; color: white; padding: 3px 8px; text-align: center; pointer-events: auto; touch-action: none; user-select: none; cursor: grab; border-radius: 2px; }
+.caption-position.positioned { position: absolute; transform: translate(-50%, -100%); }
+.caption-position:hover:not(:disabled), .caption-position:focus-visible, .caption-position.dragging { outline: 1px solid var(--accent); outline-offset: 3px; }
+.caption-position.dragging { cursor: grabbing; }
+.caption-position:disabled { cursor: default; opacity: 1; }

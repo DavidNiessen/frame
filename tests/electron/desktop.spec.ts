@@ -52,6 +52,15 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Subtitles', { exact: true }).click();
     await page.getByRole('button', { name: 'Add caption', exact: true }).click();
     await page.getByLabel('Subtitle 1 text').fill('Portable caption');
+    await page.evaluate(() => document.fonts.ready);
+    expect(await page.evaluate(() => document.fonts.check('12px "Frame Captions"'))).toBe(true);
+    const caption = page.getByRole('button', { name: 'Move caption 1', exact: true });
+    const captionBox = (await caption.boundingBox())!;
+    await page.mouse.move(captionBox.x + captionBox.width / 2, captionBox.y + captionBox.height / 2); await page.mouse.down();
+    await page.mouse.move(captionBox.x + captionBox.width / 2 + 40, captionBox.y + captionBox.height / 2 - 30, { steps: 8 }); await page.mouse.up();
+    await expect(caption).toHaveClass(/positioned/);
+    await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(caption).not.toHaveClass(/positioned/);
+    await page.getByRole('button', { name: 'Redo edit', exact: true }).click(); await expect(caption).toHaveClass(/positioned/);
     await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Text & watermark', { exact: true }).click();
     await page.getByLabel('Overlay text', { exact: true }).fill('Desktop title');
     await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Color & LUTs', { exact: true }).click();
@@ -72,6 +81,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.locator('.toast')).toContainText('Project saved');
     const project = JSON.parse(await readFile(projectPath, 'utf8'));
     expect(project.sources[0].edit.start).toBe(1);
+    expect(project.sources[0].edit.subtitles.cues[0].position.x).toBeGreaterThan(50);
     expect(JSON.stringify(project)).not.toContain('media://');
     await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 0);
     await page.getByLabel('Choose project file').setInputFiles(projectPath);

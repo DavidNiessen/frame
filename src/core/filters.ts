@@ -11,7 +11,7 @@ export function videoFilters(asset: MediaAsset, edit: EditSettings, resources: R
   const c = edit.crop; const filters = c ? [`crop=${c.width}:${c.height}:${c.x}:${c.y}`] : [];
   filters.push(...geometryFilters(edit), ...colorFilters(edit.color, resources));
   if (edit.speed !== 1) filters.push(`setpts=(PTS-STARTPTS)/${edit.speed}`);
-  if (edit.subtitles.mode === 'burn' && outputCues(edit).length) filters.push(`subtitles=filename=${filterPath(resources.captions)}:fontsdir=${filterPath(resources.fonts)}:force_style='FontName=DejaVu Sans,FontSize=22'`);
+  if (edit.subtitles.mode === 'burn' && outputCues(edit).length) filters.push(`subtitles=filename=${filterPath(resources.captions)}:fontsdir=${filterPath(resources.fonts)}`);
   return [...filters, ...overlayFilters(asset, edit, resources), ...fadeFilters(edit, 'video')];
 }
 export function audioFilters(edit: EditSettings, asset?: MediaAsset): string[] {
