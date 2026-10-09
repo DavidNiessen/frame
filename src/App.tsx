@@ -24,6 +24,7 @@ import { Shortcuts } from './components/Shortcuts';
 import { useConversion } from './hooks/useConversion';
 import { ConversionWorkspace } from './components/conversion/ConversionWorkspace';
 import { droppedFiles } from './engines/folder-drop';
+import { useDesktopLaunches } from './hooks/useDesktopLaunches';
 export default function App() {
   const editor = useEditor(); const { theme, setTheme } = useTheme();
   const [workflow, setWorkflow] = useState<'edit' | 'convert'>(() => { try { return localStorage.getItem('frame:workflow') === 'convert' ? 'convert' : 'edit'; } catch { return 'edit'; } });
@@ -47,6 +48,7 @@ export default function App() {
   function onImport() { if (editor.platform === 'desktop') void editor.importMedia(); else input.current?.click(); }
   function onFolder() { if (editor.platform === 'desktop') void editor.importFolder(); else folderInput.current?.click(); }
   function changeWorkflow(next: 'edit' | 'convert') { mediaRef.current?.pause(); setWorkflow(next); try { localStorage.setItem('frame:workflow', next); } catch { /* Session navigation still works. */ } }
+  useDesktopLaunches(editor, changeWorkflow, conversion.archive.busy || !!projects.pending || batchOpen || mergeOpen);
   async function onDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault(); dragDepth.current = 0; setDragging(false);
     const files = Array.from(event.dataTransfer.files);

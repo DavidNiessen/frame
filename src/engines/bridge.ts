@@ -5,7 +5,11 @@ import type { ProjectDocument } from '../core/project';
 import type { WaveformPoint } from '../core/waveform';
 import type { OutputSettings } from '../core/presets';
 import type { TransitionSettings } from '../core/transitions';
+import type { DesktopLaunchRequest } from '../core/launch';
 export interface DesktopBridge {
+  nextLaunch(): Promise<DesktopLaunchRequest | null>;
+  importLaunch(id: string): Promise<ImportReport>;
+  onLaunchAvailable(callback: () => void): () => void;
   desktopCapabilities(): Promise<DesktopCapabilities>;
   previewProxy(id: string): Promise<PreviewProxy>;
   releaseProxy(id: string): Promise<void>;

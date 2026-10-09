@@ -28,25 +28,27 @@ export function useEditor() {
     if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
     if (engineRef.current) void engineRef.current.then(e => { e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); });
   }, []);
-  async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' = 'files') {
-    if (busyRef.current) return;
+  async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' = 'files', launch?: { id: string; activate: () => void }) {
+    if (busyRef.current) return false;
     busyRef.current = true; setBusy('import'); setNotice(''); setProgress({ ratio: 0, message: 'Reading your media…' });
     try {
+      launch?.activate();
       const e = await engine();
-      const report = mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
+      const report = mode === 'launch' && launch && e.importLaunch ? await e.importLaunch(launch.id, setProgress) : mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
       setImportReport(report);
       const imported = report.assets;
-      if (!imported.length) { if (report.issues.length) setNotice(`${report.issues[0].name}: ${report.issues[0].message}`); else if (report.skipped || report.folderName) setNotice('No supported video or audio files found in this folder.'); return; }
-      setAssets(current => [...current, ...imported]);
+      if (!imported.length) { if (report.issues.length) setNotice(`${report.issues[0].name}: ${report.issues[0].message}`); else if (report.skipped || report.folderName) setNotice('No supported video or audio files found in this folder.'); return true; }
+      setAssets(current => [...current, ...imported.filter(item => !current.some(asset => asset.id === item.id))]);
       setHistories(current => {
         const next = { ...current };
-        for (const item of imported) next[item.id] = { past: [], present: defaultSettings(item), future: [] };
+        for (const item of imported) if (!next[item.id]) next[item.id] = { past: [], present: defaultSettings(item), future: [] };
         return next;
       });
       setSelected(imported[0].id);
       setNotice(`Imported ${imported.length} ${imported.length === 1 ? 'file' : 'files'}.${report.issues.length ? ` ${report.issues.length} could not be read.` : ''}${report.skipped ? ` Skipped ${report.skipped} non-media ${report.skipped === 1 ? 'file' : 'files'}.` : ''}`);
     } catch (error) { setNotice(messageOf(error)); }
     finally { busyRef.current = false; setBusy(null); setProgress(null); }
+    return true;
   }
   const update = useCallback((patch: Partial<EditSettings>) => {
     if (!selected || busyRef.current) return;
@@ -118,6 +120,7 @@ export function useEditor() {
     select: (id: string) => { if (!busyRef.current) setSelected(id); },
     importMedia: (files?: File[], sample = false) => performImport(files, sample ? 'sample' : 'files'),
     importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive,
+    importLaunch: (id: string, activate: () => void) => performImport(undefined, 'launch', { id, activate }),
     settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),
     cancel: () => void engine().then(e => e.cancel()),
     undo: () => travel('undo'), redo: () => travel('redo'),

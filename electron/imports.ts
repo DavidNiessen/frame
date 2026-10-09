@@ -7,17 +7,22 @@ import { supportedExtensions, type ImportReport, type MediaAsset } from '../src/
 import { collectFolderMedia } from './folders';
 import { probeFile } from './native';
 import type { MediaJobs } from './jobs';
+import type { LaunchInbox } from './launch-inbox';
 
-export function registerImports(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void) {
-  async function read(event: IpcMainInvokeEvent, inputs: { path: string; relativePath?: string }[], skipped = 0, folderName?: string): Promise<ImportReport> {
-    if (inputs.length + assets.size > MAX_IMPORT_FILES) throw new Error(`The library supports up to ${MAX_IMPORT_FILES} files. Remove some files or import a smaller folder.`);
+export function registerImports(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void, launches: LaunchInbox) {
+  async function read(event: IpcMainInvokeEvent, inputs: { path: string; relativePath?: string }[], skipped = 0, folderName?: string, reuse = false): Promise<ImportReport> {
+    const key = (path: string) => process.platform === 'win32' ? path.toLowerCase() : path;
+    const existing = new Map(reuse ? [...assets.values()].map(item => [key(item.path), item.asset]) : []);
+    if (inputs.filter(input => !existing.has(key(input.path))).length + assets.size > MAX_IMPORT_FILES) throw new Error(`The library supports up to ${MAX_IMPORT_FILES} files. Remove some files or import a smaller folder.`);
     const report: ImportReport = { assets: [], issues: [], skipped, folderName };
     // Bound native probe concurrency. One corrupt song never discards the rest of an album.
     for (let index = 0; index < inputs.length; index += 4) {
       const results = await Promise.all(inputs.slice(index, index + 4).map(async input => {
         try {
+          const previous = existing.get(key(input.path)); if (previous) return { asset: previous };
           const id = randomUUID();
           const asset: MediaAsset = { ...await probeFile(input.path), id, name: basename(input.path), relativePath: input.relativePath, previewUrl: `media://asset/${id}` };
+          if (event.sender.isDestroyed()) throw new Error('The window was closed.');
           assets.set(id, { path: input.path, asset });
           return { asset };
         } catch (error) { return { issue: { name: input.relativePath || basename(input.path), message: error instanceof Error ? error.message.slice(0, 300) : 'Unable to read this file.' } }; }
@@ -27,6 +32,15 @@ export function registerImports(assets: Map<string, { path: string; asset: Media
     }
     return report;
   }
+  ipcMain.handle('desktop:next-launch', event => { trusted(event); return launches.peek(); });
+  ipcMain.handle('desktop:import-launch', async (event, id: string) => {
+    trusted(event);
+    return jobs.run(async () => {
+      const request = launches.consume(id);
+      if (request.error) throw new Error(request.error);
+      return read(event, request.paths.map(path => ({ path })), 0, undefined, true);
+    });
+  });
   ipcMain.handle('media:import-folder', async event => {
     trusted(event);
     return jobs.run(async () => {

@@ -9,6 +9,7 @@ import type { WaveformPoint } from './waveform';
 import type { MediaClip } from './composition';
 import type { OutputSettings } from './presets';
 import type { TransitionSettings } from './transitions';
+import supportedExtensions from './media-extensions.json';
 export type MediaKind = 'video' | 'audio';
 export type FormatId = 'mp4' | 'webm' | 'mov' | 'mkv' | 'gif' | 'mp3' | 'wav' | 'flac' | 'ogg' | 'm4a';
 export interface MediaAsset {
@@ -65,6 +66,7 @@ export interface MediaEngine {
   releaseProxy?(id: string): Promise<void>;
   importFiles(files?: File[], onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importFolder?(onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
+  importLaunch?(id: string, onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importSample(): Promise<ImportReport>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
   merge(clips: MediaClip[], output: OutputSettings, onProgress: (p: ExportProgress) => void, transition?: TransitionSettings): Promise<ExportResult | null>;
@@ -79,7 +81,7 @@ export interface MediaEngine {
   cancel(): void;
   release(asset: MediaAsset): Promise<void>;
 }
-export const supportedExtensions = ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', 'gif', 'mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'opus', 'aiff'];
+export { supportedExtensions };
 export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return { color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,

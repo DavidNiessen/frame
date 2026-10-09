@@ -15,6 +15,8 @@ import { registerAnalysis } from './analysis';
 import { createBatchFolders } from './batch';
 import { registerImports } from './imports';
 import { registerProjectSaving } from './projects';
+import { LaunchInbox } from './launch-inbox';
+import { launchArguments } from './launch-arguments';
 import { buildExportArgs, outputName, validateEdit } from '../src/core/export-plan';
 import { type EditSettings, type MediaAsset } from '../src/core/types';
 
@@ -23,6 +25,20 @@ const assets = new Map<string, { path: string; asset: MediaAsset }>();
 let clearProxies = () => {};
 let mainWindow: BrowserWindow | null = null;
 const jobs = new MediaJobs();
+const ownsInstance = app.requestSingleInstanceLock();
+if (!ownsInstance) app.quit();
+const launches = new LaunchInbox(() => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:launch-available'); });
+function focusWindow() {
+  if (!app.isReady()) return;
+  if (!mainWindow) createWindow();
+  if (mainWindow!.isMinimized()) mainWindow!.restore();
+  mainWindow!.show(); mainWindow!.focus();
+}
+if (ownsInstance) {
+  const initial = launchArguments(process.argv, process.cwd()); if (initial) launches.enqueue(initial);
+  app.on('second-instance', (_event, argv, cwd) => { const request = launchArguments(argv, cwd); if (request) launches.enqueue(request); focusWindow(); });
+  app.on('open-file', (event, path) => { event.preventDefault(); const request = launchArguments([process.execPath, '--', path], process.cwd()); if (request) launches.enqueue(request); focusWindow(); });
+}
 const devUrl = !app.isPackaged ? process.env.FRAME_DEV_URL : undefined;
 function trusted(event: IpcMainInvokeEvent | Electron.IpcMainEvent) {
   if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('Untrusted request.');
@@ -44,6 +60,7 @@ function createWindow() {
   mainWindow.on('closed', () => { jobs.cancel(); clearProxies(); assets.clear(); mainWindow = null; });
 }
 app.whenReady().then(() => {
+  if (!ownsInstance) return;
   registerAcceleration(jobs, trusted);
   const proxies = createProxies(assets, jobs, trusted); clearProxies = proxies.clear;
   const batchFolders = createBatchFolders(() => mainWindow!, trusted);
@@ -53,7 +70,7 @@ app.whenReady().then(() => {
     if (!path) return new Response('Not found', { status: 404 });
     return mediaResponse(path, request);
   });
-  registerImports(assets, jobs, () => mainWindow!, trusted);
+  registerImports(assets, jobs, () => mainWindow!, trusted, launches);
   registerAnalysis(assets, jobs, trusted);
   registerMerge(assets, jobs, () => mainWindow!, trusted);
   ipcMain.handle('media:release', async (event, id: string) => { trusted(event); if (!jobs.busy) { assets.delete(id); await proxies.releaseAsset(id); } });

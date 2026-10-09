@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  nextLaunch: () => ipcRenderer.invoke('desktop:next-launch'),
+  importLaunch: id => ipcRenderer.invoke('desktop:import-launch', id),
+  onLaunchAvailable: callback => { const listener = () => callback(); ipcRenderer.on('desktop:launch-available', listener); return () => ipcRenderer.removeListener('desktop:launch-available', listener); },
   desktopCapabilities: () => ipcRenderer.invoke('media:capabilities'),
   previewProxy: id => ipcRenderer.invoke('media:proxy', id),
   releaseProxy: id => ipcRenderer.invoke('media:release-proxy', id),

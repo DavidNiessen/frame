@@ -4,6 +4,7 @@ export function createDesktopEngine(): MediaEngine {
   const bridge = window.frameDesktop!;
   return {
     platform: 'desktop',
+    async importLaunch(id, onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importLaunch(id); } finally { remove(); } },
     async desktopCapabilities(onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.desktopCapabilities(); } finally { remove(); } },
     async previewProxy(asset, onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.previewProxy(asset.id); } finally { remove(); } },
     releaseProxy: id => bridge.releaseProxy(id),
