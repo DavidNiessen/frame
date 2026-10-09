@@ -16,7 +16,10 @@ async function dragDivider(page: Page, name: string, x: number, y: number) {
   const divider = page.getByRole('separator', { name, exact: true });
   const bounds = (await divider.boundingBox())!;
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await page.mouse.down(); await page.mouse.move(bounds.x + bounds.width / 2 + x, bounds.y + bounds.height / 2 + y, { steps: 8 }); await page.mouse.up();
+  await page.mouse.down();
+  await expect(divider).toHaveCSS('outline-style', 'none');
+  await expect(divider.locator('span')).toHaveCSS('box-shadow', 'none');
+  await page.mouse.move(bounds.x + bounds.width / 2 + x, bounds.y + bounds.height / 2 + y, { steps: 8 }); await page.mouse.up();
 }
 test('bounds a crowded timeline without shrinking the preview and scrolls zoomed tracks', async ({ page }) => {
   await sample(page);
@@ -54,6 +57,7 @@ test('resizes panels with pointer and keyboard, cancels gestures, remembers size
   await dragDivider(page, 'Resize timeline', 0, -70);
   await expect(timeline).toHaveAttribute('aria-valuenow', '318');
   await timeline.press('Shift+ArrowUp'); await expect(timeline).toHaveAttribute('aria-valuenow', '358');
+  expect(await timeline.locator('span').evaluate(node => getComputedStyle(node).boxShadow)).not.toBe('none');
   await timeline.press('End');
   expect((await page.locator('.preview-panel').boundingBox())!.height).toBeGreaterThanOrEqual(360);
   await timeline.dblclick(); await expect(timeline).toHaveAttribute('aria-valuenow', '248');

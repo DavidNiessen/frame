@@ -1,5 +1,4 @@
 .empty-stage { position: relative; min-height: 650px; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 28%, color-mix(in srgb, var(--accent-dim) 45%, transparent), transparent 55%); padding: 36px 20px; }
-.empty-stage::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 40%; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
 .empty-stage h1 { font-size: clamp(28px, 3vw, 43px); letter-spacing: -1.8px; line-height: 1.15; font-weight: 600; margin: 17px 0 16px; }
 .empty-stage h1 > span { color: var(--muted); }
 .empty-stage p { font-size: 11px; line-height: 1.9; color: var(--muted); }
