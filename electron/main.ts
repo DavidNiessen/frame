@@ -10,6 +10,7 @@ import { configureMiniWindow } from './mini-window';
 import { loadWindow, prepareWindow } from './window-security';
 import { configureWindowControls } from './window-controls';
 import { editorBounds } from './editor-chrome';
+import { desktopChromeSpace } from '../src/core/window-controls';
 
 type WindowKind = 'editor' | 'mini';
 protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
@@ -40,7 +41,7 @@ function openWindow(kind: WindowKind) {
     const window = new BrowserWindow({
       ...(mini ? { width: 460, height: 740 } : editorBounds(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea)),
       ...(mini ? { frame: false, transparent: true, backgroundColor: '#00000000', resizable: false, maximizable: false, minimizable: false, fullscreenable: false, alwaysOnTop: true, skipTaskbar: true, hasShadow: true }
-        : { frame: false, minWidth: 760, minHeight: 600, ...(process.platform === 'darwin' ? { transparent: true, backgroundColor: '#00000000' } : { roundedCorners: false, backgroundColor: '#0b0c12' }) }),
+        : { frame: false, transparent: true, backgroundColor: '#00000000', minWidth: 760, minHeight: 600 + desktopChromeSpace }),
       show: false, title: mini ? 'Frame — Quick conversion' : 'Frame',
       icon: app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(__dirname, '../build/icon.png'),
       webPreferences: { preload: join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, additionalArguments: mini ? ['--frame-mini-conversion'] : [] },

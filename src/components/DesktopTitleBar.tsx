@@ -37,10 +37,10 @@ export function DesktopTitleBar({ state }: { state: WindowState }) {
         keyboardFocus.current = true;
         if (!bar.current?.contains(document.activeElement)) previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         pendingFocus.current = true; setVisible(true); clear();
-        if (state.chromeExpanded) { pendingFocus.current = false; first.current?.focus(); }
+        if (state.chromeExpanded) { pendingFocus.current = false; first.current?.focus({ preventScroll: true }); }
       } else if (event.key === 'Escape' && bar.current?.contains(document.activeElement)) {
         event.preventDefault(); event.stopImmediatePropagation();
-        (document.activeElement as HTMLElement).blur(); previousFocus.current?.focus(); setVisible(false);
+        (document.activeElement as HTMLElement).blur(); previousFocus.current?.focus({ preventScroll: true }); setVisible(false);
       }
     };
     window.addEventListener('pointermove', move); window.addEventListener('pointerout', leave);
@@ -55,10 +55,7 @@ export function DesktopTitleBar({ state }: { state: WindowState }) {
     };
   }, [bridge, state.chromeInset, state.chromeExpanded]);
   useEffect(() => {
-    const update = () => { void bridge.setWindowChrome(visible).catch(() => setError('Could not resize the title bar. Please try again.')); };
-    if (visible) { update(); return; }
-    const timer = setTimeout(update, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 280);
-    return () => clearTimeout(timer);
+    void bridge.setWindowChrome(visible).catch(() => setError('Could not update window controls. Please try again.'));
   }, [bridge, visible]);
   const act = (action: WindowAction) => { setError(''); void bridge.windowAction(action).catch(() => { setError('Window action failed. Please try again.'); setVisible(true); }); };
   const restore = state.maximized || state.fullscreen;
@@ -66,7 +63,7 @@ export function DesktopTitleBar({ state }: { state: WindowState }) {
   useEffect(() => {
     if (!revealed || !pendingFocus.current) return;
     pendingFocus.current = false;
-    const frame = requestAnimationFrame(() => first.current?.focus());
+    const frame = requestAnimationFrame(() => first.current?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(frame);
   }, [revealed]);
   return <div className="desktop-chrome" data-visible={revealed} data-focused={state.focused}>

@@ -11,6 +11,7 @@ test('reveals frameless controls without moving panels, supports keyboard access
     const page = await app.firstWindow(), native = await app.browserWindow(page);
     await page.emulateMedia({ colorScheme: 'dark' });
     const bar = page.getByRole('toolbar', { name: 'Window controls' });
+    const show = async () => { const box = (await page.locator('.desktop-chrome-trigger').boundingBox())!; await page.mouse.move(100, box.y + 3); };
     await expect(page.locator('.desktop-chrome')).toHaveAttribute('data-visible', 'false');
     await expect(bar).toBeHidden();
     expect(await native.evaluate(window => window.getContentBounds())).toEqual(await native.evaluate(window => window.getBounds()));
@@ -20,31 +21,34 @@ test('reveals frameless controls without moving panels, supports keyboard access
       return { x: x + screenX, y: y + screenY, width, height };
     });
     const before = await contentBounds(), initialNative = await native.evaluate(window => window.getBounds());
-    await page.mouse.move(100, 3);
+    await show();
     await expect(bar).toBeVisible();
     const frames = await page.locator('.empty-stage').evaluate(async node => {
       const boxes = [];
-      for (let index = 0; index < 8; index++) { await new Promise(requestAnimationFrame); const { x, y, width, height } = node.getBoundingClientRect(); boxes.push({ x: x + screenX, y: y + screenY, width, height }); }
+      for (let index = 0; index < 8; index++) { await new Promise(requestAnimationFrame); const { x, y, width, height } = node.getBoundingClientRect(); boxes.push({ content: { x: x + screenX, y: y + screenY, width, height }, chromeTop: document.querySelector('.desktop-window-frame')!.getBoundingClientRect().top }); }
       return boxes;
     });
-    for (const frame of frames) expect(frame).toEqual(before);
-    await page.locator('.desktop-titlebar').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
+    for (const frame of frames) expect(frame.content).toEqual(before);
+    expect(frames.some(frame => frame.chromeTop > 0 && frame.chromeTop < 56)).toBe(true);
+    for (let index = 1; index < frames.length; index++) expect(frames[index].chromeTop).toBeLessThanOrEqual(frames[index - 1].chromeTop);
+    await page.locator('.desktop-window-frame').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
     expect(await contentBounds()).toEqual(before);
     const raisedNative = await native.evaluate(window => window.getBounds());
-    expect(raisedNative.y).toBe(initialNative.y - 56); expect(raisedNative.height).toBe(initialNative.height + 56);
-    const chrome = (await bar.boundingBox())!, frame = (await page.locator('.desktop-window-frame').boundingBox())!;
-    expect(chrome.x).toBe(frame.x); expect(chrome.width).toBe(frame.width); expect(chrome.y + chrome.height).toBeLessThan(frame.y);
-    await expect(bar).toHaveCSS('background-color', await page.locator('.app-header').evaluate(node => getComputedStyle(node).backgroundColor));
-    await expect(bar).toHaveCSS('border-color', await page.locator('.app-header').evaluate(node => getComputedStyle(node).borderColor));
+    expect(raisedNative).toEqual(initialNative);
+    const chrome = (await bar.boundingBox())!, frame = (await page.locator('.desktop-window-frame').boundingBox())!, content = (await page.locator('.desktop-window-content').boundingBox())!;
+    expect(chrome.x).toBe(frame.x + 1); expect(chrome.width).toBe(frame.width - 2); expect(chrome.y + chrome.height).toBeCloseTo(content.y, 0);
+    await expect(bar).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(bar).toHaveCSS('border-width', '0px');
     await expect(page.locator('.desktop-window-frame')).toHaveCSS('border-radius', '14px');
     await expect(bar.locator('img, .brand')).toHaveCount(0);
     expect(await bar.innerText()).toBe('');
     await page.screenshot({ path: 'test-results/desktop/custom-titlebar.png' });
     // Re-entering during the hide delay must not prevent the next automatic hide.
-    await page.mouse.move(100, 100); await page.mouse.move(100, 3);
+    await page.mouse.move(100, 100); await show();
     await expect(bar).toBeVisible();
     await page.mouse.move(100, 300);
     await expect(bar).toBeHidden();
+    await page.locator('.desktop-window-frame').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
     await expect.poll(() => native.evaluate(window => window.getBounds())).toEqual(initialNative);
     expect(await contentBounds()).toEqual(before);
     await page.getByRole('button', { name: 'Try a sample', exact: true }).focus();
@@ -65,12 +69,12 @@ test('reveals frameless controls without moving panels, supports keyboard access
     });
     // Reject arbitrary actions rather than dispatching arbitrary BrowserWindow methods.
     expect(await page.evaluate(async () => { try { await window.frameDesktop!.windowAction('destroy' as 'close'); return false; } catch { return true; } })).toBe(true);
-    await page.mouse.move(100, 3);
+    await show();
     await page.getByRole('button', { name: 'Minimize window' }).click();
     await expect.poll(() => app.evaluate(() => (globalThis as typeof globalThis & { chromeActions: string[] }).chromeActions.at(-1))).toBe('minimize');
     if (process.platform !== 'linux') await expect.poll(() => native.evaluate(window => window.isMinimized())).toBe(true);
     await native.evaluate(window => { window.restore(); window.show(); window.focus(); });
-    await page.mouse.move(100, 300); await page.mouse.move(100, 3);
+    await page.mouse.move(100, 300); await show();
     await page.getByRole('button', { name: 'Maximize window' }).click();
     await expect.poll(() => app.evaluate(() => (globalThis as typeof globalThis & { chromeActions: string[] }).chromeActions.at(-1))).toBe('maximize');
     if (process.platform !== 'linux') {
@@ -81,7 +85,7 @@ test('reveals frameless controls without moving panels, supports keyboard access
     }
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.mouse.move(100, 300); await expect(bar).toBeHidden();
-    await page.mouse.move(100, 3); await expect(bar).toBeVisible();
+    await show(); await expect(bar).toBeVisible();
     await expect(page.locator('.desktop-titlebar')).toHaveCSS('transition-duration', '0s');
     const closed = page.waitForEvent('close');
     await page.getByRole('button', { name: 'Close window' }).click().catch(error => { if (!page.isClosed()) throw error; });
