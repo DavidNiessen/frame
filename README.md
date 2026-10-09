@@ -215,3 +215,5 @@ GIF delivery: Advanced export/conversion options include play once, infinite loo
 Conversion naming: Advanced options accept a filename pattern with `{name}`, `{index}` (001-based queue numbering), `{format}`, and `{folder}` (the nearest source folder). A live preview shows the resulting path; the extension is added automatically. Names are made portable for Windows/macOS/Linux, folder structure remains optional, existing-file collisions are numbered, and retries keep their queue numbers. The pattern is remembered on this device; Clear results starts a new numbering sequence.
 
 Source information is available from the preview header and each conversion row. It shows the original codecs, frame rate, dimensions, sample rate, channels, artwork and common embedded metadata without changing the file.
+
+Use the preview transport or comma/period keys to step video frames (audio moves one output second). Clicking the timecode opens precise sequence navigation with seconds, m:ss or h:mm:ss input. Stepping pauses playback and follows reordered clips across cuts.

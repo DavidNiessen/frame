@@ -10,7 +10,7 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Timeline markers with names and navigation | Bookmark important moments and review points | Planned |
 | Timeline snapping | Make precise cuts and align timed elements | Planned |
 | Loop sequence or selected clip | Review short edits without repeatedly restarting | Planned |
-| Frame stepping and precise time navigation | Inspect cut points with keyboard or transport controls | Planned |
+| Frame stepping and precise time navigation | Inspect cut points with keyboard or transport controls | Implemented |
 | Reusable effect settings | Copy effects between clips and save favorite recipes | Planned |
 | Caption find and replace | Correct repeated words across caption sets | Planned |
 | Source media information | Inspect codecs, frame rate and audio properties | Implemented |

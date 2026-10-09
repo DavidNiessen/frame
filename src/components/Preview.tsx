@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type RefObject } from 'react';
-import { AudioLines, Maximize, Minimize, Pause, Play, SkipBack, Volume2 } from 'lucide-react';
+import { AudioLines, Maximize, Minimize, Pause, Play, SkipBack, StepBack, StepForward, Volume2 } from 'lucide-react';
 import type { EditSettings, MediaAsset } from '../core/types';
 import { clipAtSource, clipRecipe } from '../core/clips';
 import { outputTimeAtSource, sourceTimeAtOutput } from '../core/fades';
@@ -11,6 +11,8 @@ import { OverlayPreview } from './OverlayPreview';
 import { CropOverlay } from './CropOverlay';
 import { CaptionPreview } from './CaptionPreview';
 import { MediaInfo } from './MediaInfo';
+import { GoToTime } from './GoToTime';
+import { preciseTimecode, skipSeconds, stepFrame } from '../core/playhead';
 export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent, update, disabled, expanded, toggleExpanded, panelRef }: {
   expanded: boolean; toggleExpanded: () => void; panelRef: RefObject<HTMLElement | null>;
   previewUrl?: string; asset: MediaAsset; edit: EditSettings; mediaRef: RefObject<HTMLMediaElement | null>;
@@ -27,6 +29,8 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
   useEffect(() => { setFailed(false); setPlaying(false); setCurrent(sequenceStart); }, [asset.id, sourceUrl]); // Source changes reset playback.
   usePreviewEffects(mediaRef, edit, playing, current, asset.id, setCurrent);
   useEffect(() => { if (disabled) mediaRef.current?.pause(); }, [disabled, mediaRef]);
+  function pauseSeek(source: number) { mediaRef.current?.pause(); if (mediaRef.current) mediaRef.current.currentTime = source; setCurrent(source); }
+  function step(direction: -1 | 1) { pauseSeek(asset.kind === 'video' ? stepFrame(edit, current, asset.frameRate ?? 30, direction) : skipSeconds(edit, current, direction)); }
   function toggle() {
     const media = mediaRef.current; if (!media || failed) return;
     if (!media.paused) media.pause();
@@ -67,6 +71,6 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
       <span className="preview-label">{edit.crop ? 'Drag the crop or its corners' : edit.subtitles.mode === 'burn' && edit.subtitles.cues.some(c => current >= c.start && current < c.end) ? 'Drag captions to position · arrow keys to nudge' : gif ? 'GIF source loops · edits apply on export' : edit.videoFadeIn || edit.videoFadeOut ? 'Fade preview • source frame' : previewUrl ? 'Lightweight proxy preview' : 'Original preview'}</span>
     </div>
     {expanded && <div className="fullscreen-scrubber"><input type="range" aria-label="Fullscreen playback position" aria-valuetext={`${outputTimeAtSource(edit, current).toFixed(2)} of ${editedDuration(edit).toFixed(2)} seconds`} min={0} max={editedDuration(edit)} step={.01} value={outputTimeAtSource(edit, current)} disabled={disabled || gif || failed} onChange={event => { const source = sourceTimeAtOutput(edit, Number(event.target.value)); if (mediaRef.current) mediaRef.current.currentTime = source; setCurrent(source); }} /></div>}
-    <div className="transport"><div className="transport-left"><button className="icon-button" aria-label="Back to trim start" disabled={disabled || gif || failed} onClick={() => { if (mediaRef.current) mediaRef.current.currentTime = sequenceStart; setCurrent(sequenceStart); }}><SkipBack size={17} /></button><button className="play-button" aria-label={playing ? 'Pause' : 'Play'} disabled={disabled || gif || failed} onClick={toggle}>{playing ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}</button><span className="timecode">{time(edit.clips ? outputTimeAtSource(edit, current) : current)} <i>/ {time(edit.clips ? editedDuration(edit) : asset.duration)}</i></span></div><div className="transport-right"><span className="preview-volume"><Volume2 size={15} />{Math.round(visual.volume * 100)}%{visual.volume > 1 ? ' on export' : ''}</span><button data-preview-expand className="icon-button" aria-label={expanded ? 'Exit fullscreen preview' : 'Fullscreen preview'} aria-pressed={expanded} title={expanded ? 'Restore editor · Escape' : 'Expand preview to fill the workspace'} disabled={asset.kind !== 'video'} onClick={toggleExpanded}>{expanded ? <Minimize size={16} /> : <Maximize size={16} />}</button></div></div>
+    <div className="transport"><div className="transport-left"><button className="icon-button" aria-label="Back to trim start" disabled={disabled || gif || failed} onClick={() => { if (mediaRef.current) mediaRef.current.currentTime = sequenceStart; setCurrent(sequenceStart); }}><SkipBack size={17} /></button><button className="play-button" aria-label={playing ? 'Pause' : 'Play'} disabled={disabled || gif || failed} onClick={toggle}>{playing ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}</button><button className="icon-button frame-step" aria-label={asset.kind === 'video' ? 'Previous frame' : 'Back one second'} title={asset.kind === 'video' ? 'Previous frame · ,' : 'Back one second · ,'} disabled={disabled || gif || failed} onClick={() => step(-1)}><StepBack size={15} /></button><button className="icon-button frame-step" aria-label={asset.kind === 'video' ? 'Next frame' : 'Forward one second'} title={asset.kind === 'video' ? `Next frame · . · ${asset.frameRate ? Number(asset.frameRate.toFixed(3)) : 'estimated 30'} fps` : 'Forward one second · .'} disabled={disabled || gif || failed} onClick={() => step(1)}><StepForward size={15} /></button><GoToTime current={outputTimeAtSource(edit, current)} duration={editedDuration(edit)} disabled={disabled || gif || failed} seek={output => pauseSeek(sourceTimeAtOutput(edit, output))}>{preciseTimecode(outputTimeAtSource(edit, current))} <i>/ {time(editedDuration(edit))}</i></GoToTime></div><div className="transport-right"><span className="preview-volume"><Volume2 size={15} />{Math.round(visual.volume * 100)}%{visual.volume > 1 ? ' on export' : ''}</span><button data-preview-expand className="icon-button" aria-label={expanded ? 'Exit fullscreen preview' : 'Fullscreen preview'} aria-pressed={expanded} title={expanded ? 'Restore editor · Escape' : 'Expand preview to fill the workspace'} disabled={asset.kind !== 'video'} onClick={toggleExpanded}>{expanded ? <Minimize size={16} /> : <Maximize size={16} />}</button></div></div>
   </section>;
 }
