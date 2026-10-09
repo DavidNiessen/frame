@@ -7,6 +7,7 @@ import type { Editor } from '../hooks/useEditor';
 import { DesktopControls } from './DesktopControls';
 import type { Proxies } from '../hooks/useProxies';
 import { EffectLibrary } from './EffectLibrary';
+import { EffectRecipes } from './EffectRecipes';
 import { EffectScope } from './EffectScope';
 import { EditControls } from './EditControls';
 import { ExportControls } from './ExportControls';
@@ -18,7 +19,7 @@ export function Inspector({ editor, current, seek, proxies }: { proxies: Proxies
       <EffectScope editor={editor} seek={seek} />
       <InspectorTabs selected={tab} select={setTab}>{ {
         edit: <fieldset disabled={!!busy}><EditControls asset={asset} edit={editor.scopedEdit!} update={editor.updateClip} current={current} /><AppliedEffects asset={asset} edit={edit} open={() => setTab('effects')} /></fieldset>,
-        effects: <fieldset disabled={!!busy}><EffectLibrary editor={editor} current={current} seek={seek} /></fieldset>,
+        effects: <fieldset disabled={!!busy}><EffectRecipes editor={editor} /><EffectLibrary editor={editor} current={current} seek={seek} /></fieldset>,
         export: <fieldset disabled={!!busy}><ExportControls asset={asset} edit={edit} update={editor.update} /><DesktopControls editor={editor} proxies={proxies} /></fieldset>,
       } }</InspectorTabs>
       <ExportFooter editor={editor} />

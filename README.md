@@ -223,3 +223,5 @@ Add named, colored timeline markers with M or the bookmark button. Drag markers 
 Timeline snapping aligns dragged trim handles, caption and fade boundaries, markers and the scrubber with nearby landmarks; video source edits also snap to frames. Use the magnet toggle to disable snapping, or hold Alt during a drag for free placement. The toggle is remembered on this device.
 
 The repeat control in the preview loops the entire retained sequence or the selected clip. Looping is a review preference and is reset when changing source files. Export timing continues to use the edited sequence.
+
+In Effects → Recipes & copy / paste, copy clip effects to another clip or source, or save up to 20 named recipes on this device. Recipes apply in the selected effect scope, scale crops to new source dimensions and clamp fades to the receiving duration. Audio sources receive the compatible audio and timing effects.
