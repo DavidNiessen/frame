@@ -8,7 +8,7 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | GIF repeat, palette and dithering options | Control animation behavior and file size | Implemented |
 | Bulk filename templates | Organize converted collections with predictable names | Implemented |
 | Timeline markers with names and navigation | Bookmark important moments and review points | Implemented |
-| Timeline snapping | Make precise cuts and align timed elements | Planned |
+| Timeline snapping | Make precise cuts and align timed elements | Implemented |
 | Loop sequence or selected clip | Review short edits without repeatedly restarting | Planned |
 | Frame stepping and precise time navigation | Inspect cut points with keyboard or transport controls | Implemented |
 | Reusable effect settings | Copy effects between clips and save favorite recipes | Planned |

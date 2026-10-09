@@ -45,7 +45,7 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
         const sequence = !!edit.clips, range = sequence ? key.endsWith('In') ? { start: 0, end: edit[key] } : { start: total - edit[key], end: total } : fadeRange(edit, key);
         return <div className="timeline-lane effect-lane" key={key}>
           <TimelineRange selectOnPointer range={range} limits={sequence ? { start: 0, end: total } : { start: retained[0]?.start ?? edit.start, end: retained.at(-1)?.end ?? edit.end }}
-            duration={total} label={fadeLabel(key)} text={`${fadeLabel(key)} · ${edit[key].toFixed(2)}s`} className={`fade-bar ${key.endsWith('In') ? 'fade-in' : 'fade-out'}`} minimum={.01}
+            duration={total} snapSpace={sequence ? 'output' : 'source'} label={fadeLabel(key)} text={`${fadeLabel(key)} · ${edit[key].toFixed(2)}s`} className={`fade-bar ${key.endsWith('In') ? 'fade-in' : 'fade-out'}`} minimum={.01}
             edges={[key.endsWith('In') ? 'end' : 'start']} disabled={disabled} onSelect={() => seek(retained[0]?.start ?? edit.start)}
             onChange={range => update(sequence ? { [key]: key.endsWith('In') ? range.end : total - range.start } : resizeFade(edit, key, range))} />
           <span className="effect-lane-label">{fadeLabel(key)} · {edit[key].toFixed(2)}s</span>
@@ -54,7 +54,7 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
       {clipEffects.map(({ clip, start, speed }) => fadeKeys(asset).filter(key => (clip.effects[key] ?? 0) > 0).map(key => {
         const recipe = clipRecipe(edit, clip), localDuration = editedDuration(recipe), value = recipe[key];
         const range = key.endsWith('In') ? { start, end: start + value } : { start: start + localDuration - value, end: start + localDuration };
-        return <div className="timeline-lane effect-lane" key={`${clip.id}-${key}`}><TimelineRange selectOnPointer range={range} limits={{ start, end: start + localDuration }} duration={total} label={`${fadeLabel(key)} clip ${positions.findIndex(p => p.clip.id === clip.id) + 1}`} text={`${fadeLabel(key)} · clip`} edges={[key.endsWith('In') ? 'end' : 'start']} minimum={.01} disabled={disabled} onSelect={() => { selectClip(clip.id); seek(clip.start); }} onChange={range => update({ clips: edit.clips!.map(item => item.id === clip.id ? { ...item, effects: { ...item.effects, [key]: key.endsWith('In') ? range.end - start : start + localDuration - range.start } } : item) })} /></div>;
+        return <div className="timeline-lane effect-lane" key={`${clip.id}-${key}`}><TimelineRange selectOnPointer range={range} limits={{ start, end: start + localDuration }} duration={total} snapSpace="output" label={`${fadeLabel(key)} clip ${positions.findIndex(p => p.clip.id === clip.id) + 1}`} text={`${fadeLabel(key)} · clip`} edges={[key.endsWith('In') ? 'end' : 'start']} minimum={.01} disabled={disabled} onSelect={() => { selectClip(clip.id); seek(clip.start); }} onChange={range => update({ clips: edit.clips!.map(item => item.id === clip.id ? { ...item, effects: { ...item.effects, [key]: key.endsWith('In') ? range.end - start : start + localDuration - range.start } } : item) })} /></div>;
       }))}
     </details>}
   </div>;

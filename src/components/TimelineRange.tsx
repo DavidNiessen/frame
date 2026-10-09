@@ -1,30 +1,37 @@
-import { useRef, useState, type PointerEvent, type ReactNode, type ButtonHTMLAttributes } from 'react';
+import { useContext, useRef, useState, type PointerEvent, type ReactNode, type ButtonHTMLAttributes } from 'react';
+import { TimelineSnapContext } from './TimelineSnapContext';
+import { snapTime, type SnapSpace } from '../core/snapping';
 import type { TimeRange } from '../core/types';
 import type { Boundary } from '../core/timeline-edit';
 import { time } from '../core/format';
 interface Props {
-  selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
+  snapSpace?: SnapSpace; selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
   disabled: boolean; onChange: (range: TimeRange) => void; onSelect: () => void;
   startLabel?: string; endLabel?: string; edges?: Boundary[]; minimum?: number;
   displayRange?: TimeRange; displaySpeed?: number; bodyProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   renderContent?: (range: TimeRange) => ReactNode;
 }
 export function TimelineRange({ range, limits, duration, label, text, selectOnPointer = false, className = '', disabled, onChange, onSelect,
-  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps }: Props) {
+  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source' }: Props) {
+  const snap = useContext(TimelineSnapContext);
+  const [snapped, setSnapped] = useState(false);
   const [draft, setDraft] = useState<TimeRange | null>(null);
   const gesture = useRef<{ pointer: number; edge: Boundary; range: TimeRange; origin: number; width: number } | null>(null);
   const pending = useRef(range);
   const shown = draft ?? range;
   const positioned = displayRange ? { start: displayRange.start + (shown.start - range.start) / displaySpeed, end: displayRange.end + (shown.end - range.end) / displaySpeed } : shown;
   function constrain(edge: Boundary, value: number, base: TimeRange): TimeRange {
-    const next = Math.round(value * 100) / 100;
+    const next = value;
     return edge === 'start' ? { ...base, start: Math.max(limits.start, Math.min(base.end - minimum, next)) }
       : { ...base, end: Math.min(limits.end, Math.max(base.start + minimum, next)) };
   }
   function move(event: PointerEvent<HTMLButtonElement>) {
     const g = gesture.current;
     if (!g || g.pointer !== event.pointerId || disabled) return;
-    pending.current = constrain(g.edge, g.range[g.edge] + (event.clientX - g.origin) / g.width * duration * displaySpeed, g.range);
+    const raw = g.range[g.edge] + (event.clientX - g.origin) / g.width * duration * displaySpeed;
+    const value = snap.enabled && !event.altKey ? snapTime(raw, snap.targets[snapSpace], 8 / g.width * duration * displaySpeed, snapSpace === 'source' ? snap.frameRate : undefined) : Math.round(raw * 100) / 100;
+    setSnapped(Math.abs(value - raw) > .000001 && snap.enabled && !event.altKey);
+    pending.current = constrain(g.edge, value, g.range);
     setDraft(pending.current);
   }
   function cancel() { gesture.current = null; setDraft(null); }
@@ -57,8 +64,8 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
           : event.key === 'ArrowLeft' ? shown[edge] - step : event.key === 'ArrowRight' ? shown[edge] + step
           : event.key === 'PageDown' ? shown[edge] - 1 : event.key === 'PageUp' ? shown[edge] + 1 : null;
         if (next === null) return;
-        event.preventDefault(); event.stopPropagation(); onChange(constrain(edge, next, range));
+        event.preventDefault(); event.stopPropagation(); onChange(constrain(edge, Math.round(next * 100) / 100, range));
       }}><span aria-hidden="true" /></button>)}
-    {draft && <output className="range-readout">{shown.start.toFixed(2)}–{shown.end.toFixed(2)}s</output>}
+    {draft && <output className="range-readout">{snapped ? 'Snapped · ' : ''}{shown.start.toFixed(2)}–{shown.end.toFixed(2)}s</output>}
   </div>;
 }

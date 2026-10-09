@@ -2,13 +2,15 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { TimelineViewTools } from './layout/TimelineViewTools';
 import { clipPositions, editClips, splitClip } from '../core/clips';
 import { outputTimeAtSource, sourceTimeAtOutput } from '../core/fades';
+import { TimelineSnapContext } from './TimelineSnapContext';
+import { snapTargets, snapTime } from '../core/snapping';
 import { TimelineMarkers } from './TimelineMarkers';
 import { TimelineClip } from './TimelineClip';
 import { TimelineNavigator, type TrackFilter } from './layout/TimelineNavigator';
 import { TimedLanes } from './TimedLanes';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import type { WaveformPoint } from '../core/waveform';
-import { Scissors, Trash2, Undo2, Redo2, CornerDownLeft } from 'lucide-react';
+import { Magnet, Scissors, Trash2, Undo2, Redo2, CornerDownLeft } from 'lucide-react';
 import { editedDuration, timelineSections } from '../core/timeline';
 import { time } from '../core/format';
 import type { EditSettings, MediaAsset } from '../core/types';
@@ -21,6 +23,8 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
   update: (patch: Partial<EditSettings>) => void; undo: () => void; redo: () => void;
   canUndo: boolean; canRedo: boolean; disabled: boolean; notify: (message: string) => void;
 }) {
+  const [snapping, setSnapping] = useState(() => { try { return localStorage.getItem('frame:timeline-snapping') !== 'false'; } catch { return true; } });
+  const targets = snapTargets(edit, asset.duration, current), scrubTargets = snapTargets(edit, asset.duration);
   const slider = useRef<HTMLInputElement>(null);
   const scroll = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<TrackFilter>('all'), [compact, setCompact] = useState(true), [fraction, setFraction] = useState(0), [scrollLeft, setScrollLeft] = useState(0);
@@ -41,7 +45,8 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
     const track = event.currentTarget;
     const bounds = track.getBoundingClientRect();
     if (disabled || bounds.width === 0) return;
-    const value = Math.max(0, Math.min(total, (event.clientX - bounds.left) / bounds.width * total));
+    const raw = Math.max(0, Math.min(total, (event.clientX - bounds.left) / bounds.width * total));
+    const value = snapping && !event.altKey ? snapTime(raw, scrubTargets[sequence ? 'output' : 'source'], 8 / bounds.width * total, sequence ? undefined : asset.frameRate) : raw;
     seek(sequence ? sourceTimeAtOutput(edit, value) : value);
   }
   function split() {
@@ -54,8 +59,8 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
     const clip = selectedClip ? clips.find(c => c.id === selectedClip) : clips.find(c => c.start === active?.start && c.end === active?.end);
     if (clip) { update({ clips: clips.filter(c => c.id !== clip.id) }); seek(clips.find(c => c.id !== clip.id)!.start); }
   }
-  return <section id="media-timeline" className="timeline panel" aria-label="Timeline">
-    <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{sections.length} {sections.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || (!active && !selectedClip) || sections.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
+  return <TimelineSnapContext value={{ enabled: snapping, targets, frameRate: asset.frameRate }}><section id="media-timeline" className="timeline panel" aria-label="Timeline">
+    <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{sections.length} {sections.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="icon-button snapping-toggle" aria-label="Timeline snapping" aria-pressed={snapping} title="Snap to markers, clip edges, captions and frames · hold Alt to bypass" onClick={() => { setSnapping(!snapping); try { localStorage.setItem('frame:timeline-snapping', String(!snapping)); } catch {} }}><Magnet size={15} /></button><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || (!active && !selectedClip) || sections.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
     <TimelineNavigator tools={<TimelineViewTools zoom={zoom} setZoom={setZoom} />} zoom={zoom} edit={edit} position={outputTimeAtSource(edit, current)} fraction={fraction} pan={value => { if (scroll.current) scroll.current.scrollLeft = value * (scroll.current.scrollWidth - scroll.current.clientWidth); setFraction(value); }} filter={filter} setFilter={setFilter} compact={compact} setCompact={setCompact} locate={locate} />
     <div className="timeline-analysis">
       {asset.kind === 'video' && !thumbnails && <><button className="button small" disabled={disabled} onClick={generateThumbnails}>{thumbnailLoading ? `Reading frames ${Math.round(thumbnailProgress * 100)}%` : 'Generate thumbnails'}</button>{thumbnailLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel thumbnails</button>}</>}
@@ -85,5 +90,5 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
       <input ref={slider} className="seek-slider" type="range" aria-label="Seek playhead" aria-valuetext={`${current.toFixed(2)} of ${asset.duration.toFixed(2)} seconds`} min={0} max={asset.duration} step={0.01} value={current} disabled={disabled} onChange={event => seek(Number(event.target.value))} /></div>
     </div>
     <div className="timeline-summary"><span><CornerDownLeft size={13} /> Drag clips to reorder · edges to trim · Alt + arrows to move.</span><strong>{time(editedDuration(edit))} <span>output</span></strong></div>
-  </section>;
+  </section></TimelineSnapContext>;
 }

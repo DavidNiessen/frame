@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Bookmark, BookmarkPlus, Pencil, Trash2, X } from 'lucide-react';
+import { TimelineSnapContext } from './TimelineSnapContext';
+import { snapTime } from '../core/snapping';
 import { addMarker, markerColors, markerInSequence, orderedMarkers, type TimelineMarker } from '../core/markers';
 import { outputTimeAtSource, sourceTimeAtOutput } from '../core/fades';
 import { preciseTimecode } from '../core/playhead';
@@ -7,6 +9,7 @@ import type { EditSettings } from '../core/types';
 
 interface Props { edit: EditSettings; current: number; total: number; sequence: boolean; zoom: number; scrollLeft: number; disabled: boolean; seek: (time: number) => void; update: (patch: Partial<EditSettings>) => void; notify: (text: string) => void }
 export function TimelineMarkers(props: Props) {
+  const snap = useContext(TimelineSnapContext);
   const { edit, current, total, sequence, zoom, scrollLeft, disabled, seek, update, notify } = props;
   const [open, setOpen] = useState(false), [selected, setSelected] = useState<string | null>(null), [draft, setDraft] = useState<{ id: string; time: number } | null>(null);
   const gesture = useRef<{ id: string; pointer: number; x: number; left: number; width: number; time: number; moved: boolean } | null>(null);
@@ -21,7 +24,9 @@ export function TimelineMarkers(props: Props) {
       const g = gesture.current; if (!g || g.pointer !== event.pointerId) return;
       if (Math.abs(event.clientX - g.x) > 3) g.moved = true;
       if (!g.moved) return;
-      const position = Math.max(0, Math.min(total, (event.clientX - g.left) / g.width * total));
+      const raw = Math.max(0, Math.min(total, (event.clientX - g.left) / g.width * total));
+      const own = sequence ? outputTimeAtSource(edit, marker.time) : marker.time;
+      const position = snap.enabled && !event.altKey ? snapTime(raw, snap.targets[sequence ? 'output' : 'source'].filter(time => time !== own), 8 / g.width * total, sequence ? undefined : snap.frameRate) : raw;
       g.time = sequence ? sourceTimeAtOutput(edit, position) : position; setDraft({ id: marker.id, time: g.time });
     }} onPointerUp={event => {
       const g = gesture.current; if (!g || g.pointer !== event.pointerId) return;
@@ -35,5 +40,5 @@ function MarkerManager({ edit, selected, select, disabled, seek, update, close }
   const markers = edit.markers ?? [], marker = markers.find(item => item.id === selected);
   useEffect(() => { dialog.current?.showModal(); }, []);
   useEffect(() => { setName(marker?.name ?? ''); setColor(marker?.color ?? 'violet'); }, [marker?.id]);
-  return <dialog ref={dialog} className="shortcuts-dialog marker-dialog" aria-label="Timeline markers" onCancel={close}><div className="dialog-heading"><h2><Bookmark size={18} />Timeline markers</h2><button className="icon-button" aria-label="Close markers" onClick={close}><X size={18} /></button></div><p>Markers stay attached to their original footage when clips move.</p><div className="marker-list">{markers.map(item => <div className={selected === item.id ? 'selected' : ''} key={item.id}><button className={`marker-${item.color}`} title="Go to this marker" onClick={() => seek(item.time)}><Bookmark size={13} /><span>{item.name}<small>{markerInSequence(edit, item) ? preciseTimecode(outputTimeAtSource(edit, item.time)) : 'Outside retained clips'}</small></span></button><button className="icon-button" aria-label={`Rename ${item.name}`} disabled={disabled} onClick={() => select(item.id)}><Pencil size={13} /></button><button className="icon-button" aria-label={`Delete ${item.name}`} disabled={disabled} onClick={() => { update({ markers: markers.filter(marker => marker.id !== item.id) }); if (selected === item.id) select(null); }}><Trash2 size={13} /></button></div>)}</div>{marker && <form className="marker-edit-form" onSubmit={event => { event.preventDefault(); if (name.trim()) { update({ markers: markers.map(item => item.id === marker.id ? { ...item, name: name.trim(), color } : item) }); select(null); } }}><label>Marker name<input aria-label="Marker name" maxLength={80} value={name} disabled={disabled} onChange={event => setName(event.target.value)} /></label><label>Color<select aria-label="Marker color" value={color} disabled={disabled} onChange={event => setColor(event.target.value as TimelineMarker['color'])}>{markerColors.map(value => <option key={value} value={value}>{value}</option>)}</select></label><button className="button primary small" disabled={disabled || !name.trim()}>Save marker</button></form>}</dialog>;
+  return <dialog ref={dialog} className="shortcuts-dialog marker-dialog" aria-label="Timeline markers" onCancel={close}><div className="dialog-heading"><h2><Bookmark size={18} />Timeline markers</h2><button className="icon-button" aria-label="Close markers" onClick={close}><X size={18} /></button></div><p>Markers stay attached to their original footage when clips move.</p><div className="marker-list">{markers.map(item => <div className={selected === item.id ? 'selected' : ''} key={item.id}><button className={`marker-${item.color}`} title="Go to this marker" onClick={() => seek(item.time)}><Bookmark size={13} /><span>{item.name}<small>{markerInSequence(edit, item) ? preciseTimecode(outputTimeAtSource(edit, item.time)) : 'Outside retained clips'}</small></span></button><button className="icon-button" aria-label={`Rename ${item.name}`} disabled={disabled} onClick={() => select(item.id)}><Pencil size={13} /></button><button className="icon-button" aria-label={`Delete ${item.name}`} disabled={disabled} onClick={() => { update({ markers: markers.filter(marker => marker.id !== item.id) }); if (selected === item.id) select(null); }}><Trash2 size={13} /></button></div>)}</div>{marker && <form className="marker-edit-form" onSubmit={event => { event.preventDefault(); if (name.trim()) { update({ markers: markers.map(item => item.id === marker.id ? { ...item, name: name.trim(), color } : item) }); select(null); } }}><label>Marker name<input type="text" aria-label="Marker name" maxLength={80} value={name} disabled={disabled} onChange={event => setName(event.target.value)} /></label><label>Color<select aria-label="Marker color" value={color} disabled={disabled} onChange={event => setColor(event.target.value as TimelineMarker['color'])}>{markerColors.map(value => <option key={value} value={value}>{value}</option>)}</select></label><button className="button primary small" disabled={disabled || !name.trim()}>Save marker</button></form>}</dialog>;
 }
