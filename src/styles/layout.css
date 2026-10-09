@@ -79,3 +79,11 @@
 .project-actions { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 @media (max-width: 700px) { .workspace-bar { flex-wrap: wrap; gap: 12px; } .workspace-subtitle { max-width: 180px; } .workspace-actions { margin-left: auto; } }
 .project-error { color: var(--text); border-left: 2px solid var(--accent); padding-left: 12px; margin-top: 16px; line-height: 1.7; overflow-wrap: anywhere; }
+
+.preview-source-info { display: flex; align-items: center; gap: 8px; }
+.media-info-dialog { width: 520px; max-height: 85dvh; overflow: auto; }
+.media-info-dialog dl > div { align-items: flex-start; gap: 18px; }
+.media-info-dialog dt { flex-shrink: 0; color: var(--muted); text-transform: capitalize; }
+.media-info-dialog dd { text-align: right; overflow-wrap: anywhere; white-space: pre-wrap; }
+.media-info-dialog h3 { margin-top: 24px; font-size: 13px; }
+.conversion-row-action { white-space: nowrap; }

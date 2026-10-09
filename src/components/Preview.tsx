@@ -10,6 +10,7 @@ import { frameDimensions, geometryPreview } from '../core/geometry';
 import { OverlayPreview } from './OverlayPreview';
 import { CropOverlay } from './CropOverlay';
 import { CaptionPreview } from './CaptionPreview';
+import { MediaInfo } from './MediaInfo';
 export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent, update, disabled, expanded, toggleExpanded, panelRef }: {
   expanded: boolean; toggleExpanded: () => void; panelRef: RefObject<HTMLElement | null>;
   previewUrl?: string; asset: MediaAsset; edit: EditSettings; mediaRef: RefObject<HTMLMediaElement | null>;
@@ -54,7 +55,7 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
     },
   };
   return <section ref={panelRef} id="media-preview" className="preview-panel" aria-label="Media preview">
-    <div className="workspace-heading"><div><h2 title={asset.name}>{asset.name}</h2></div><span className="badge">{asset.kind === 'video' ? `${asset.width} × ${asset.height}` : 'Audio'} <span>·</span> {time(asset.duration)}</span></div>
+    <div className="workspace-heading"><div><h2 title={asset.name}>{asset.name}</h2></div><div className="preview-source-info"><span className="badge">{asset.kind === 'video' ? `${asset.width} × ${asset.height}` : 'Audio'} <span>·</span> {time(asset.duration)}</span><MediaInfo asset={asset} /></div></div>
     <div className={`preview-stage ${asset.kind === 'audio' ? 'audio-stage' : ''}`}>
       {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}`, '--frame-ratio': dimensions.width / dimensions.height } as CSSProperties}>
         {gif ? <img style={{ ...geometryPreview(asset, visual), filter: `brightness(${1 + visual.color.brightness}) contrast(${visual.color.contrast}) saturate(${visual.color.saturation})` }} src={sourceUrl} alt="Animated source preview" /> : <video style={{ ...geometryPreview(asset, visual), filter: `brightness(${1 + visual.color.brightness}) contrast(${visual.color.contrast}) saturate(${visual.color.saturation})` }} ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} playsInline preload="metadata" />}

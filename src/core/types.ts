@@ -25,6 +25,10 @@ export interface MediaAsset {
   hasAudio: boolean;
   audioChannels?: number;
   audioSampleRate?: number;
+  frameRate?: number;
+  videoCodec?: string;
+  audioCodec?: string;
+  metadata?: Record<string, string>;
   artworkIndex?: number;
   previewUrl: string;
   relativePath?: string;

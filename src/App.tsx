@@ -74,7 +74,7 @@ export default function App() {
     function key(event: KeyboardEvent) {
       const target = event.target as HTMLElement, tag = target?.tagName;
       const timelinePlayback = event.code === 'Space' && !!target?.closest('#media-timeline') && target.matches('input[type="range"], .range-body, [role="slider"]');
-      if (event.defaultPrevented || (!timelinePlayback && ['INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY'].includes(tag)) || target?.isContentEditable || settingsOpen || shortcuts || projects.pending || batchOpen || mergeOpen || urlOpen) return;
+      if (event.defaultPrevented || (!timelinePlayback && ['INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY'].includes(tag)) || target?.isContentEditable || target?.closest('dialog[open]') || settingsOpen || shortcuts || projects.pending || batchOpen || mergeOpen || urlOpen) return;
       const modified = event.metaKey || event.ctrlKey;
       if (modified && event.key.toLowerCase() === 'o') { event.preventDefault(); if (!editor.busy) onImport(); }
       if (workflow === 'convert') return;
