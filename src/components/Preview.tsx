@@ -17,7 +17,7 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
   const sourceUrl = previewUrl ?? asset.previewUrl;
   const gif = /\.gif$/i.test(asset.name) && !previewUrl;
   useEffect(() => { setFailed(false); setPlaying(false); setCurrent(edit.start); }, [asset.id, sourceUrl]); // Source changes reset playback.
-  usePreviewEffects(mediaRef, edit, playing, current, asset.id);
+  usePreviewEffects(mediaRef, edit, playing, current, asset.id, setCurrent);
   useEffect(() => { if (disabled) mediaRef.current?.pause(); }, [disabled, mediaRef]);
   function toggle() {
     const media = mediaRef.current; if (!media || failed) return;
@@ -29,17 +29,12 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
     }
   }
   const mediaEvents = {
-    onPlay: () => { if (mediaRef.current) pauseOtherMedia(mediaRef.current); setPlaying(true); }, onPause: () => setPlaying(false), onEnded: () => setPlaying(false),
+    onPlay: () => { if (mediaRef.current) pauseOtherMedia(mediaRef.current); setPlaying(true); }, onPause: () => { setPlaying(false); if (mediaRef.current) setCurrent(mediaRef.current.currentTime); }, onEnded: () => setPlaying(false),
     onError: () => setFailed(true),
     onLoadedMetadata: () => { if (mediaRef.current) { mediaRef.current.currentTime = edit.start; applyPreviewEffects(mediaRef.current, edit); } },
     onTimeUpdate: () => {
       const media = mediaRef.current; if (!media) return;
-      if (!media.paused) {
-        const next = nextPlayableTime(edit, media.currentTime);
-        if (next === null) { media.pause(); media.currentTime = edit.start; }
-        else if (next !== media.currentTime) media.currentTime = next;
-      }
-      setCurrent(media.currentTime);
+      if (media.paused) setCurrent(media.currentTime);
     },
   };
   return <section className="preview-panel">
