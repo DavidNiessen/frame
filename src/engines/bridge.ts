@@ -1,3 +1,4 @@
+import type { UrlImportOptions } from '../core/youtube';
 import type { DesktopCapabilities, PreviewProxy } from '../core/hardware';
 import type { SilenceOptions } from '../core/silence';
 import type { BatchOptions, EditSettings, ExportProgress, ExportResult, ImportReport, TimeRange } from '../core/types';
@@ -17,7 +18,7 @@ export interface DesktopBridge {
   previewProxy(id: string): Promise<PreviewProxy>;
   releaseProxy(id: string): Promise<void>;
   importFiles(files?: File[]): Promise<ImportReport>;
-  importUrl(url: string): Promise<ImportReport>;
+  importUrl(url: string, options?: UrlImportOptions): Promise<ImportReport>;
   importFolder(): Promise<ImportReport>;
   importSample(): Promise<ImportReport>;
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;

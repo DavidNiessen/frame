@@ -1,3 +1,4 @@
+import type { UrlImportOptions } from './youtube';
 import { parseAcceleration, type Acceleration, type DesktopCapabilities, type PreviewProxy } from './hardware';
 import type { SilenceOptions } from './silence';
 import { defaultColor, type ColorSettings } from './color';
@@ -65,7 +66,7 @@ export interface MediaEngine {
   previewProxy?(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<PreviewProxy>;
   releaseProxy?(id: string): Promise<void>;
   importFiles(files?: File[], onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
-  importUrl(url: string, onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
+  importUrl(url: string, onProgress?: (p: ExportProgress) => void, options?: UrlImportOptions): Promise<ImportReport>;
   importFolder?(onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importLaunch?(id: string, onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importSample(): Promise<ImportReport>;

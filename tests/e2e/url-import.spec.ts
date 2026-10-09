@@ -91,3 +91,10 @@ test('reports invalid links, CORS, pages, corrupt files and oversized downloads,
     await expect(page.locator('.asset-list li')).toHaveCount(1);
   } finally { await server.close(); }
 });
+test('explains that YouTube import requires desktop without contacting YouTube', async ({ page }) => {
+  const requests: string[] = []; page.on('request', request => requests.push(request.url()));
+  await page.goto('/'); await load(page, 'https://youtu.be/BaW_jenozKc?t=4');
+  await expect(page.getByRole('dialog', { name: 'Load from URL' }).getByRole('alert')).toContainText('Frame desktop app');
+  await expect(page.getByLabel('YouTube import type')).toHaveCount(0);
+  expect(requests.some(url => /youtu(?:\.be|be\.com)/.test(url))).toBe(false);
+});

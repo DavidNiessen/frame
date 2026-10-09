@@ -1,3 +1,4 @@
+import { youtubeVideo } from '../core/youtube';
 import { browserAnalysis } from './browser-analysis';
 import { serializeSrt } from '../core/subtitles';
 import { browserResources } from './browser-resources';
@@ -33,6 +34,7 @@ export function createBrowserEngine(): MediaEngine {
   const engine: MediaEngine = {
     platform: 'web',
     async importUrl(url, onProgress) {
+      if (youtubeVideo(url)) throw new Error('YouTube imports are available in the Frame desktop app. On web, paste a direct audio or video file link.');
       if (files.size >= MAX_IMPORT_FILES) throw new Error('The library is full. Remove some files before importing another URL.');
       const remaining = MAX_WEB_LIBRARY_SIZE - [...files.values()].reduce((size, file) => size + file.size, 0);
       if (remaining <= 0) throw new Error('The browser library is limited to 800 MB. Remove files or use desktop.');

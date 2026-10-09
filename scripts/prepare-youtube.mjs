@@ -2,6 +2,7 @@ import { mkdir, chmod, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { fileDigest, downloadTool } from './download-tool.mjs';
 const require = createRequire(import.meta.url);
 const manifest = require('./youtube-tools.json');
@@ -32,4 +33,8 @@ export async function ensureYoutubeTools({ directory = resolve('build/media-tool
   if (Number(nodeVersion.split('.')[0]) < 22) throw new Error('YouTube imports require Electron with Node 22 or newer.');
   await writeFile(join(directory, 'TOOLS.txt'), `Frame portable YouTube tools\nyt-dlp ${version}; bundled Electron Node ${nodeVersion}\nOfficial release: https://github.com/yt-dlp/yt-dlp/releases/tag/${version}\nSource and build instructions: https://github.com/yt-dlp/yt-dlp/tree/${version}\nThe standalone executable includes GPLv3+ components; retain LICENSE and THIRD_PARTY_LICENSES.txt and provide corresponding sources when redistributing.\n`);
   return binary;
+}
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  try { await ensureYoutubeTools(); }
+  catch (error) { console.error(`YouTube tool preparation failed: ${error.message}. Retry pnpm setup:desktop or check access to GitHub release downloads.`); process.exitCode = 1; }
 }

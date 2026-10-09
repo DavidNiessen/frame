@@ -49,7 +49,15 @@ The browser's first import loads the self-hosted WebAssembly engine (about 32 MB
 
 Choose **Load from URL** in the media library or conversion workspace, paste a direct HTTP/HTTPS media file link, and click **Load media**. Frame downloads the file, shows progress, and imports it into the current workflow. Cancel or retry from the dialog. Filename detection uses download headers, the URL path, and common audio/video MIME types, so direct download endpoints and redirects work too.
 
-Page links, streaming playlists, and links containing embedded login credentials are not supported. Browser imports require the host to allow cross-origin access (CORS); an HTTPS deployment also needs HTTPS media links. The browser's existing file/library limits apply during download. Desktop downloads directly to disk and does not need CORS permission. Downloaded sources are held for the session and removed on library removal or application exit; export a copy to keep them. URLs and authentication tokens are not saved in projects or autosave.
+Other page links, streaming playlists, and links containing embedded login credentials are not supported. Browser imports require the host to allow cross-origin access (CORS); an HTTPS deployment also needs HTTPS media links. The browser's existing file/library limits apply during download. Desktop downloads directly to disk and does not need CORS permission. Downloaded sources are held for the session and removed on library removal or application exit; export a copy to keep them. URLs and authentication tokens are not saved in projects or autosave.
+
+### YouTube on desktop
+
+Paste an individual YouTube video link in **Load from URL**, then choose **Video with audio** or **Audio only**. Video imports default to **Up to 1080p**; 720p, 480p, and **Best available** are also available. Frame downloads original streams and merges them without re-encoding, then imports the source into Editor or Convert. Choose the final output format in the usual export controls. Watch, short, Shorts, embed, and completed live-video links are recognized; a video link containing a playlist still imports just that video.
+
+YouTube imports run locally, without a hosted backend. The desktop distribution includes a checksum-verified standalone `yt-dlp` and its extraction scripts, uses Electron's bundled Node runtime, and merges streams with the bundled FFmpeg. Users do not need Python, Node, FFmpeg, or yt-dlp installed. **Publicly accessible, completed videos only**: no playlists, channel downloads, live streams, browser-cookie access, or account sign-in. YouTube may block downloads from some connections or require sign-in; Frame shows an actionable error. Web explains that YouTube import requires the desktop app.
+
+Development and desktop builds prepare the pinned tool version from [scripts/youtube-tools.json](scripts/youtube-tools.json). `pnpm setup:desktop` repairs missing or corrupt tools; `pnpm desktop` prepares them automatically. Updating the downloader requires a new Frame build: update the version and official SHA-256 digests in that manifest, review vendor notices, and run the downloader and packaged desktop tests. Frame does not self-update downloaded executables or fetch remote challenge-solver components at runtime.
 
 ## Convert a collection
 

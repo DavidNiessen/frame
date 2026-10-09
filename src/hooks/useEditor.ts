@@ -1,3 +1,4 @@
+import type { UrlImportOptions } from '../core/youtube';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createEngine } from '../engines';
 import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type ImportReport, type MediaAsset, type MediaEngine } from '../core/types';
@@ -28,13 +29,13 @@ export function useEditor() {
     if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
     if (engineRef.current) void engineRef.current.then(e => { e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); });
   }, []);
-  async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' | 'url' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }, url?: string) {
+  async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' | 'url' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }, url?: string, urlOptions?: UrlImportOptions) {
     if (busyRef.current) return false;
     busyRef.current = true; setBusy('import'); setNotice(''); setProgress({ ratio: 0, message: 'Reading your media…' });
     try {
       launch?.activate();
       const e = await engine();
-      const report = mode === 'url' && url ? await e.importUrl(url, setProgress) : mode === 'launch' && launch && e.importLaunch ? await e.importLaunch(launch.id, setProgress) : mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
+      const report = mode === 'url' && url ? await e.importUrl(url, setProgress, urlOptions) : mode === 'launch' && launch && e.importLaunch ? await e.importLaunch(launch.id, setProgress) : mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
       setImportReport(report);
       const imported = report.assets;
       if (mode === 'url' && !imported.length) throw new Error('The downloaded file could not be read as video or audio. Try another direct file link.');
@@ -121,7 +122,7 @@ export function useEditor() {
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,
     select: (id: string) => { if (!busyRef.current) setSelected(id); },
     importMedia: (files?: File[], sample = false) => performImport(files, sample ? 'sample' : 'files'),
-    importUrl: (url: string) => performImport(undefined, 'url', undefined, url),
+    importUrl: (url: string, options?: UrlImportOptions) => performImport(undefined, 'url', undefined, url, options),
     importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive,
     importLaunch: (id: string, activate: () => void, select: (ids: string[]) => void) => performImport(undefined, 'launch', { id, activate, select }),
     settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),

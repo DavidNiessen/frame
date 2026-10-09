@@ -5,15 +5,19 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { MAX_IMPORT_FILES } from '../src/core/imports';
 import { mediaUrl } from '../src/core/remote-media';
+import { youtubeOptions, youtubeVideo } from '../src/core/youtube';
+import { downloadYoutube } from './youtube-download';
 import { downloadRemoteMedia } from '../src/engines/remote-download';
-import type { ImportReport, MediaAsset } from '../src/core/types';
+import type { ExportProgress, ImportReport, MediaAsset } from '../src/core/types';
 import type { MediaJobs } from './jobs';
 
 export function registerUrlImports(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, read: (event: IpcMainInvokeEvent, inputs: { path: string }[]) => Promise<ImportReport>) {
   const directories = new Map<string, string>(), pending = new Set<string>();
-  ipcMain.handle('media:import-url', (event, input: unknown) => {
+  ipcMain.handle('media:import-url', (event, input: unknown, options: unknown) => {
     trusted(event);
     const url = mediaUrl(input).href;
+    const youtube = youtubeVideo(url);
+    if (youtube) youtubeOptions(options);
     return jobs.run(async () => {
       if (assets.size >= MAX_IMPORT_FILES) throw new Error('The library is full. Remove files before loading another URL.');
       const signal = jobs.signal;
@@ -21,11 +25,15 @@ export function registerUrlImports(assets: Map<string, { path: string; asset: Me
       let file: FileHandle | undefined, path = '', retained = false;
       let report: ImportReport | undefined;
       try {
-        await downloadRemoteMedia(url, { signal, fetcher: (url, init) => net.fetch(url, init),
-          onOpen: async media => { path = join(directory, media.name); file = await open(path, 'wx'); },
-          onChunk: async chunk => { await file!.writeFile(chunk); },
-          onProgress: progress => { if (!event.sender.isDestroyed()) event.sender.send('media:progress', progress); } });
-        await file!.close(); file = undefined;
+        const progress = (value: ExportProgress) => { if (!event.sender.isDestroyed()) event.sender.send('media:progress', value); };
+        if (youtube) path = await downloadYoutube(youtube, directory, options, signal, progress);
+        else {
+          await downloadRemoteMedia(url, { signal, fetcher: (url, init) => net.fetch(url, init),
+            onOpen: async media => { path = join(directory, media.name); file = await open(path, 'wx'); },
+            onChunk: async chunk => { await file!.writeFile(chunk); },
+            onProgress: progress });
+          await file!.close(); file = undefined;
+        }
         if (signal.aborted || event.sender.isDestroyed()) throw new Error('URL import cancelled.');
         report = await read(event, [{ path }]);
         if (signal.aborted || event.sender.isDestroyed()) throw new Error('URL import cancelled.');
