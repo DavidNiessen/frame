@@ -11,6 +11,7 @@ const bridge: DesktopBridge = {
   releaseProxy: id => ipcRenderer.invoke('media:release-proxy', id),
   importFiles: files => ipcRenderer.invoke('media:import', files?.map(file => webUtils.getPathForFile(file))),
   importFolder: () => ipcRenderer.invoke('media:import-folder'),
+  importUrl: url => ipcRenderer.invoke('media:import-url', url),
   importSample: () => ipcRenderer.invoke('media:sample'),
   export: (id, settings, token) => ipcRenderer.invoke('media:export', id, settings, token),
   saveProject: project => ipcRenderer.invoke('project:save', project),

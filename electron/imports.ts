@@ -8,9 +8,10 @@ import { collectFolderMedia } from './folders';
 import { probeFile } from './native';
 import type { MediaJobs } from './jobs';
 import type { LaunchInbox } from './launch-inbox';
+import { registerUrlImports } from './url-imports';
 
 export function registerImports(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, window: () => BrowserWindow, trusted: (event: IpcMainInvokeEvent) => void, launches: LaunchInbox) {
-  async function read(event: IpcMainInvokeEvent, inputs: { path: string; relativePath?: string }[], skipped = 0, folderName?: string, reuse = false): Promise<ImportReport> {
+  async function read(event: IpcMainInvokeEvent, inputs: { path: string; relativePath?: string }[], skipped = 0, folderName?: string, reuse = false, rawOnly = false): Promise<ImportReport> {
     const key = (path: string) => process.platform === 'win32' ? path.toLowerCase() : path;
     const existing = new Map(reuse ? [...assets.values()].map(item => [key(item.path), item.asset]) : []);
     if (inputs.filter(input => !existing.has(key(input.path))).length + assets.size > MAX_IMPORT_FILES) throw new Error(`The library supports up to ${MAX_IMPORT_FILES} files. Remove some files or import a smaller folder.`);
@@ -21,7 +22,8 @@ export function registerImports(assets: Map<string, { path: string; asset: Media
         try {
           const previous = existing.get(key(input.path)); if (previous) return { asset: previous };
           const id = randomUUID();
-          const asset: MediaAsset = { ...await probeFile(input.path), id, name: basename(input.path), relativePath: input.relativePath, previewUrl: `media://asset/${id}` };
+          const asset: MediaAsset = { ...await probeFile(input.path, rawOnly ? { rawOnly, signal: jobs.signal } : undefined), id, name: basename(input.path), relativePath: input.relativePath, previewUrl: `media://asset/${id}` };
+          if (rawOnly && jobs.signal.aborted) throw new Error('URL import cancelled.');
           if (event.sender.isDestroyed()) throw new Error('The window was closed.');
           assets.set(id, { path: input.path, asset });
           return { asset };
@@ -71,4 +73,5 @@ export function registerImports(assets: Map<string, { path: string; asset: Media
     trusted(event);
     return jobs.run(() => read(event, [{ path: app.isPackaged ? join(process.resourcesPath, 'sample.mp4') : join(__dirname, '../public/sample.mp4') }]));
   });
+  return registerUrlImports(assets, jobs, trusted, (event, inputs) => read(event, inputs, 0, undefined, false, true));
 }

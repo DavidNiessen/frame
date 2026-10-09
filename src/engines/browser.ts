@@ -8,16 +8,17 @@ import { buildExportArgs, outputName } from '../core/export-plan';
 import { getFormat } from '../core/formats';
 import { conversionName } from '../core/conversion';
 import { browserRelativePath, isMediaFilename, MAX_IMPORT_FILES } from '../core/imports';
+import { MAX_WEB_FILE_SIZE, MAX_WEB_LIBRARY_SIZE } from '../core/imports';
+import { downloadRemoteMedia } from './remote-download';
 import { parseProbe } from '../core/probe';
 import type { BatchOptions, ImportReport, MediaEngine } from '../core/types';
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024;
-const MAX_TOTAL_SIZE = 800 * 1024 * 1024;
 export function createBrowserEngine(): MediaEngine {
   let ffmpeg: FFmpeg | null = null;
   let loading: Promise<FFmpeg> | null = null;
   const files = new Map<string, File>();
   let cancelled = false;
+  let download: AbortController | null = null;
   let batchOptions: BatchOptions = {};
   async function ready(): Promise<FFmpeg> {
     if (loading) return loading;
@@ -31,6 +32,26 @@ export function createBrowserEngine(): MediaEngine {
   }
   const engine: MediaEngine = {
     platform: 'web',
+    async importUrl(url, onProgress) {
+      if (files.size >= MAX_IMPORT_FILES) throw new Error('The library is full. Remove some files before importing another URL.');
+      const remaining = MAX_WEB_LIBRARY_SIZE - [...files.values()].reduce((size, file) => size + file.size, 0);
+      if (remaining <= 0) throw new Error('The browser library is limited to 800 MB. Remove files or use desktop.');
+      const controller = new AbortController(); download = controller;
+      const chunks: Uint8Array<ArrayBuffer>[] = [];
+      try {
+        const media = await downloadRemoteMedia(url, { signal: controller.signal, maxBytes: Math.min(MAX_WEB_FILE_SIZE, remaining),
+          onChunk: async chunk => { chunks.push(new Uint8Array(chunk)); }, onProgress });
+        controller.signal.throwIfAborted();
+        const report = await engine.importFiles([new File(chunks, media.name, { type: media.type })], onProgress);
+        if (controller.signal.aborted) { for (const asset of report.assets) await engine.release(asset); throw new Error('URL import cancelled.'); }
+        return report;
+      } catch (error) {
+        if (controller.signal.aborted) throw new Error('URL import cancelled.');
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.startsWith('Could not download this URL.')) throw new Error(message + ' On web, the host must allow cross-origin access (CORS), and HTTPS pages need HTTPS links. Try desktop if the host blocks browser downloads.');
+        throw error;
+      } finally { chunks.length = 0; download = null; }
+    },
     async importSample() {
       const response = await fetch(new URL('sample.mp4', document.baseURI));
       if (!response.ok) throw new Error('Unable to load the sample.');
@@ -49,8 +70,8 @@ export function createBrowserEngine(): MediaEngine {
           const id = crypto.randomUUID();
           const input = `input-${id}`; const metadata = `${id}.json`;
           try {
-            if (file.size > MAX_FILE_SIZE) throw new Error('The browser supports files up to 500 MB. Use desktop for larger media.');
-            if (retained + file.size > MAX_TOTAL_SIZE) throw new Error('The browser library is limited to 800 MB. Remove files or use desktop.');
+            if (file.size > MAX_WEB_FILE_SIZE) throw new Error('The browser supports files up to 500 MB. Use desktop for larger media.');
+            if (retained + file.size > MAX_WEB_LIBRARY_SIZE) throw new Error('The browser library is limited to 800 MB. Remove files or use desktop.');
             await ff.writeFile(input, new Uint8Array(await file.arrayBuffer()));
             const code = await ff.ffprobe(['-v', 'error', '-show_format', '-show_streams', '-show_error', '-of', 'json', '-o', metadata, input]);
             // Core 0.12 returns its unset -1 sentinel when ffprobe returns normally.
@@ -123,7 +144,7 @@ export function createBrowserEngine(): MediaEngine {
     ...browserAnalysis(ready, files),
     beginBatch: async options => { batchOptions = options ?? {}; return 'web'; },
     endBatch: async () => { batchOptions = {}; },
-    cancel() { cancelled = true; ffmpeg?.terminate(); ffmpeg = null; loading = null; },
+    cancel() { download?.abort(); cancelled = true; ffmpeg?.terminate(); ffmpeg = null; loading = null; },
     async release(asset) { files.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
   };
   return engine;

@@ -12,15 +12,20 @@ const unpacked = (path: string) => path.replace(/app\.asar([/\\])/, 'app.asar.un
 export const ffmpegPath = () => unpacked(ffmpeg!);
 export const ffprobePath = () => unpacked(ffprobe.path);
 
-export async function probeFile(path: string) {
+export async function probeFile(path: string, options?: { rawOnly?: boolean; signal?: AbortSignal }) {
   const metadata = await new Promise<string>((resolve, reject) => {
-    const child = spawn(ffprobePath(), ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path], { windowsHide: true });
+    const rawOnly = options?.rawOnly ? ['-protocol_whitelist', 'file,pipe', '-format_whitelist', 'mov,matroska,avi,gif,mp3,wav,flac,ogg,aac,aiff'] : [];
+    const child = spawn(ffprobePath(), ['-v', 'error', ...rawOnly, '-show_format', '-show_streams', '-of', 'json', path], { windowsHide: true });
     let output = ''; let errors = '';
     const timeout = setTimeout(() => { child.kill(); reject(new Error('Reading media timed out.')); }, 30000);
+    const abort = () => { child.kill(); reject(new Error('URL import cancelled.')); };
+    const cleanup = () => { clearTimeout(timeout); options?.signal?.removeEventListener('abort', abort); };
+    options?.signal?.addEventListener('abort', abort, { once: true });
+    if (options?.signal?.aborted) abort();
     child.stdout.on('data', data => { output += data; if (output.length > 2_000_000) child.kill(); });
     child.stderr.on('data', data => { errors = (errors + data).slice(-2000); });
-    child.on('error', error => { clearTimeout(timeout); reject(error); });
-    child.on('close', code => { clearTimeout(timeout); code === 0 ? resolve(output) : reject(new Error(errors || 'Unable to read this media file.')); });
+    child.on('error', error => { cleanup(); reject(error); });
+    child.on('close', code => { cleanup(); code === 0 ? resolve(output) : reject(new Error(errors || 'Unable to read this media file.')); });
   });
   const info = await stat(path);
   if (!info.isFile()) throw new Error('Select a media file.');

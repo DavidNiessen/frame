@@ -24,6 +24,8 @@ import { type EditSettings, type MediaAsset } from '../src/core/types';
 protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 const assets = new Map<string, { path: string; asset: MediaAsset }>();
 let clearProxies = () => {};
+let clearDownloads = () => {};
+let releaseDownload: (id: string) => Promise<void> = async () => {};
 let mainWindow: BrowserWindow | null = null;
 let desktopReady = false;
 let creatingWindow = false;
@@ -66,7 +68,7 @@ function createWindow() {
         : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: media:; media-src 'self' blob: media:; connect-src 'self'; font-src 'self'"] } });
   });
   if (devUrl) void mainWindow.loadURL(devUrl); else void mainWindow.loadFile(join(__dirname, '../dist/index.html'));
-  mainWindow.on('closed', () => { jobs.cancel(); clearProxies(); assets.clear(); mainWindow = null; });
+  mainWindow.on('closed', () => { jobs.cancel(); clearProxies(); clearDownloads(); assets.clear(); mainWindow = null; });
   } finally { creatingWindow = false; }
 }
 app.whenReady().then(() => {
@@ -81,10 +83,10 @@ app.whenReady().then(() => {
     if (!path) return new Response('Not found', { status: 404 });
     return mediaResponse(path, request);
   });
-  registerImports(assets, jobs, () => mainWindow!, trusted, launches);
+  const downloads = registerImports(assets, jobs, () => mainWindow!, trusted, launches); clearDownloads = downloads.clear; releaseDownload = downloads.release;
   registerAnalysis(assets, jobs, trusted);
   registerMerge(assets, jobs, () => mainWindow!, trusted);
-  ipcMain.handle('media:release', async (event, id: string) => { trusted(event); if (!jobs.busy) { assets.delete(id); await proxies.releaseAsset(id); } });
+  ipcMain.handle('media:release', async (event, id: string) => { trusted(event); if (!jobs.busy) { await proxies.releaseAsset(id); await releaseDownload(id); assets.delete(id); } });
   ipcMain.on('media:cancel', event => { trusted(event); jobs.cancel(); });
   ipcMain.handle('media:export', async (event, id: string, settings: EditSettings, batchToken?: string) => {
     trusted(event);
@@ -124,4 +126,4 @@ app.whenReady().then(() => {
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('before-quit', () => { jobs.cancel(); clearProxies(); });
+app.on('before-quit', () => { jobs.cancel(); clearProxies(); clearDownloads(); });

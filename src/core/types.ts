@@ -65,6 +65,7 @@ export interface MediaEngine {
   previewProxy?(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<PreviewProxy>;
   releaseProxy?(id: string): Promise<void>;
   importFiles(files?: File[], onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
+  importUrl(url: string, onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importFolder?(onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importLaunch?(id: string, onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importSample(): Promise<ImportReport>;

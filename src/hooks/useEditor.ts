@@ -28,15 +28,16 @@ export function useEditor() {
     if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
     if (engineRef.current) void engineRef.current.then(e => { e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); });
   }, []);
-  async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }) {
+  async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' | 'url' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }, url?: string) {
     if (busyRef.current) return false;
     busyRef.current = true; setBusy('import'); setNotice(''); setProgress({ ratio: 0, message: 'Reading your media…' });
     try {
       launch?.activate();
       const e = await engine();
-      const report = mode === 'launch' && launch && e.importLaunch ? await e.importLaunch(launch.id, setProgress) : mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
+      const report = mode === 'url' && url ? await e.importUrl(url, setProgress) : mode === 'launch' && launch && e.importLaunch ? await e.importLaunch(launch.id, setProgress) : mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
       setImportReport(report);
       const imported = report.assets;
+      if (mode === 'url' && !imported.length) throw new Error(report.issues[0]?.message || 'The downloaded file is not supported video or audio.');
       launch?.select(imported.map(asset => asset.id));
       if (!imported.length) { if (report.issues.length) setNotice(`${report.issues[0].name}: ${report.issues[0].message}`); else if (report.skipped || report.folderName) setNotice('No supported video or audio files found in this folder.'); return true; }
       setAssets(current => [...current, ...imported.filter(item => !current.some(asset => asset.id === item.id))]);
@@ -47,7 +48,7 @@ export function useEditor() {
       });
       setSelected(imported[0].id);
       setNotice(`Imported ${imported.length} ${imported.length === 1 ? 'file' : 'files'}.${report.issues.length ? ` ${report.issues.length} could not be read.` : ''}${report.skipped ? ` Skipped ${report.skipped} non-media ${report.skipped === 1 ? 'file' : 'files'}.` : ''}`);
-    } catch (error) { setNotice(messageOf(error)); }
+    } catch (error) { if (mode === 'url') throw new Error(messageOf(error)); setNotice(messageOf(error)); }
     finally { busyRef.current = false; setBusy(null); setProgress(null); }
     return true;
   }
@@ -120,6 +121,7 @@ export function useEditor() {
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,
     select: (id: string) => { if (!busyRef.current) setSelected(id); },
     importMedia: (files?: File[], sample = false) => performImport(files, sample ? 'sample' : 'files'),
+    importUrl: (url: string) => performImport(undefined, 'url', undefined, url),
     importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive,
     importLaunch: (id: string, activate: () => void, select: (ids: string[]) => void) => performImport(undefined, 'launch', { id, activate, select }),
     settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),

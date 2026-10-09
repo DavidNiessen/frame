@@ -11,6 +11,7 @@ export function createDesktopEngine(): MediaEngine {
     async importFiles(files, onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFiles(files); } finally { remove(); } },
     async importFolder(onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFolder(); } finally { remove(); } },
     importSample: () => bridge.importSample(),
+    async importUrl(url, onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importUrl(url); } finally { remove(); } },
     async export(asset, settings, onProgress, batchToken) {
       const remove = bridge.onProgress(onProgress);
       try { return await bridge.export(asset.id, settings, batchToken); } finally { remove(); }

@@ -17,6 +17,7 @@ export interface DesktopBridge {
   previewProxy(id: string): Promise<PreviewProxy>;
   releaseProxy(id: string): Promise<void>;
   importFiles(files?: File[]): Promise<ImportReport>;
+  importUrl(url: string): Promise<ImportReport>;
   importFolder(): Promise<ImportReport>;
   importSample(): Promise<ImportReport>;
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
