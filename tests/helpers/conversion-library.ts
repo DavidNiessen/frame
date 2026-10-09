@@ -3,9 +3,10 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
 
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 export async function conversionLibrary() {
   const directory = await mkdtemp(join(tmpdir(), 'frame-conversion-'));

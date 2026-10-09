@@ -4,11 +4,12 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { buildMergeArgs, compositionAsset } from '../src/core/composition';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
 import { outputSettings } from '../src/core/presets';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 it('merges ordered real clips, normalizes frames, and supplies missing audio', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-merge-'));

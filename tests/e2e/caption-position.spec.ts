@@ -2,7 +2,8 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../../electron/native';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 
 async function captions(page: Page) {

@@ -1,9 +1,9 @@
-import { mkdir, chmod, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { fileDigest, downloadTool } from './download-tool.mjs';
+import { prepareToolFile } from './media-tool-files.mjs';
 const require = createRequire(import.meta.url);
 const manifest = require('./youtube-tools.json');
 
@@ -12,20 +12,15 @@ export function youtubeToolTarget(platform = process.platform, arch = process.ar
   if (!target) throw new Error(`Portable YouTube imports are not available for ${platform}/${arch}.`);
   return { ...target, name: platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp' };
 }
-export async function ensureYoutubeTools({ directory = resolve('build/media-tools'), download = downloadTool } = {}) {
+export async function ensureYoutubeTools({ directory = resolve('build/media-tools'), vendorDirectory = resolve('vendor/media-tools/yt-dlp') } = {}) {
   const target = youtubeToolTarget();
   await mkdir(directory, { recursive: true });
   const files = [
-    { name: target.name, hash: target.sha256, url: `https://github.com/yt-dlp/yt-dlp/releases/download/${manifest.version}/${target.asset}` },
-    ...Object.entries(manifest.notices).map(([name, hash]) => ({ name, hash, url: `https://raw.githubusercontent.com/yt-dlp/yt-dlp/${manifest.version}/${name}` })),
+    { name: target.name, asset: target.asset, hash: target.sha256 },
+    ...Object.entries(manifest.notices).map(([name, hash]) => ({ name, asset: name, hash })),
   ];
-  for (const { name, hash, url } of files) {
-    const path = join(directory, name);
-    if (await fileDigest(path).catch(() => '') === hash) continue;
-    console.log(`Preparing portable YouTube tool: ${name} (${manifest.version})…`);
-    await download(url, path, hash);
-  }
-  const binary = join(directory, target.name); await chmod(binary, 0o755);
+  for (const { name, asset, hash } of files) await prepareToolFile({ source: join(vendorDirectory, asset), destination: join(directory, name), sha256: hash, executable: name === target.name });
+  const binary = join(directory, target.name);
   const version = execFileSync(binary, ['--version'], { encoding: 'utf8', timeout: 15000, env: { ...process.env, PATH: '' } }).trim();
   if (version !== manifest.version) throw new Error('The portable YouTube downloader version does not match its manifest.');
   const runtime = require('electron');
@@ -36,5 +31,5 @@ export async function ensureYoutubeTools({ directory = resolve('build/media-tool
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try { await ensureYoutubeTools(); }
-  catch (error) { console.error(`YouTube tool preparation failed: ${error.message}. Retry pnpm setup:desktop or check access to GitHub release downloads.`); process.exitCode = 1; }
+  catch (error) { console.error(`YouTube tool preparation failed: ${error.message}. Restore the vendor files from Git, then retry pnpm setup:desktop.`); process.exitCode = 1; }
 }

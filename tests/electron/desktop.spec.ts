@@ -5,8 +5,9 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm, readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 test('runs the desktop editor and portable media tools with an empty PATH', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-desktop-test-'));

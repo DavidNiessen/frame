@@ -2,14 +2,14 @@ import type { RecipeResources } from '../src/core/resources';
 import { editedDuration } from '../src/core/timeline';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { stat } from 'node:fs/promises';
-import ffmpeg from 'ffmpeg-static';
+import { portableToolPath } from './tool-paths';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { buildExportArgs } from '../src/core/export-plan';
 import { parseProbe } from '../src/core/probe';
 import type { EditSettings, MediaAsset } from '../src/core/types';
 
 const unpacked = (path: string) => path.replace(/app\.asar([/\\])/, 'app.asar.unpacked$1');
-export const ffmpegPath = () => unpacked(ffmpeg!);
+export const ffmpegPath = () => portableToolPath('ffmpeg');
 export const ffprobePath = () => unpacked(ffprobe.path);
 
 export async function probeFile(path: string, options?: { rawOnly?: boolean; signal?: AbortSignal }) {

@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 test('reviews browser silence cuts and exports the retained audio', async ({ page }, info) => {
   const input = info.outputPath('quiet.wav'); await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', "aevalsrc=if(between(t\\,1\\,2)\\,0\\,0.1*sin(2*PI*440*t)):d=3:s=48000", input]);

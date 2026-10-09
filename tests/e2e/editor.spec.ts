@@ -3,6 +3,8 @@ import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import ffprobe from '@ffprobe-installer/ffprobe';
+import { ffmpegPath } from '../../electron/native';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 test('follows system theme, switches themes, and fits a mobile viewport', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
@@ -120,7 +122,6 @@ test('cancels browser processing and can export again', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
 });
 test('imports WAV audio and converts it to FLAC', async ({ page }, testInfo) => {
-  const { default: ffmpeg } = await import('ffmpeg-static');
   const wav = testInfo.outputPath('tone.wav');
   await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', wav]);
   await page.goto('/');

@@ -4,10 +4,11 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import { estimateSize, resolveSizeTarget } from '../src/core/size';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
 import { buildExportArgs } from '../src/core/export-plan';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 const asset: MediaAsset = { id: 'tone', name: 'tone.wav', size: 1, duration: 6, kind: 'audio', hasAudio: true, audioSampleRate: 48000, audioChannels: 1, previewUrl: '' };
 it('uses edited duration for budget and rejects impossible targets', () => {

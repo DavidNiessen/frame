@@ -14,9 +14,9 @@ npm run dev          # Web editor
 npm run desktop      # Electron + the Vite development server
 ```
 
-Desktop development needs a graphical session. Electron, portable FFmpeg, and portable FFprobe are installed by npm. **End users do not need FFmpeg or FFprobe installed**: the desktop package includes both tools for its OS and architecture.
+Desktop development needs a graphical session. Electron and portable FFprobe are installed by npm. Portable FFmpeg and yt-dlp are committed in `vendor/media-tools/` and prepared locally. **End users do not need FFmpeg or FFprobe installed**: the desktop package includes both tools for its OS and architecture.
 
-With pnpm, run `pnpm install` followed by `pnpm desktop` (or `pnpm run dev` for the web editor). The committed `pnpm-workspace.yaml` permits the dependency scripts that download Electron/FFmpeg and prepare the build tools. npm's `package-lock.json` remains the canonical lockfile; `pnpm import` can create a matching pnpm lockfile before installation.
+With pnpm, run `pnpm install` followed by `pnpm desktop` (or `pnpm run dev` for the web editor). The committed `pnpm-workspace.yaml` permits the dependency scripts that install Electron/FFprobe and prepare the build tools. npm's `package-lock.json` remains the canonical lockfile; `pnpm import` can create a matching pnpm lockfile before installation.
 
 If an earlier pnpm install skipped those scripts and reports a missing `ffmpeg.exe` / `ENOENT`, update the repository and repair the existing installation:
 
@@ -27,7 +27,7 @@ pnpm run postinstall
 pnpm desktop
 ```
 
-If you maintain your own pnpm build policy, allow `ffmpeg-static`, `electron`, `electron-winstaller`, `esbuild`, and the `@ffprobe-installer` package for your platform. `pnpm approve-builds` lets you review blocked dependency scripts. Missing tools are downloaded into dependencies; a system FFmpeg installation is not required.
+If you maintain your own pnpm build policy, allow `electron`, `electron-winstaller`, `esbuild`, and the `@ffprobe-installer` package for your platform. `pnpm approve-builds` lets you review blocked dependency scripts. FFmpeg and yt-dlp are verified and restored from the repository files; a system FFmpeg installation is not required.
 
 Desktop startup checks Electron's executable before starting the development server and runs Electron's own installer if the runtime is missing. You can perform this check/repair separately with `pnpm run setup:desktop` or `npm run setup:desktop`. It uses the installed Electron version and its usual download cache, mirrors, and proxy settings.
 
@@ -57,7 +57,7 @@ Paste an individual YouTube video link in **Load from URL**, then choose **Video
 
 YouTube imports run locally, without a hosted backend. The desktop distribution includes a checksum-verified standalone `yt-dlp` and its extraction scripts, uses Electron's bundled Node runtime, and merges streams with the bundled FFmpeg. Users do not need Python, Node, FFmpeg, or yt-dlp installed. **Publicly accessible, completed videos only**: no playlists, channel downloads, live streams, browser-cookie access, or account sign-in. YouTube may block downloads from some connections or require sign-in; Frame shows an actionable error. Web explains that YouTube import requires the desktop app.
 
-Development and desktop builds prepare the pinned tool version from [scripts/youtube-tools.json](scripts/youtube-tools.json). `pnpm setup:desktop` repairs missing or corrupt tools; `pnpm desktop` prepares them automatically. Updating the downloader requires a new Frame build: update the version and official SHA-256 digests in that manifest, review vendor notices, and run the downloader and packaged desktop tests. Frame does not self-update downloaded executables or fetch remote challenge-solver components at runtime.
+Development and desktop builds prepare pinned, checksum-verified tools from [vendor/media-tools](vendor/media-tools/README.md), without downloading FFmpeg or yt-dlp from GitHub. Versions and hashes are recorded in [scripts/ffmpeg-tools.json](scripts/ffmpeg-tools.json) and [scripts/youtube-tools.json](scripts/youtube-tools.json). `pnpm setup:desktop` repairs missing or corrupt tools; `pnpm desktop` prepares them automatically. Updating the downloader requires a new Frame build: update the version and official SHA-256 digests in the manifest, run `npm run vendor:media-tools`, commit the binaries and vendor notices, and run the downloader and packaged desktop tests. Frame does not self-update downloaded executables or fetch remote challenge-solver components at runtime.
 
 ## Convert a collection
 

@@ -4,11 +4,12 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { importSubtitles, outputCues, serializeSrt } from '../src/core/subtitles';
 import { buildExportArgs } from '../src/core/export-plan';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 const asset: MediaAsset = { id: 'clip', name: 'clip.mp4', size: 1, kind: 'video', hasAudio: true, duration: 4, width: 640, height: 360, previewUrl: '' };
 it('maps imported source cues through removed sections and speed changes', () => {

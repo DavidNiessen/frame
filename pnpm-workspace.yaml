@@ -1,5 +1,5 @@
 # pnpm 10.26+ / 11 / 12 requires explicit permission for dependency install scripts.
-# Electron and ffmpeg-static download the portable desktop executables.
+# Electron downloads its runtime; FFmpeg and yt-dlp are prepared from vendor/media-tools.
 # yauzl 2's file streams can stop mid-extraction on Node 24.16.0.
 # Keep npm's matching package.json override in sync.
 overrides:
@@ -8,7 +8,6 @@ allowBuilds:
   electron: true
   electron-winstaller: true
   esbuild: true
-  ffmpeg-static: true
   '@ffprobe-installer/darwin-arm64': true
   '@ffprobe-installer/darwin-x64': true
   '@ffprobe-installer/linux-arm': true

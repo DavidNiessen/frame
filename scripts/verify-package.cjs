@@ -3,17 +3,25 @@ const { existsSync } = require('node:fs');
 const { readFileSync } = require('node:fs');
 const { createHash } = require('node:crypto');
 const { join } = require('node:path');
-// ffmpeg-static downloads for the build machine. Reject cross-packaging mismatched binaries.
+// Prepare and package the host's vendored tools. Reject cross-packaging mismatched binaries.
 module.exports = async context => {
   const architectures = ['ia32', 'x64', 'armv7l', 'arm64', 'universal'];
   const targetArch = architectures[context.arch];
   if (context.electronPlatformName !== process.platform || targetArch !== process.arch) {
     throw new Error(`Build ${context.electronPlatformName}/${targetArch} on a matching machine so portable FFmpeg binaries match the application.`);
   }
-  for (const binary of [require('ffmpeg-static'), require('@ffprobe-installer/ffprobe').path]) {
+  for (const binary of [require('@ffprobe-installer/ffprobe').path]) {
     if (!binary || !existsSync(binary)) throw new Error('The portable media tools are missing. Run npm ci on this platform.');
     execFileSync(binary, ['-version'], { timeout: 10000, stdio: 'ignore', env: { ...process.env, PATH: '' } });
   }
+  const ffmpeg = require('./ffmpeg-tools.json').platforms[`${process.platform}-${process.arch}`];
+  if (!ffmpeg) throw new Error('There is no portable FFmpeg binary for this platform.');
+  const ffmpegName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+  for (const [name, hash] of Object.entries({ [ffmpegName]: ffmpeg.binarySha256, ...Object.fromEntries(Object.entries(ffmpeg.notices).map(([name, file]) => [`${ffmpegName}.${name}`, file.sha256])) })) {
+    const path = join(context.packager.projectDir, 'build/media-tools', name);
+    if (!existsSync(path) || createHash('sha256').update(readFileSync(path)).digest('hex') !== hash) throw new Error('Portable FFmpeg files are missing or corrupt. Run npm run build.');
+  }
+  execFileSync(join(context.packager.projectDir, 'build/media-tools', ffmpegName), ['-version'], { timeout: 10000, stdio: 'ignore', env: { ...process.env, PATH: '' } });
   const tools = require('./youtube-tools.json');
   const target = tools.platforms[`${process.platform}-${process.arch}`];
   if (!target) throw new Error('There is no portable YouTube downloader for this platform.');

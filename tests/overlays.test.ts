@@ -4,11 +4,12 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import { buildExportArgs } from '../src/core/export-plan';
 import { resourcePaths } from '../src/core/resources';
 import { textAss, parseOverlays } from '../src/core/overlays';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 it('renders literal text and a real image watermark without interpreting text as filters', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-overlays-'));

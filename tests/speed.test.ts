@@ -4,12 +4,13 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { buildExportArgs, validateEdit } from '../src/core/export-plan';
 import { editedDuration } from '../src/core/timeline';
 import { parseEdit } from '../src/core/project';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 const audio: MediaAsset = { id: 'audio', name: 'tone.wav', size: 1, kind: 'audio', duration: 2, hasAudio: true, previewUrl: '' };
 it('exports real speed changes with predictable duration and optional pitch preservation', async () => {

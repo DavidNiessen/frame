@@ -4,10 +4,11 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { buildExportArgs } from '../src/core/export-plan';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 it('rotates and flips asymmetric pixels and exports the requested resized frame', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-geometry-'));

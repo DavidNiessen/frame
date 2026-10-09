@@ -1,8 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../../electron/native';
 import { trim, setBoundary } from '../helpers/timeline';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 
 async function tone(file: string, duration = 4) {

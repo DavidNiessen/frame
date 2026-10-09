@@ -1,13 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream } from 'node:fs';
 import { open, rename, rm } from 'node:fs/promises';
 import { EnvHttpProxyAgent, fetch } from 'undici';
 
-export async function fileDigest(path) {
-  const hash = createHash('sha256');
-  for await (const chunk of createReadStream(path)) hash.update(chunk);
-  return hash.digest('hex');
-}
+export { fileDigest } from './media-tool-files.mjs';
 export async function downloadTool(url, destination, expectedHash) {
   const dispatcher = new EnvHttpProxyAgent();
   const temporary = destination + '.part-' + randomUUID();

@@ -4,10 +4,11 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import { applySilenceCuts, defaultSilence, silenceArgs, silenceCandidates, SilenceCollector } from '../src/core/silence';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
 import { editedDuration } from '../src/core/timeline';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 it('detects real silence, retains padding, and applies only reviewed cuts', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-silence-'));

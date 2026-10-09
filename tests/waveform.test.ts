@@ -4,9 +4,10 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import { waveformArgs, waveformPath, WaveformCollector } from '../src/core/waveform';
 import type { MediaAsset } from '../src/core/types';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 it('clips partial peak windows and keeps the source shape in independently trimmed sections', () => {
   const points = [{ time: 0, peak: 1 }, { time: 1, peak: .5 }, { time: 2, peak: 0 }, { time: 3, peak: .25 }];

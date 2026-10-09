@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../../electron/native';
+const ffmpeg = ffmpegPath();
 
 export async function mediaServer() {
   const directory = await mkdtemp(join(tmpdir(), 'frame-url-server-')), path = join(directory, 'tone.wav');

@@ -1,14 +1,13 @@
-import { app } from 'electron';
-import { join } from 'node:path';
 import { stat } from 'node:fs/promises';
 import type { ExportProgress } from '../src/core/types';
 import { youtubeOptions } from '../src/core/youtube';
 import { ffmpegPath } from './native';
 import { youtubeArgs } from './youtube-plan';
 import { runYoutubeDownloader } from './youtube-process';
+import { portableToolPath } from './tool-paths';
 
 export function youtubeToolPath() {
-  return join(app.isPackaged ? join(process.resourcesPath, 'media-tools') : join(__dirname, '../build/media-tools'), process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+  return portableToolPath('yt-dlp');
 }
 export async function downloadYoutube(url: string, directory: string, input: unknown, signal: AbortSignal, progress: (value: ExportProgress) => void) {
   signal.throwIfAborted();

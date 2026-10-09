@@ -1,13 +1,14 @@
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { ensureFfmpeg } from './prepare-ffmpeg.mjs';
 const require = createRequire(import.meta.url);
 await mkdir('public/ffmpeg', { recursive: true });
 for (const name of ['ffmpeg-core.js', 'ffmpeg-core.wasm']) {
   await cp(`node_modules/@ffmpeg/core/dist/esm/${name}`, `public/ffmpeg/${name}`);
 }
 await mkdir('public/notices', { recursive: true });
-const native = require('ffmpeg-static');
+const native = await ensureFfmpeg();
 const probe = require('@ffprobe-installer/ffprobe');
 const version = (binary, name) => {
   try {
@@ -15,7 +16,7 @@ const version = (binary, name) => {
     return execFileSync(binary, ['-version'], { encoding: 'utf8', timeout: 10000 }).split('\n')[0];
   } catch (error) {
     console.error(`Asset preparation failed: the bundled ${name} could not run${error.code ? ` (${error.code})` : ''}.`);
-    console.error('Its dependency install script may have been skipped. With pnpm, pull the latest pnpm-workspace.yaml, run "pnpm rebuild", then "pnpm run postinstall". With npm, run "npm ci".');
+    console.error('Restore vendor/media-tools from Git and rerun postinstall. If FFprobe is missing, run pnpm rebuild (or npm ci).');
     process.exit(1);
   }
 };

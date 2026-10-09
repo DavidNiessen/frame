@@ -4,10 +4,11 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { thumbnailArgs, thumbnailCount, thumbnailWidth, thumbnailHeight } from '../src/core/thumbnails';
 import type { MediaAsset } from '../src/core/types';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 it('renders a bounded strip of real source frames', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-thumbs-'));

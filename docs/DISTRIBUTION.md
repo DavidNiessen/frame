@@ -4,10 +4,10 @@ Frame uses Electron Builder for Windows NSIS installers, macOS DMG files, and op
 
 ## Portable media tools
 
-- `ffmpeg-static` installs the target machine's FFmpeg binary.
+- FFmpeg archives and standalone yt-dlp binaries are committed in `vendor/media-tools/`. Setup verifies their SHA-256 checksums and extracts/copies only the host target into `build/media-tools/`; no GitHub download is needed during setup or build.
 - `@ffprobe-installer/ffprobe` installs a platform-specific FFprobe binary through optional npm dependencies.
-- Both binaries are included as production dependencies and unpacked outside Electron's ASAR archive.
-- `electron/native.ts` converts their package paths to unpacked paths before starting them.
+- FFmpeg and yt-dlp are copied into external `resources/media-tools`; FFprobe remains a production dependency unpacked outside Electron's ASAR archive.
+- `electron/tool-paths.ts` selects the prepared development or packaged resource paths. `electron/native.ts` resolves FFprobe's unpacked package path.
 - No system FFmpeg discovery, user PATH setup, shell invocation, runtime download, or install prompt is needed.
 - The sample media is copied to the external resources directory for native subprocess access.
 

@@ -4,13 +4,14 @@ import { promisify } from 'node:util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpeg from 'ffmpeg-static';
+import { ffmpegPath } from '../electron/native';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { buildExportArgs } from '../src/core/export-plan';
 import { buildMergeArgs } from '../src/core/composition';
 import { outputSettings } from '../src/core/presets';
 import { fadeGain, outputTimeAtSource } from '../src/core/fades';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
+const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 it('fades edited audio at its output boundaries', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-fades-'));
