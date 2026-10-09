@@ -163,9 +163,19 @@ test('automatically renders native audio waveforms inside trimmed and split clip
   const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {
     const page = await app.firstWindow();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const preference = page.getByRole('checkbox', { name: 'Generate audio waveforms automatically' });
+    await expect(preference).toBeChecked();
+    await preference.uncheck();
+    await page.getByRole('button', { name: 'Back to workspace' }).click();
     await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, input);
     await page.getByRole('button', { name: 'Add media', exact: true }).click();
     const waves = page.getByRole('img', { name: 'Audio waveform', exact: true });
+    await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toBeEnabled();
+    await expect(waves).toHaveCount(0);
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await preference.check();
+    await page.getByRole('button', { name: 'Back to workspace' }).click();
     await expect(waves).toBeVisible(); await expect(page.getByLabel('Trim start', { exact: true })).toBeEnabled();
     await expect.poll(() => page.locator('audio').evaluate(node => (node as HTMLAudioElement).duration)).toBeCloseTo(4, 2);
     await expect(page.getByRole('button', { name: 'Generate waveform' })).toHaveCount(0);

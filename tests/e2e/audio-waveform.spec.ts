@@ -107,3 +107,69 @@ test('can cancel automatic analysis without a retry loop and generate the wavefo
   await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({ timeout: 45000 });
   expect(await page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(2);
 });
+
+test('remembers disabled automatic waveforms, allows manual generation, and resumes when enabled', async ({ page }, testInfo) => {
+  const first = testInfo.outputPath('manual.wav'), second = testInfo.outputPath('automatic.wav');
+  await tone(first); await tone(second);
+  await page.addInitScript(() => {
+    Reflect.set(window, 'waveformRequests', 0);
+    const post = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function(this: Worker, message: unknown, options?: Transferable[] | StructuredSerializeOptions) {
+      const packet = message as { type?: string; data?: { args?: string[] } };
+      if (packet.type === 'EXEC' && packet.data?.args?.some(arg => arg.includes('astats=metadata'))) Reflect.set(window, 'waveformRequests', Reflect.get(window, 'waveformRequests') + 1);
+      Reflect.apply(post, this, [message, options ?? []]);
+    };
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const preference = page.getByRole('checkbox', { name: 'Generate audio waveforms automatically' });
+  await expect(preference).toBeChecked();
+  await preference.uncheck();
+  await page.reload();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(preference).not.toBeChecked();
+  await page.getByRole('button', { name: 'Back to workspace' }).click();
+  await page.getByLabel('Choose media files').setInputFiles(first);
+  await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toBeEnabled({ timeout: 45000 });
+  await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Preparing waveform…', { exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(0);
+  await page.getByRole('button', { name: 'Generate waveform', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({ timeout: 45000 });
+  expect(await page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(1);
+  await page.getByLabel('Choose media files').setInputFiles(second);
+  await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toBeEnabled();
+  expect(await page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(1);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await preference.check();
+  await page.getByRole('button', { name: 'Back to workspace' }).click();
+  await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({ timeout: 45000 });
+  expect(await page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(2);
+});
+
+test('turning automatic waveforms off cancels pending analysis and re-enabling restarts it', async ({ page }, testInfo) => {
+  const input = testInfo.outputPath('interrupted.wav'); await tone(input);
+  await page.addInitScript(() => {
+    const post = Worker.prototype.postMessage; let requests = 0;
+    Worker.prototype.postMessage = function(this: Worker, message: unknown, options?: Transferable[] | StructuredSerializeOptions) {
+      const packet = message as { type?: string; data?: { args?: string[] } };
+      if (packet.type === 'EXEC' && packet.data?.args?.some(arg => arg.includes('astats=metadata'))) {
+        Reflect.set(window, 'waveformRequests', ++requests);
+        if (requests === 1) return;
+      }
+      Reflect.apply(post, this, [message, options ?? []]);
+    };
+  });
+  await page.goto('/'); await page.getByLabel('Choose media files').setInputFiles(input);
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(1);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Generate audio waveforms automatically' }).uncheck();
+  await page.getByRole('button', { name: 'Back to workspace' }).click();
+  await expect(page.getByRole('button', { name: 'Retry waveform' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Cancel waveform' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Generate audio waveforms automatically' }).check();
+  await page.getByRole('button', { name: 'Back to workspace' }).click();
+  await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({ timeout: 45000 });
+  expect(await page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(2);
+});
