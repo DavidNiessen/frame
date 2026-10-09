@@ -1,3 +1,4 @@
+import { parseMarkers } from './markers';
 import { clipEffectKeys, type TimelineClip } from './clips';
 import { parseAcceleration } from './hardware';
 import { parseColor } from './color';
@@ -32,6 +33,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const c = e.crop === null ? null : record(e.crop);
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
+    markers: parseMarkers(e.markers, asset.duration),
     color: parseColor(e.color),
     geometry: parseGeometry(e.geometry),
     overlays: parseOverlays(e.overlays),

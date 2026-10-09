@@ -217,3 +217,5 @@ Conversion naming: Advanced options accept a filename pattern with `{name}`, `{i
 Source information is available from the preview header and each conversion row. It shows the original codecs, frame rate, dimensions, sample rate, channels, artwork and common embedded metadata without changing the file.
 
 Use the preview transport or comma/period keys to step video frames (audio moves one output second). Clicking the timecode opens precise sequence navigation with seconds, m:ss or h:mm:ss input. Stepping pauses playback and follows reordered clips across cuts.
+
+Add named, colored timeline markers with M or the bookmark button. Drag markers to reposition them, double-click to rename, or use the marker list to navigate and remove bookmarks. Markers are saved in projects and autosave, remain anchored to the source during clip reordering, and support undo/redo.

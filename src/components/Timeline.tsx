@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { TimelineViewTools } from './layout/TimelineViewTools';
 import { clipPositions, editClips, splitClip } from '../core/clips';
 import { outputTimeAtSource, sourceTimeAtOutput } from '../core/fades';
+import { TimelineMarkers } from './TimelineMarkers';
 import { TimelineClip } from './TimelineClip';
 import { TimelineNavigator, type TrackFilter } from './layout/TimelineNavigator';
 import { TimedLanes } from './TimedLanes';
@@ -61,6 +62,7 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
       {asset.hasAudio && !waveform && <>{asset.kind === 'audio' && autoWaveforms && !waveformError ? <span className="waveform-status" role="status">{waveformLoading ? `Reading waveform ${Math.round(analysisProgress * 100)}%` : 'Preparing waveform…'}</span> : <button className="button small" disabled={disabled} onClick={generateWaveform}>{waveformLoading ? `Reading peaks ${Math.round(analysisProgress * 100)}%` : waveformError ? 'Retry waveform' : 'Generate waveform'}</button>}{waveformLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel waveform</button>}{waveformError && <span className="waveform-error" role="alert">{waveformError}</span>}</>}
       </div>
     <div ref={scroll} className="timeline-body" onScroll={event => { const node = event.currentTarget; setScrollLeft(node.scrollLeft); setFraction(node.scrollWidth > node.clientWidth ? node.scrollLeft / (node.scrollWidth - node.clientWidth) : 0); }} role="region" aria-label="Timeline tracks" tabIndex={0}><div ref={content} className="timeline-content" style={{ width: `${zoom * 100}%` }}><div className="timeline-ruler">{[0, 1, 2, 3, 4].map(i => <span key={i}>{time(total * i / 4)}</span>)}</div>
+      <TimelineMarkers edit={edit} current={current} total={total} sequence={sequence} zoom={1} scrollLeft={0} disabled={disabled} seek={seek} update={update} notify={notify} />
       {thumbnails && <ThumbnailStrip url={thumbnails} duration={asset.duration} edit={edit} seek={seek} disabled={disabled} />}
       <TimedLanes compact={compact} filter={filter} selectClip={selectClip} asset={asset} edit={edit} update={update} disabled={disabled} seek={seek} />
     </div></div>

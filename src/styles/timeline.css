@@ -87,3 +87,26 @@
 .timeline .timeline-track { margin-bottom: 0; }
 .timeline .timeline-summary { padding-block: 4px; }
 .timeline .timeline-ruler { position: relative; padding-block: 2px; }
+
+.timeline-markers { position: relative; min-width: 0; margin: 0 0 5px; }
+.marker-tools { position: sticky; left: 0; display: flex; align-items: center; gap: 4px; width: fit-content; font-size: 10px; color: var(--muted); }
+.marker-tools .icon-button { width: 24px; height: 24px; }
+.marker-manager-button { border: 0; background: transparent; display: flex; align-items: center; gap: 5px; color: inherit; font-size: inherit; padding: 4px; cursor: pointer; }
+.marker-track-viewport { overflow: visible; }
+.marker-track { position: relative; height: 24px; min-width: 100%; border-bottom: 1px solid var(--border-soft); }
+.marker-track:empty { height: 0; border: 0; }
+.timeline-marker { position: absolute; top: 0; display: flex; align-items: center; gap: 4px; border: 0; background: transparent; font-size: 10px; max-width: 110px; padding: 3px 0; cursor: ew-resize; touch-action: none; transform: translateX(-6px); }
+.timeline-marker span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.timeline-marker svg { flex-shrink: 0; }
+.marker-violet { color: var(--accent); } .marker-blue { color: #67a5f5; } .marker-amber { color: #d4a039; } .marker-rose { color: #e57794; } .marker-mint { color: #50b9a1; }
+.marker-dialog { width: 520px; max-height: 85dvh; overflow: auto; }
+.marker-dialog > p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.marker-list { max-height: 300px; overflow: auto; }
+.marker-list > div { display: flex; align-items: center; gap: 4px; padding: 5px; border-bottom: 1px solid var(--border-soft); border-radius: 5px; }
+.marker-list > div.selected { background: var(--surface-hover); }
+.marker-list > div > button:first-child { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: transparent; border: 0; padding: 5px; text-align: left; cursor: pointer; }
+.marker-list small { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+.marker-list span { overflow-wrap: anywhere; }
+.marker-edit-form { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 12px; margin-top: 18px; }
+.marker-edit-form label { display: grid; gap: 7px; font-size: 12px; }
+.marker-edit-form button { justify-self: start; }

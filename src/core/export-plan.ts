@@ -1,3 +1,4 @@
+import { parseMarkers } from './markers';
 import { gifPaletteFilters, validateGifOutput } from './gif-output';
 import { audioOutputArgs, outputAudioCodec, validateAudioOutput } from './audio-output';
 import { clipEffectKeys, clipRecipe } from './clips';
@@ -16,6 +17,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
+  parseMarkers(edit.markers, asset.duration);
   validateGifOutput(edit); validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
   if (edit.clips) {

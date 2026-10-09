@@ -31,6 +31,7 @@ import { usePreferences } from './hooks/usePreferences';
 import { EditorWorkspace, type WorkspaceLayout } from './components/layout/EditorWorkspace';
 import { useExpandedPreview } from './hooks/useExpandedPreview';
 import { nextPlayableTime } from './core/timeline';
+import { addMarker } from './core/markers';
 import { skipSeconds, stepFrame } from './core/playhead';
 export default function App() {
   const editor = useEditor(); const { theme, setTheme } = useTheme();
@@ -83,6 +84,7 @@ export default function App() {
       if (!editor.edit || editor.busy || modified || event.altKey) return;
       if (event.code === 'Space' && (timelinePlayback || tag !== 'BUTTON')) { event.preventDefault(); if (event.repeat) return; const media = mediaRef.current; if (media) { if (media.paused) { media.currentTime = nextPlayableTime(editor.edit, media.currentTime) ?? editor.edit.start; void media.play().catch(() => {}); } else media.pause(); } }
       if ((event.key === ',' || event.key === '.') && editor.asset && mediaRef.current) { event.preventDefault(); mediaRef.current.pause(); seek(editor.asset.kind === 'video' ? stepFrame(editor.edit, current, editor.asset.frameRate ?? 30, event.key === ',' ? -1 : 1) : skipSeconds(editor.edit, current, event.key === ',' ? -1 : 1)); }
+      if (event.key.toLowerCase() === 'm' && !event.repeat) { event.preventDefault(); try { editor.update({ markers: addMarker(editor.edit, current) }); editor.setNotice('Timeline marker added. Double-click it to rename.'); } catch (issue) { editor.setNotice((issue as Error).message); } }
       if (event.key.toLowerCase() === 'i') editor.updateClip({ start: Math.min(current, editor.scopedEdit!.end - 0.05) });
       if (event.key.toLowerCase() === 'o') editor.updateClip({ end: Math.max(current, editor.scopedEdit!.start + 0.05) });
     }
