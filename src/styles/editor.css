@@ -58,7 +58,7 @@
 .separator { height: 16px; width: 1px; background: var(--border); margin: 0 5px; }
 .timeline-body { padding: 17px 22px; }
 .timeline-ruler { display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 9px; color: var(--quiet); margin-bottom: 17px; }
-.timeline-track { position: relative; height: 59px; border: 1px solid var(--border-soft); border-radius: 5px; background: var(--stage); margin-bottom: 9px; }
+.timeline-track { touch-action: none; user-select: none; cursor: crosshair; position: relative; height: 59px; border: 1px solid var(--border-soft); border-radius: 5px; background: var(--stage); margin-bottom: 9px; }
 .track-baseline { position: absolute; height: 1px; background: var(--border); left: 0; right: 0; top: 50%; }
 .timeline-clip { position: absolute; height: 100%; top: 0; background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 4px; overflow: hidden; padding: 0; text-align: left; color: var(--accent-text); min-width: 2px; }
 .timeline-clip.active { border-color: var(--accent); }
