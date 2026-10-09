@@ -38,10 +38,10 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
       if (media.paused) setCurrent(media.currentTime);
     },
   };
-  return <section className="preview-panel">
+  return <section id="media-preview" className="preview-panel" aria-label="Media preview">
     <div className="workspace-heading"><div><h2 title={asset.name}>{asset.name}</h2></div><span className="badge">{asset.kind === 'video' ? `${asset.width} × ${asset.height}` : 'Audio'} <span>·</span> {time(asset.duration)}</span></div>
     <div className={`preview-stage ${asset.kind === 'audio' ? 'audio-stage' : ''}`}>
-      {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}`, maxWidth: `${370 * dimensions.width / dimensions.height}px`, '--frame-ratio': dimensions.width / dimensions.height } as CSSProperties}>
+      {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}`, '--frame-ratio': dimensions.width / dimensions.height } as CSSProperties}>
         {gif ? <img style={geometryPreview(asset, edit)} src={sourceUrl} alt="Animated source preview" /> : <video style={geometryPreview(asset, edit)} ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} playsInline preload="metadata" />}
         <OverlayPreview edit={edit} asset={asset} />
         {edit.subtitles.mode !== 'none' && <CaptionPreview asset={asset} edit={edit} current={current} disabled={disabled} pause={() => mediaRef.current?.pause()} update={update} />}

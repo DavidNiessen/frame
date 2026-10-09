@@ -13,5 +13,6 @@ import './styles/timeline.css';
 import './styles/captions.css';
 import './styles/conversion.css';
 import './styles/settings.css';
+import './styles/islands.css';
 import App from './App';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

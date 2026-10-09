@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { ChevronDown, Combine, FolderOpen, Layers, Save } from 'lucide-react';
-export function WorkspaceActions({ hasMedia, busy, saving, merge, batch, open, save }: {
+import { ChevronDown, Combine, FolderOpen, Layers, Save, PanelsTopLeft } from 'lucide-react';
+export function WorkspaceActions({ hasMedia, busy, saving, merge, batch, open, save, resetLayout }: {
   hasMedia: boolean; busy: boolean; saving: boolean;
   merge: () => void; batch: () => void; open: () => void; save: () => void;
+  resetLayout: () => void;
 }) {
   const menu = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -22,6 +23,7 @@ export function WorkspaceActions({ hasMedia, busy, saving, merge, batch, open, s
         <button disabled={busy || saving} onClick={() => run(open)}><FolderOpen size={16} />Open project</button>
         <button disabled={!hasMedia || busy} onClick={() => run(merge)}><Combine size={16} />Merge clips</button>
         <button disabled={!hasMedia || busy} onClick={() => run(batch)}><Layers size={16} />Batch export</button>
+        <button onClick={() => run(resetLayout)}><PanelsTopLeft size={16} />Reset panel layout</button>
       </div>
     </details>
     <button className="button subtle small" disabled={!hasMedia || busy || saving} onClick={save}><Save size={14} />Save project</button>

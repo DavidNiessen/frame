@@ -9,7 +9,7 @@ export function ConversionSettings({ conversion: c, editor }: { conversion: Conv
   const lossless = s.format === 'wav' || s.format === 'flac';
   const retryable = c.unfinished.filter(job => c.selected.some(asset => asset.id === job.asset.id));
   const allDone = editor.assets.length > 0 && editor.assets.every(asset => c.latestJobs.get(asset.id)?.status === 'done');
-  return <aside className="conversion-settings panel" aria-labelledby="conversion-settings-title">
+  return <aside id="conversion-settings" className="conversion-settings panel" aria-labelledby="conversion-settings-title">
     <div className="conversion-panel-title"><span className="conversion-step">2</span><div><h2 id="conversion-settings-title">Format & quality</h2><p>One setup for every selected file.</p></div></div>
     <fieldset disabled={c.busy} className="conversion-settings-body">
       <label className="stacked-label" htmlFor="conversion-format">Convert to</label>

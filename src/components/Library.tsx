@@ -2,7 +2,7 @@ import { Film, Music2, Plus, Trash2, FolderOpen, ArrowUpRight, Link } from 'luci
 import type { Editor } from '../hooks/useEditor';
 import { bytes, time } from '../core/format';
 export function Library({ editor, onImport, onUrl }: { editor: Editor; onImport: () => void; onUrl: () => void }) {
-  return <aside className="library panel">
+  return <aside id="media-library" className="library panel">
     <div className="panel-heading"><h2>Media library <span className="count">{editor.assets.length}</span></h2><button className="icon-button" aria-label="Add media" onClick={onImport} disabled={!!editor.busy}><Plus size={17} /></button></div>
     <div className="library-content">
       {!editor.assets.length ? <div className="library-empty"><FolderOpen size={28} strokeWidth={1.3} /><p>Your starting point.</p><span>Bring in a video or audio file.<br />Everything stays on your device.</span></div> :

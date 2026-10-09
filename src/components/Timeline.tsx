@@ -1,4 +1,5 @@
-import { useRef, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { TimelineViewTools } from './layout/TimelineViewTools';
 import { resizeSection, sectionLimits } from '../core/timeline-edit';
 import { TimedLanes } from './TimedLanes';
 import { TimelineRange } from './TimelineRange';
@@ -18,6 +19,15 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
   canUndo: boolean; canRedo: boolean; disabled: boolean; notify: (message: string) => void;
 }) {
   const slider = useRef<HTMLInputElement>(null);
+  const scroll = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => { setZoom(1); if (scroll.current) { scroll.current.scrollLeft = 0; scroll.current.scrollTop = 0; } }, [asset.id]);
+  useEffect(() => {
+    const viewport = scroll.current, tracks = content.current; if (!viewport || !tracks || zoom === 1) return;
+    const x = current / asset.duration * tracks.clientWidth;
+    if (x < viewport.scrollLeft) viewport.scrollLeft = Math.max(0, x - 24);
+    else if (x > viewport.scrollLeft + viewport.clientWidth - 40) viewport.scrollLeft = x - viewport.clientWidth + 48;
+  }, [current, zoom, asset.id, asset.duration]);
   const sections = timelineSections(edit);
   const active = sections.find(s => current >= s.start && current < s.end) ?? (current === sections.at(-1)?.end ? sections.at(-1) : undefined);
   function scrub(event: PointerEvent<HTMLDivElement>) {
@@ -34,9 +44,10 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
     if (!active || editedDuration(edit) - (active.end - active.start) / edit.speed < 0.05) { notify('Keep at least one section in the timeline.'); return; }
     update({ cuts: [...edit.cuts, active] });
   }
-  return <section className="timeline panel">
+  return <section id="media-timeline" className="timeline panel" aria-label="Timeline">
     <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{sections.length} {sections.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || !active || sections.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
-    <div className="timeline-body"><div className="timeline-analysis">
+    <TimelineViewTools zoom={zoom} setZoom={setZoom} />
+    <div ref={scroll} className="timeline-body" role="region" aria-label="Timeline tracks" tabIndex={0}><div ref={content} className="timeline-content" style={{ width: `${zoom * 100}%` }}><div className="timeline-analysis">
       {asset.kind === 'video' && !thumbnails && <><button className="button small" disabled={disabled} onClick={generateThumbnails}>{thumbnailLoading ? `Reading frames ${Math.round(thumbnailProgress * 100)}%` : 'Generate thumbnails'}</button>{thumbnailLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel thumbnails</button>}</>}
       {asset.hasAudio && !waveform && <>{asset.kind === 'audio' && autoWaveforms && !waveformError ? <span className="waveform-status" role="status">{waveformLoading ? `Reading waveform ${Math.round(analysisProgress * 100)}%` : 'Preparing waveform…'}</span> : <button className="button small" disabled={disabled} onClick={generateWaveform}>{waveformLoading ? `Reading peaks ${Math.round(analysisProgress * 100)}%` : waveformError ? 'Retry waveform' : 'Generate waveform'}</button>}{waveformLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel waveform</button>}{waveformError && <span className="waveform-error" role="alert">{waveformError}</span>}</>}
       </div><div className="timeline-ruler">{[0, 1, 2, 3, 4].map(i => <span key={i}>{time(asset.duration * i / 4)}</span>)}</div>
@@ -62,7 +73,7 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
         onSelect={() => seek((section.start + section.end) / 2)} onChange={range => update(resizeSection(edit, i, range, asset.duration))} />)}
         <div className="playhead" style={{ left: `${current / asset.duration * 100}%` }}><span /></div>
       <input ref={slider} className="seek-slider" type="range" aria-label="Seek playhead" aria-valuetext={`${current.toFixed(2)} of ${asset.duration.toFixed(2)} seconds`} min={0} max={asset.duration} step={0.01} value={current} disabled={disabled} onChange={event => seek(Number(event.target.value))} /></div>
-      <div className="timeline-summary"><span><CornerDownLeft size={13} /> Drag clip edges to trim. Click or drag inside to seek.</span><strong>{time(editedDuration(edit))} <span>output</span></strong></div>
-    </div>
+    </div></div>
+    <div className="timeline-summary"><span><CornerDownLeft size={13} /> Drag edges to trim. Scroll to see more tracks.</span><strong>{time(editedDuration(edit))} <span>output</span></strong></div>
   </section>;
 }
