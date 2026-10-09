@@ -1,0 +1,20 @@
+import { expect, test } from '@playwright/test';
+import { trim } from '../helpers/timeline';
+test('loops the sequence or selected clip without altering export timing', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await trim(page, 'end', .6);
+  await page.evaluate(() => { (window as unknown as { wraps: number }).wraps = 0; document.querySelector('video')!.addEventListener('seeked', () => { if (document.querySelector('video')!.currentTime < .1) (window as unknown as { wraps: number }).wraps++; }); });
+  await page.getByLabel('Playback loop', { exact: true }).click(); await page.getByRole('button', { name: 'Loop sequence', exact: true }).click();
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { wraps: number }).wraps)).toBeGreaterThanOrEqual(2);
+  await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible(); await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await page.getByLabel('Seek playhead').fill('0.3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await page.getByLabel('Playback loop', { exact: true }).click(); await page.getByRole('button', { name: 'Loop selected clip', exact: true }).click();
+  await page.evaluate(() => { (window as unknown as { clipPositions: number[] }).clipPositions = []; const video = document.querySelector('video')!; video.addEventListener('timeupdate', () => { if (!video.paused) (window as unknown as { clipPositions: number[] }).clipPositions.push(video.currentTime); }); });
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { clipPositions: number[] }).clipPositions.length)).toBeGreaterThan(5);
+  const positions = await page.evaluate(() => (window as unknown as { clipPositions: number[] }).clipPositions); expect(Math.max(...positions)).toBeLessThan(.34);
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await page.getByLabel('Playback loop', { exact: true }).click(); await page.getByRole('button', { name: 'Loop off', exact: true }).click();
+  await page.getByLabel('Seek playhead').fill('0.56'); await page.getByRole('button', { name: 'Play', exact: true }).click(); await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Trim end', exact: true })).toHaveAttribute('aria-valuenow', '0.6');
+});

@@ -17,8 +17,8 @@ export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings)
   if (media.tagName === 'VIDEO') media.style.opacity = String(fadeGain(position, duration, edit.videoFadeIn, edit.videoFadeOut) * (clip ? fadeGain(local, editedDuration(recipe), recipe.videoFadeIn, recipe.videoFadeOut) : 1));
 }
 export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit: EditSettings, playing: boolean,
-  current: number, assetId: string, publish: (time: number) => void) {
-  const latest = useRef({ edit, publish }); latest.current = { edit, publish };
+  current: number, assetId: string, publish: (time: number) => void, loop = false) {
+  const latest = useRef({ edit, publish, loop }); latest.current = { edit, publish, loop };
   useEffect(() => {
     if (!playing && ref.current) applyPreviewEffects(ref.current, edit);
   }, [ref, edit, playing, current, assetId]);
@@ -42,7 +42,7 @@ export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit:
         next = media.currentTime >= clips[index].end - .015 ? clips[index + 1]?.start ?? null : media.currentTime;
         if (next !== null && next !== media.currentTime) playingClip = clips[index + 1]?.id ?? null;
       } else next = nextPlayableTime(recipe, media.currentTime);
-      if (next === null) { media.pause(); media.currentTime = keptRanges(recipe)[0]?.start ?? recipe.start; }
+      if (next === null) { if (!latest.current.loop) media.pause(); media.currentTime = keptRanges(recipe)[0]?.start ?? recipe.start; playingClip = null; }
       else if (next !== media.currentTime) media.currentTime = next;
       applyPreviewEffects(media, recipe);
       updateClock(media.currentTime);

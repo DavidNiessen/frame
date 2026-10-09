@@ -89,3 +89,12 @@
 .time-navigation p { margin: 0; color: var(--muted); font-size: 12px; }
 .time-navigation [role=alert] { color: var(--danger); }
 @container media-preview (max-width: 520px) { .transport-left { gap: 5px; } .transport-left .icon-button { width: 25px; } .timecode-button { font-size: 10px; } .timecode-button i { display: none; } }
+
+.playback-loop { position: relative; }
+.playback-loop summary { list-style: none; cursor: pointer; }
+.playback-loop summary::-webkit-details-marker { display: none; }
+.playback-loop.active summary { color: var(--accent); background: var(--accent-dim); }
+.playback-loop-menu { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 12; width: 180px; padding: 8px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-raised); box-shadow: var(--shadow); display: grid; gap: 3px; }
+.playback-loop-menu strong { padding: 7px; color: var(--muted); font-size: 10px; }
+.playback-loop-menu button { padding: 8px; border-radius: 5px; text-align: left; font-size: 11px; }
+.playback-loop-menu button:hover, .playback-loop-menu button[aria-pressed=true] { background: var(--accent-dim); color: var(--accent-text); }
