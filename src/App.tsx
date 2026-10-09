@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Clapperboard, Monitor, Globe, Keyboard, Upload, X, LoaderCircle } from 'lucide-react';
 import { acceptMedia } from './core/types';
 import { useProxies } from './hooks/useProxies';
@@ -38,7 +38,7 @@ export default function App() {
   const dragDepth = useRef(0);
   const [shortcuts, setShortcuts] = useState(false);
   function onImport() { if (editor.platform === 'desktop') void editor.importMedia(); else input.current?.click(); }
-  function seek(value: number) { setCurrent(value); if (mediaRef.current) mediaRef.current.currentTime = value; }
+  const seek = useCallback((value: number) => { setCurrent(value); if (mediaRef.current) mediaRef.current.currentTime = value; }, []);
   useEffect(() => {
     function key(event: KeyboardEvent) {
       const tag = (event.target as HTMLElement)?.tagName;

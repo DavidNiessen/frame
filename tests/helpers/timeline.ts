@@ -1,0 +1,21 @@
+import { expect, type Page } from '@playwright/test';
+export async function trim(page: Page, edge: 'start' | 'end', seconds: number) {
+  // Native imports can expose controls before media metadata resets the initial playhead.
+  await expect(page.locator('video, audio').first()).toHaveJSProperty('readyState', 4);
+  const playhead = page.getByLabel('Seek playhead');
+  const previous = await playhead.inputValue();
+  await playhead.fill(String(seconds));
+  await page.getByRole('heading', { name: 'Timeline', exact: true }).click();
+  await page.keyboard.press(edge === 'start' ? 'i' : 'o');
+  await expect(page.getByRole('slider', { name: `Trim ${edge}`, exact: true })).toHaveAttribute('aria-valuenow', String(seconds));
+  await playhead.fill(previous);
+}
+export async function setBoundary(page: Page, label: string, seconds: number) {
+  const handle = page.getByRole('slider', { name: label, exact: true });
+  await handle.focus();
+  let delta = Math.round((seconds - Number(await handle.getAttribute('aria-valuenow'))) * 100);
+  for (const [step, positive, negative] of [[100, 'PageUp', 'PageDown'], [10, 'Shift+ArrowRight', 'Shift+ArrowLeft'], [1, 'ArrowRight', 'ArrowLeft']] as const) {
+    while (Math.abs(delta) >= step) { await handle.press(delta > 0 ? positive : negative); delta += delta > 0 ? -step : step; }
+  }
+  await expect(handle).toHaveAttribute('aria-valuenow', String(seconds));
+}

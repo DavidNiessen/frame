@@ -9,5 +9,6 @@ import './styles/layout.css';
 import './styles/editor.css';
 import './styles/controls.css';
 import './styles/workspace.css';
+import './styles/timeline.css';
 import App from './App';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

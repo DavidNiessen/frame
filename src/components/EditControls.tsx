@@ -21,7 +21,7 @@ export function EditControls({ asset, edit, update, current }: { asset: MediaAss
   }
   return <>
     <section className="control-section"><div className="section-title"><Scissors size={16} /><h3>Trim</h3><span>{time(editedDuration(edit))}</span></div>
-      <div className="field-grid"><label>Start <span className="unit">sec</span><input type="number" aria-label="Trim start" min={0} max={edit.end - 0.05} step={0.1} value={Number(edit.start.toFixed(2))} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value)) update({ start: Math.min(edit.end - 0.05, Math.max(0, value)) }); }} /></label><label>End <span className="unit">sec</span><input type="number" aria-label="Trim end" min={edit.start + 0.05} max={asset.duration} step={0.1} value={Number(edit.end.toFixed(2))} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value)) update({ end: Math.max(edit.start + 0.05, Math.min(asset.duration, value)) }); }} /></label></div>
+      <p className="field-note">Drag clip edges in the timeline to trim, including split sections.</p>
       <div className="inline-actions"><button onClick={() => update({ start: Math.min(current, edit.end - 0.05) })}>Set in at playhead <kbd>I</kbd></button><button onClick={() => update({ end: Math.max(current, edit.start + 0.05) })}>Set out <kbd>O</kbd></button></div>
     </section>
     {asset.kind === 'video' && <section className="control-section"><div className="section-title"><CropIcon size={16} /><h3>Crop</h3><button className="icon-button" aria-label="Reset crop" onClick={() => update({ crop: null })}><RotateCcw size={13} /></button></div>

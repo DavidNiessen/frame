@@ -1,3 +1,4 @@
+import { trim, setBoundary } from '../helpers/timeline';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -6,8 +7,9 @@ import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 test('previews and exports video/audio fades after a speed edit', async ({ page }, testInfo) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim end').fill('2'); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Playback speed').selectOption('2');
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Video fade in', { exact: true }).fill('0.2'); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Audio fade in', { exact: true }).fill('0.2');
+  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 2); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Playback speed').selectOption('2');
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Video fade in', { exact: true }).check(); await setBoundary(page, 'Video fade in end', 0.4); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Audio fade in', { exact: true }).check(); await setBoundary(page, 'Audio fade in end', 0.4);
+  await page.getByLabel('Seek playhead').fill('0');
   await expect(page.locator('video')).toHaveCSS('opacity', '0');
   await page.getByLabel('Seek playhead').fill('0.2');
   await expect.poll(() => page.locator('video').evaluate(v => Number((v as HTMLVideoElement).style.opacity))).toBeCloseTo(0.5, 1);
@@ -20,7 +22,7 @@ test('previews and exports video/audio fades after a speed edit', async ({ page 
 test('crossfades browser clips with audio and video', async ({ page }, testInfo) => {
   await page.goto('/'); const buffer = await readFile('public/sample.mp4');
   await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim end').fill('1'); await page.locator('.asset-select').filter({ hasText: 'two.mp4' }).click(); await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim end').fill('1');
+  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 1); await page.locator('.asset-select').filter({ hasText: 'two.mp4' }).click(); await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 1);
   await page.getByText('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Merge clips', exact: true });
   await dialog.getByLabel('Merge transition').selectOption('fade');

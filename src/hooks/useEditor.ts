@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createEngine } from '../engines';
 import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type MediaAsset, type MediaEngine } from '../core/types';
 import { parseEdit } from '../core/project';
+import { editedDuration } from '../core/timeline';
 import { validateEdit } from '../core/export-plan';
 interface History { past: EditSettings[]; present: EditSettings; future: EditSettings[] }
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
@@ -44,15 +45,17 @@ export function useEditor() {
     } catch (error) { setNotice(messageOf(error)); }
     finally { busyRef.current = false; setBusy(null); }
   }
-  function update(patch: Partial<EditSettings>) {
+  const update = useCallback((patch: Partial<EditSettings>) => {
     if (!selected || busyRef.current) return;
     setHistories(current => {
       const h = current[selected]; if (!h) return current;
       const next = { ...h.present, ...patch };
+      const duration = editedDuration(next);
+      for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) next[key] = Math.min(next[key], duration);
       if (JSON.stringify(next) === JSON.stringify(h.present)) return current;
       return { ...current, [selected]: { past: [...h.past, h.present].slice(-100), present: next, future: [] } };
     });
-  }
+  }, [selected]);
   function travel(direction: 'undo' | 'redo') {
     if (!selected || busyRef.current) return;
     setHistories(current => {

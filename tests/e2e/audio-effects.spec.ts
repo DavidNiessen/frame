@@ -1,3 +1,4 @@
+import { trim } from '../helpers/timeline';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -5,7 +6,7 @@ import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 test('previews and exports browser audio cleanup', async ({ page }, testInfo) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim end').fill('1');
+  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 1);
   await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Audio cleanup & EQ', { exact: true }).click();
   await page.getByLabel('Normalize loudness', { exact: true }).check();
   await page.getByLabel('Reduce background noise', { exact: true }).check();

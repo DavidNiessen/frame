@@ -1,3 +1,4 @@
+import { trim } from '../helpers/timeline';
 import { test, expect, _electron } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -21,6 +22,12 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     const track = (await page.locator('.timeline-track').boundingBox())!;
     await page.locator('.timeline-track').click({ position: { x: track.width * 0.2, y: track.height / 2 } });
     await expect.poll(() => page.locator('video').evaluate(v => (v as HTMLVideoElement).currentTime)).toBeCloseTo(1.2, 1);
+    const edge = (await page.getByRole('slider', { name: 'Trim start', exact: true }).boundingBox())!;
+    await page.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2); await page.mouse.down();
+    await page.mouse.move(edge.x + edge.width / 2 + track.width / 6, edge.y + edge.height / 2, { steps: 8 }); await page.mouse.up();
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
+    await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
     await page.getByRole('button', { name: 'Generate thumbnails' }).click();
     await expect(page.getByRole('group', { name: 'Timeline thumbnails', exact: true }).getByRole('button')).toHaveCount(12);
     await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Desktop performance', { exact: true }).click();
@@ -57,8 +64,8 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.getByText('Export ready', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Dismiss export result' }).click();
     await page.getByLabel('Subtitle export').selectOption('none');
-    await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).fill('1');
-    await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim end').fill('2');
+    await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 1);
+    await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 2);
     const projectPath = join(directory, 'edit.frame.json');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, projectPath);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
@@ -66,10 +73,10 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     const project = JSON.parse(await readFile(projectPath, 'utf8'));
     expect(project.sources[0].edit.start).toBe(1);
     expect(JSON.stringify(project)).not.toContain('media://');
-    await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).fill('0');
+    await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 0);
     await page.getByLabel('Choose project file').setInputFiles(projectPath);
     await page.getByRole('button', { name: 'Restore edits' }).click();
-    await expect(page.getByLabel('Trim start', { exact: true })).toHaveValue('1');
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
     await page.getByLabel('Output format').selectOption('flac');
     const output = join(directory, 'output.flac');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
@@ -118,9 +125,9 @@ test('recovers desktop recipes after restarting the same profile', async () => {
   const launch = () => _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   let app = await launch();
   try {
-    let page = await app.firstWindow(); await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).fill('1'); await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim end').fill('2'); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
+    let page = await app.firstWindow(); await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 1); await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 2); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
     await app.close(); app = await launch(); page = await app.firstWindow(); await expect(page.getByRole('button', { name: 'Recover workspace' })).toBeVisible();
-    await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByRole('button', { name: 'Recover workspace' }).click(); await page.getByRole('button', { name: 'Restore edits' }).click(); await expect(page.getByLabel('Trim start', { exact: true })).toHaveValue('1'); await expect(page.getByLabel('Trim end')).toHaveValue('2');
+    await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByRole('button', { name: 'Recover workspace' }).click(); await page.getByRole('button', { name: 'Restore edits' }).click(); await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1'); await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '2');
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
 });
 
@@ -131,7 +138,7 @@ test('previews an unsupported source through a temporary proxy and exports from 
   const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {
     const page = await app.firstWindow(); await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, input);
-    await page.getByRole('button', { name: 'Add media', exact: true }).click(); await expect(page.getByLabel('Trim end')).toHaveValue('1');
+    await page.getByRole('button', { name: 'Add media', exact: true }).click(); await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '1');
     await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Desktop performance', { exact: true }).click(); await page.getByRole('button', { name: 'Create lightweight preview' }).click(); await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/proxy\//); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output); await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByText('Export ready', { exact: true })).toBeVisible();
     const probe = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', output]); const video = JSON.parse(probe.stdout).streams[0]; expect([video.width, video.height]).toEqual([320, 180]); expect((await readFile(input)).equals(original)).toBe(true);

@@ -1,4 +1,7 @@
 import { useRef, type PointerEvent } from 'react';
+import { resizeSection, sectionLimits } from '../core/timeline-edit';
+import { TimedLanes } from './TimedLanes';
+import { TimelineRange } from './TimelineRange';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import { Waveform } from './Waveform';
 import type { WaveformPoint } from '../core/waveform';
@@ -37,7 +40,8 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
       {asset.hasAudio && !waveform && <><button className="button small" disabled={disabled} onClick={generateWaveform}>{waveformLoading ? `Reading peaks ${Math.round(analysisProgress * 100)}%` : 'Generate waveform'}</button>{waveformLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel waveform</button>}</>}
       </div><div className="timeline-ruler">{[0, 1, 2, 3, 4].map(i => <span key={i}>{time(asset.duration * i / 4)}</span>)}</div>
       {thumbnails && <ThumbnailStrip url={thumbnails} duration={asset.duration} seek={seek} disabled={disabled} />}
-      <div className="timeline-track" onPointerDown={event => {
+      <TimedLanes asset={asset} edit={edit} update={update} disabled={disabled} seek={seek} />
+      <div className="timeline-track timeline-lane" onPointerDown={event => {
         if (disabled || event.button !== 0) return;
         event.preventDefault();
         slider.current?.focus({ preventScroll: true });
@@ -50,12 +54,13 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
           scrub(event);
           event.currentTarget.releasePointerCapture(event.pointerId);
         }
-      }}><div className="track-baseline" />{waveform && <Waveform points={waveform} duration={asset.duration} />}{sections.map((section, i) => <button key={`${section.start}-${section.end}`} className={`timeline-clip ${active === section ? 'active' : ''} ${asset.kind}`} disabled={disabled}
-        style={{ left: `${section.start / asset.duration * 100}%`, width: `${(section.end - section.start) / asset.duration * 100}%` }} onClick={event => { if (event.detail === 0 && !disabled) seek((section.start + section.end) / 2); }} aria-label={`Select section ${i + 1}, ${time(section.start)} to ${time(section.end)}`}>
-        <span className="clip-text">{asset.name}</span></button>)}
+      }}><div className="track-baseline" />{waveform && <Waveform points={waveform} duration={asset.duration} />}{sections.map((section, i) => <TimelineRange key={i} range={section} limits={sectionLimits(edit, i, asset.duration)} duration={asset.duration}
+        text={asset.name} label={`Select section ${i + 1}, ${time(section.start)} to ${time(section.end)}`} startLabel={i === 0 ? 'Trim start' : `Section ${i + 1} start`} endLabel={i === sections.length - 1 ? 'Trim end' : `Section ${i + 1} end`}
+        className={`timeline-clip ${active === section ? 'active' : ''} ${asset.kind}`} disabled={disabled}
+        onSelect={() => seek((section.start + section.end) / 2)} onChange={range => update(resizeSection(edit, i, range, asset.duration))} />)}
         <div className="playhead" style={{ left: `${current / asset.duration * 100}%` }}><span /></div>
       <input ref={slider} className="seek-slider" type="range" aria-label="Seek playhead" aria-valuetext={`${current.toFixed(2)} of ${asset.duration.toFixed(2)} seconds`} min={0} max={asset.duration} step={0.01} value={current} disabled={disabled} onChange={event => seek(Number(event.target.value))} /></div>
-      <div className="timeline-summary"><span><CornerDownLeft size={13} /> Click or drag to seek. Split to remove a section.</span><strong>{time(editedDuration(edit))} <span>output</span></strong></div>
+      <div className="timeline-summary"><span><CornerDownLeft size={13} /> Drag clip edges to trim. Click or drag inside to seek.</span><strong>{time(editedDuration(edit))} <span>output</span></strong></div>
     </div>
   </section>;
 }

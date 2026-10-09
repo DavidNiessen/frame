@@ -21,7 +21,7 @@ The browser's first import loads the self-hosted WebAssembly engine (about 32 MB
 ## Editing
 
 1. Import or drop video/audio files and choose a file in the library.
-2. In **Edit**, adjust the trim range. Click or drag anywhere on the timeline to seek to that source position, then split and remove unwanted sections. The timeline also supports touch and keyboard seeking.
+2. Drag a clip’s left or right timeline edge to set its start or end. Split sections have their own handles and can shrink or expand into free space without overlapping neighbours. Click or drag inside the track to seek, then split and remove unwanted sections. Handles support touch, arrow-key nudging (Shift for larger steps), Page Up/Down, and Home/End. A drag is one undo step; Escape or an interrupted touch cancels it.
 3. Choose a video crop preset, drag the crop frame/corners, or enter precise dimensions.
 4. Adjust volume and choose an output format.
 5. In **Export**, choose a built-in export preset or save your own format/quality settings for reuse. Presets keep trim, crop, and volume unchanged. Custom presets persist on this device (up to 20).
@@ -42,7 +42,7 @@ For video, **Generate thumbnails** adds a strip of twelve source frames. Click a
 
 Use **Speed** for 0.25×–4× playback and export. Audio pitch stays unchanged by default; disable preservation for the classic pitch-shifting effect. Speed also applies to each source in a merge. Trim boundaries stay in source time, while output duration reflects the speed. Older project files default to 1× with pitch preservation.
 
-Set **Fades** to fade video to/from black and audio to/from silence. Fade duration uses output seconds after cuts and speed. Preview fades update smoothly during playback. In **Merge clips**, choose **Crossfade audio and video** to overlap adjacent clips; the duration can use at most half of the shortest clip, and the overlap shortens the output.
+Enable **Fades** to fade video to/from black and audio to/from silence, then drag their bar edges in the **Timed effects** lanes above the media track. Fade duration uses output seconds after cuts and speed. Preview fades update smoothly during playback. In **Merge clips**, choose **Crossfade audio and video** to overlap adjacent clips; the duration can use at most half of the shortest clip, and the overlap shortens the output.
 
 Open **Audio cleanup & EQ** to normalize loudness to a LUFS target, reduce steady background noise, and adjust bass/mid/treble by up to 12 dB. Cleanup also applies within merged clips. **Preview audio effects** processes a retained section up to 10 seconds; final normalization processes the complete export. Manual volume applies after normalization.
 
@@ -104,7 +104,7 @@ Vite's development and preview servers already set the isolation headers. `base:
 
 [Architecture](docs/ARCHITECTURE.md) describes the extension points. [Cloud setup](docs/CLOUD_SETUP.md) records the validated container workflow.
 
-Subtitles: import SRT or WebVTT, edit source cue timing/text, and preview captions. Burn-in uses a bundled DejaVu Sans font on both platforms; MP4/MOV/MKV/WebM also support selectable subtitle streams. Output SRT timing follows trims, cuts and speed. Merges retain per-clip burn-in or combine embedded cues.
+Subtitles: import SRT or WebVTT, edit caption text, and adjust source timing by dragging caption bar edges above the media track. Overlapping captions use separate lanes. Caption and timed-effect groups can be folded to save space. Burn-in uses a bundled DejaVu Sans font on both platforms; MP4/MOV/MKV/WebM also support selectable subtitle streams. Output SRT timing follows trims, cuts and speed. Merges retain per-clip burn-in or combine embedded cues.
 
 Text and watermarks: add multiline text or a PNG/JPEG/WebP image, position it, and adjust size/color/opacity. Images are normalized to portable PNG assets stored in the project. FFmpeg uses bundled-font ASS text and image overlays, including for merged clips; text is never interpreted as a filter expression.
 
