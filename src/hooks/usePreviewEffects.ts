@@ -25,13 +25,16 @@ export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit:
   useEffect(() => {
     if (!playing) return;
     let frame = 0, playingClip: string | null = null;
+    const media = ref.current;
+    const seeking = () => { playingClip = null; };
+    media?.addEventListener('seeking', seeking);
     function tick() {
       const media = ref.current;
       if (!media || media.paused) return;
       const { edit: recipe, publish: updateClock } = latest.current;
       const clips = editClips(recipe);
       let index = clips.findIndex(clip => clip.id === playingClip);
-      if (index < 0 || media.currentTime < clips[index].start || media.currentTime > clips[index].end + .04) index = clips.findIndex(clip => media.currentTime >= clip.start && media.currentTime < clip.end);
+      if (index < 0 || media.currentTime < clips[index].start) index = clips.findIndex(clip => media.currentTime >= clip.start && media.currentTime < clip.end);
       if (index < 0) index = 0;
       playingClip = clips[index].id;
       let next: number | null;
@@ -46,6 +49,6 @@ export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit:
       if (!media.paused) frame = requestAnimationFrame(tick);
     }
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    return () => { cancelAnimationFrame(frame); media?.removeEventListener('seeking', seeking); };
   }, [ref, playing, assetId]);
 }

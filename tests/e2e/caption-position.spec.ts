@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
@@ -9,7 +10,7 @@ const exec = promisify(execFile);
 async function captions(page: Page) {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
   await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await page.getByText('Subtitles', { exact: true }).click();
+  await openEffect(page, 'Captions');
   await page.getByRole('button', { name: 'Add caption', exact: true }).click();
   await page.getByRole('button', { name: 'Move caption 1', exact: true }).waitFor();
   await page.evaluate(() => document.fonts.ready);
@@ -50,7 +51,7 @@ test('moves captions with one undo per drag, keyboard nudges and saved project p
   await expect(caption).toHaveClass(/positioned/);
   expect(await caption.evaluate(node => Number.parseFloat((node as HTMLElement).style.top))).toBe(position.y);
   await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await page.getByText('Subtitles', { exact: true }).click();
+  await openEffect(page, 'Captions');
   await page.getByRole('button', { name: 'Reset caption 1 position' }).click();
   await expect(caption).not.toHaveClass(/positioned/);
   await page.getByLabel('Subtitle export').selectOption('embed'); await expect(caption).toBeDisabled();
@@ -86,7 +87,7 @@ test('burns the moved caption at the selected position with browser FFmpeg', asy
   await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'color=black:s=360x240:d=0.5', input]);
   await page.goto('/'); await page.getByLabel('Choose media files').setInputFiles(input);
   await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await page.getByText('Subtitles', { exact: true }).click();
+  await openEffect(page, 'Captions');
   await page.getByRole('button', { name: 'Add caption', exact: true }).click();
   await page.getByLabel('Subtitle 1 text').fill('PLACED');
   await page.evaluate(() => document.fonts.ready);

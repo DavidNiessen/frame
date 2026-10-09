@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { test, expect } from '@playwright/test';
 
 test('keeps desktop editing focused and preserves effects across accessible tabs', async ({ page }) => {
@@ -18,14 +19,14 @@ test('keeps desktop editing focused and preserves effects across accessible tabs
   await edit.focus(); await edit.press('ArrowRight');
   await expect(effects).toBeFocused();
   await expect(effects).toHaveAttribute('aria-selected', 'true');
-  await page.getByLabel('Playback speed').selectOption('2');
+  await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
   await output.click();
   await page.getByLabel('Output format').selectOption('gif');
   await page.getByText('Advanced settings', { exact: true }).click();
   await expect(page.getByLabel('GIF frame rate')).toBeVisible();
   await edit.click();
   await expect(page.getByLabel('Playback speed')).toBeHidden();
-  await page.getByRole('button', { name: 'View applied effects: Speed 2×' }).click();
+  await page.getByRole('button', { name: 'View applied effects: Speed' }).click();
   await expect(page.getByLabel('Playback speed')).toHaveValue('2');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(page.getByLabel('Output format')).toHaveValue('mp4');
@@ -55,7 +56,7 @@ test('supports precise touch seeking and focused tools on narrow screens', async
     await page.touchscreen.tap(bounds.x + bounds.width * 0.2, bounds.y + bounds.height / 2);
     await expect.poll(async () => Number(await page.getByLabel('Seek playhead').inputValue())).toBeCloseTo(1.2, 1);
     await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-    await expect(page.getByLabel('Playback speed')).toBeVisible();
+    await expect(page.getByLabel('Search effects')).toBeVisible();
     await page.getByRole('tab', { name: 'Export', exact: true }).click();
     await expect(page.getByLabel('Export preset')).toBeVisible();
     await page.getByRole('tab', { name: 'Edit', exact: true }).click();

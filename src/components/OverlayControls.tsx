@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { EditSettings } from '../core/types';
-export function OverlayControls({ edit, update }: { edit: EditSettings; update: (patch: Partial<EditSettings>) => void }) {
+export function OverlayControls({ edit, update, expanded = false }: { expanded?: boolean; edit: EditSettings; update: (patch: Partial<EditSettings>) => void }) {
   const o = edit.overlays; const fileInput = useRef<HTMLInputElement>(null); const [error, setError] = useState('');
   const change = (patch: Partial<typeof o>) => update({ overlays: { ...o, ...patch } });
   async function importImage(file: File) {
@@ -12,7 +12,7 @@ export function OverlayControls({ edit, update }: { edit: EditSettings; update: 
       change({ image: canvas.toDataURL('image/png') }); setError('');
     } catch (error) { setError(error instanceof Error ? error.message : 'Could not load the image.'); }
   }
-  return <details className="advanced"><summary>Text & watermark</summary><div className="advanced-content">
+  return <details className="advanced" open={expanded || undefined}><summary>Text & watermark</summary><div className="advanced-content">
     <label className="stacked-label">Overlay text<textarea aria-label="Overlay text" maxLength={2000} value={o.text} onChange={e => change({ text: e.target.value })} placeholder="Add a title or credit" /></label>
     <input ref={fileInput} hidden type="file" accept="image/png,image/jpeg,image/webp" aria-label="Watermark image file" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void importImage(file); }} />
     <button className="button subtle small" onClick={() => fileInput.current?.click()}>Choose watermark image</button>{o.image && <button className="button subtle small" onClick={() => change({ image: null })}>Remove watermark</button>}

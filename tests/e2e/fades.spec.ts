@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { trim, setBoundary } from '../helpers/timeline';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
@@ -7,8 +8,8 @@ import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 test('previews and exports video/audio fades after a speed edit', async ({ page }, testInfo) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 2); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Playback speed').selectOption('2');
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Video fade in', { exact: true }).check(); await setBoundary(page, 'Video fade in end', 0.4); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Audio fade in', { exact: true }).check(); await setBoundary(page, 'Audio fade in end', 0.4);
+  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 2); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Video fade in'); await setBoundary(page, 'Video fade in end', 0.4); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Audio fade in'); await setBoundary(page, 'Audio fade in end', 0.4);
   await page.getByLabel('Seek playhead').fill('0');
   await expect(page.locator('video')).toHaveCSS('opacity', '0');
   await page.getByLabel('Seek playhead').fill('0.2');

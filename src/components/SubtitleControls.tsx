@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { importSubtitles, outputCues, serializeSrt } from '../core/subtitles';
 import type { EditSettings } from '../core/types';
-export function SubtitleControls({ edit, update }: { edit: EditSettings; update: (patch: Partial<EditSettings>) => void }) {
+export function SubtitleControls({ edit, update, expanded = false }: { expanded?: boolean; edit: EditSettings; update: (patch: Partial<EditSettings>) => void }) {
   const input = useRef<HTMLInputElement>(null); const [error, setError] = useState(''); const s = edit.subtitles;
   const change = (index: number, patch: Partial<typeof s.cues[number]>) => update({ subtitles: { ...s, cues: s.cues.map((c, i) => i === index ? { ...c, ...patch } : c) } });
-  return <details className="advanced"><summary>Subtitles</summary><div className="advanced-content">
+  return <details className="advanced" open={expanded || undefined}><summary>Subtitles</summary><div className="advanced-content">
     <input ref={input} type="file" accept=".srt,.vtt" hidden aria-label="Import subtitle file" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; void file.text().then(text => { update({ subtitles: importSubtitles(text) }); setError(''); }).catch(e => setError(e.message)); }} />
     <button className="button subtle small" onClick={() => input.current?.click()}>Import SRT / VTT</button>
     <label className="stacked-label">Subtitle export<select value={s.mode} onChange={e => update({ subtitles: { ...s, mode: e.target.value as typeof s.mode } })}><option value="none">Off</option><option value="burn">Burn into video</option><option value="embed">Embed selectable captions</option></select></label>

@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 import { setBoundary } from '../helpers/timeline';
 async function dragEdge(page: Page, label: string, delta: number) {
@@ -5,9 +6,10 @@ async function dragEdge(page: Page, label: string, delta: number) {
   await handle.scrollIntoViewIfNeeded();
   const bounds = (await handle.boundingBox())!;
   const lane = await handle.evaluate(node => node.closest('.timeline-lane')!.getBoundingClientRect().width);
+  const scale = await handle.evaluate(node => { const range = node.closest<HTMLElement>('.timeline-range')!; return Number(range.dataset.duration) * Number(range.dataset.speed); });
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await page.mouse.down();
-  await page.mouse.move(bounds.x + bounds.width / 2 + delta / 6 * lane, bounds.y + bounds.height / 2, { steps: 12 });
+  await page.mouse.move(bounds.x + bounds.width / 2 + delta / scale * lane, bounds.y + bounds.height / 2, { steps: 12 });
   await page.mouse.up();
 }
 async function sample(page: Page) {
@@ -41,7 +43,7 @@ test('drags, restores, and independently resizes split clips with one undo per g
 test('resizes overlapping captions and fades above the clip and preserves exported cue timing', async ({ page }) => {
   await sample(page);
   await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await page.getByText('Subtitles', { exact: true }).click();
+  await openEffect(page, 'Captions');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'timing.srt', mimeType: 'text/plain', buffer: Buffer.from('1\n00:00:00,000 --> 00:00:03,000\nFirst caption\n\n2\n00:00:01,000 --> 00:00:04,000\nOverlapping caption\n') });
   await expect(page.locator('.caption-lane')).toHaveCount(2);
   await expect(page.getByRole('spinbutton', { name: /Subtitle .* (start|end)/ })).toHaveCount(0);
@@ -54,13 +56,13 @@ test('resizes overlapping captions and fades above the clip and preserves export
   await page.locator('.timeline-lane-group > summary').filter({ hasText: 'Captions' }).click();
   await expect(page.getByLabel('Caption 1 start')).toBeHidden();
   await page.locator('.timeline-lane-group > summary').filter({ hasText: 'Captions' }).click();
-  await page.getByLabel('Audio fade in', { exact: true }).check();
+  await openEffect(page, 'Audio fade in');
   await dragEdge(page, 'Audio fade in end', 0.5);
   await expect(page.getByLabel('Audio fade in end')).toHaveAttribute('aria-valuenow', '1');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(page.getByLabel('Audio fade in end')).toHaveAttribute('aria-valuenow', '0.5');
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save output SRT' }).click();
+  await openEffect(page, 'Captions'); await page.getByRole('button', { name: 'Save output SRT' }).click();
   const download = await downloadPromise;
   const path = await download.path();
   const { readFile } = await import('node:fs/promises');

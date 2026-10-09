@@ -24,7 +24,7 @@ export function sourceTimeAtOutput(edit: EditSettings, output: number, side: 'st
   if (edit.clips) {
     const positions = clipPositions(edit), time = Math.max(0, Math.min(editedDuration(edit), output));
     const segment = positions.find(item => time < item.end || side === 'end' && time <= item.end);
-    return segment ? segment.clip.start + (time - segment.start) * segment.speed : positions.at(-1)?.clip.end ?? edit.end;
+    return segment ? segment.clip.start + (time - segment.start) * segment.speed : (positions.at(-1)?.clip.end ?? edit.end) - .000001;
   }
   const ranges = keptRanges(edit); let remaining = Math.max(0, Math.min(editedDuration(edit), output)) * edit.speed;
   for (const range of ranges) {

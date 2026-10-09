@@ -46,3 +46,44 @@
 .clip-waveform .audio-waveform { opacity: .8; fill: currentColor; z-index: auto; }
 .playhead { z-index: 5; }
 @media (max-width: 700px) { .timeline-body { padding: 12px 14px; } .timeline-track { height: 60px; } }
+.movable-clip { position: absolute; inset: 0; pointer-events: none; }
+.movable-clip .timeline-range { pointer-events: auto; }
+.movable-clip .range-body { cursor: grab; touch-action: none; }
+.movable-clip.dragging { z-index: 8; }
+.movable-clip.dragging .timeline-range { box-shadow: var(--shadow); opacity: .85; }
+.movable-clip.dragging .range-body { cursor: grabbing; }
+.timeline-navigation { flex-shrink: 0; padding: 5px 12px; border-bottom: 1px solid var(--border-soft); }
+.timeline-track-filters { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.timeline-track-filters button { color: var(--muted); font-size: 10px; text-transform: capitalize; border-radius: 4px; padding: 4px 6px; }
+.timeline-track-filters button[aria-pressed='true'] { background: var(--accent-dim); color: var(--accent-text); }
+.timeline-track-filters .compact-tracks { margin-left: auto; }
+.timeline-overview { position: relative; height: 13px; margin-top: 5px; background: var(--stage); border-radius: 3px; overflow: hidden; }
+.timeline-overview span { position: absolute; inset-block: 1px; background: var(--accent-dim); border-inline: 1px solid var(--border); color: var(--muted); font-size: 8px; text-align: center; }
+.timeline-overview i { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+.timeline-pan { display: flex; align-items: center; gap: 12px; font-size: 9px; color: var(--quiet); }
+.timeline-pan input { min-width: 0; margin: 5px 0; min-height: 12px; flex: 1; }
+.timeline-clip-viewport { flex-shrink: 0; padding: 4px 20px 8px; overflow: hidden; background: var(--surface); }
+.timeline-ruler { position: sticky; top: 0; z-index: 7; background: var(--surface); padding-block: 4px; }
+@media (max-width: 700px) { .timeline-track-filters button { min-height: 28px; } .timeline-pan input { min-height: 24px; } }
+.timeline-view-tools { min-height: 32px; }
+.timeline-zoom input { margin-block: 0; }
+.timeline-navigation { padding-block: 3px; }
+.timeline-overview { height: 16px; }
+.timeline-overview b { position: absolute; inset-block: 0; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 3px; pointer-events: none; }
+.timeline-pan { position: absolute; inset: 0; }
+.timeline-pan input { width: 100%; height: 100%; margin: 0; opacity: 0; cursor: grab; }
+.timeline-overview:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.timeline-navigation-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+.timeline-navigation-top .timeline-view-tools { padding: 0; border: 0; min-height: 26px; }
+.timeline-navigation-top .timeline-view-tools > span { display: none; }
+.timeline-navigation-top .timeline-zoom input { width: 64px; }
+.timeline > .timeline-analysis { flex-shrink: 0; padding: 3px 12px; }
+@media (max-width: 700px) { .timeline-clip-viewport { padding-inline: 14px; } }
+/* Keep the default-height timeline useful even with both analysis tools and open lanes. */
+.timeline .timeline-toolbar { padding-block: 4px; }
+.timeline .timeline-navigation-top .timeline-zoom .button { min-height: 24px; }
+.timeline .timeline-analysis { margin-bottom: 0; padding-block: 0; }
+.timeline .timeline-body { padding-block: 2px; }
+.timeline .timeline-track { margin-bottom: 0; }
+.timeline .timeline-summary { padding-block: 4px; }
+.timeline .timeline-ruler { position: relative; padding-block: 2px; }

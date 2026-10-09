@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { trim } from '../helpers/timeline';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
@@ -7,10 +8,10 @@ const exec = promisify(execFile);
 test('previews and exports browser audio cleanup', async ({ page }, testInfo) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
   await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 1);
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Audio cleanup & EQ', { exact: true }).click();
-  await page.getByLabel('Normalize loudness', { exact: true }).check();
-  await page.getByLabel('Reduce background noise', { exact: true }).check();
-  await page.getByLabel('Equalizer mid', { exact: true }).fill('3');
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Normalize loudness');
+
+  await openEffect(page, 'Noise reduction');
+  await openEffect(page, 'Equalizer'); await page.getByLabel('Equalizer mid', { exact: true }).fill('3');
   await page.getByRole('button', { name: 'Preview audio effects', exact: true }).click();
   const audio = page.getByLabel('Processed audio preview', { exact: true });
   await expect(audio).toHaveJSProperty('readyState', 4, { timeout: 45000 });

@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { trim } from '../helpers/timeline';
 import { test, expect, _electron } from '@playwright/test';
 import { execFile } from 'node:child_process';
@@ -42,15 +43,15 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/asset\//);
     await page.getByRole('button', { name: 'Generate waveform' }).click();
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
-    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Audio cleanup & EQ', { exact: true }).click();
-    await page.getByLabel('Normalize loudness', { exact: true }).check();
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Normalize loudness');
+
     await page.getByRole('button', { name: 'Preview audio effects', exact: true }).click();
     await expect(page.getByLabel('Processed audio preview', { exact: true })).toHaveJSProperty('readyState', 4);
-    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Remove silence', { exact: true }).click();
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Remove silence');
     await page.getByLabel('Silence threshold').fill('-10');
     await page.getByRole('button', { name: 'Find silent sections' }).click();
     await expect(page.getByLabel('Remove silent section 1')).toBeVisible();
-    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Subtitles', { exact: true }).click();
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
     await page.getByRole('button', { name: 'Add caption', exact: true }).click();
     await page.getByLabel('Subtitle 1 text').fill('Portable caption');
     await page.evaluate(() => document.fonts.ready);
@@ -62,9 +63,9 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(caption).toHaveClass(/positioned/);
     await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(caption).not.toHaveClass(/positioned/);
     await page.getByRole('button', { name: 'Redo edit', exact: true }).click(); await expect(caption).toHaveClass(/positioned/);
-    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Text & watermark', { exact: true }).click();
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Watermark');
     await page.getByLabel('Overlay text', { exact: true }).fill('Desktop title');
-    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByText('Color & LUTs', { exact: true }).click();
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Color & LUTs');
     await page.getByLabel('Color brightness').fill('0.1');
     await page.getByRole('button', { name: 'Render edited frame' }).click();
     await expect(page.getByAltText('Rendered edited frame')).toBeVisible();
@@ -73,7 +74,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
     await expect(page.getByText('Export ready', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Dismiss export result' }).click();
-    await page.getByLabel('Subtitle export').selectOption('none');
+    await openEffect(page, 'Captions'); await page.getByLabel('Subtitle export').selectOption('none');
     await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 1);
     await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 2);
     const projectPath = join(directory, 'edit.frame.json');

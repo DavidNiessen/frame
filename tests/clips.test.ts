@@ -25,6 +25,8 @@ function recipe() {
 }
 describe('ordered clips with scoped effects', () => {
   it('persists independent effects, order and source/output time mappings', () => {
+    const original = { ...defaultSettings(asset), splits: [2] }, snapshot = JSON.stringify(original);
+    reorderClip(original, editClips(original)[1].id, 0); expect(JSON.stringify(original)).toBe(snapshot);
     const edit = recipe(), restored = parseEdit(JSON.parse(JSON.stringify(edit)), asset);
     expect(restored.clips!.map(c => c.start)).toEqual([2, 0]);
     expect(restored.clips![1].effects).toEqual({});

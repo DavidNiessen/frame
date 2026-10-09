@@ -29,7 +29,7 @@ export function splitClip(edit: EditSettings, id: string, time: number): Partial
   return { clips: clips.flatMap(item => item.id === id ? [{ ...item, end: time }, { ...item, id: `source-${time}-${clip.end}`, start: time, effects: structuredClone(item.effects) }] : [item]) };
 }
 export function reorderClip(edit: EditSettings, id: string, index: number): Partial<EditSettings> {
-  const clips = editClips(edit), from = clips.findIndex(clip => clip.id === id);
+  const clips = [...editClips(edit)], from = clips.findIndex(clip => clip.id === id);
   if (from < 0) return {};
   const [clip] = clips.splice(from, 1); clips.splice(Math.max(0, Math.min(clips.length, index)), 0, clip);
   return { clips };

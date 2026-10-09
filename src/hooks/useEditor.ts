@@ -1,9 +1,10 @@
 import type { UrlImportOptions } from '../core/youtube';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createEngine } from '../engines';
 import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type ImportReport, type MediaAsset, type MediaEngine } from '../core/types';
 import { parseEdit } from '../core/project';
 import { clipEffectKeys, editClips, clipRecipe, patchClip } from '../core/clips';
+import { resizeSection } from '../core/timeline-edit';
 import { editedDuration } from '../core/timeline';
 import { validateEdit } from '../core/export-plan';
 interface History { past: EditSettings[]; present: EditSettings; future: EditSettings[] }
@@ -127,15 +128,18 @@ export function useEditor() {
   }
   function dismissResult() { if (result?.url) URL.revokeObjectURL(result.url); setResult(null); }
   const clip = edit ? editClips(edit).find(clip => clip.id === selectedClip) : undefined;
-  const scopedEdit = edit && clip ? clipRecipe(edit, clip) : edit;
+  const scopedEdit = useMemo(() => edit && clip ? clipRecipe(edit, clip) : edit, [edit, selectedClip]);
   return { selectedClip: clip?.id ?? null, selectClip: setSelectedClip, scopedEdit,
     updateClip: (patch: Partial<EditSettings>) => {
       if (edit && clip) {
         const effects = Object.fromEntries(Object.entries(patch).filter(([key]) => clipEffectKeys.includes(key as typeof clipEffectKeys[number])));
         const next = patchClip(edit, clip.id, effects);
-        if (patch.start !== undefined || patch.end !== undefined) next.clips = next.clips!.map(item => item.id === clip.id ? { ...item, start: Math.max(0, Math.min(item.end - .05, patch.start ?? item.start)), end: Math.min(asset!.duration, Math.max(item.start + .05, patch.end ?? item.end)) } : item);
+        if (patch.start !== undefined || patch.end !== undefined) Object.assign(next, resizeSection({ ...edit, ...next }, editClips(edit).findIndex(item => item.id === clip.id), { start: patch.start ?? clip.start, end: patch.end ?? clip.end }, asset!.duration));
         update(next);
-      } else update(patch);
+      } else {
+        const keys = Object.keys(patch);
+        update({ ...patch, ...(edit?.clips ? { clips: edit.clips.map(item => ({ ...item, effects: Object.fromEntries(Object.entries(item.effects).filter(([key]) => !keys.includes(key))) })) } : {}) });
+      }
     },
     assets, asset, edit, selected, busy, notice, setNotice, progress, result, dismissResult, importReport,
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,

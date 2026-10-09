@@ -25,3 +25,7 @@
 @media (prefers-reduced-motion: reduce) {
   .editor-layout[data-expanded] .workspace-heading, .editor-layout[data-expanded] .transport { transition: none; }
 }
+.fullscreen-scrubber { position: absolute; z-index: 4; left: 20px; right: 20px; bottom: 62px; padding: 4px 12px; border-radius: 8px; background: color-mix(in srgb, var(--surface) 92%, transparent); opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+.fullscreen-scrubber input { display: block; }
+.preview-panel:hover .fullscreen-scrubber, .preview-panel:focus-within .fullscreen-scrubber { opacity: 1; pointer-events: auto; }
+@media (hover: none) { .fullscreen-scrubber { opacity: 1; pointer-events: auto; } }

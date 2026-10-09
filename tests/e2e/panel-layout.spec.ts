@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 
 async function sample(page: Page) {
@@ -7,7 +8,7 @@ async function sample(page: Page) {
 }
 async function crowdedTimeline(page: Page) {
   await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await page.getByText('Subtitles', { exact: true }).click();
+  await openEffect(page, 'Captions');
   const srt = Array.from({ length: 40 }, (_, index) => `${index + 1}\n00:00:00,500 --> 00:00:05,500\nCaption ${index + 1}\n`).join('\n');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'crowded.srt', mimeType: 'text/plain', buffer: Buffer.from(srt) });
   await expect(page.locator('.caption-lane')).toHaveCount(40);
@@ -50,7 +51,8 @@ test('bounds a crowded timeline without shrinking the preview and scrolls zoomed
   expect(await tracks.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
   expect((await page.locator('.timeline').boundingBox())!.height).toBe(248);
   await page.getByLabel('Trim start', { exact: true }).scrollIntoViewIfNeeded();
-  expect(await tracks.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+  // Clip handles remain pinned and visible without scrolling past caption tracks.
+  await expect(page.getByLabel('Trim start', { exact: true })).toBeInViewport();
   await page.getByLabel('Timeline zoom', { exact: true }).fill('4');
   expect(await tracks.evaluate(node => node.scrollWidth > node.clientWidth * 3)).toBe(true);
   await page.getByLabel('Seek playhead').fill('4.5');

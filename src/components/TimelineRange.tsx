@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useRef, useState, type PointerEvent, type ReactNode, type ButtonHTMLAttributes } from 'react';
 import type { TimeRange } from '../core/types';
 import type { Boundary } from '../core/timeline-edit';
 import { time } from '../core/format';
@@ -6,14 +6,16 @@ interface Props {
   selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
   disabled: boolean; onChange: (range: TimeRange) => void; onSelect: () => void;
   startLabel?: string; endLabel?: string; edges?: Boundary[]; minimum?: number;
+  displayRange?: TimeRange; displaySpeed?: number; bodyProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   renderContent?: (range: TimeRange) => ReactNode;
 }
 export function TimelineRange({ range, limits, duration, label, text, selectOnPointer = false, className = '', disabled, onChange, onSelect,
-  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent }: Props) {
+  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps }: Props) {
   const [draft, setDraft] = useState<TimeRange | null>(null);
   const gesture = useRef<{ pointer: number; edge: Boundary; range: TimeRange; origin: number; width: number } | null>(null);
   const pending = useRef(range);
   const shown = draft ?? range;
+  const positioned = displayRange ? { start: displayRange.start + (shown.start - range.start) / displaySpeed, end: displayRange.end + (shown.end - range.end) / displaySpeed } : shown;
   function constrain(edge: Boundary, value: number, base: TimeRange): TimeRange {
     const next = Math.round(value * 100) / 100;
     return edge === 'start' ? { ...base, start: Math.max(limits.start, Math.min(base.end - minimum, next)) }
@@ -22,12 +24,12 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
   function move(event: PointerEvent<HTMLButtonElement>) {
     const g = gesture.current;
     if (!g || g.pointer !== event.pointerId || disabled) return;
-    pending.current = constrain(g.edge, g.range[g.edge] + (event.clientX - g.origin) / g.width * duration, g.range);
+    pending.current = constrain(g.edge, g.range[g.edge] + (event.clientX - g.origin) / g.width * duration * displaySpeed, g.range);
     setDraft(pending.current);
   }
   function cancel() { gesture.current = null; setDraft(null); }
-  return <div className={`timeline-range ${className}`} style={{ left: `${shown.start / duration * 100}%`, width: `${(shown.end - shown.start) / duration * 100}%` }}>
-    <button className="range-body" disabled={disabled} onClick={event => { if (event.detail === 0 || selectOnPointer) onSelect(); }} aria-label={label} title={`${label} · ${time(shown.start)}–${time(shown.end)}`}><span>{text ?? label}</span></button>
+  return <div data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className}`} style={{ left: `${positioned.start / duration * 100}%`, width: `${(positioned.end - positioned.start) / duration * 100}%` }}>
+    <button className="range-body" disabled={disabled} {...bodyProps} onClick={event => { if (event.detail === 0 || selectOnPointer) onSelect(); }} aria-label={label} title={`${label} · ${time(shown.start)}–${time(shown.end)}`}><span>{text ?? label}</span></button>
     {renderContent?.(shown)}
     {edges.map(edge => <button key={edge} className={`range-handle ${edge}`} role="slider" aria-label={edge === 'start' ? startLabel : endLabel}
       aria-orientation="horizontal" aria-valuemin={edge === 'start' ? limits.start : shown.start + minimum}
