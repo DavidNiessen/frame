@@ -6,7 +6,10 @@ import type { WaveformPoint } from '../core/waveform';
 import type { OutputSettings } from '../core/presets';
 import type { TransitionSettings } from '../core/transitions';
 import type { DesktopLaunchRequest } from '../core/launch';
+import type { ShellIntegrationStatus } from '../core/system-integration';
 export interface DesktopBridge {
+  shellIntegrationStatus(): Promise<ShellIntegrationStatus>;
+  setShellIntegration(enabled: boolean): Promise<ShellIntegrationStatus>;
   nextLaunch(): Promise<DesktopLaunchRequest | null>;
   importLaunch(id: string): Promise<ImportReport>;
   onLaunchAvailable(callback: () => void): () => void;

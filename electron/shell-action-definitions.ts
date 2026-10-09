@@ -9,19 +9,73 @@ export function windowsInstaller(): string {
   const install = extensions.flatMap(extension => shellActions.map(action => `  !insertmacro FrameContextVerb "${extension}" "${action.verb}" "${action.label}" "${action.workflow}"`)).join('\n');
   const uninstall = extensions.flatMap(extension => shellActions.map(action => `  !insertmacro FrameRemoveContextVerb "${extension}" "${action.verb}" "${action.workflow}"`)).join('\n');
   return `; Generated from Frame's supported media extensions. Never replace default file associations.
+!include LogicLib.nsh
+!include FileFunc.nsh
+!include nsDialogs.nsh
+!ifndef BUILD_UNINSTALLER
+Var FrameShellEnabled
+Var FrameShellCheckbox
+Var FrameShellDialog
+!macro customInit
+  StrCpy $FrameShellEnabled 1
+  ClearErrors
+  ReadRegDWORD $R0 HKCU "Software\\Frame\\ShellActions" "Enabled"
+  $\{IfNot} $\{Errors}
+    StrCpy $FrameShellEnabled $R0
+  $\{EndIf}
+  $\{GetParameters} $R0
+  ClearErrors
+  $\{GetOptions} $R0 "/NOFRAMECONTEXTMENU" $R1
+  $\{IfNot} $\{Errors}
+    StrCpy $FrameShellEnabled 0
+  $\{EndIf}
+  ClearErrors
+  $\{GetOptions} $R0 "/FRAMECONTEXTMENU" $R1
+  $\{IfNot} $\{Errors}
+    StrCpy $FrameShellEnabled 1
+  $\{EndIf}
+!macroend
+!macro customPageAfterChangeDir
+  Page custom FrameShellPage FrameShellPageLeave
+Function FrameShellPage
+  nsDialogs::Create 1018
+  Pop $FrameShellDialog
+  $\{If} $FrameShellDialog == error
+    Abort
+  $\{EndIf}
+  !insertmacro MUI_HEADER_TEXT "File-manager actions" "Choose how to open your media in Frame."
+  $\{NSD_CreateLabel} 0 0 100% 30u "Open media from File Explorer"
+  Pop $R0
+  $\{NSD_CreateCheckbox} 0 40u 100% 28u 'Add "Edit in Frame" and "Convert in Frame" to file context menus'
+  Pop $FrameShellCheckbox
+  $\{NSD_SetState} $FrameShellCheckbox $FrameShellEnabled
+  $\{NSD_CreateLabel} 0 82u 100% 42u "Applies to supported audio and video files, including multiple selections, for your Windows account. On Windows 11, look under Show more options. You can change this later in Frame Settings."
+  Pop $R0
+  nsDialogs::Show
+FunctionEnd
+Function FrameShellPageLeave
+  $\{NSD_GetState} $FrameShellCheckbox $FrameShellEnabled
+FunctionEnd
+!macroend
+!endif
 !macro FrameContextVerb Extension Verb Label Workflow
-  WriteRegStr SHCTX "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "" "$\{Label}"
-  WriteRegStr SHCTX "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "Icon" '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}",0'
-  WriteRegStr SHCTX "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "MultiSelectModel" "Player"
-  WriteRegStr SHCTX "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}\\command" "" '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}" --frame-workflow=$\{Workflow} -- "%1"'
+  WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "" "$\{Label}"
+  WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "Icon" '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}",0'
+  WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "MultiSelectModel" "Player"
+  WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}\\command" "" '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}" --frame-workflow=$\{Workflow} -- "%1"'
 !macroend
 !macro FrameRemoveContextVerb Extension Verb Workflow
-  ReadRegStr $R0 SHCTX "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}\\command" ""
+  ReadRegStr $R0 HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}\\command" ""
   StrCmp $R0 '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}" --frame-workflow=$\{Workflow} -- "%1"' 0 +2
-  DeleteRegKey SHCTX "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}"
 !macroend
 !macro customInstall
+  WriteRegDWORD HKCU "Software\\Frame\\ShellActions" "Enabled" $FrameShellEnabled
+  $\{If} $FrameShellEnabled == 1
 ${install}
+  $\{Else}
+${uninstall}
+  $\{EndIf}
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 !macro customUnInstall

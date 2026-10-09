@@ -71,7 +71,7 @@ function createWindow() {
 }
 app.whenReady().then(() => {
   if (!ownsInstance) return;
-  if (configureSystemIntegration(shellCommand)) return;
+  if (configureSystemIntegration(shellCommand, trusted)) return;
   registerAcceleration(jobs, trusted);
   const proxies = createProxies(assets, jobs, trusted); clearProxies = proxies.clear;
   const batchFolders = createBatchFolders(() => mainWindow!, trusted);

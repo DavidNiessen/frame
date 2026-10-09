@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  shellIntegrationStatus: () => ipcRenderer.invoke('desktop:shell-status'),
+  setShellIntegration: enabled => ipcRenderer.invoke('desktop:set-shell-actions', enabled),
   nextLaunch: () => ipcRenderer.invoke('desktop:next-launch'),
   importLaunch: id => ipcRenderer.invoke('desktop:import-launch', id),
   onLaunchAvailable: callback => { const listener = () => callback(); ipcRenderer.on('desktop:launch-available', listener); return () => ipcRenderer.removeListener('desktop:launch-available', listener); },

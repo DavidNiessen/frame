@@ -65,6 +65,8 @@
       ]
     },
     "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
       "include": "build/generated/windows-context-menu.nsh"
     },
     "mac": {
