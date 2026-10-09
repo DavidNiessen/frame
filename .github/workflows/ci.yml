@@ -38,10 +38,12 @@ jobs:
           tar -xzf "$signing_tools/source.tar.gz" --strip-components=1 -C "$signing_tools/source"
           cmake -S "$signing_tools/source" -B "$signing_tools/build" -DCMAKE_BUILD_TYPE=Release
           cmake --build "$signing_tools/build" --parallel 2
+          bash scripts/build-msix-sdk.sh "$RUNNER_TEMP/frame-msix-sdk"
+          printf 'FRAME_MAKEMSIX=%s\n' "$RUNNER_TEMP/frame-msix-sdk/build/bin/makemsix" >> "$GITHUB_ENV"
       - name: Sign shell package and rebuild the pinned Windows helper
         if: steps.signing.outputs.enabled == 'true'
         run: |
-          FRAME_OSSLSIGNCODE="$RUNNER_TEMP/frame-signing-tools/build/osslsigncode" npm run sign:windows-shell
+          FRAME_OSSLSIGNCODE="$RUNNER_TEMP/frame-signing-tools/build/osslsigncode" FRAME_MAKEMSIX="$RUNNER_TEMP/frame-msix-sdk/build/bin/makemsix" npm run sign:windows-shell
           FRAME_MINGW_ROOT=/usr npm run build:windows-shell
       - name: Delete temporary signing credentials
         if: always()

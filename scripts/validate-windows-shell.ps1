@@ -8,6 +8,11 @@ try {
   Add-Type -Path (Join-Path $PSScriptRoot 'windows-shell-reader.cs')
   $identity = [FramePackageReader]::Validate($path)
   Write-Output "Windows package reader accepted: $identity"
+  # The Appx manifest reader does not validate the signature through Windows' SIP.
+  $signature = Get-AuthenticodeSignature -LiteralPath $path
+  Write-Output "Windows signature status: $($signature.Status)"
+  Write-Output "Windows signature details: $($signature.StatusMessage)"
+  if ($signature.Status -in @('HashMismatch', 'NotSigned')) { throw 'Windows rejected the package signature. Restore or rebuild the signed shell package.' }
   if (!$PSBoundParameters.ContainsKey('Package')) {
     $staged = Join-Path $PSScriptRoot '../build/generated/shell-actions/windows/FrameShell.msix'
     if (Test-Path -LiteralPath $staged) {

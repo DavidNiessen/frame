@@ -5,10 +5,10 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { createHash, X509Certificate } from 'node:crypto';
-import { unzipSync } from 'fflate';
+import { unzipSync, zipSync } from 'fflate';
 import { nativeRoot, sourceFingerprint, sources } from '../../scripts/windows-shell-source.mjs';
 import { fileDigest } from '../../scripts/media-tool-files.mjs';
-import { shellPackageManifest, sparseMsix } from '../../scripts/windows-shell-package.mjs';
+import { shellPackageManifest } from '../../scripts/windows-shell-package.mjs';
 import { readMsixArchive } from '../../scripts/msix-archive.mjs';
 import { prepareWindowsShell } from '../../scripts/prepare-windows-shell.mjs';
 
@@ -43,23 +43,29 @@ test('accepts Windows CRLF and mixed-line-ending sources while rejecting actual 
   };
   assert.notEqual(await sourceFingerprint(changedIcon), expected);
 });
-test('packs a sparse identity with correct ZIP headers and hashes for every uncompressed block', () => {
+test('the Microsoft-written sparse package covers every payload block and contains no native code', async () => {
   const identity = { name: 'Frame.MediaEditor.Shell', publisher: 'CN=Frame', version: '1.0.0.0', editClsid: 'edit-clsid', convertClsid: 'convert-clsid' };
   const manifest = shellPackageManifest(identity);
   assert.match(manifest, /windows\.fileExplorerContextMenus/); assert.match(manifest, /AllowExternalContent>true/);
   assert.match(manifest, /Id="FrameEdit" Clsid="edit-clsid"/); assert.match(manifest, /Id="FrameConvert" Clsid="convert-clsid"/);
-  const files = { 'AppxManifest.xml': Buffer.from(manifest), 'Assets/large.png': Buffer.alloc(70000, 42) };
-  const archive = sparseMsix(files), unpacked = unzipSync(archive), map = Buffer.from(unpacked['AppxBlockMap.xml']).toString('utf8');
-  for (const [name, content] of Object.entries(files)) {
-    assert.deepEqual(Buffer.from(unpacked[name]), content);
-    assert.ok(map.includes(`Name="${name.replace(/\//g, '\\')}" Size="${content.length}" LfhSize="${30 + Buffer.byteLength(name)}"`));
-    for (let offset = 0; offset < content.length; offset += 65536) assert.ok(map.includes(createHash('sha256').update(content.subarray(offset, offset + 65536)).digest('base64')));
+  const archive = await readFile(join(nativeRoot, 'package/FrameShell.msix'));
+  const unpacked = readMsixArchive(archive), map = Buffer.from(unpacked['AppxBlockMap.xml']).toString('utf8');
+  const covered = new Set();
+  for (const [, name, size, blocksXml] of map.matchAll(/<File Name="([^"]+)" Size="(\d+)"[^>]*>(.*?)<\/File>/g)) {
+    const path = name.replace(/\\/g, '/'), content = unpacked[path];
+    assert.ok(content, `Missing mapped payload: ${path}`);
+    assert.equal(content.length, Number(size));
+    const hashes = [...blocksXml.matchAll(/<Block Hash="([^"]+)"/g)].map(match => match[1]);
+    assert.equal(hashes.length, Math.ceil(content.length / 65536));
+    for (let offset = 0; offset < content.length; offset += 65536) assert.equal(hashes[offset / 65536], createHash('sha256').update(content.subarray(offset, offset + 65536)).digest('base64'));
+    covered.add(path);
   }
-  assert.equal(Buffer.from(archive).readUInt16LE(8), 0); // ZIP_STORE; no compression-size fields required.
+  assert.deepEqual([...covered].sort(), ['AppxManifest.xml', 'Assets/Logo150.png', 'Assets/Logo44.png', 'Assets/StoreLogo.png'].sort());
+  assert.notEqual(archive.indexOf(Buffer.from([0x50, 0x4b, 0x06, 0x06])), -1); // Microsoft's ZIP64 end record.
   assert.ok(unpacked['[Content_Types].xml']); assert.ok(!Object.keys(unpacked).some(name => /\.(dll|exe)$/i.test(name)));
 });
 test('checks MSIX checksums and compression headers, including metadata rewritten by the signer', async () => {
-  const archive = Buffer.from(sparseMsix({ 'AppxManifest.xml': Buffer.from('<Package/>'), 'Assets/logo.png': Buffer.from('image bytes') }));
+  const archive = Buffer.from(zipSync({ 'Assets/logo.png': Buffer.from('image bytes'), '[Content_Types].xml': [Buffer.from('<Types/>'), { level: 6 }] }, { level: 0 }));
   assert.ok(readMsixArchive(archive)['[Content_Types].xml']);
   const name = Buffer.from('[Content_Types].xml');
   const local = archive.indexOf(name) - 30, central = archive.lastIndexOf(name) - 46;
@@ -74,6 +80,19 @@ test('checks MSIX checksums and compression headers, including metadata rewritte
   // Check the actual signed artifact, beyond its PKCS#7 signature and pinned SHA-256.
   const signed = readMsixArchive(await readFile(join(nativeRoot, 'package/FrameShell.msix')));
   assert.match(Buffer.from(signed['[Content_Types].xml']).toString(), /appx\.signature/);
+});
+test('Microsoft MSIX SDK verifies the actual signed package and rejects damaged bytes', { skip: !process.env.FRAME_MAKEMSIX }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-msix-sdk-'));
+  try {
+    const packagePath = join(nativeRoot, 'package/FrameShell.msix');
+    const packer = process.env.FRAME_MAKEMSIX;
+    execFileSync(packer, ['unpack', '-p', packagePath, '-d', join(directory, 'valid'), '-ac'], { stdio: 'pipe' });
+    const archive = await readFile(packagePath), image = Buffer.from('Assets/Logo150.png');
+    const start = archive.indexOf(image) + image.length;
+    archive[start] ^= 1;
+    const corrupt = join(directory, 'damaged.msix'); await writeFile(corrupt, archive);
+    assert.throws(() => execFileSync(packer, ['unpack', '-p', corrupt, '-d', join(directory, 'invalid'), '-ac'], { stdio: 'pipe' }));
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 test('prepares the pinned signed package, public certificate and native helper without a compiler', async () => {
   const root = await prepareWindowsShell(), files = unzipSync(await readFile(join(root, 'FrameShell.msix')));

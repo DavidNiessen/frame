@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-import { zipSync } from 'fflate';
 const xml = value => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 export function shellPackageManifest(identity, arch = 'x64') {
   return `<?xml version="1.0" encoding="utf-8"?>
@@ -29,17 +27,4 @@ export function shellPackageManifest(identity, arch = 'x64') {
  </Application></Applications>
  <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
 </Package>\n`;
-}
-/** Store payloads for simple block hashes; deflate metadata that the signer rewrites. */
-export function sparseMsix(files) {
-  const blockFiles = Object.entries(files).map(([name, content]) => {
-    const blocks = [];
-    for (let offset = 0; offset < content.length; offset += 65536) blocks.push(`<Block Hash="${createHash('sha256').update(content.subarray(offset, offset + 65536)).digest('base64')}" />`);
-    return `<File Name="${xml(name.replace(/\//g, '\\'))}" Size="${content.length}" LfhSize="${30 + Buffer.byteLength(name)}">${blocks.join('')}</File>`;
-  });
-  const blockMap = `<?xml version="1.0" encoding="utf-8"?><BlockMap xmlns="http://schemas.microsoft.com/appx/2010/blockmap" HashMethod="http://www.w3.org/2001/04/xmlenc#sha256">${blockFiles.join('')}</BlockMap>`;
-  const contentTypes = '<?xml version="1.0" encoding="utf-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="png" ContentType="image/png" /><Default Extension="xml" ContentType="application/xml" /><Override PartName="/AppxManifest.xml" ContentType="application/vnd.ms-appx.manifest+xml" /><Override PartName="/AppxBlockMap.xml" ContentType="application/vnd.ms-appx.blockmap+xml" /></Types>';
-  // osslsigncode deflates rewritten content types but preserves the original method flag.
-  // Starting with DEFLATE keeps both ZIP headers accurate after it adds the signature type.
-  return zipSync({ ...files, 'AppxBlockMap.xml': Buffer.from(blockMap), '[Content_Types].xml': [Buffer.from(contentTypes), { level: 6 }] }, { level: 0 });
 }

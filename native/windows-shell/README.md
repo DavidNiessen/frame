@@ -25,16 +25,17 @@ In Settings, **Trust certificate and enable menu** shows a confirmation explaini
 
 Developer Mode is optional: if already enabled, local builds can still register a development manifest without trusting the certificate. Frame never changes that policy. Its disposable Windows CI runner disables Developer Mode and explicitly tests the pinned helper and signed package, with certificate cleanup afterwards. Real UAC consent must still be checked on a Windows desktop.
 
-The self-signed certificate currently expires in October 2031; the package is not timestamped. The private RSA key and PEM certificate are stored in ignored `.local/windows-shell-signing` with restrictive permissions. Preserve the private key securely for future signatures; never commit it or include it in app resources. To re-sign as a maintainer with OpenSSL and osslsigncode available:
+The self-signed certificate currently expires in October 2031; the package is not timestamped. The private RSA key and PEM certificate are stored in ignored `.local/windows-shell-signing` with restrictive permissions. Preserve the private key securely for future signatures; never commit it or include it in app resources. Maintainer signing requires OpenSSL, osslsigncode and Microsoft's MSIX SDK package writer. On Linux, build the SHA-256-pinned SDK with CMake and a C++ compiler, then re-sign:
 
 ```sh
-FRAME_OSSLSIGNCODE=/path/to/osslsigncode npm run sign:windows-shell
+bash scripts/build-msix-sdk.sh .local/msix-sdk
+FRAME_MAKEMSIX="$PWD/.local/msix-sdk/build/bin/makemsix" FRAME_OSSLSIGNCODE=/path/to/osslsigncode npm run sign:windows-shell
 FRAME_MINGW_ROOT=/path/to/toolchain/usr npm run build:windows-shell
 ```
 
 GitHub Actions can use this same pair through the `FRAME_WINDOWS_SHELL_PRIVATE_KEY_PEM` and `FRAME_WINDOWS_SHELL_CERTIFICATE_PEM` repository secrets. It signs trusted `master` runs, rebuilds the certificate-pinned helper, and transfers only public assets to Windows packaging. See [the CI signing setup](../../docs/DISTRIBUTION.md#github-actions-shell-signing). For another local signing directory, set `FRAME_WINDOWS_SHELL_SIGNING_DIR`; both PEM files must already exist there, and the command will not generate replacement keys.
 
-Commit the signed package, public certificate, signature metadata, and updated native binaries together. Signing verifies all MSIX digests, the signature, ZIP headers, and file checksums before publishing the public artifacts. Package payloads are stored without compression; content-type metadata uses DEFLATE because osslsigncode preserves its ZIP method when rewriting it. Builds repeat the archive checks before staging it. A new certificate requires a new trust approval. The current package was signed with osslsigncode 2.14.
+Commit the signed package, public certificate, signature metadata, and updated native binaries together. Microsoft's writer constructs the ZIP64 archive, compression blocks, block map and content types; Frame no longer constructs these with a generic ZIP library. After signing, the SDK unpacks the result with signature, digest and schema validation enabled, allowing the self-signed certificate's origin. Separate ZIP header and CRC checks run during signing and normal builds. These checks do not substitute for Windows deployment: `pnpm verify:windows-shell` also reports the native Windows signature handler's result, and Windows CI tests installation with Developer Mode disabled. A new certificate requires a new trust approval. The current package was signed with osslsigncode 2.14.
 
 For a publicly trusted release, supply `FRAME_WINDOWS_SHELL_PUBLISHER` and `FRAME_WINDOWS_SHELL_PACKAGE` with a matching signed sparse package. The build verifies the exact manifest and signature presence, and Windows validates trust during normal deployment. Guided self-signed trust is disabled for these custom packages because the helper remains pinned to the bundled Frame certificate. Installer/application signing is independent of shell-package signing.
 
