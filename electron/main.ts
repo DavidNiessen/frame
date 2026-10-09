@@ -26,6 +26,7 @@ const assets = new Map<string, { path: string; asset: MediaAsset }>();
 let clearProxies = () => {};
 let mainWindow: BrowserWindow | null = null;
 let desktopReady = false;
+let creatingWindow = false;
 const jobs = new MediaJobs();
 const shellCommand = shellStartupCommand(process.argv);
 const ownsInstance = !!shellCommand || app.requestSingleInstanceLock();
@@ -34,6 +35,7 @@ const launches = new LaunchInbox(() => { if (mainWindow && !mainWindow.isDestroy
 function focusWindow() {
   if (!desktopReady) return;
   if (!mainWindow) createWindow();
+  if (!mainWindow) return;
   if (mainWindow!.isMinimized()) mainWindow!.restore();
   mainWindow!.show(); mainWindow!.focus();
 }
@@ -47,6 +49,10 @@ function trusted(event: IpcMainInvokeEvent | Electron.IpcMainEvent) {
   if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('Untrusted request.');
 }
 function createWindow() {
+  // Native file-open events can reenter while BrowserWindow is being constructed.
+  if (mainWindow || creatingWindow) return;
+  creatingWindow = true;
+  try {
   mainWindow = new BrowserWindow({ width: 1440, height: 960, minWidth: 760, minHeight: 600, backgroundColor: '#101311', title: 'Frame', icon: app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(__dirname, '../build/icon.png'),
     webPreferences: { preload: join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
   mainWindow.setMenuBarVisibility(false);
@@ -61,6 +67,7 @@ function createWindow() {
   });
   if (devUrl) void mainWindow.loadURL(devUrl); else void mainWindow.loadFile(join(__dirname, '../dist/index.html'));
   mainWindow.on('closed', () => { jobs.cancel(); clearProxies(); assets.clear(); mainWindow = null; });
+  } finally { creatingWindow = false; }
 }
 app.whenReady().then(() => {
   if (!ownsInstance) return;

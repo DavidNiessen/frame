@@ -48,7 +48,7 @@ export default function App() {
   function onImport() { if (editor.platform === 'desktop') void editor.importMedia(); else input.current?.click(); }
   function onFolder() { if (editor.platform === 'desktop') void editor.importFolder(); else folderInput.current?.click(); }
   function changeWorkflow(next: 'edit' | 'convert') { mediaRef.current?.pause(); setWorkflow(next); try { localStorage.setItem('frame:workflow', next); } catch { /* Session navigation still works. */ } }
-  useDesktopLaunches(editor, changeWorkflow, conversion.archive.busy || !!projects.pending || batchOpen || mergeOpen);
+  useDesktopLaunches(editor, changeWorkflow, conversion.archive.busy || !!projects.pending || batchOpen || mergeOpen, (ids, append) => conversion.setIds(current => append ? [...new Set([...current, ...ids])] : ids));
   async function onDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault(); dragDepth.current = 0; setDragging(false);
     const files = Array.from(event.dataTransfer.files);

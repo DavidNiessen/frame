@@ -68,6 +68,8 @@ The library supports up to 2,000 media files. Large collections use searchable, 
 
 File-manager requests wait while Frame imports, analyzes, or exports media, or while a project/batch/merge dialog is open. Existing sources are selected without resetting their editor recipes. Conversion opens the queue for review; it does not start encoding automatically. The web application does not register desktop actions.
 
+**Convert in Frame** selects the files from that file-manager action, leaving other library files unchecked. Consecutive per-file launches in one Explorer selection are grouped together; previously imported files and drafts remain in the shared library.
+
 Packaged Frame also accepts file arguments directly: `Frame.exe --frame-workflow=convert -- "C:\Music\song.wav" "C:\Music\second.flac"`. Use `--frame-workflow=edit` to open Editor. Paths after `--` are treated as filenames, and unsupported extensions are ignored.
 
 ## Editing

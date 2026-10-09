@@ -20,7 +20,7 @@ export function useConversion(editor: Editor) {
   useEffect(() => {
     const current = new Set(editor.assets.map(asset => asset.id));
     const added = editor.assets.filter(asset => !known.current.has(asset.id)).map(asset => asset.id);
-    setIds(ids => [...ids.filter(id => current.has(id)), ...added]); known.current = current;
+    setIds(ids => [...new Set([...ids.filter(id => current.has(id)), ...added])]); known.current = current;
     if (!manualFormat.current && editor.assets.length) setOutput(output => ({ ...output, format: editor.assets.every(asset => asset.kind === 'video') ? 'mp4' : 'mp3' }));
   }, [editor.assets]);
   useEffect(() => { try { localStorage.setItem(key, JSON.stringify(output)); } catch { /* Settings still work for this session. */ } }, [output]);

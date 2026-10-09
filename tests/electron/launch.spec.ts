@@ -48,6 +48,11 @@ test('opens selections in one instance, reuses drafts, and queues file launches 
     await launch('edit', [library.sources[0]]);
     await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', draft!);
     await expect.poll(() => page.evaluate(() => window.frameDesktop!.nextLaunch())).toBeNull();
+    await launch('convert', [video]);
+    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(3);
+    await expect(page.getByRole('button', { name: 'Convert 1 file', exact: true })).toBeEnabled();
+    await expect(page.getByLabel('Convert Selected $video.mp4', { exact: true })).toBeChecked();
+    await expect(page.getByLabel('Convert Song.wav', { exact: true }).first()).not.toBeChecked();
     // A renderer cannot use the OS import channel to submit arbitrary filesystem paths.
     expect(await page.evaluate(async () => { try { await window.frameDesktop!.importLaunch('forged-id'); return false; } catch { return true; } })).toBe(true);
   } finally { await app.close(); await rm(library.directory, { recursive: true, force: true }); }

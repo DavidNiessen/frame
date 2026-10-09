@@ -30,3 +30,12 @@ it('reports an oversized launch without dropping already queued files', () => {
   expect(queue.consume(queue.peek()!.id).error).toContain('Too many');
   expect(queue.peek()).toBeNull();
 });
+it('keeps an Explorer selection group across consumed requests and starts a new group after the burst', () => {
+  let time = 0; const queue = new LaunchInbox(() => {}, 'win32', () => time);
+  queue.enqueue({ workflow: 'convert', paths: ['C:\\One.mp3'] });
+  const first = queue.peek()!; queue.consume(first.id);
+  time = 500; queue.enqueue({ workflow: 'convert', paths: ['C:\\Two.mp3'] });
+  expect(queue.peek()!.group).toBe(first.group); queue.consume(queue.peek()!.id);
+  time = 5000; queue.enqueue({ workflow: 'convert', paths: ['C:\\Three.mp3'] });
+  expect(queue.peek()!.group).not.toBe(first.group);
+});

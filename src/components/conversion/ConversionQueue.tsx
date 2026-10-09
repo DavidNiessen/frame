@@ -13,6 +13,7 @@ export function ConversionQueue({ editor, conversion: c }: { editor: Editor; con
   const pending = filtered.filter(asset => c.latestJobs.get(asset.id)?.status !== 'done');
   const included = pending.filter(asset => c.ids.includes(asset.id)).length;
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize)); const currentPage = Math.min(page, pages - 1);
+  useEffect(() => { const index = filtered.findIndex(asset => asset.id === editor.selected); if (index >= 0) setPage(Math.floor(index / pageSize)); }, [editor.selected]);
   useEffect(() => { if (selectAll.current) selectAll.current.indeterminate = included > 0 && included < pending.length; }, [included, pending.length]);
   return <section className="conversion-files panel" aria-labelledby="conversion-files-title">
     <div className="conversion-panel-title"><span className="conversion-step">1</span><div><h2 id="conversion-files-title">Files to convert <span className="count">{editor.assets.length}</span></h2><p>{c.selected.length} selected · {bytes(c.selected.reduce((sum, asset) => sum + asset.size, 0))}</p></div><label className="conversion-search"><Search size={15} /><input type="search" placeholder="Search files…" aria-label="Search conversion files" value={query} onChange={event => { setQuery(event.target.value); setPage(0); }} /></label></div>
