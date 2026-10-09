@@ -17,11 +17,11 @@ export function electronExecutable(directory, env = process.env) {
   const pathFile = join(directory, 'path.txt');
   const executable = existsSync(pathFile) ? readFileSync(pathFile, 'utf8').trim() : '';
   if (!executable && !env.ELECTRON_OVERRIDE_DIST_PATH) {
-    throw new Error('Electron\'s runtime path.txt is missing.');
+    throw new Error(`Electron's runtime path file is missing or empty: ${pathFile}`);
   }
   // Match Electron's custom-runtime resolution, including its fallback filename.
   const binary = join(env.ELECTRON_OVERRIDE_DIST_PATH || join(directory, 'dist'), executable || 'electron');
-  if (!statSync(binary).isFile()) throw new Error(`Electron's executable is missing: ${binary}`);
+  if (!statSync(binary).isFile()) throw new Error(`Electron's executable is not a file: ${binary}`);
   return binary;
 }
 
@@ -49,6 +49,6 @@ export async function ensureElectronRuntime({ directory = packageDirectory(), en
   try {
     return electronExecutable(directory, env);
   } catch (cause) {
-    throw new Error(`Electron's installer finished but its runtime is still missing. Check write permissions and antivirus quarantine for ${directory}, then retry "pnpm run setup:desktop" (or "npm run setup:desktop").`, { cause });
+    throw new Error(`Electron's installer finished but its runtime is still missing. Runtime check failed: ${cause.message}.`, { cause });
   }
 }

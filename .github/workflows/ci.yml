@@ -14,13 +14,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pnpm: ['11.19.0', '12.10.1']
+        include:
+          - pnpm: '11.19.0'
+            node: '24'
+          - pnpm: '12.10.1'
+            node: '24'
+          - pnpm: '12.10.1'
+            node: '24.16.0'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ matrix.pnpm }}

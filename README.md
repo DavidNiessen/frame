@@ -41,6 +41,8 @@ pnpm run dev:desktop
 
 In PowerShell use `Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction SilentlyContinue`; in a POSIX shell use `unset ELECTRON_SKIP_BINARY_DOWNLOAD`. A custom `ELECTRON_OVERRIDE_DIST_PATH` must point to a complete runtime; fix or unset it if startup reports that it is incomplete. Setup verifies the executable after the installer finishes and reports download failures or an installation that still lacks its runtime.
 
+Node 24.16.0 can silently stop while extracting Electron with the older ZIP reader: its installer exits with code 0 without writing `path.txt`. Matching npm and pnpm overrides select `yauzl` 3.4.0 for `extract-zip`, which completes extraction on that Node version. If you installed before this fix, run `git pull`, `pnpm install`, then `pnpm run setup:desktop` (with npm use `npm ci` followed by `npm run setup:desktop`). Electron's original download and checksum verification remain in place.
+
 The browser's first import loads the self-hosted WebAssembly engine (about 32 MB). There are no external CDNs, remote fonts, media APIs, or API keys. Use “Try a sample” to explore with a small bundled video.
 
 ## Editing

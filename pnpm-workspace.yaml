@@ -1,5 +1,9 @@
 # pnpm 10.26+ / 11 / 12 requires explicit permission for dependency install scripts.
 # Electron and ffmpeg-static download the portable desktop executables.
+# yauzl 2's file streams can stop mid-extraction on Node 24.16.0.
+# Keep npm's matching package.json override in sync.
+overrides:
+  'extract-zip>yauzl': 3.4.0
 allowBuilds:
   electron: true
   electron-winstaller: true

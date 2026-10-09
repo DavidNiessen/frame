@@ -98,5 +98,10 @@
   },
   "engines": {
     "node": ">=22.12.0"
+  },
+  "overrides": {
+    "extract-zip": {
+      "yauzl": "3.4.0"
+    }
   }
 }
