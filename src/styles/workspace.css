@@ -1,4 +1,13 @@
 /* Focused workspace: keep everyday actions visible and reveal specialist tools on demand. */
+.library-import-actions { display: flex; flex-direction: column; align-items: stretch; }
+.library-url { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 9px; padding: 7px; color: var(--muted); font-size: 11px; }
+.library-url:hover:not(:disabled) { color: var(--accent-text); }
+.url-import-dialog { width: 560px; }
+.media-url-input { width: 100%; min-height: 42px; margin-top: 9px; padding: 10px 12px; border: 1px solid var(--border); background: var(--surface-raised); border-radius: 6px; color: var(--text); font-size: 12px; }
+.url-import-progress { margin-top: 20px; font-size: 12px; }
+.url-import-progress > span { display: flex; gap: 9px; align-items: center; line-height: 1.7; }
+.url-import-progress progress { width: 100%; height: 5px; accent-color: var(--accent); margin-top: 12px; }
+@media (max-width: 980px) { .library-import-actions { flex-shrink: 0; } }
 .inspector-tabs { display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
 .inspector-tabs button { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 1; padding: 10px 4px; border-radius: 6px; color: var(--muted); font-size: 12px; }
 .inspector-tabs button:hover { background: var(--surface-raised); color: var(--text); }

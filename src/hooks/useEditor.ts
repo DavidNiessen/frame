@@ -37,7 +37,7 @@ export function useEditor() {
       const report = mode === 'url' && url ? await e.importUrl(url, setProgress) : mode === 'launch' && launch && e.importLaunch ? await e.importLaunch(launch.id, setProgress) : mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
       setImportReport(report);
       const imported = report.assets;
-      if (mode === 'url' && !imported.length) throw new Error(report.issues[0]?.message || 'The downloaded file is not supported video or audio.');
+      if (mode === 'url' && !imported.length) throw new Error('The downloaded file could not be read as video or audio. Try another direct file link.');
       launch?.select(imported.map(asset => asset.id));
       if (!imported.length) { if (report.issues.length) setNotice(`${report.issues[0].name}: ${report.issues[0].message}`); else if (report.skipped || report.folderName) setNotice('No supported video or audio files found in this folder.'); return true; }
       setAssets(current => [...current, ...imported.filter(item => !current.some(asset => asset.id === item.id))]);

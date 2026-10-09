@@ -1,7 +1,7 @@
-import { Film, Music2, Plus, Trash2, FolderOpen, ArrowUpRight } from 'lucide-react';
+import { Film, Music2, Plus, Trash2, FolderOpen, ArrowUpRight, Link } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import { bytes, time } from '../core/format';
-export function Library({ editor, onImport }: { editor: Editor; onImport: () => void }) {
+export function Library({ editor, onImport, onUrl }: { editor: Editor; onImport: () => void; onUrl: () => void }) {
   return <aside className="library panel">
     <div className="panel-heading"><h2>Media library <span className="count">{editor.assets.length}</span></h2><button className="icon-button" aria-label="Add media" onClick={onImport} disabled={!!editor.busy}><Plus size={17} /></button></div>
     <div className="library-content">
@@ -12,7 +12,7 @@ export function Library({ editor, onImport }: { editor: Editor; onImport: () => 
             <span className="asset-info"><strong title={asset.name}>{asset.name}</strong><span>{time(asset.duration)} <i>·</i> {bytes(asset.size)}</span></span>
           </button><button className="icon-button asset-remove" aria-label={`Remove ${asset.name}`} disabled={!!editor.busy} onClick={() => void editor.remove(asset)}><Trash2 size={14} /></button>
         </li>)}</ul>}
-      <button className="library-import" disabled={!!editor.busy} onClick={onImport}><Plus size={16} /> Import media <span>⌘ / Ctrl O</span></button>
+      <div className="library-import-actions"><button className="library-import" disabled={!!editor.busy} onClick={onImport}><Plus size={16} /> Import media <span>⌘ / Ctrl O</span></button><button className="library-url" disabled={!!editor.busy} onClick={onUrl}><Link size={14} />Load from URL</button></div>
     </div>
     <div className="library-bottom"><button className="sample-card" disabled={!!editor.busy} onClick={() => void editor.importMedia(undefined, true)}>
       <span className="sample-art"><span /><Film size={24} strokeWidth={1.4} /></span><span><strong>Start with a sample</strong><small>A short studio study</small></span><ArrowUpRight size={16} />

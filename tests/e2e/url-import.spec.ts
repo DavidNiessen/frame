@@ -1,0 +1,63 @@
+import { test, expect, type Page } from '@playwright/test';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import ffprobe from '@ffprobe-installer/ffprobe';
+import { mediaServer } from '../helpers/media-server';
+
+async function load(page: Page, url: string) {
+  await page.getByRole('button', { name: 'Load from URL', exact: true }).click();
+  await page.getByLabel('Media URL', { exact: true }).fill(url);
+  await page.getByRole('button', { name: 'Load media', exact: true }).click();
+}
+test('loads direct media into editor and conversion, preserves filenames, and exports locally', async ({ page }, testInfo) => {
+  const server = await mediaServer();
+  try {
+    await page.goto('/'); await load(page, server.url + '/download?token=example');
+    await expect(page.getByRole('dialog', { name: 'Load from URL' })).not.toBeVisible({ timeout: 45000 });
+    await expect(page.locator('.asset-info strong')).toHaveText('A song ü.wav');
+    await expect(page.locator('audio')).toHaveJSProperty('readyState', 4);
+    await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
+    await page.getByLabel('Output format').selectOption('flac');
+    await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+    await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 45000 });
+    const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file' }).click();
+    const output = testInfo.outputPath('remote.flac'); await (await pending).saveAs(output);
+    const { stdout } = await promisify(execFile)(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', output]);
+    expect(JSON.parse(stdout).streams[0].codec_name).toBe('flac');
+    await page.getByRole('navigation', { name: 'Workflow' }).getByRole('button', { name: 'Convert', exact: true }).click();
+    await load(page, server.url + '/redirect');
+    await expect(page.getByRole('dialog', { name: 'Load from URL' })).not.toBeVisible();
+    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
+    await expect(page.locator('.conversion-table')).toContainText('video.mp4');
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByRole('button', { name: 'Load from URL', exact: true }).click();
+    await expect(page.getByLabel('Media URL', { exact: true })).toBeFocused();
+    await page.screenshot({ path: 'test-results/url-import-mobile.png', fullPage: true });
+  } finally { await server.close(); }
+});
+test('reports invalid links, CORS, pages, corrupt files and oversized downloads, and can cancel and retry', async ({ page }) => {
+  const server = await mediaServer();
+  try {
+    await page.goto('/'); await load(page, 'file:///tmp/song.wav');
+    const dialog = page.getByRole('dialog', { name: 'Load from URL' });
+    await expect(dialog.getByRole('alert')).toContainText('HTTP and HTTPS');
+    for (const [route, message] of [['/missing.mp3', 'HTTP 404'], ['/page.mp4', 'direct video or audio'], ['/no-cors.wav', 'CORS'], ['/too-large.wav', 'exceeds'], ['/broken.wav', 'could not be read']] as const) {
+      await page.getByLabel('Media URL', { exact: true }).fill(server.url + route);
+      await dialog.getByRole('button', { name: 'Load media', exact: true }).click();
+      await expect(dialog.getByRole('alert')).toContainText(message, { timeout: 45000 });
+      await expect(page.locator('.asset-list li')).toHaveCount(0);
+    }
+    await page.getByLabel('Media URL', { exact: true }).fill(server.url + '/slow.wav');
+    await dialog.getByRole('button', { name: 'Load media', exact: true }).click();
+    await expect(dialog.getByRole('status')).toContainText('Downloading media');
+    await dialog.getByRole('button', { name: 'Cancel download' }).click();
+    await expect(dialog.getByRole('alert')).toContainText('cancelled');
+    await expect.poll(() => server.slowClosed).toBe(true);
+    await page.getByLabel('Media URL', { exact: true }).fill(server.url + '/video.mp4');
+    await dialog.getByRole('button', { name: 'Load media', exact: true }).click();
+    await expect(dialog).not.toBeVisible({ timeout: 45000 });
+    await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await expect(page.locator('.asset-list li')).toHaveCount(1);
+  } finally { await server.close(); }
+});

@@ -11,7 +11,7 @@ Use Node.js 22.12+ (Node 24 LTS recommended) and npm, or pnpm 10.26+ / 11 / 12.
 ```sh
 npm ci
 npm run dev          # Web editor
-npm run desktop  # Electron + the Vite development server
+npm run desktop      # Electron + the Vite development server
 ```
 
 Desktop development needs a graphical session. Electron, portable FFmpeg, and portable FFprobe are installed by npm. **End users do not need FFmpeg or FFprobe installed**: the desktop package includes both tools for its OS and architecture.
@@ -44,6 +44,12 @@ In PowerShell use `Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction Si
 Node 24.16.0 can silently stop while extracting Electron with the older ZIP reader: its installer exits with code 0 without writing `path.txt`. Matching npm and pnpm overrides select `yauzl` 3.4.0 for `extract-zip`, which completes extraction on that Node version. If you installed before this fix, run `git pull`, `pnpm install`, then `pnpm run setup:desktop` (with npm use `npm ci` followed by `npm run setup:desktop`). Electron's original download and checksum verification remain in place.
 
 The browser's first import loads the self-hosted WebAssembly engine (about 32 MB). There are no external CDNs, remote fonts, media APIs, or API keys. Use “Try a sample” to explore with a small bundled video.
+
+## Load from a URL
+
+Choose **Load from URL** in the media library or conversion workspace, paste a direct HTTP/HTTPS media file link, and click **Load media**. Frame downloads the file, shows progress, and imports it into the current workflow. Cancel or retry from the dialog. Filename detection uses download headers, the URL path, and common audio/video MIME types, so direct download endpoints and redirects work too.
+
+Page links, streaming playlists, and links containing embedded login credentials are not supported. Browser imports require the host to allow cross-origin access (CORS); an HTTPS deployment also needs HTTPS media links. The browser's existing file/library limits apply during download. Desktop downloads directly to disk and does not need CORS permission. Downloaded sources are held for the session and removed on library removal or application exit; export a copy to keep them. URLs and authentication tokens are not saved in projects or autosave.
 
 ## Convert a collection
 

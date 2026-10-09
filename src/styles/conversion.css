@@ -8,7 +8,7 @@
 .conversion-intro h1 { margin-top: 10px; font-size: clamp(26px, 2.8vw, 36px); font-weight: 600; letter-spacing: -1.3px; line-height: 1.15; }
 .conversion-intro h1 > span { color: var(--accent); }
 .conversion-intro p { margin-top: 12px; color: var(--muted); font-size: 13px; line-height: 1.65; }
-.conversion-add-actions { display: flex; align-items: center; justify-content: center; gap: 10px; flex-shrink: 0; }
+.conversion-add-actions { display: flex; align-items: center; justify-content: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
 .conversion-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
 .conversion-main { display: grid; gap: 16px; min-width: 0; }
 .conversion-settings { position: sticky; top: 20px; }
