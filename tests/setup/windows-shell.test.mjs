@@ -114,6 +114,19 @@ test('the bundled package has a valid Authenticode signature and matches its pub
     assert.throws(() => execFileSync('openssl', args, { stdio: 'pipe' }));
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+test('Windows can read the signed package manifest and identity through its native Appx reader', { skip: process.platform !== 'win32' }, async () => {
+  const powershell = join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
+  const output = execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/validate-windows-shell.ps1'], { encoding: 'utf8' });
+  assert.match(output, /Windows package reader accepted: Frame\.MediaEditor\.Shell_/);
+  const directory = await mkdtemp(join(tmpdir(), 'frame-invalid-msix-'));
+  try {
+    const path = join(directory, 'invalid.msix'); await writeFile(path, 'Invalid ZIP package');
+    assert.throws(() => execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/validate-windows-shell.ps1', '-Package', path], { stdio: 'pipe' }), error => {
+      assert.match(error.stdout.toString(), /Windows CreatePackageReader.*HRESULT 0x/);
+      return true;
+    });
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 test('uses signed deployment or existing Developer Mode and repairs persistent registration files', async t => {
   const powershell = process.env.FRAME_TEST_POWERSHELL || (process.platform === 'win32' ? join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe') : 'pwsh');
   try { execFileSync(powershell, ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()']); }

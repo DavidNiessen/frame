@@ -8,6 +8,17 @@ try {
   Add-Type -Path (Join-Path $PSScriptRoot 'windows-shell-reader.cs')
   $identity = [FramePackageReader]::Validate($path)
   Write-Output "Windows package reader accepted: $identity"
+  if (!$PSBoundParameters.ContainsKey('Package')) {
+    $staged = Join-Path $PSScriptRoot '../build/generated/shell-actions/windows/FrameShell.msix'
+    if (Test-Path -LiteralPath $staged) {
+      $staged = (Resolve-Path -LiteralPath $staged).ProviderPath
+      Write-Output "Desktop staged package: $staged"
+      $stagedHash = (Get-FileHash -LiteralPath $staged -Algorithm SHA256).Hash
+      Write-Output "Staged SHA-256: $stagedHash"
+      if ($stagedHash -ne (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash) { throw 'Desktop staging differs from the committed package. Close Frame, stop the desktop dev command, restart pnpm desktop, and retry Repair actions.' }
+      Write-Output "Windows staged-package reader accepted: $([FramePackageReader]::Validate($staged))"
+    }
+  }
 } catch {
   Write-Output $_.Exception.Message
   exit 1
