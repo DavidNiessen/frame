@@ -1,4 +1,4 @@
-.app-shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.app-shell { min-height: var(--app-height, 100dvh); display: flex; flex-direction: column; }
 .app-header { min-height: 64px; padding: 0 32px; display: flex; align-items: center; gap: 22px; border-bottom: 1px solid var(--border); background: var(--surface); }
 .brand { display: flex; align-items: center; font-size: 25px; font-weight: 700; letter-spacing: -1.1px; }
 .brand-mark { width: 34px; height: 34px; margin-right: 9px; display: flex; justify-content: center; align-items: center; background: var(--accent); border-radius: 8px; color: var(--accent-ink); transform: rotate(-5deg); }

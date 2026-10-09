@@ -53,7 +53,7 @@
 .asset-info { flex: 1; }
 .asset-icon { width: 30px; height: 36px; }
 @media (min-width: 981px) {
-  .workspace { height: calc(100dvh - 170px); min-height: 540px; flex: none; align-items: stretch; }
+  .workspace { height: calc(var(--app-height, 100dvh) - 170px); min-height: 540px; flex: none; align-items: stretch; }
   .editor-center, .library, .preview-panel { min-height: 0; }
   .library-content { min-height: 0; overflow: auto; }
   .asset-list { max-height: none; }

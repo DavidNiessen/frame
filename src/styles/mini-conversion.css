@@ -2,7 +2,7 @@ html[data-mini-conversion], html[data-mini-conversion] body { background: transp
 html[data-mini-conversion] #root { height: 100dvh; }
 .mini-converter { height: 100dvh; padding: 8px; opacity: 1; transition: opacity .22s ease, transform .22s ease; }
 .mini-converter.finishing { opacity: 0; transform: translateY(8px); pointer-events: none; }
-.mini-card { height: 100%; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); overflow: hidden; box-shadow: 0 3px 7px #0002; }
+.mini-card { height: 100%; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); overflow: hidden; box-shadow: 0 3px 7px #0002; }
 .mini-header { padding: 18px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
 .mini-brand { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); transform: rotate(-5deg); }
 .mini-header h1 { font-size: 16px; font-weight: 600; letter-spacing: -.5px; }

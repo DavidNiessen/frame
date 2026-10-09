@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, protocol, type IpcMainInvokeEvent, type IpcMainEvent } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, screen, type IpcMainInvokeEvent, type IpcMainEvent } from 'electron';
 import { join } from 'node:path';
 import { mediaResponse } from './media-response';
 import { LaunchInbox } from './launch-inbox';
@@ -9,6 +9,7 @@ import { createMediaSession, type MediaSession } from './media-session';
 import { configureMiniWindow } from './mini-window';
 import { loadWindow, prepareWindow } from './window-security';
 import { configureWindowControls } from './window-controls';
+import { editorBounds } from './editor-chrome';
 
 type WindowKind = 'editor' | 'mini';
 protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
@@ -37,9 +38,9 @@ function openWindow(kind: WindowKind) {
   try {
     const mini = kind === 'mini';
     const window = new BrowserWindow({
-      width: mini ? 460 : 1440, height: mini ? 740 : 960,
+      ...(mini ? { width: 460, height: 740 } : editorBounds(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea)),
       ...(mini ? { frame: false, transparent: true, backgroundColor: '#00000000', resizable: false, maximizable: false, minimizable: false, fullscreenable: false, alwaysOnTop: true, skipTaskbar: true, hasShadow: true }
-        : { frame: false, minWidth: 760, minHeight: 600, backgroundColor: '#0b0c12' }),
+        : { frame: false, minWidth: 760, minHeight: 600, ...(process.platform === 'darwin' ? { transparent: true, backgroundColor: '#00000000' } : { roundedCorners: false, backgroundColor: '#0b0c12' }) }),
       show: false, title: mini ? 'Frame — Quick conversion' : 'Frame',
       icon: app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(__dirname, '../build/icon.png'),
       webPreferences: { preload: join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, additionalArguments: mini ? ['--frame-mini-conversion'] : [] },

@@ -12,6 +12,7 @@ import type { WindowAction, WindowState } from '../core/window-controls';
 export interface DesktopBridge {
   miniConversion: boolean;
   windowState(): Promise<WindowState>;
+  setWindowChrome(expanded: boolean): Promise<WindowState>;
   windowAction(action: WindowAction): Promise<void>;
   onWindowState(callback: (state: WindowState) => void): () => void;
   setMiniExpanded(expanded: boolean, reducedMotion: boolean): Promise<void>;

@@ -3,6 +3,7 @@ import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
   miniConversion: process.argv.includes('--frame-mini-conversion'),
   windowState: () => ipcRenderer.invoke('desktop:window-state'),
+  setWindowChrome: expanded => ipcRenderer.invoke('desktop:window-chrome', expanded),
   windowAction: action => ipcRenderer.invoke('desktop:window-action', action),
   onWindowState: callback => {
     const listener = (_event: unknown, state: Parameters<typeof callback>[0]) => callback(state);

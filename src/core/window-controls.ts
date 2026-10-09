@@ -1,2 +1,6 @@
 export type WindowAction = 'minimize' | 'toggle-maximize' | 'close';
-export interface WindowState { maximized: boolean; fullscreen: boolean; focused: boolean }
+export const desktopChromeSpace = 56;
+export interface WindowState {
+  maximized: boolean; fullscreen: boolean; focused: boolean;
+  contentHeight: number; chromeInset: number; chromeExpanded: boolean;
+}
