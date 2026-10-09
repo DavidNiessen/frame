@@ -26,6 +26,11 @@ function AssertPrimaryMenu([bool]$installed) {
     foreach ($name in @('FrameShell.dll', 'FrameShellLauncher.exe')) {
       if (!(Test-Path -LiteralPath (Join-Path ($key.GetValue('PrimaryRoot')) $name))) { throw "Missing native shell component $name." }
     }
+    foreach ($name in @('StoreLogo.png', 'Logo44.png', 'Logo150.png')) {
+      $asset = Join-Path ($key.GetValue('PrimaryRoot')) "Assets\$name"
+      $source = Join-Path 'build/generated/shell-actions/windows/Assets' $name
+      if (!(Test-Path -LiteralPath $asset) -or (Get-FileHash -LiteralPath $asset).Hash -ne (Get-FileHash -LiteralPath $source).Hash) { throw "Missing or incorrect external shell icon $name." }
+    }
   } elseif ($fullName -or $null -ne $package) { throw 'Primary-menu registration remains after removal.' }
 }
 $defaults = @{}

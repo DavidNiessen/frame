@@ -82,6 +82,7 @@ try {
       $packageDigest = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'FrameShell.msix')).Hash
       $previousPackage = OwnedPackage
       $reuse = $null -ne $previousPackage -and (ReadSetting 'PrimaryRoot') -eq $root -and (ReadSetting 'PrimaryDigest') -eq $packageDigest -and (ReadSetting 'PrimaryMode') -eq $mode -and $previousPackage.Status -eq 'Ok'
+      if ($reuse) { $reuse = FrameAssetsMatch $PSScriptRoot $root }
       if ($reuse -and $mode -eq 'development') { $reuse = FrameDevelopmentFilesMatch $PSScriptRoot $root }
       if (!$reuse -and $null -ne $previousPackage) { Remove-AppxPackage -Package $previousPackage.PackageFullName -ErrorAction Stop }
       $key = $registry.CreateSubKey($settings)
@@ -121,6 +122,7 @@ try {
       $complete = $null -ne $package -and $package.Status -eq 'Ok' -and (ManagedRoot $root) -and (ReadSetting 'Enabled') -eq 1 -and (ReadSetting 'PrimaryDigest') -eq (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'FrameShell.msix')).Hash
       if ($complete -and (ReadSetting 'PrimaryMode') -eq 'signed' -and $null -ne $certificate -and !$certificate.trusted) { $complete = $false }
       if ($complete) { foreach ($name in @('FrameShell.dll', 'FrameShellLauncher.exe')) { $target = Join-Path $root $name; if (!(Test-Path -LiteralPath $target) -or (Get-FileHash -LiteralPath $target).Hash -ne (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $name)).Hash) { $complete = $false } } }
+      if ($complete) { $complete = FrameAssetsMatch $PSScriptRoot $root }
       if ($complete -and (ReadSetting 'PrimaryMode') -eq 'development') {
         $complete = FrameDevelopmentFilesMatch $PSScriptRoot $root
       }

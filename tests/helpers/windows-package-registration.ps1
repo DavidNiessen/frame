@@ -20,6 +20,9 @@ if (!$blocked) { throw 'Never attempt unsigned executable package deployment.' }
 $script:calls = @()
 function Add-AppxPackage {
   param([switch]$Register, [string]$Path, [string]$ExternalLocation, [string]$ErrorAction)
+  foreach ($name in @('StoreLogo.png', 'Logo44.png', 'Logo150.png')) {
+    if (!(Test-Path -LiteralPath (Join-Path $ExternalLocation "Assets\$name"))) { throw 'Visual assets must be available in the external location before package registration.' }
+  }
   $script:calls += @{ register = $Register.IsPresent; path = $Path; root = $ExternalLocation }
 }
 $source = Join-Path $Directory 'source'; $target = Join-Path $Directory 'target'
@@ -29,6 +32,17 @@ foreach ($name in @('StoreLogo.png', 'Logo44.png', 'Logo150.png')) { Set-Content
 InstallFramePackage 'signed' $source $target
 if ($script:calls.Count -ne 1 -or $script:calls[0].register -or $script:calls[0].path -ne (Join-Path $source 'FrameShell.msix')) { throw 'Signed packages must use normal package deployment.' }
 if (Test-Path -LiteralPath (Join-Path $target 'AppxManifest.xml')) { throw 'Do not register loose files for signed packages.' }
+if (!(FrameAssetsMatch $source $target)) { throw 'Signed sparse packages need external logo assets for the parent menu icon.' }
+Remove-Item -LiteralPath (Join-Path $target 'Assets\Logo44.png')
+if (FrameAssetsMatch $source $target) { throw 'Missing parent-menu logos must require repair.' }
+InstallFramePackage 'signed' $source $target
+if (!(FrameAssetsMatch $source $target)) { throw 'Signed registration must restore missing logos.' }
+Set-Content -LiteralPath (Join-Path $target 'Assets\Logo150.png') -Value 'damaged'
+if (FrameAssetsMatch $source $target) { throw 'Corrupted logo assets must require repair.' }
+InstallFramePackage 'signed' $source $target
+if (!(FrameAssetsMatch $source $target)) { throw 'Signed registration must repair corrupted logos.' }
+if (Test-Path -LiteralPath (Join-Path $target 'Assets\Assets')) { throw 'Signed repair must not nest Assets directories.' }
+$script:calls = @($script:calls[0])
 InstallFramePackage 'development' $source $target
 if (!$script:calls[1].register -or $script:calls[1].path -ne (Join-Path $target 'AppxManifest.xml') -or $script:calls[1].root -ne $target) { throw 'Development must register the persistent manifest and external location.' }
 if (!(FrameDevelopmentFilesMatch $source $target)) { throw 'Development registration files were not copied.' }
