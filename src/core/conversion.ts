@@ -1,5 +1,5 @@
+import { namedConversion, filenameStem } from './output-naming';
 import { availableFormats } from './formats';
-import { outputName } from './export-plan';
 import { outputSettings, type OutputSettings } from './presets';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 
@@ -10,10 +10,10 @@ export function conversionSettings(asset: MediaAsset, output: OutputSettings): E
   return { ...defaultSettings(asset), ...outputSettings(output) };
 }
 
-export function conversionName(asset: MediaAsset, format: string, keepFolders = false): string {
-  const name = outputName(asset.name, format).replace(/-edited(?=\.[^.]+$)/, '');
+export function conversionName(asset: MediaAsset, format: string, keepFolders = false, template = '{name}', index = 1): string {
+  const name = namedConversion(asset, format, template, index);
   if (!keepFolders || !asset.relativePath) return name;
   const folders = asset.relativePath.replace(/\\/g, '/').split('/').slice(0, -1);
   if (folders.some(folder => !folder || folder === '.' || folder === '..')) throw new Error('Invalid source folder structure.');
-  return [...folders.map(folder => folder.replace(/[<>:"|?*\x00-\x1f]/g, '_')), name].join('/');
+  return [...folders.map(filenameStem), name].join('/');
 }

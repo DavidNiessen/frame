@@ -1,3 +1,4 @@
+import { conversionIndex, validateBatchOptions } from '../core/output-naming';
 import { youtubeVideo } from '../core/youtube';
 import { browserAnalysis } from './browser-analysis';
 import { serializeSrt } from '../core/subtitles';
@@ -104,8 +105,8 @@ export function createBrowserEngine(): MediaEngine {
         if (typeof data === 'string') throw new Error('Invalid export output.');
         const blob = new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime });
         onProgress({ ratio: 1, message: 'Your export is ready.' });
-        return { name: batchToken && batchOptions.conversion ? conversionName(asset, settings.format) : outputName(asset.name, settings.format),
-          relativePath: batchToken && batchOptions.conversion ? conversionName(asset, settings.format, batchOptions.keepFolders) : undefined,
+        return { name: batchToken && batchOptions.conversion ? conversionName(asset, settings.format, false, batchOptions.namingTemplate, conversionIndex(batchOptions, asset.id)) : outputName(asset.name, settings.format),
+          relativePath: batchToken && batchOptions.conversion ? conversionName(asset, settings.format, batchOptions.keepFolders, batchOptions.namingTemplate, conversionIndex(batchOptions, asset.id)) : undefined,
           url: URL.createObjectURL(blob), size: blob.size };
       } catch (error) {
         if (cancelled) throw new Error('Export cancelled.');
@@ -139,7 +140,7 @@ export function createBrowserEngine(): MediaEngine {
       finally { background.cancel(); }
     },
     cancelWaveform: background.cancel,
-    beginBatch: async options => { batchOptions = options ?? {}; return 'web'; },
+    beginBatch: async options => { validateBatchOptions(options ?? {}); batchOptions = options ?? {}; return 'web'; },
     endBatch: async () => { batchOptions = {}; },
     cancel() { download?.abort(); cancelled = true; runtime.cancel(); },
     async release(asset) { files.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },

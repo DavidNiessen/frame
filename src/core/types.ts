@@ -31,7 +31,7 @@ export interface MediaAsset {
 }
 export interface ImportIssue { name: string; message: string }
 export interface ImportReport { assets: MediaAsset[]; issues: ImportIssue[]; skipped: number; folderName?: string }
-export interface BatchOptions { conversion?: boolean; keepFolders?: boolean }
+export interface BatchOptions { conversion?: boolean; keepFolders?: boolean; namingTemplate?: string; order?: string[] }
 export interface Crop { x: number; y: number; width: number; height: number }
 export interface TimeRange { start: number; end: number }
 export interface EditSettings {

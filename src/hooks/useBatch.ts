@@ -6,9 +6,10 @@ import type { BatchOptions } from '../core/types';
 import type { Editor } from './useEditor';
 export function useBatch(editor: Editor) {
   const [jobs, setJobs] = useState<BatchJob[]>([]);
+  const namingOrder = useRef<string[]>([]);
   const [running, setRunning] = useState(false); const runningRef = useRef(false);
   const cancelled = useRef(false); const jobsRef = useRef(jobs); jobsRef.current = jobs;
-  const clear = () => { if (runningRef.current) return; for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); setJobs([]); };
+  const clear = () => { if (runningRef.current) return; namingOrder.current = []; for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); setJobs([]); };
   useEffect(() => () => { for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); }, []);
   async function execute(queue: BatchJob[], options?: BatchOptions, keepResults = false) {
     if (runningRef.current || editor.busy || !queue.length) return;
@@ -44,12 +45,15 @@ export function useBatch(editor: Editor) {
       edit: batchSettings(asset, editor.settingsFor(asset.id), editor.asset!, editor.edit!, mode), status: 'waiting', progress: 0 }));
     await execute(queue);
   }
-  async function convert(ids: string[], output: OutputSettings, keepFolders: boolean) {
+  const orderFor = (ids: string[]) => [...new Set([...namingOrder.current, ...editor.assets.filter(asset => ids.includes(asset.id)).map(asset => asset.id)])];
+  async function convert(ids: string[], output: OutputSettings, keepFolders: boolean, namingTemplate = '{name}') {
+    if (runningRef.current || editor.busy) return;
     const queue: BatchJob[] = editor.assets.filter(asset => ids.includes(asset.id)).map(asset => ({ id: crypto.randomUUID(), asset,
       edit: conversionSettings(asset, output), status: 'waiting', progress: 0 }));
-    await execute(queue, { conversion: true, keepFolders }, true);
+    namingOrder.current = orderFor(ids);
+    await execute(queue, { conversion: true, keepFolders, namingTemplate, order: namingOrder.current }, true);
   }
   async function openFolder() { try { await window.frameDesktop?.openBatchFolder(); } catch (error) { editor.setNotice(error instanceof Error ? error.message : String(error)); } }
-  return { jobs, start, convert, running, clear, openFolder, cancel: () => { if (runningRef.current) { cancelled.current = true; editor.cancel(); } } };
+  return { jobs, start, convert, orderFor, running, clear, openFolder, cancel: () => { if (runningRef.current) { cancelled.current = true; editor.cancel(); } } };
 }
 export type Batch = ReturnType<typeof useBatch>;

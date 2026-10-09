@@ -1,3 +1,4 @@
+import { ConversionNaming } from './ConversionNaming';
 import { GifOutputControls } from '../GifOutputControls';
 import { AudioOutputControls } from '../AudioOutputControls';
 import { ArrowRight, Check, ChevronDown, FolderTree, Settings2 } from 'lucide-react';
@@ -32,6 +33,7 @@ export function ConversionSettings({ conversion: c, editor }: { conversion: Conv
         {s.format !== 'gif' && <AudioOutputControls settings={s} update={c.update} />}
         <label className="switch-row"><span>Include artwork<small>{format.artwork ? 'Keep embedded album covers when present.' : 'This format does not support cover artwork.'}</small></span><input type="checkbox" role="switch" aria-label="Conversion include artwork" checked={format.artwork && s.includeArtwork} disabled={!format.artwork} onChange={event => c.update({ includeArtwork: event.target.checked })} /></label>
         <label className="switch-row"><span>Keep metadata<small>Titles, artists, albums and other source tags.</small></span><input type="checkbox" role="switch" aria-label="Conversion keep metadata" checked={s.keepMetadata} onChange={event => c.update({ keepMetadata: event.target.checked })} /></label>
+        <ConversionNaming conversion={c} />
       </div></details>
     </fieldset>
     <div className="conversion-action">

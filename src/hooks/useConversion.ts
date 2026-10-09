@@ -1,3 +1,4 @@
+import { validateNamingTemplate } from '../core/output-naming';
 import { sampleRates } from '../core/audio-output';
 import { useEffect, useRef, useState } from 'react';
 import { canConvert, conversionSettings } from '../core/conversion';
@@ -16,6 +17,8 @@ export function useConversion(editor: Editor) {
   const [saved] = useState(readOutput);
   const [output, setOutput] = useState<OutputSettings>(() => saved || outputSettings(defaultSettings(sample)));
   const [ids, setIds] = useState<string[]>([]), [keepFolders, setKeepFolders] = useState(true);
+  const [namingTemplate, setNamingTemplate] = useState(() => { try { return localStorage.getItem('frame:conversion-naming') || '{name}'; } catch { return '{name}'; } });
+  useEffect(() => { try { localStorage.setItem('frame:conversion-naming', namingTemplate); } catch {} }, [namingTemplate]);
   const known = useRef(new Set<string>()), manualFormat = useRef(!!saved);
   const batch = useBatch(editor); const archive = useDownloadArchive(batch.jobs);
   useEffect(() => {
@@ -31,6 +34,7 @@ export function useConversion(editor: Editor) {
   let error = '';
   if (incompatible.length) error = `${incompatible.length} selected ${incompatible.length === 1 ? 'file is' : 'files are'} incompatible with ${output.format.toUpperCase()}. Choose another format or deselect them.`;
   else if (selected.length) { try { validateEdit(selected[0], conversionSettings(selected[0], output)); } catch (issue) { error = issue instanceof Error ? issue.message : 'Check the conversion settings.'; } }
+  try { validateNamingTemplate(namingTemplate); } catch (issue) { error = issue instanceof Error ? issue.message : 'Check the filename pattern.'; }
   const done = batch.jobs.filter(job => job.status === 'done');
   const unfinished = batch.jobs.filter(job => ['failed', 'cancelled'].includes(job.status));
   const busy = !!editor.busy || archive.busy;
@@ -42,9 +46,9 @@ export function useConversion(editor: Editor) {
       return next;
     });
   }
-  return { output, update, ids, setIds, keepFolders, setKeepFolders, selected, incompatible, error, busy, batch, archive, latestJobs, done, unfinished,
-    start: () => { if (!error && !busy) void batch.convert(selected.map(asset => asset.id), output, keepFolders); },
-    retry: () => { if (!error && !busy) void batch.convert(unfinished.filter(job => selected.some(asset => asset.id === job.asset.id)).map(job => job.asset.id), output, keepFolders); },
+  return { output, update, namingTemplate, setNamingTemplate, ids, setIds, keepFolders, setKeepFolders, selected, incompatible, error, busy, batch, archive, latestJobs, done, unfinished,
+    start: () => { if (!error && !busy) void batch.convert(selected.map(asset => asset.id), output, keepFolders, namingTemplate); },
+    retry: () => { if (!error && !busy) void batch.convert(unfinished.filter(job => selected.some(asset => asset.id === job.asset.id)).map(job => job.asset.id), output, keepFolders, namingTemplate); },
     clear: () => { if (!busy) { archive.cancel(); batch.clear(); } },
     toggle: (id: string) => setIds(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]),
   };

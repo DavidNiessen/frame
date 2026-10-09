@@ -1,3 +1,4 @@
+import { conversionIndex, validateBatchOptions } from '../src/core/output-naming';
 import type { WindowIpc } from './window-ipc';
 import { dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { randomUUID } from 'node:crypto';
@@ -11,7 +12,7 @@ export function createBatchFolders(window: () => BrowserWindow, trusted: (event:
   let lastConversionFolder = '';
   ipc.handle('batch:begin', async (event, options: BatchOptions = {}) => {
     trusted(event);
-    if (!options || typeof options !== 'object' || ['conversion', 'keepFolders'].some(key => options[key as keyof BatchOptions] !== undefined && typeof options[key as keyof BatchOptions] !== 'boolean')) throw new Error('Invalid batch options.');
+    validateBatchOptions(options);
     const choice = await dialog.showOpenDialog(window(), { title: options.conversion ? 'Choose conversion output folder' : 'Choose batch export folder', defaultPath: options.conversion ? lastConversionFolder || undefined : undefined, properties: ['openDirectory', 'createDirectory'] });
     if (choice.canceled || !choice.filePaths.length) return null;
     folders.clear(); const token = randomUUID(); const path = await realpath(choice.filePaths[0]);
@@ -24,7 +25,7 @@ export function createBatchFolders(window: () => BrowserWindow, trusted: (event:
   }
   function name(token: string, asset: MediaAsset, format: string) {
     const options = folders.get(token)?.options;
-    return options?.conversion ? conversionName(asset, format, options.keepFolders) : outputName(asset.name, format);
+    return options?.conversion ? conversionName(asset, format, options.keepFolders, options.namingTemplate, conversionIndex(options, asset.id)) : outputName(asset.name, format);
   }
   async function destination(token: string, name: string) {
     const segments = name.replace(/\\/g, '/').split('/');
