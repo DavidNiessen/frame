@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type RefObject } from 'react';
-import { AudioLines, Maximize, Pause, Play, SkipBack, Volume2 } from 'lucide-react';
+import { AudioLines, Maximize, Minimize, Pause, Play, SkipBack, Volume2 } from 'lucide-react';
 import type { EditSettings, MediaAsset } from '../core/types';
 import { nextPlayableTime } from '../core/timeline';
 import { time } from '../core/format';
@@ -8,7 +8,8 @@ import { frameDimensions, geometryPreview } from '../core/geometry';
 import { OverlayPreview } from './OverlayPreview';
 import { CropOverlay } from './CropOverlay';
 import { CaptionPreview } from './CaptionPreview';
-export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent, update, disabled }: {
+export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent, update, disabled, expanded, toggleExpanded, panelRef }: {
+  expanded: boolean; toggleExpanded: () => void; panelRef: RefObject<HTMLElement | null>;
   previewUrl?: string; asset: MediaAsset; edit: EditSettings; mediaRef: RefObject<HTMLMediaElement | null>;
   current: number; setCurrent: (value: number) => void; update: (patch: Partial<EditSettings>) => void; disabled: boolean;
 }) {
@@ -38,7 +39,7 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
       if (media.paused) setCurrent(media.currentTime);
     },
   };
-  return <section id="media-preview" className="preview-panel" aria-label="Media preview">
+  return <section ref={panelRef} id="media-preview" className="preview-panel" aria-label="Media preview">
     <div className="workspace-heading"><div><h2 title={asset.name}>{asset.name}</h2></div><span className="badge">{asset.kind === 'video' ? `${asset.width} × ${asset.height}` : 'Audio'} <span>·</span> {time(asset.duration)}</span></div>
     <div className={`preview-stage ${asset.kind === 'audio' ? 'audio-stage' : ''}`}>
       {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}`, '--frame-ratio': dimensions.width / dimensions.height } as CSSProperties}>
@@ -50,6 +51,6 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
       {failed && <div className="preview-error"><p>This format cannot be previewed here.</p><span>You can still edit and convert it to MP4 or MP3.</span></div>}
       <span className="preview-label">{edit.crop ? 'Drag the crop or its corners' : edit.subtitles.mode === 'burn' && edit.subtitles.cues.some(c => current >= c.start && current < c.end) ? 'Drag captions to position · arrow keys to nudge' : gif ? 'GIF source loops · edits apply on export' : edit.videoFadeIn || edit.videoFadeOut ? 'Fade preview • source frame' : previewUrl ? 'Lightweight proxy preview' : 'Original preview'}</span>
     </div>
-    <div className="transport"><div className="transport-left"><button className="icon-button" aria-label="Back to trim start" disabled={disabled || gif || failed} onClick={() => { if (mediaRef.current) mediaRef.current.currentTime = edit.start; setCurrent(edit.start); }}><SkipBack size={17} /></button><button className="play-button" aria-label={playing ? 'Pause' : 'Play'} disabled={disabled || gif || failed} onClick={toggle}>{playing ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}</button><span className="timecode">{time(current)} <i>/ {time(asset.duration)}</i></span></div><div className="transport-right"><span className="preview-volume"><Volume2 size={15} />{Math.round(edit.volume * 100)}%{edit.volume > 1 ? ' on export' : ''}</span><button className="icon-button" aria-label="Fullscreen preview" disabled={asset.kind !== 'video'} onClick={() => { const parent = document.querySelector('.preview-stage'); if (parent?.requestFullscreen) void parent.requestFullscreen().catch(() => {}); }}><Maximize size={16} /></button></div></div>
+    <div className="transport"><div className="transport-left"><button className="icon-button" aria-label="Back to trim start" disabled={disabled || gif || failed} onClick={() => { if (mediaRef.current) mediaRef.current.currentTime = edit.start; setCurrent(edit.start); }}><SkipBack size={17} /></button><button className="play-button" aria-label={playing ? 'Pause' : 'Play'} disabled={disabled || gif || failed} onClick={toggle}>{playing ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}</button><span className="timecode">{time(current)} <i>/ {time(asset.duration)}</i></span></div><div className="transport-right"><span className="preview-volume"><Volume2 size={15} />{Math.round(edit.volume * 100)}%{edit.volume > 1 ? ' on export' : ''}</span><button data-preview-expand className="icon-button" aria-label={expanded ? 'Exit fullscreen preview' : 'Fullscreen preview'} aria-pressed={expanded} title={expanded ? 'Restore editor · Escape' : 'Expand preview to fill the workspace'} disabled={asset.kind !== 'video'} onClick={toggleExpanded}>{expanded ? <Minimize size={16} /> : <Maximize size={16} />}</button></div></div>
   </section>;
 }

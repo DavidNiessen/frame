@@ -100,11 +100,13 @@ Packaged Frame also accepts file arguments directly: `Frame.exe --frame-workflow
 
 The workspace uses separate panels for the library, preview, timeline, and editing controls. Drag the dividers to resize them; focused dividers also support arrow keys, Shift for larger steps, and Home/End. Sizes are remembered on this device. Double-click a divider to reset its panel, or choose **Project tools → Reset panel layout** to reset all sizes. Convert also has a resizable settings panel.
 
+**Fullscreen preview** smoothly expands the video across the workspace while keeping the app header and footer visible. Playback continues through the transition. Hover or focus the preview to reveal its controls; touch devices keep playback controls visible. Click the restore button or press Escape to return to the saved panel layout. Transitions respect the system's reduced-motion preference.
+
 Adding caption or effect lanes keeps the preview size stable: extra tracks scroll vertically inside the timeline. Use the timeline zoom controls for finer edits and horizontal scrolling; **Fit** shows the whole source again. Zoomed timelines follow the playhead during playback. Smaller windows move the library above the preview, and phones stack the panels while keeping the timeline independently resizable.
 
 Edits are nondestructive and support undo/redo. Artwork is enabled by default for MP3, FLAC, and M4A if embedded in the source. GIF has no audio. WAV/FLAC use lossless encoding rather than a target audio bitrate. The default export name has an `-edited` suffix; the desktop app rejects exporting over the source file. Save a `.frame.json` project to retain edits across sessions. Project files contain recipes and source metadata, without media bytes or machine paths. Open a project and relink its original media to restore edits; you can undo the restore. Keep the original files alongside your projects. Theme preference persists locally.
 
-Keyboard shortcuts: Ctrl/Cmd+O imports, Space plays/pauses, I/O set trim boundaries, Ctrl/Cmd+Z undoes, and Ctrl/Cmd+Shift+Z redoes. A shortcut reference is available in the footer.
+Keyboard shortcuts: Ctrl/Cmd+O imports, Space plays/pauses (including when timeline clips, trim handles, or the seek slider have focus), I/O set trim boundaries, Ctrl/Cmd+Z undoes, and Ctrl/Cmd+Shift+Z redoes. A shortcut reference is available in the footer.
 
 Audio files automatically generate a **waveform** when selected. For videos with audio, choose Generate waveform in the Timeline. Peaks are cached per source and drawn inside each retained clip: trims and split-section edges crop the matching source peaks live, and removed sections leave empty gaps. Processing runs locally, can be cancelled, and offers a retry if interrupted.
 

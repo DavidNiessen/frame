@@ -14,5 +14,6 @@ import './styles/captions.css';
 import './styles/conversion.css';
 import './styles/settings.css';
 import './styles/islands.css';
+import './styles/expanded-preview.css';
 import App from './App';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
