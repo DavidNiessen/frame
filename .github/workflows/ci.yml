@@ -82,6 +82,10 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:desktop
       - run: npm run package
+      - name: Test installed Windows context-menu actions and uninstall cleanup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/test-windows-shell.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: frame-${{ matrix.os }}

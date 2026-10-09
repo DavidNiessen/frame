@@ -1,7 +1,7 @@
 import { expect, test, _electron } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { copyFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { conversionLibrary } from '../helpers/conversion-library';
 
@@ -24,6 +24,7 @@ test('opens selections in one instance, reuses drafts, and queues file launches 
     await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByLabel('Trim start', { exact: true })).toBeEnabled();
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
     expect(await app.evaluate(({ BrowserWindow }) => ({ count: BrowserWindow.getAllWindows().length, minimized: BrowserWindow.getAllWindows()[0].isMinimized() }))).toEqual({ count: 1, minimized: false });
     await page.getByLabel('Trim start', { exact: true }).press('ArrowRight');
     const draft = await page.getByLabel('Trim start', { exact: true }).getAttribute('aria-valuenow');
@@ -60,6 +61,29 @@ test('receives native open-file events before and after the renderer is ready', 
     const page = await app.firstWindow();
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
     await page.getByRole('navigation', { name: 'Workflow' }).getByRole('button', { name: 'Convert', exact: true }).click();
+    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
+  } finally { await app.close(); await rm(library.directory, { recursive: true, force: true }); }
+});
+
+test('invokes installed Windows shell verbs on a mixed multi-file selection', async () => {
+  test.skip(process.platform !== 'win32' || process.env.FRAME_TEST_SHELL_ACTIONS !== '1', 'Runs against the installed NSIS artifact on Windows CI.');
+  const library = await conversionLibrary();
+  await copyFile(library.sources[0], join(library.directory, 'Selection song & Björk.wav'));
+  await copyFile('public/sample.mp4', join(library.directory, 'Selection video.mp4'));
+  // Explorer launches use the normal app profile, so the primary must use it too.
+  const app = await _electron.launch({ executablePath: resolve(process.env.FRAME_TEST_EXECUTABLE!), args: [], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  try {
+    const page = await app.firstWindow(), workflow = page.getByRole('navigation', { name: 'Workflow' });
+    const powershell = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+    const invoke = (mode: string) => exec(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', resolve('tests/helpers/invoke-windows-action.ps1'), '-Directory', library.directory, '-Workflow', mode]);
+    await invoke('Convert');
+    await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
+    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
+    await expect(page.getByText('Selection song & Björk.wav', { exact: true })).toBeVisible();
+    await invoke('Edit');
+    await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+    await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
     await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
   } finally { await app.close(); await rm(library.directory, { recursive: true, force: true }); }
 });

@@ -64,6 +64,9 @@
         "nsis"
       ]
     },
+    "nsis": {
+      "include": "build/generated/windows-context-menu.nsh"
+    },
     "mac": {
       "target": [
         "dmg"
@@ -92,6 +95,10 @@
       {
         "from": "public/fonts",
         "to": "fonts"
+      },
+      {
+        "from": "build/generated/shell-actions",
+        "to": "shell-actions"
       }
     ],
     "beforePack": "scripts/verify-package.cjs",

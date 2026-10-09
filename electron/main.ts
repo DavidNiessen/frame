@@ -17,6 +17,7 @@ import { registerImports } from './imports';
 import { registerProjectSaving } from './projects';
 import { LaunchInbox } from './launch-inbox';
 import { launchArguments } from './launch-arguments';
+import { configureSystemIntegration, shellStartupCommand } from './system-integration';
 import { buildExportArgs, outputName, validateEdit } from '../src/core/export-plan';
 import { type EditSettings, type MediaAsset } from '../src/core/types';
 
@@ -24,17 +25,19 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard:
 const assets = new Map<string, { path: string; asset: MediaAsset }>();
 let clearProxies = () => {};
 let mainWindow: BrowserWindow | null = null;
+let desktopReady = false;
 const jobs = new MediaJobs();
-const ownsInstance = app.requestSingleInstanceLock();
+const shellCommand = shellStartupCommand(process.argv);
+const ownsInstance = !!shellCommand || app.requestSingleInstanceLock();
 if (!ownsInstance) app.quit();
 const launches = new LaunchInbox(() => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:launch-available'); });
 function focusWindow() {
-  if (!app.isReady()) return;
+  if (!desktopReady) return;
   if (!mainWindow) createWindow();
   if (mainWindow!.isMinimized()) mainWindow!.restore();
   mainWindow!.show(); mainWindow!.focus();
 }
-if (ownsInstance) {
+if (ownsInstance && !shellCommand) {
   const initial = launchArguments(process.argv, process.cwd()); if (initial) launches.enqueue(initial);
   app.on('second-instance', (_event, argv, cwd) => { const request = launchArguments(argv, cwd); if (request) launches.enqueue(request); focusWindow(); });
   app.on('open-file', (event, path) => { event.preventDefault(); const request = launchArguments([process.execPath, '--', path], process.cwd()); if (request) launches.enqueue(request); focusWindow(); });
@@ -61,6 +64,7 @@ function createWindow() {
 }
 app.whenReady().then(() => {
   if (!ownsInstance) return;
+  if (configureSystemIntegration(shellCommand)) return;
   registerAcceleration(jobs, trusted);
   const proxies = createProxies(assets, jobs, trusted); clearProxies = proxies.clear;
   const batchFolders = createBatchFolders(() => mainWindow!, trusted);
@@ -108,7 +112,8 @@ app.whenReady().then(() => {
     });
   });
   registerProjectSaving(() => mainWindow!, trusted, () => Array.from(assets.values(), item => item.path));
-  createWindow();
+  desktopReady = true;
+  if (!mainWindow) createWindow();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

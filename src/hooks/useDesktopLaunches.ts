@@ -26,7 +26,10 @@ export function useDesktopLaunches(editor: Editor, activate: (workflow: Workflow
   useEffect(() => {
     if (!window.frameDesktop) return;
     mounted.current = true;
-    const remove = window.frameDesktop.onLaunchAvailable(() => void drain());
+    const remove = window.frameDesktop.onLaunchAvailable(() => {
+      if (latest.current.editor.busy || latest.current.blocked) latest.current.editor.setNotice('Selected files are queued and will open when Frame is available.');
+      void drain();
+    });
     void drain();
     return () => { mounted.current = false; remove(); };
   }, [drain]);

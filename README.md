@@ -58,6 +58,18 @@ Conversion processes each **complete original source** independently of trims, c
 
 The library supports up to 2,000 media files. Large collections use searchable, paginated queues. Browser limits remain 500 MB per source, 800 MB in the library, and 500 MB of retained converted results; ZIP preparation uses additional memory. Save and clear completed downloads before the next group, or use desktop for large libraries. Directory picking varies by browser, with regular multi-file selection available as a fallback.
 
+## Open from your file manager
+
+**Windows:** install the packaged Frame application using its `.exe` installer. Right-click a supported audio/video file or a selection of files and choose **Edit in Frame** or **Convert in Frame**. Windows 11 shows these entries under **Show more options** (Shift+F10). The actions support mixed media selections, reuse the running Frame window, and import the selected originals into the matching workflow. Explorer’s classic menu supports up to 100 selected files; use **Add folder** for larger collections. Your default media player is unchanged. Uninstalling Frame removes its own menu entries.
+
+**macOS:** copy Frame to Applications, open it, and choose **Frame → Install Finder Quick Actions…**. In Finder, right-click media and choose **Quick Actions** or **Services → Edit in Frame / Convert in Frame**. If hidden, enable the actions in **System Settings → Keyboard → Keyboard Shortcuts → Services**. The corresponding **Remove Finder Quick Actions…** menu item removes them. Frame also appears as an alternate **Open With** application for supported media, opening files in Editor. Quick Actions use the installed Frame app and support multiple selected files, including when Frame is already running.
+
+**Linux (optional, Dolphin):** keep the AppImage at a stable path and run `./Frame.AppImage --install-shell-actions`. This adds both actions for local audio/video/GIF files in Dolphin. Restart Dolphin if needed. Run `./Frame.AppImage --remove-shell-actions` before deleting or moving the AppImage; rerun installation after moving it. Other Linux file managers are not integrated in this version.
+
+File-manager requests wait while Frame imports, analyzes, or exports media, or while a project/batch/merge dialog is open. Existing sources are selected without resetting their editor recipes. Conversion opens the queue for review; it does not start encoding automatically. The web application does not register desktop actions.
+
+Packaged Frame also accepts file arguments directly: `Frame.exe --frame-workflow=convert -- "C:\Music\song.wav" "C:\Music\second.flac"`. Use `--frame-workflow=edit` to open Editor. Paths after `--` are treated as filenames, and unsupported extensions are ignored.
+
 ## Editing
 
 1. Import or drop video/audio files and choose a file in the library.
