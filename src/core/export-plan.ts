@@ -1,3 +1,4 @@
+import { audioOutputArgs, outputAudioCodec, validateAudioOutput } from './audio-output';
 import { clipEffectKeys, clipRecipe } from './clips';
 import { clipFilterGraph } from './clip-filters';
 import { parseAcceleration } from './hardware';
@@ -14,7 +15,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
-  parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
+  validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
   if (edit.clips) {
     if (!Array.isArray(edit.clips) || !edit.clips.length || edit.clips.length > 1000 || new Set(edit.clips.map(clip => clip.id)).size !== edit.clips.length) throw new Error('Invalid ordered clips.');
@@ -95,9 +96,9 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
     }
     if (format.videoCodec === 'libx264') args.push('-preset', 'fast');
     if (edit.format === 'webm') args.push('-deadline', 'good', '-cpu-used', '4');
-    if (hasAudio) args.push('-c:a', format.audioCodec!, '-b:a', `${edit.audioBitrate}k`);
+    if (hasAudio) args.push('-c:a', outputAudioCodec(edit), '-b:a', `${edit.audioBitrate}k`);
   } else {
-    args.push('-map', audioInput, '-c:a', format.audioCodec!);
+    args.push('-map', audioInput, '-c:a', outputAudioCodec(edit));
     if (!['wav', 'flac'].includes(edit.format)) args.push('-b:a', `${edit.audioBitrate}k`);
     if (artwork) {
       args.push('-map', `1:${asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
@@ -106,6 +107,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   }
   if (captions) args.push('-map', `${artwork ? 2 : 1}:s:0`, '-c:s', subtitleCodec(edit.format)!, '-metadata:s:s:0', 'language=und');
   if (graph.length) args.push('-filter_complex', graph.join(';'));
+  if (hasAudio) args.push(...audioOutputArgs(edit));
   if (hasAudio && !complex) args.push('-af', audioFilters(edit, asset).join(','));
   if (['mp4', 'mov', 'm4a'].includes(edit.format)) args.push('-movflags', '+faststart');
   args.push('-threads', '2', output);

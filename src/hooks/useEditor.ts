@@ -1,3 +1,4 @@
+import { sampleRates } from '../core/audio-output';
 import type { UrlImportOptions } from '../core/youtube';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createEngine } from '../engines';
@@ -61,6 +62,7 @@ export function useEditor() {
     setHistories(current => {
       const h = current[selected]; if (!h) return current;
       const next = { ...h.present, ...patch };
+      if (patch.format && next.audioSampleRate !== null && !sampleRates(next.format).includes(next.audioSampleRate)) next.audioSampleRate = null;
       if (next.clips) {
         if (patch.start !== undefined || patch.end !== undefined) next.clips = next.clips.map(clip => ({ ...clip, start: Math.max(clip.start, next.start), end: Math.min(clip.end, next.end) })).filter(clip => clip.end - clip.start >= .05);
         if (!next.clips.length) return current;

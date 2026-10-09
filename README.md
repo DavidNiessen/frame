@@ -2,7 +2,7 @@
 
 A desktop-first video and audio editor with a shared web application. Trim, split and remove sections, crop video, adjust volume, extract audio, and bulk-convert entire media folders. Processing happens on your device; no media is uploaded.
 
-The interface adapts the typography, green accents, and restrained surfaces in [DESIGN.md](DESIGN.md). System appearance is the default; Light, Dark, and Midnight can be selected and are remembered locally.
+The interface adapts the typography, violet accents, and restrained surfaces in [DESIGN.md](DESIGN.md). System appearance is the default; Light, Dark, and Midnight can be selected and are remembered locally.
 
 ## Develop
 
@@ -207,3 +207,5 @@ Drag a clip body to reorder it, or focus it and use **Alt + Left/Right**. Drag i
 The main clip track stays visible below scrollable caption and effect tracks. **Compact** collapses track groups, and the track filters isolate clips, captions or effects. The overview strip shows the full sequence and lets you pan a zoomed timeline; **Locate playhead** returns to the current position and **Fit** restores the full view. Fullscreen preview includes a playback slider that follows the edited output.
 
 Waveform analysis runs separately from editing: a native background FFmpeg job on desktop and a dedicated WASM worker on web. You can trim, change effects and export while it runs. Cancelling waveform analysis leaves an export running. Source peaks are cached during the session and follow each trimmed or moved clip; the browser releases the extra worker after analysis finishes.
+
+Audio delivery: Advanced export/conversion settings let you choose a sample rate, keep source channels or convert to mono/stereo, and select 16-bit, 24-bit, or 32-bit float WAV output. These choices travel with projects and output presets, apply to merges, and update WAV size estimates. Automatic sample rate retains the encoder/processing defaults; increasing rate or bit depth does not restore missing source detail. Switching to a format that cannot use the selected rate resets it to Automatic.

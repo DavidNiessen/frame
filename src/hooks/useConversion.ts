@@ -1,3 +1,4 @@
+import { sampleRates } from '../core/audio-output';
 import { useEffect, useRef, useState } from 'react';
 import { canConvert, conversionSettings } from '../core/conversion';
 import { validateEdit } from '../core/export-plan';
@@ -33,7 +34,14 @@ export function useConversion(editor: Editor) {
   const done = batch.jobs.filter(job => job.status === 'done');
   const unfinished = batch.jobs.filter(job => ['failed', 'cancelled'].includes(job.status));
   const busy = !!editor.busy || archive.busy;
-  function update(patch: Partial<OutputSettings>) { if (patch.format) manualFormat.current = true; setOutput(output => ({ ...output, ...patch })); }
+  function update(patch: Partial<OutputSettings>) {
+    if (patch.format) manualFormat.current = true;
+    setOutput(output => {
+      const next = { ...output, ...patch };
+      if (patch.format && next.audioSampleRate !== null && !sampleRates(next.format).includes(next.audioSampleRate)) next.audioSampleRate = null;
+      return next;
+    });
+  }
   return { output, update, ids, setIds, keepFolders, setKeepFolders, selected, incompatible, error, busy, batch, archive, latestJobs, done, unfinished,
     start: () => { if (!error && !busy) void batch.convert(selected.map(asset => asset.id), output, keepFolders); },
     retry: () => { if (!error && !busy) void batch.convert(unfinished.filter(job => selected.some(asset => asset.id === job.asset.id)).map(job => job.asset.id), output, keepFolders); },

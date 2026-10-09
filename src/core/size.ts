@@ -21,8 +21,8 @@ export interface SizeEstimate { low: number; high: number; label: string; bitrat
 export function estimateSize(asset: MediaAsset, recipe: EditSettings): SizeEstimate | null {
   const edit = resolveSizeTarget(asset, recipe); const duration = editedDuration(edit); if (duration <= 0 || edit.format === 'gif') return null;
   if (['wav', 'flac'].includes(edit.format)) {
-    const rate = edit.speed !== 1 || edit.normalizeLoudness ? 48000 : asset.audioSampleRate ?? 48000;
-    const pcm = duration * rate * (asset.audioChannels ?? 2) * 2;
+    const rate = edit.audioSampleRate ?? (edit.speed !== 1 || edit.normalizeLoudness || edit.clips ? 48000 : asset.audioSampleRate ?? 48000);
+    const pcm = duration * rate * (edit.audioChannels ?? asset.audioChannels ?? 2) * (edit.format === 'wav' ? edit.wavDepth / 8 : 2);
     return edit.format === 'wav' ? { low: pcm, high: pcm * 1.02 + 4096, label: 'PCM estimate; artwork/metadata may add size' } : { low: pcm * .3, high: pcm * 1.02, label: 'Broad lossless estimate; depends on the audio' };
   }
   if (getFormat(edit.format).kind === 'audio') {

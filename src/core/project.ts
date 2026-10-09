@@ -49,6 +49,9 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     format: text(e.format, 10) as EditSettings['format'], quality: text(e.quality, 10) as EditSettings['quality'],
     acceleration: parseAcceleration(e.acceleration),
     targetSizeMb: e.targetSizeMb === undefined || e.targetSizeMb === null ? null : number(e.targetSizeMb),
+    audioSampleRate: e.audioSampleRate === undefined || e.audioSampleRate === null ? null : number(e.audioSampleRate),
+    audioChannels: e.audioChannels === undefined || e.audioChannels === null ? null : number(e.audioChannels),
+    wavDepth: e.wavDepth === undefined ? 16 : number(e.wavDepth) as EditSettings['wavDepth'],
     videoBitrate: e.videoBitrate === null ? null : number(e.videoBitrate), audioBitrate: number(e.audioBitrate), fps: number(e.fps),
     includeArtwork: boolean(e.includeArtwork), keepMetadata: boolean(e.keepMetadata),
   };
