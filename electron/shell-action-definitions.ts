@@ -50,7 +50,7 @@ Function FrameShellPage
   $\{NSD_CreateCheckbox} 0 40u 100% 28u 'Add "Edit in Frame" and "Convert in Frame" to file context menus'
   Pop $FrameShellCheckbox
   $\{NSD_SetState} $FrameShellCheckbox $FrameShellEnabled
-  $\{NSD_CreateLabel} 0 82u 100% 42u "Applies to supported media and multiple selections. Windows 11 adds a Frame entry in the primary menu and keeps Show more options entries. You can change this later in Frame Settings."
+  $\{NSD_CreateLabel} 0 82u 100% 62u "Applies to supported media and multiple selections. Windows 11 adds a Frame entry in the primary menu and keeps Show more options entries. Local unsigned builds require Developer Mode for the primary menu; distributed builds require a trusted signed shell package. You can change actions later in Frame Settings."
   Pop $R0
   nsDialogs::Show
 FunctionEnd

@@ -57,11 +57,24 @@ test('packs a sparse identity with correct ZIP headers and hashes for every unco
   assert.equal(Buffer.from(archive).readUInt16LE(8), 0); // ZIP_STORE; no compression-size fields required.
   assert.ok(unpacked['[Content_Types].xml']); assert.ok(!Object.keys(unpacked).some(name => /\.(dll|exe)$/i.test(name)));
 });
-test('prepares checked-in native binaries and a code-free sparse package without a compiler', async () => {
+test('prepares native binaries and developer registration files without a compiler or unsigned-activation identity', async () => {
   const root = await prepareWindowsShell(), files = unzipSync(await readFile(join(root, 'FrameShell.msix')));
   assert.ok(files['AppxManifest.xml']); assert.ok(files['Assets/Logo44.png']);
   assert.ok(!files['FrameShell.dll']); assert.ok(!files['FrameShellLauncher.exe']);
   assert.ok((await readFile(join(root, 'manage-menu.ps1'), 'utf8')).includes('Remove-AppxPackage'));
+  assert.ok((await readFile(join(root, 'package-registration.ps1'), 'utf8')).includes('Add-AppxPackage -Register'));
+  assert.doesNotMatch(Buffer.from(files['AppxManifest.xml']).toString('utf8'), /OID\.2\.25/);
+  assert.equal(JSON.parse(await readFile(join(root, 'identity.json'))).signedPackage, !!process.env.FRAME_WINDOWS_SHELL_PACKAGE);
+});
+test('uses signed deployment or existing Developer Mode and repairs persistent registration files', async t => {
+  const powershell = process.env.FRAME_TEST_POWERSHELL || (process.platform === 'win32' ? join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe') : 'pwsh');
+  try { execFileSync(powershell, ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()']); }
+  catch (error) { if (process.platform !== 'win32' && error.code === 'ENOENT') { t.skip('PowerShell is not installed on this host.'); return; } throw error; }
+  const directory = await mkdtemp(join(tmpdir(), 'frame-package-policy-'));
+  try {
+    const output = execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'tests/helpers/windows-package-registration.ps1', '-Helper', join(nativeRoot, 'package-registration.ps1'), '-Directory', directory], { encoding: 'utf8' });
+    assert.match(output, /policy and lifecycle checks passed/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 test('quotes Unicode and special filenames and batches long selections using the native launch code', { skip: process.platform === 'win32' }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-shell-arguments-'));

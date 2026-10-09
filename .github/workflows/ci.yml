@@ -82,6 +82,13 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:desktop
       - run: npm run package
+      - name: Enable Developer Mode on the disposable Windows test runner
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # CI artifacts are unsigned. This is test-machine setup; Frame never changes this policy.
+          New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Force | Out-Null
+          New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -Value 1 -PropertyType DWord -Force | Out-Null
       - name: Test installed Windows context-menu actions and uninstall cleanup
         if: runner.os == 'Windows'
         shell: pwsh

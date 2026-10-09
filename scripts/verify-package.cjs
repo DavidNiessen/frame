@@ -41,7 +41,7 @@ module.exports = async context => {
       const path = join(context.packager.projectDir, 'build/generated/shell-actions/windows', name);
       if (!existsSync(path) || createHash('sha256').update(readFileSync(path)).digest('hex') !== hash) throw new Error('The Windows shell extension is missing or corrupt. Run npm run build.');
     }
-    for (const name of ['FrameShell.msix', 'manage-menu.ps1', 'identity.json']) if (!existsSync(join(context.packager.projectDir, 'build/generated/shell-actions/windows', name))) throw new Error('Windows primary-menu registration files are missing. Run npm run build.');
+    for (const name of ['FrameShell.msix', 'AppxManifest.xml', 'manage-menu.ps1', 'package-registration.ps1', 'identity.json']) if (!existsSync(join(context.packager.projectDir, 'build/generated/shell-actions/windows', name))) throw new Error('Windows primary-menu registration files are missing. Run npm run build.');
   }
   if (context.electronPlatformName === 'darwin') {
     context.packager.platformSpecificBuildOptions.fileAssociations = [{ ext: require('../src/core/media-extensions.json'), name: 'Frame media', role: 'Editor', rank: 'Alternate' }];

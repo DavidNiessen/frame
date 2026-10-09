@@ -28,7 +28,8 @@ export async function prepareWindowsShell() {
     if (xml !== files['AppxManifest.xml'].toString('utf8') || !contents['AppxSignature.p7x']) throw new Error('The supplied signed shell package must contain the exact generated manifest and its signature.');
     await writeFile(join(root, 'FrameShell.msix'), archive);
   } else await writeFile(join(root, 'FrameShell.msix'), sparseMsix(files));
-  await writeFile(join(root, 'identity.json'), JSON.stringify(identity));
+  await writeFile(join(root, 'identity.json'), JSON.stringify({ ...identity, signedPackage: !!signed }));
   await cp(join(nativeRoot, 'manage-menu.ps1'), join(root, 'manage-menu.ps1'));
+  await cp(join(nativeRoot, 'package-registration.ps1'), join(root, 'package-registration.ps1'));
   return root;
 }

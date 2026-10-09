@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 if ($JsonFromStdin) { $data = [Console]::In.ReadToEnd() | ConvertFrom-Json }
 else { $data = @{ operation = $Operation; executable = $Executable; prefix = '"' + $Executable + '"' } }
 $identity = Get-Content (Join-Path $PSScriptRoot 'identity.json') -Raw | ConvertFrom-Json
+. (Join-Path $PSScriptRoot 'package-registration.ps1')
 $base = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Frame\ShellActions'
 $registry = [Microsoft.Win32.Registry]::CurrentUser
 $settings = 'Software\Frame\ShellActions'
@@ -44,6 +45,10 @@ try {
     $owned = (ReadSetting 'Executable') -eq $data.executable -and (ReadSetting 'CommandPrefix') -eq $data.prefix
     if ($data.operation -eq 'Install') {
       if (!(Test-Path -LiteralPath $data.executable -PathType Leaf)) { throw 'Frame executable is missing.' }
+      $policy = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock')
+      $developerMode = $false
+      if ($null -ne $policy) { try { $developerMode = $policy.GetValue('AllowDevelopmentWithoutDevLicense') -eq 1 } finally { $policy.Dispose() } }
+      $mode = FramePackageMode ($identity.signedPackage -eq $true) $developerMode
       New-Item -ItemType Directory -Path $base -Force | Out-Null
       if ((Get-Item -LiteralPath $base).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'The Frame shell component directory must not be a symbolic link.' }
       $hash = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'FrameShell.dll') -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -58,7 +63,8 @@ try {
       }
       $packageDigest = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'FrameShell.msix')).Hash
       $previousPackage = OwnedPackage
-      $reuse = $null -ne $previousPackage -and (ReadSetting 'PrimaryRoot') -eq $root -and (ReadSetting 'PrimaryDigest') -eq $packageDigest -and $previousPackage.Status -eq 'Ok'
+      $reuse = $null -ne $previousPackage -and (ReadSetting 'PrimaryRoot') -eq $root -and (ReadSetting 'PrimaryDigest') -eq $packageDigest -and (ReadSetting 'PrimaryMode') -eq $mode -and $previousPackage.Status -eq 'Ok'
+      if ($reuse -and $mode -eq 'development') { $reuse = FrameDevelopmentFilesMatch $PSScriptRoot $root }
       if (!$reuse -and $null -ne $previousPackage) { Remove-AppxPackage -Package $previousPackage.PackageFullName -ErrorAction Stop }
       $key = $registry.CreateSubKey($settings)
       try {
@@ -68,16 +74,14 @@ try {
       } finally { $key.Dispose() }
       $owned = $true
       if (!$reuse) {
-        # This sparse package contains only manifest/images; the native code stays external.
-        # Unsigned identity is explicitly separated by Microsoft's reserved publisher OID.
-        $parameters = @{ Path = Join-Path $PSScriptRoot 'FrameShell.msix'; ExternalLocation = $root; ErrorAction = 'Stop' }
-        if ($identity.publisher -match 'OID\.2\.25\.311729368913984317654407730594956997722=1') { $parameters.AllowUnsigned = $true }
-        Add-AppxPackage @parameters
+        InstallFramePackage $mode $PSScriptRoot $root
         $package = Get-AppxPackage -Name $identity.name | Where-Object { $_.Publisher -eq $identity.publisher } | Select-Object -First 1
         if ($null -eq $package) { throw 'Windows did not register the Frame shell package.' }
         $key = $registry.CreateSubKey($settings)
-        try { $key.SetValue('PrimaryPackage', $package.PackageFullName); $key.DeleteValue('PrimaryError', $false) } finally { $key.Dispose() }
+        try { $key.SetValue('PrimaryPackage', $package.PackageFullName); $key.SetValue('PrimaryMode', $mode) } finally { $key.Dispose() }
       }
+      $key = $registry.CreateSubKey($settings)
+      try { $key.DeleteValue('PrimaryError', $false); $key.DeleteValue('PrimaryErrorCommand', $false) } finally { $key.Dispose() }
       RefreshShell
     } elseif ($data.operation -eq 'Remove' -and $owned) {
       $key = $registry.CreateSubKey($settings)
@@ -85,23 +89,32 @@ try {
       $package = OwnedPackage
       if ($null -ne $package) { Remove-AppxPackage -Package $package.PackageFullName -ErrorAction Stop }
       $key = $registry.CreateSubKey($settings)
-      try { foreach ($name in @('PrimaryPackage', 'PrimaryRoot', 'PrimaryDigest', 'PrimaryError', 'Executable', 'CommandPrefix')) { $key.DeleteValue($name, $false) } } finally { $key.Dispose() }
+      try { foreach ($name in @('PrimaryPackage', 'PrimaryRoot', 'PrimaryDigest', 'PrimaryMode', 'PrimaryError', 'PrimaryErrorCommand', 'Executable', 'CommandPrefix')) { $key.DeleteValue($name, $false) } } finally { $key.Dispose() }
       # Remove only component directories owned by Frame; locked previous DLLs can be cleaned later.
       if (Test-Path -LiteralPath $base) { foreach ($folder in Get-ChildItem -LiteralPath $base -Directory) { if (ManagedRoot $folder.FullName) { Remove-Item -LiteralPath $folder.FullName -Recurse -Force -ErrorAction SilentlyContinue } } }
       RefreshShell; $owned = $false
+    }
+    if ($data.operation -eq 'Remove' -and !$owned -and (ReadSetting 'PrimaryErrorCommand') -eq $data.prefix) {
+      $key = $registry.CreateSubKey($settings)
+      try { $key.DeleteValue('PrimaryError', $false); $key.DeleteValue('PrimaryErrorCommand', $false) } finally { $key.Dispose() }
     }
     if ($owned) {
       $root = ReadSetting 'PrimaryRoot'; $package = OwnedPackage
       $complete = $null -ne $package -and $package.Status -eq 'Ok' -and (ManagedRoot $root) -and (ReadSetting 'Enabled') -eq 1 -and (ReadSetting 'PrimaryDigest') -eq (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'FrameShell.msix')).Hash
       if ($complete) { foreach ($name in @('FrameShell.dll', 'FrameShellLauncher.exe')) { $target = Join-Path $root $name; if (!(Test-Path -LiteralPath $target) -or (Get-FileHash -LiteralPath $target).Hash -ne (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $name)).Hash) { $complete = $false } } }
+      if ($complete -and (ReadSetting 'PrimaryMode') -eq 'development') {
+        $complete = FrameDevelopmentFilesMatch $PSScriptRoot $root
+      }
       $state = if ($complete) { 'installed' } else { 'partial' }
       $detail = if ($complete) { 'Windows 11 primary menu installed. Look for Frame, Edit in Frame, or Convert in Frame. Classic entries also remain under Show more options. Restart File Explorer if it has not refreshed.' } else { 'Windows 11 primary menu needs repair. ' + (ReadSetting 'PrimaryError') }
+    } elseif ((ReadSetting 'PrimaryErrorCommand') -eq $data.prefix -and (ReadSetting 'PrimaryError')) {
+      $state = 'partial'; $detail = ReadSetting 'PrimaryError'
     } else { $detail = 'Install actions to add Frame to the Windows 11 primary menu and Show more options.' }
   }
 } catch {
   $state = 'partial'
-  $detail = 'Windows could not register or remove the primary-menu extension: ' + $_.Exception.Message + ' Classic entries remain independently available. Windows policy may require administrator approval for unsigned packages.'
-  if ($data.operation -ne 'Status') { $key = $registry.CreateSubKey($settings); try { $key.SetValue('PrimaryError', $detail) } finally { $key.Dispose() } }
+  $detail = 'Windows could not register or remove the primary-menu extension: ' + $_.Exception.Message + ' Classic entries remain independently available.'
+  if ($data.operation -ne 'Status') { $key = $registry.CreateSubKey($settings); try { $key.SetValue('PrimaryError', $detail); $key.SetValue('PrimaryErrorCommand', $data.prefix) } finally { $key.Dispose() } }
 }
 @{ supported = $supported; owned = $owned; state = $state; detail = $detail } | ConvertTo-Json -Compress
 if ($supported -and $data.operation -eq 'Install' -and $state -ne 'installed') { exit 1 }

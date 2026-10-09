@@ -57,6 +57,14 @@ test('manages file-manager actions in packaged and development builds', async ()
         await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
         await page.getByRole('button', { name: 'Repair actions' }).click();
         await expect(page.locator('.integration-badge')).toHaveText('Installed');
+        const mode = await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Frame\\ShellActions'); try { $key.GetValue('PrimaryMode') } finally { $key.Dispose() }`);
+        if (mode === 'development') {
+          await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Frame\\ShellActions'); try { Set-Content -LiteralPath (Join-Path ($key.GetValue('PrimaryRoot')) 'Assets\\Logo44.png') -Value 'damaged' } finally { $key.Dispose() }`);
+          await page.getByRole('button', { name: 'Refresh integration status' }).click();
+          await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+          await page.getByRole('button', { name: 'Repair actions' }).click();
+          await expect(page.locator('.integration-badge')).toHaveText('Installed');
+        }
       }
       // A different Frame installation can own one verb; removal must leave that command alone.
       await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\\Classes\\SystemFileAssociations\\.mp3\\shell\\Frame.Convert\\command'); $key.SetValue('', 'other-installation'); $key.Dispose()`);

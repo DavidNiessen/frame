@@ -1,6 +1,6 @@
 {
   "name": "Frame.MediaEditor.Shell",
-  "publisher": "CN=Frame, OID.2.25.311729368913984317654407730594956997722=1",
+  "publisher": "CN=Frame",
   "version": "1.0.0.0",
   "editClsid": "70A18B1E-F068-4C4A-8752-6EDD84F85FB9",
   "convertClsid": "52CDD59B-4617-41D5-8558-237659509C20"
