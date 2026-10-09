@@ -11,6 +11,10 @@ permissions:
   contents: read
 jobs:
   pnpm-install:
+    strategy:
+      fail-fast: false
+      matrix:
+        pnpm: ['11.19.0', '12.10.1']
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,9 +23,11 @@ jobs:
           node-version: 24
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.19.0
+          version: ${{ matrix.pnpm }}
       - run: pnpm import
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run setup:desktop
+      - run: node --test tests/setup/*.test.mjs
       - run: pnpm run test:desktop
   web:
     runs-on: ubuntu-latest

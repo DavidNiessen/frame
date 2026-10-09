@@ -1,4 +1,4 @@
-# pnpm 10.26+ / 11 requires explicit permission for dependency install scripts.
+# pnpm 10.26+ / 11 / 12 requires explicit permission for dependency install scripts.
 # Electron and ffmpeg-static download the portable desktop executables.
 allowBuilds:
   electron: true

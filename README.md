@@ -6,7 +6,7 @@ The interface adapts the typography, green accents, and restrained surfaces in [
 
 ## Develop
 
-Use Node.js 22.12+ (Node 24 LTS recommended) and npm, or pnpm 10.26+ / 11.
+Use Node.js 22.12+ (Node 24 LTS recommended) and npm, or pnpm 10.26+ / 11 / 12.
 
 ```sh
 npm ci
@@ -28,6 +28,18 @@ pnpm run dev:desktop
 ```
 
 If you maintain your own pnpm build policy, allow `ffmpeg-static`, `electron`, `electron-winstaller`, `esbuild`, and the `@ffprobe-installer` package for your platform. `pnpm approve-builds` lets you review blocked dependency scripts. Missing tools are downloaded into dependencies; a system FFmpeg installation is not required.
+
+Desktop startup checks Electron's executable before starting the development server and runs Electron's own installer if the runtime is missing. You can perform this check/repair separately with `pnpm run setup:desktop` or `npm run setup:desktop`. It uses the installed Electron version and its usual download cache, mirrors, and proxy settings.
+
+If rebuilding reports success but Electron still says it “failed to install correctly”, check `ELECTRON_SKIP_BINARY_DOWNLOAD`. Electron's installer deliberately exits successfully without downloading when this variable is nonempty, **including `0` or `false`**. Clear it in the terminal used to start the app. In Windows Command Prompt:
+
+```bat
+set ELECTRON_SKIP_BINARY_DOWNLOAD=
+pnpm run setup:desktop
+pnpm run dev:desktop
+```
+
+In PowerShell use `Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction SilentlyContinue`; in a POSIX shell use `unset ELECTRON_SKIP_BINARY_DOWNLOAD`. A custom `ELECTRON_OVERRIDE_DIST_PATH` must point to a complete runtime; fix or unset it if startup reports that it is incomplete. Setup verifies the executable after the installer finishes and reports download failures or an installation that still lacks its runtime.
 
 The browser's first import loads the self-hosted WebAssembly engine (about 32 MB). There are no external CDNs, remote fonts, media APIs, or API keys. Use “Try a sample” to explore with a small bundled video.
 
