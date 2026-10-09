@@ -21,6 +21,10 @@ const flags = ['-std=c++17', '-O2', '-s', '-static', '-static-libgcc', '-static-
 const libs = ['-lole32', '-lshell32', '-lshlwapi', '-luuid', '-ladvapi32', '-luser32'];
 execFileSync(compiler, [...flags, '-shared', ...['dll.cpp', 'command.cpp', 'selection.cpp', 'launch.cpp', 'FrameShell.def'].map(name => join(nativeRoot, name)), join(generated, 'icon.o'), '-o', join(output, 'FrameShell.dll'), ...libs], { stdio: 'inherit' });
 execFileSync(compiler, [...flags, '-municode', '-mwindows', join(nativeRoot, 'launcher.cpp'), join(nativeRoot, 'launch.cpp'), '-o', join(output, 'FrameShellLauncher.exe'), ...libs], { stdio: 'inherit' });
-const files = Object.fromEntries(await Promise.all(['FrameShell.dll', 'FrameShellLauncher.exe'].map(async name => [name, await fileDigest(join(output, name))])));
+await writeFile(join(generated, 'trust.manifest'), '<?xml version="1.0" encoding="UTF-8"?><assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0"><assemblyIdentity name="Frame.CertificateHelper" version="1.0.0.0" processorArchitecture="amd64" type="win32"/><trustInfo xmlns="urn:schemas-microsoft-com:asm.v3"><security><requestedPrivileges><requestedExecutionLevel level="requireAdministrator" uiAccess="false"/></requestedPrivileges></security></trustInfo></assembly>');
+await writeFile(join(generated, 'trust.rc'), `1 24 "${join(generated, 'trust.manifest').replace(/\\/g, '/')}"\n101 ICON "${join(generated, 'Frame.ico').replace(/\\/g, '/')}"\n`);
+execFileSync(windres, ['-i', join(generated, 'trust.rc'), '-o', join(generated, 'trust.o')], { env: { ...process.env, PATH: `${join(toolchain, 'bin')}${delimiter}${process.env.PATH}` } });
+execFileSync(compiler, [...flags, '-municode', '-mwindows', join(nativeRoot, 'trust.cpp'), join(generated, 'trust.o'), '-o', join(output, 'FrameCertificateHelper.exe'), '-lcrypt32', '-lshell32'], { stdio: 'inherit' });
+const files = Object.fromEntries(await Promise.all(['FrameShell.dll', 'FrameShellLauncher.exe', 'FrameCertificateHelper.exe'].map(async name => [name, await fileDigest(join(output, name))])));
 await writeFile(join(nativeRoot, 'binaries.json'), JSON.stringify({ sourceSha256: await sourceFingerprint(), platforms: { 'win32-x64': files } }, null, 2) + '\n');
 console.log('Built portable x64 Windows Explorer extension and launcher.');

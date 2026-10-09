@@ -4,7 +4,7 @@ import { readFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, X509Certificate } from 'node:crypto';
 import { unzipSync } from 'fflate';
 import { nativeRoot, sourceFingerprint, sources } from '../../scripts/windows-shell-source.mjs';
 import { fileDigest } from '../../scripts/media-tool-files.mjs';
@@ -24,7 +24,7 @@ test('accepts Windows CRLF and mixed-line-ending sources while rejecting actual 
   const expected = JSON.parse(await readFile(join(nativeRoot, 'binaries.json'))).sourceSha256;
   const windowsCheckout = async path => {
     const bytes = await readFile(path);
-    return path.endsWith('.png') ? bytes : Buffer.from(bytes.toString('utf8').replace(/\r?\n/g, '\r\n'));
+    return /\.(png|cer)$/.test(path) ? bytes : Buffer.from(bytes.toString('utf8').replace(/\r?\n/g, '\r\n'));
   };
   assert.equal(await sourceFingerprint(windowsCheckout), expected);
   for (const name of [...sources, 'src/core/media-extensions.json']) {
@@ -57,14 +57,44 @@ test('packs a sparse identity with correct ZIP headers and hashes for every unco
   assert.equal(Buffer.from(archive).readUInt16LE(8), 0); // ZIP_STORE; no compression-size fields required.
   assert.ok(unpacked['[Content_Types].xml']); assert.ok(!Object.keys(unpacked).some(name => /\.(dll|exe)$/i.test(name)));
 });
-test('prepares native binaries and developer registration files without a compiler or unsigned-activation identity', async () => {
+test('prepares the pinned signed package, public certificate and native helper without a compiler', async () => {
   const root = await prepareWindowsShell(), files = unzipSync(await readFile(join(root, 'FrameShell.msix')));
   assert.ok(files['AppxManifest.xml']); assert.ok(files['Assets/Logo44.png']);
   assert.ok(!files['FrameShell.dll']); assert.ok(!files['FrameShellLauncher.exe']);
   assert.ok((await readFile(join(root, 'manage-menu.ps1'), 'utf8')).includes('Remove-AppxPackage'));
   assert.ok((await readFile(join(root, 'package-registration.ps1'), 'utf8')).includes('Add-AppxPackage -Register'));
   assert.doesNotMatch(Buffer.from(files['AppxManifest.xml']).toString('utf8'), /OID\.2\.25/);
-  assert.equal(JSON.parse(await readFile(join(root, 'identity.json'))).signedPackage, !!process.env.FRAME_WINDOWS_SHELL_PACKAGE);
+  const identity = JSON.parse(await readFile(join(root, 'identity.json')));
+  assert.equal(identity.signedPackage, true);
+  assert.ok(files['AppxSignature.p7x']);
+  const certificate = new X509Certificate(await readFile(join(root, 'Frame.cer')));
+  assert.equal(certificate.ca, false); assert.ok(certificate.keyUsage.includes('1.3.6.1.5.5.7.3.3'));
+  if (!process.env.FRAME_WINDOWS_SHELL_PACKAGE) {
+    assert.equal(await fileDigest(join(root, 'FrameShell.msix')), identity.certificate.packageSha256);
+    assert.equal(await fileDigest(join(root, 'Frame.cer')), identity.certificate.certificateSha256);
+    assert.equal(await fileDigest(join(root, 'FrameCertificateHelper.exe')), identity.certificate.helperSha256);
+    assert.equal(certificate.fingerprint.replace(/:/g, ''), identity.certificate.thumbprint);
+  }
+  const helper = (await readFile(join(root, 'FrameCertificateHelper.exe'))).toString('latin1');
+  assert.match(helper, /requireAdministrator/);
+});
+test('the bundled package has a valid Authenticode signature and matches its public signer certificate', { skip: process.platform === 'win32' }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-signed-package-'));
+  try {
+    const archive = unzipSync(await readFile(join(nativeRoot, 'package/FrameShell.msix')));
+    const signature = Buffer.from(archive['AppxSignature.p7x']);
+    assert.equal(signature.subarray(0, 4).toString(), 'PKCX');
+    const certificate = new X509Certificate(await readFile(join(nativeRoot, 'package/Frame.cer')));
+    await writeFile(join(directory, 'signature.der'), signature.subarray(4));
+    await writeFile(join(directory, 'certificate.pem'), certificate.toString());
+    const args = ['smime', '-verify', '-binary', '-inform', 'DER', '-in', join(directory, 'signature.der'), '-CAfile', join(directory, 'certificate.pem'), '-purpose', 'any', '-out', join(directory, 'content.der')];
+    execFileSync('openssl', args, { stdio: 'pipe' });
+    assert.ok((await readFile(join(directory, 'content.der'))).length > 100);
+    assert.ok(signature.includes(certificate.raw));
+    signature[signature.length - 1] ^= 1;
+    await writeFile(join(directory, 'signature.der'), signature.subarray(4));
+    assert.throws(() => execFileSync('openssl', args, { stdio: 'pipe' }));
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 test('uses signed deployment or existing Developer Mode and repairs persistent registration files', async t => {
   const powershell = process.env.FRAME_TEST_POWERSHELL || (process.platform === 'win32' ? join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe') : 'pwsh');

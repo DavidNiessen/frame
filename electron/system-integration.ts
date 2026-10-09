@@ -1,6 +1,8 @@
 import { app, dialog, Menu, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { installShellActions, shellActionState } from './shell-actions';
 import { windowsShellStatus } from './windows-shell-integration';
+import { windowsPrimaryMenu } from './windows-primary-menu';
+import { changeShellCertificate } from './certificate-consent';
 import type { ShellIntegrationStatus } from '../src/core/system-integration';
 
 export function shellStartupCommand(argv: string[]) {
@@ -25,7 +27,7 @@ export function configureSystemIntegration(command: 'install' | 'remove' | null,
     const supported = ['win32', 'darwin', 'linux'].includes(process.platform);
     const available = supported;
     const windows = process.platform === 'win32' ? await windowsShellStatus(location) : undefined;
-    return { platform: process.platform, available, state: windows?.state ?? (available ? await shellActionState(location) : 'not-installed'),
+    return { platform: process.platform, available, state: windows?.state ?? (available ? await shellActionState(location) : 'not-installed'), certificate: windows?.certificate,
       detail: !supported ? 'File-manager actions are not available on this operating system.' : (windows?.detail ?? (process.platform === 'darwin' ? 'In Finder, look under Quick Actions or Services. If hidden, enable Frame in System Settings → Keyboard → Keyboard Shortcuts → Services.' : 'Available in KDE Dolphin. Restart Dolphin after changing these actions.')) + (!app.isPackaged ? ' These actions open this development checkout. Reinstall them if you move the project.' : '') };
   };
   ipcMain.handle('desktop:shell-status', event => { trusted(event); return status(); });
@@ -34,6 +36,22 @@ export function configureSystemIntegration(command: 'install' | 'remove' | null,
     if (typeof enabled !== 'boolean') throw new Error('Invalid integration setting.');
     await integrate(!enabled);
     return status();
+  });
+  ipcMain.handle('desktop:shell-certificate', async (event, action: unknown) => {
+    trusted(event);
+    if (action !== 'trust' && action !== 'revoke') throw new Error('Invalid certificate action.');
+    if (changing) throw new Error('A file-manager integration change is already running.');
+    changing = true;
+    try {
+      return await changeShellCertificate(action, {
+        status, confirm: async options => (await dialog.showMessageBox(options)).response,
+        change: async operation => {
+          const result = await windowsPrimaryMenu(location, operation);
+          if (!result.certificate || result.certificate.trusted !== (operation === 'trust')) throw new Error(result.detail);
+        },
+        menu: enabled => installShellActions(location, !enabled),
+      });
+    } finally { changing = false; }
   });
   if (process.platform === 'darwin') {
     const show = async (remove: boolean) => {

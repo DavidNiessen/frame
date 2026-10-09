@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('Status', 'Install', 'Remove')][string]$Operation = 'Status',
+  [ValidateSet('Status', 'Install', 'Remove', 'Trust', 'Revoke')][string]$Operation = 'Status',
   [string]$Executable,
   [switch]$JsonFromStdin
 )
@@ -10,10 +10,11 @@ if ($JsonFromStdin) { $data = [Console]::In.ReadToEnd() | ConvertFrom-Json }
 else { $data = @{ operation = $Operation; executable = $Executable; prefix = '"' + $Executable + '"' } }
 $identity = Get-Content (Join-Path $PSScriptRoot 'identity.json') -Raw | ConvertFrom-Json
 . (Join-Path $PSScriptRoot 'package-registration.ps1')
+. (Join-Path $PSScriptRoot 'certificate.ps1')
 $base = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Frame\ShellActions'
 $registry = [Microsoft.Win32.Registry]::CurrentUser
 $settings = 'Software\Frame\ShellActions'
-$state = 'not-installed'; $owned = $false; $detail = ''
+$state = 'not-installed'; $owned = $false; $detail = ''; $certificate = $null; $needsTrust = $false
 $supported = [Environment]::OSVersion.Version.Build -ge 22000
 if ($supported -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -or $env:PROCESSOR_ARCHITEW6432 -eq 'ARM64')) { $supported = $false; $detail = 'The primary-menu extension currently supports x64 Windows 11. Classic entries remain available on this processor.' }
 if (!$supported -and !$detail) { $detail = 'This Windows version uses the classic File Explorer context menu.' }
@@ -42,13 +43,30 @@ function RefreshShell {
 }
 try {
   if ($supported) {
+    $certificate = FrameCertificateInfo $PSScriptRoot $identity
+    if ($data.operation -eq 'Trust') {
+      if ($null -eq $certificate -or !$certificate.canTrust) { throw 'This build does not include a valid Frame certificate to trust.' }
+      if (!$certificate.trusted) { ChangeFrameCertificate $PSScriptRoot 'trust' }
+      $certificate = FrameCertificateInfo $PSScriptRoot $identity
+      if (!$certificate.trusted) { throw 'Windows did not trust the Frame certificate.' }
+      $data.operation = 'Status'
+    } elseif ($data.operation -eq 'Revoke') {
+      if ($null -eq $certificate) { throw 'This build does not include a Frame certificate.' }
+      if ($certificate.trusted) { ChangeFrameCertificate $PSScriptRoot 'revoke' }
+      $certificate = FrameCertificateInfo $PSScriptRoot $identity
+      $data.operation = 'Status'
+    }
     $owned = (ReadSetting 'Executable') -eq $data.executable -and (ReadSetting 'CommandPrefix') -eq $data.prefix
     if ($data.operation -eq 'Install') {
       if (!(Test-Path -LiteralPath $data.executable -PathType Leaf)) { throw 'Frame executable is missing.' }
       $policy = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock')
       $developerMode = $false
       if ($null -ne $policy) { try { $developerMode = $policy.GetValue('AllowDevelopmentWithoutDevLicense') -eq 1 } finally { $policy.Dispose() } }
-      $mode = FramePackageMode ($identity.signedPackage -eq $true) $developerMode
+      if ($null -ne $certificate -and !$certificate.trusted -and !$developerMode) {
+        $needsTrust = $true
+        throw 'Choose Trust certificate and enable menu in Frame Settings. Windows will ask for administrator approval to trust Frame for this PC; Developer Mode is not required.'
+      }
+      $mode = FramePackageMode ($identity.signedPackage -eq $true -and ($null -eq $certificate -or $certificate.trusted)) $developerMode
       New-Item -ItemType Directory -Path $base -Force | Out-Null
       if ((Get-Item -LiteralPath $base).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'The Frame shell component directory must not be a symbolic link.' }
       $hash = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'FrameShell.dll') -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -101,12 +119,13 @@ try {
     if ($owned) {
       $root = ReadSetting 'PrimaryRoot'; $package = OwnedPackage
       $complete = $null -ne $package -and $package.Status -eq 'Ok' -and (ManagedRoot $root) -and (ReadSetting 'Enabled') -eq 1 -and (ReadSetting 'PrimaryDigest') -eq (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'FrameShell.msix')).Hash
+      if ($complete -and (ReadSetting 'PrimaryMode') -eq 'signed' -and $null -ne $certificate -and !$certificate.trusted) { $complete = $false }
       if ($complete) { foreach ($name in @('FrameShell.dll', 'FrameShellLauncher.exe')) { $target = Join-Path $root $name; if (!(Test-Path -LiteralPath $target) -or (Get-FileHash -LiteralPath $target).Hash -ne (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $name)).Hash) { $complete = $false } } }
       if ($complete -and (ReadSetting 'PrimaryMode') -eq 'development') {
         $complete = FrameDevelopmentFilesMatch $PSScriptRoot $root
       }
       $state = if ($complete) { 'installed' } else { 'partial' }
-      $detail = if ($complete) { 'Windows 11 primary menu installed. Look for Frame, Edit in Frame, or Convert in Frame. Classic entries also remain under Show more options. Restart File Explorer if it has not refreshed.' } else { 'Windows 11 primary menu needs repair. ' + (ReadSetting 'PrimaryError') }
+      $detail = if ($complete) { 'Windows 11 primary menu installed. Look for Frame, Edit in Frame, or Convert in Frame. Classic entries also remain under Show more options. Restart File Explorer if it has not refreshed.' } elseif ($null -ne $certificate -and !$certificate.trusted) { 'Trust the Frame certificate to enable the Windows 11 primary menu without Developer Mode. Classic entries remain available.' } else { 'Windows 11 primary menu needs repair. ' + (ReadSetting 'PrimaryError') }
     } elseif ((ReadSetting 'PrimaryErrorCommand') -eq $data.prefix -and (ReadSetting 'PrimaryError')) {
       $state = 'partial'; $detail = ReadSetting 'PrimaryError'
     } else { $detail = 'Install actions to add Frame to the Windows 11 primary menu and Show more options.' }
@@ -116,6 +135,7 @@ try {
   $detail = 'Windows could not register or remove the primary-menu extension: ' + $_.Exception.Message + ' Classic entries remain independently available.'
   if ($data.operation -ne 'Status') { $key = $registry.CreateSubKey($settings); try { $key.SetValue('PrimaryError', $detail); $key.SetValue('PrimaryErrorCommand', $data.prefix) } finally { $key.Dispose() } }
 }
-@{ supported = $supported; owned = $owned; state = $state; detail = $detail } | ConvertTo-Json -Compress
+@{ supported = $supported; owned = $owned; state = $state; detail = $detail; certificate = $certificate } | ConvertTo-Json -Compress
+if ($needsTrust) { exit 17 }
 if ($supported -and $data.operation -eq 'Install' -and $state -ne 'installed') { exit 1 }
 if ($supported -and $data.operation -eq 'Remove' -and $state -eq 'partial') { exit 1 }

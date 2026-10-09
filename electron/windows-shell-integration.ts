@@ -15,5 +15,5 @@ export async function windowsShellStatus(location: ShellActionLocation, operatio
   const detail = primary.supported ? primary.state === 'installed' && classic !== 'installed'
     ? 'Windows 11 primary menu installed. Classic entries need repair to appear under Show more options.' : primary.detail
     : 'Right-click media in File Explorer to Edit in Frame or Convert in Frame. ' + primary.detail;
-  return { state: windowsIntegrationState(classic, primary), detail };
+  return { state: windowsIntegrationState(classic, primary), detail, certificate: primary.certificate || undefined };
 }

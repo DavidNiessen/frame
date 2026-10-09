@@ -11,6 +11,7 @@ import type { ShellIntegrationStatus } from '../core/system-integration';
 export interface DesktopBridge {
   shellIntegrationStatus(): Promise<ShellIntegrationStatus>;
   setShellIntegration(enabled: boolean): Promise<ShellIntegrationStatus>;
+  changeShellCertificate(action: 'trust' | 'revoke'): Promise<ShellIntegrationStatus>;
   nextLaunch(): Promise<DesktopLaunchRequest | null>;
   importLaunch(id: string): Promise<ImportReport>;
   onLaunchAvailable(callback: () => void): () => void;

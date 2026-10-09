@@ -41,7 +41,12 @@ module.exports = async context => {
       const path = join(context.packager.projectDir, 'build/generated/shell-actions/windows', name);
       if (!existsSync(path) || createHash('sha256').update(readFileSync(path)).digest('hex') !== hash) throw new Error('The Windows shell extension is missing or corrupt. Run npm run build.');
     }
-    for (const name of ['FrameShell.msix', 'AppxManifest.xml', 'manage-menu.ps1', 'package-registration.ps1', 'identity.json']) if (!existsSync(join(context.packager.projectDir, 'build/generated/shell-actions/windows', name))) throw new Error('Windows primary-menu registration files are missing. Run npm run build.');
+    const root = join(context.packager.projectDir, 'build/generated/shell-actions/windows');
+    for (const name of ['FrameShell.msix', 'AppxManifest.xml', 'Frame.cer', 'manage-menu.ps1', 'package-registration.ps1', 'certificate.ps1', 'identity.json']) if (!existsSync(join(root, name))) throw new Error('Windows primary-menu registration files are missing. Run npm run build.');
+    const certificate = JSON.parse(readFileSync(join(root, 'identity.json'))).certificate;
+    if (certificate) for (const [name, hash] of Object.entries({ 'Frame.cer': certificate.certificateSha256, 'FrameShell.msix': certificate.packageSha256 })) {
+      if (createHash('sha256').update(readFileSync(join(root, name))).digest('hex') !== hash) throw new Error('The signed shell package or public certificate is corrupt. Run npm run build.');
+    }
   }
   if (context.electronPlatformName === 'darwin') {
     context.packager.platformSpecificBuildOptions.fileAssociations = [{ ext: require('../src/core/media-extensions.json'), name: 'Frame media', role: 'Editor', rank: 'Alternate' }];

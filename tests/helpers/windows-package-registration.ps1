@@ -1,7 +1,7 @@
 param([string]$Helper, [string]$Directory)
 $ErrorActionPreference = 'Stop'
 . $Helper
-foreach ($name in @('package-registration.ps1', 'manage-menu.ps1')) {
+foreach ($name in @('package-registration.ps1', 'manage-menu.ps1', 'certificate.ps1')) {
   $tokens = $null; $errors = $null
   [System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Split-Path $Helper) $name), [ref]$tokens, [ref]$errors) | Out-Null
   if ($errors.Count) { throw ($errors | Out-String) }
@@ -40,3 +40,19 @@ if (Test-Path -LiteralPath (Join-Path $target 'Assets\Assets')) { throw 'Repair 
 Remove-Item -LiteralPath (Join-Path $target 'AppxManifest.xml')
 if (FrameDevelopmentFilesMatch $source $target) { throw 'Missing registration manifests require repair.' }
 Write-Output 'Windows package registration policy and lifecycle checks passed.'
+. (Join-Path (Split-Path $Helper) 'certificate.ps1')
+# Verify UAC parameter selection without launching a process or changing any certificate store.
+$script:elevations = @()
+function Start-Process {
+  param([string]$FilePath, [string]$ArgumentList, [string]$Verb, [switch]$Wait, [switch]$PassThru, [string]$ErrorAction)
+  $script:elevations += @{ path = $FilePath; argument = $ArgumentList; verb = $Verb; wait = $Wait.IsPresent }
+  return @{ ExitCode = 0 }
+}
+ChangeFrameCertificate $source 'trust'
+ChangeFrameCertificate $source 'revoke'
+if ($script:elevations.Count -ne 2 -or $script:elevations[0].verb -ne 'RunAs' -or !$script:elevations[0].wait -or $script:elevations[0].path -ne (Join-Path $source 'FrameCertificateHelper.exe') -or $script:elevations[0].argument -ne '--trust' -or $script:elevations[1].argument -ne '--revoke') { throw 'Elevate only the fixed native certificate helper with a fixed action.' }
+function Start-Process { throw [ComponentModel.Win32Exception]::new(1223) }
+$cancelled = $false
+try { ChangeFrameCertificate $source 'trust' } catch { $cancelled = $_.Exception.Message -match 'approval was cancelled' }
+if (!$cancelled) { throw 'UAC cancellation must report that certificate trust was not changed.' }
+Write-Output 'Certificate elevation and cancellation checks passed.'

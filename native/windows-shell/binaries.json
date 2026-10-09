@@ -1,9 +1,10 @@
 {
-  "sourceSha256": "291c78a6cb7bce3fd927eb6f91731ebf0654048ca57b33d581936cd181c00596",
+  "sourceSha256": "f5edd9c64568d2880fc8580c8e7c6777b3b10bc7a89a67b84025d99cbc02a0f2",
   "platforms": {
     "win32-x64": {
-      "FrameShell.dll": "3d0c75b9864609c3158b7dfd33ae6ec6b45ef71361c3fed6b3807b431c44b5a7",
-      "FrameShellLauncher.exe": "6736f083e1aaf3d1f1dde18ad447b119a807f4444d9e26fcc2eb3d0d30e0c6ec"
+      "FrameShell.dll": "7675e86bc2e4f4b4ccb90416680b90ec0ce10f1785df8046c2fc8880c7a055a9",
+      "FrameShellLauncher.exe": "51543775fce0901a473636ec288971a09c7002c5ca95e69acb2dc1f627965296",
+      "FrameCertificateHelper.exe": "917abe712f137711bb7770c693f8c2d15295113997ceead96873610a55bf71b7"
     }
   }
 }
