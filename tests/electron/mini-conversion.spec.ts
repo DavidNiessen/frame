@@ -18,6 +18,8 @@ test('opens only a frameless corner converter with all settings and retains fail
   try {
     const page = await app.firstWindow();
     await expect(page.getByRole('main', { name: 'Quick conversion' })).toBeVisible();
+    await expect(page.locator('.desktop-chrome')).toHaveCount(0);
+    expect(await page.evaluate(async () => { try { await globalThis.window.frameDesktop!.windowAction('close'); return false; } catch { return true; } })).toBe(true);
     await expect(page.getByLabel('Conversion format')).toBeEnabled();
     expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
     const window = await app.evaluate(({ BrowserWindow, screen }) => { const w = BrowserWindow.getAllWindows()[0]; return { bounds: w.getBounds(), work: screen.getDisplayMatching(w.getBounds()).workArea, resizable: w.isResizable(), minimizable: w.isMinimizable(), maximizable: w.isMaximizable(), top: w.isAlwaysOnTop() }; });

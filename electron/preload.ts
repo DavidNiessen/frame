@@ -2,6 +2,13 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
   miniConversion: process.argv.includes('--frame-mini-conversion'),
+  windowState: () => ipcRenderer.invoke('desktop:window-state'),
+  windowAction: action => ipcRenderer.invoke('desktop:window-action', action),
+  onWindowState: callback => {
+    const listener = (_event: unknown, state: Parameters<typeof callback>[0]) => callback(state);
+    ipcRenderer.on('desktop:window-state', listener);
+    return () => ipcRenderer.removeListener('desktop:window-state', listener);
+  },
   setMiniExpanded: (expanded, reducedMotion) => ipcRenderer.invoke('desktop:mini-expanded', expanded, reducedMotion),
   finishMini: () => ipcRenderer.invoke('desktop:mini-finish'),
   dismissMini: () => ipcRenderer.invoke('desktop:mini-dismiss'),

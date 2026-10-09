@@ -17,10 +17,12 @@ import './styles/islands.css';
 import './styles/expanded-preview.css';
 import './styles/mini-conversion.css';
 import './styles/border-lighting.css';
+import './styles/desktop-titlebar.css';
+import { DesktopTitleBar } from './components/DesktopTitleBar';
 import App from './App';
 import { MiniConversion } from './components/conversion/MiniConversion';
 import { useBorderLight } from './hooks/useBorderLight';
 const mini = !!window.frameDesktop?.miniConversion;
 if (mini) document.documentElement.dataset.miniConversion = 'true';
-function FrameRoot() { useBorderLight(); return mini ? <MiniConversion /> : <App />; }
+function FrameRoot() { useBorderLight(); return mini ? <MiniConversion /> : <><App />{window.frameDesktop && <DesktopTitleBar />}</>; }
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><FrameRoot /></React.StrictMode>);

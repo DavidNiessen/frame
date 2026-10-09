@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 test('shows disabled file-manager actions on web and previewed themes that persist', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
+  await expect(page.locator('.desktop-chrome')).toHaveCount(0);
   await expect(page.locator('.app-header select')).toHaveCount(0);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();

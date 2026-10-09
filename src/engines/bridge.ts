@@ -8,8 +8,12 @@ import type { OutputSettings } from '../core/presets';
 import type { TransitionSettings } from '../core/transitions';
 import type { DesktopLaunchRequest } from '../core/launch';
 import type { ShellIntegrationStatus } from '../core/system-integration';
+import type { WindowAction, WindowState } from '../core/window-controls';
 export interface DesktopBridge {
   miniConversion: boolean;
+  windowState(): Promise<WindowState>;
+  windowAction(action: WindowAction): Promise<void>;
+  onWindowState(callback: (state: WindowState) => void): () => void;
   setMiniExpanded(expanded: boolean, reducedMotion: boolean): Promise<void>;
   finishMini(): Promise<boolean>;
   dismissMini(): Promise<void>;
