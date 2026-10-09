@@ -1,0 +1,9 @@
+{
+  "sourceSha256": "e4347e3d34405adf7133cfa00e5cefc6509ab8db2f6360fe485b046abe0d07e0",
+  "platforms": {
+    "win32-x64": {
+      "FrameShell.dll": "ac19454de3f96c9f6b0d239d897c119c68a945cee956b80ae02a968c5cbb82d8",
+      "FrameShellLauncher.exe": "b8757288d8c120b45fca93448ba30a7cc851b42e9523631f7d8f0a1dd57c9b80"
+    }
+  }
+}

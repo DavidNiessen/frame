@@ -1,0 +1,26 @@
+import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { join, resolve, delimiter } from 'node:path';
+import { fileDigest } from './media-tool-files.mjs';
+import { configHeader, nativeRoot, sourceFingerprint } from './windows-shell-source.mjs';
+const output = resolve('native/windows-shell/bin/x64'), generated = resolve('build/generated/windows-native');
+await mkdir(output, { recursive: true }); await mkdir(generated, { recursive: true });
+await writeFile(join(generated, 'frame-config.h'), await configHeader());
+// FRAME_MINGW_ROOT enables reproducible cross-compilation; normal development uses checked-in binaries.
+const toolchain = process.env.FRAME_MINGW_ROOT;
+if (!toolchain) throw new Error('Set FRAME_MINGW_ROOT to a MinGW-w64 toolchain root when rebuilding the Windows extension. Normal builds use its checked-in binaries.');
+const program = names => names.map(name => join(toolchain, 'bin', name + (process.platform === 'win32' ? '.exe' : ''))).find(existsSync);
+const compiler = program(['x86_64-w64-mingw32-g++-posix', 'x86_64-w64-mingw32-g++', 'g++']), windres = program(['x86_64-w64-mingw32-windres', 'windres']);
+if (!compiler || !windres) throw new Error('The selected toolchain must include MinGW-w64 g++ and windres.');
+const ffmpeg = resolve('build/media-tools', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+execFileSync(ffmpeg, ['-v', 'error', '-y', '-i', 'build/icon.png', '-vf', 'scale=64:64', join(generated, 'Frame.ico')]);
+await writeFile(join(generated, 'icon.rc'), `101 ICON "${join(generated, 'Frame.ico').replace(/\\/g, '/') }"\n`);
+execFileSync(windres, ['-i', join(generated, 'icon.rc'), '-o', join(generated, 'icon.o')], { env: { ...process.env, PATH: `${join(toolchain, 'bin')}${delimiter}${process.env.PATH}` } });
+const flags = ['-std=c++17', '-O2', '-s', '-static', '-static-libgcc', '-static-libstdc++', '-DUNICODE', '-D_UNICODE', '-D_WIN32_WINNT=0x0A00', '-I' + generated, '-I' + join(toolchain, 'x86_64-w64-mingw32/include'), '-L' + join(toolchain, 'x86_64-w64-mingw32/lib')];
+const libs = ['-lole32', '-lshell32', '-lshlwapi', '-luuid', '-ladvapi32', '-luser32'];
+execFileSync(compiler, [...flags, '-shared', ...['dll.cpp', 'command.cpp', 'selection.cpp', 'launch.cpp', 'FrameShell.def'].map(name => join(nativeRoot, name)), join(generated, 'icon.o'), '-o', join(output, 'FrameShell.dll'), ...libs], { stdio: 'inherit' });
+execFileSync(compiler, [...flags, '-municode', '-mwindows', join(nativeRoot, 'launcher.cpp'), join(nativeRoot, 'launch.cpp'), '-o', join(output, 'FrameShellLauncher.exe'), ...libs], { stdio: 'inherit' });
+const files = Object.fromEntries(await Promise.all(['FrameShell.dll', 'FrameShellLauncher.exe'].map(async name => [name, await fileDigest(join(output, name))])));
+await writeFile(join(nativeRoot, 'binaries.json'), JSON.stringify({ sourceSha256: await sourceFingerprint(), platforms: { 'win32-x64': files } }, null, 2) + '\n');
+console.log('Built portable x64 Windows Explorer extension and launcher.');

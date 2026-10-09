@@ -1,0 +1,4 @@
+LIBRARY FrameShell
+EXPORTS
+  DllGetClassObject
+  DllCanUnloadNow

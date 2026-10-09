@@ -1,2 +1,3 @@
 # Keep vendored tools and notices byte-identical for checksum verification on Windows.
 vendor/media-tools/** -text
+native/windows-shell/** -text

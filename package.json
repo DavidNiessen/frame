@@ -11,6 +11,7 @@
     "desktop": "node scripts/dev-desktop.mjs",
     "setup:desktop": "node scripts/setup-desktop.mjs",
     "vendor:media-tools": "node scripts/vendor-media-tools.mjs",
+    "build:windows-shell": "node scripts/build-windows-shell.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/prepare-ffmpeg.mjs && node scripts/prepare-youtube.mjs && node --test tests/setup/*.test.mjs && vitest run",
     "test:e2e": "playwright test",
