@@ -17,5 +17,6 @@ export function recipeFiles(edit: EditSettings, paths: RecipeResources, asset?: 
   const files = edit.subtitles.mode !== 'none' && cues.length ? [{ path: paths.captions, text: captions }] : [];
   if (edit.overlays.text) files.push({ path: paths.text, text: textAss(edit, asset) });
   if (edit.color.lut) files.push({ path: paths.lut, text: edit.color.lut });
+  edit.clips?.forEach((clip, index) => { if (clip.effects.color?.lut) files.push({ path: `${paths.lut}-clip${index}.cube`, text: clip.effects.color.lut }); });
   return files;
 }

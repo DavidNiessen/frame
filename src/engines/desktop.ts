@@ -37,8 +37,9 @@ export function createDesktopEngine(): MediaEngine {
       try { return URL.createObjectURL(new Blob([new Uint8Array(await bridge.thumbnails(asset.id))], { type: 'image/png' })); }
       finally { remove(); }
     },
+    cancelWaveform: () => bridge.cancelWaveform(),
     async waveform(asset, onProgress) {
-      const remove = bridge.onProgress(onProgress);
+      const remove = bridge.onWaveformProgress(onProgress);
       try { return await bridge.waveform(asset.id); } finally { remove(); }
     },
     beginBatch: options => bridge.beginBatch(options),

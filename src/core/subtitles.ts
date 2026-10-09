@@ -1,3 +1,4 @@
+import { clipPositions } from './clips';
 import { keptRanges } from './timeline';
 import type { EditSettings } from './types';
 /** Percentages of the output frame; the anchor is the caption's bottom center. */
@@ -38,12 +39,13 @@ export function importSubtitles(text: string): Subtitles {
 }
 export function outputCues(edit: EditSettings): SubtitleCue[] {
   let elapsed = 0; const result: SubtitleCue[] = [];
-  for (const range of keptRanges(edit)) {
+  const positions = edit.clips ? clipPositions(edit).map(({ clip, speed }) => ({ ...clip, speed })) : keptRanges(edit).map(range => ({ ...range, speed: edit.speed }));
+  for (const range of positions) {
     for (const cue of edit.subtitles.cues) {
       const start = Math.max(cue.start, range.start), end = Math.min(cue.end, range.end);
-      if (end > start) result.push({ ...cue, start: elapsed + (start - range.start) / edit.speed, end: elapsed + (end - range.start) / edit.speed });
+      if (end > start) result.push({ ...cue, start: elapsed + (start - range.start) / range.speed, end: elapsed + (end - range.start) / range.speed });
     }
-    elapsed += (range.end - range.start) / edit.speed;
+    elapsed += (range.end - range.start) / range.speed;
   }
   return result.sort((a, b) => a.start - b.start);
 }

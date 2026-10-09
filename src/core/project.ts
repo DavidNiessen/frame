@@ -1,3 +1,4 @@
+import { clipEffectKeys, type TimelineClip } from './clips';
 import { parseAcceleration } from './hardware';
 import { parseColor } from './color';
 import { parseGeometry } from './geometry';
@@ -51,6 +52,17 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     videoBitrate: e.videoBitrate === null ? null : number(e.videoBitrate), audioBitrate: number(e.audioBitrate), fps: number(e.fps),
     includeArtwork: boolean(e.includeArtwork), keepMetadata: boolean(e.keepMetadata),
   };
+  if (e.clips !== undefined) {
+    if (!Array.isArray(e.clips) || !e.clips.length || e.clips.length > 1000) return fail();
+    edit.clips = e.clips.map(value => {
+      const c = record(value), effects = record(c.effects);
+      if (Object.keys(effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) return fail();
+      const clip: TimelineClip = { id: text(c.id, 120), start: number(c.start), end: number(c.end), effects: { ...effects } };
+      if (clip.effects.color) clip.effects.color = parseColor(clip.effects.color);
+      if (clip.effects.geometry) clip.effects.geometry = parseGeometry(clip.effects.geometry);
+      return clip;
+    });
+  }
   validateEdit(asset, edit);
   return edit;
 }

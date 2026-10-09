@@ -1,6 +1,11 @@
+import { clipPositions } from './clips';
 import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings } from './types';
 export function outputTimeAtSource(edit: EditSettings, sourceTime: number): number {
+  if (edit.clips) {
+    const positions = clipPositions(edit), segment = positions.find(({ clip }) => sourceTime >= clip.start && sourceTime <= clip.end);
+    return segment ? segment.start + (sourceTime - segment.clip.start) / segment.speed : 0;
+  }
   return keptRanges(edit).reduce((time, range) => time + Math.max(0, Math.min(sourceTime, range.end) - range.start), 0) / edit.speed;
 }
 export function fadeGain(time: number, duration: number, fadeIn: number, fadeOut: number): number {
@@ -16,6 +21,11 @@ export function fadeFilters(edit: EditSettings, kind: 'audio' | 'video'): string
 }
 /** Map output seconds back onto the retained source; choose a side at cut boundaries. */
 export function sourceTimeAtOutput(edit: EditSettings, output: number, side: 'start' | 'end' = 'start'): number {
+  if (edit.clips) {
+    const positions = clipPositions(edit), time = Math.max(0, Math.min(editedDuration(edit), output));
+    const segment = positions.find(item => time < item.end || side === 'end' && time <= item.end);
+    return segment ? segment.clip.start + (time - segment.start) * segment.speed : positions.at(-1)?.clip.end ?? edit.end;
+  }
   const ranges = keptRanges(edit); let remaining = Math.max(0, Math.min(editedDuration(edit), output)) * edit.speed;
   for (const range of ranges) {
     const length = range.end - range.start;

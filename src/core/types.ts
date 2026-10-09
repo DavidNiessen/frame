@@ -1,3 +1,4 @@
+import type { TimelineClip } from './clips';
 import type { UrlImportOptions } from './youtube';
 import { parseAcceleration, type Acceleration, type DesktopCapabilities, type PreviewProxy } from './hardware';
 import type { SilenceOptions } from './silence';
@@ -34,6 +35,7 @@ export interface BatchOptions { conversion?: boolean; keepFolders?: boolean }
 export interface Crop { x: number; y: number; width: number; height: number }
 export interface TimeRange { start: number; end: number }
 export interface EditSettings {
+  clips?: TimelineClip[];
   color: ColorSettings;
   geometry: Geometry;
   overlays: Overlays;
@@ -76,6 +78,7 @@ export interface MediaEngine {
   previewFrame(asset: MediaAsset, edit: EditSettings, time: number, onProgress: (p: ExportProgress) => void): Promise<string>;
   previewAudio(asset: MediaAsset, edit: EditSettings, onProgress: (p: ExportProgress) => void): Promise<string>;
   thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;
+  cancelWaveform?(): void;
   waveform(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<WaveformPoint[]>;
   beginBatch(options?: BatchOptions): Promise<string | null>;
   endBatch(token: string): Promise<void>;
@@ -86,7 +89,7 @@ export interface MediaEngine {
 export { supportedExtensions };
 export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
-  return { color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
+  return { clips: undefined, color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
     format: asset.kind === 'audio' ? 'mp3' : 'mp4', quality: 'balanced',
     acceleration: parseAcceleration(undefined), targetSizeMb: null, videoBitrate: null, audioBitrate: 192, fps: 15, includeArtwork: true, keepMetadata: true };
 }

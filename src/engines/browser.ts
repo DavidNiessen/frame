@@ -4,7 +4,7 @@ import { serializeSrt } from '../core/subtitles';
 import { browserResources } from './browser-resources';
 import { buildMergeArgs, compositionAsset, mergedCues } from '../core/composition';
 import { editedDuration } from '../core/timeline';
-import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { browserRuntime } from './browser-runtime';
 import { buildExportArgs, outputName } from '../core/export-plan';
 import { getFormat } from '../core/formats';
 import { conversionName } from '../core/conversion';
@@ -15,22 +15,12 @@ import { parseProbe } from '../core/probe';
 import type { BatchOptions, ImportReport, MediaEngine } from '../core/types';
 
 export function createBrowserEngine(): MediaEngine {
-  let ffmpeg: FFmpeg | null = null;
-  let loading: Promise<FFmpeg> | null = null;
+  const runtime = browserRuntime(), background = browserRuntime();
+  const ready = runtime.ready;
   const files = new Map<string, File>();
   let cancelled = false;
   let download: AbortController | null = null;
   let batchOptions: BatchOptions = {};
-  async function ready(): Promise<FFmpeg> {
-    if (loading) return loading;
-    if (!window.isSecureContext || !crossOriginIsolated) throw new Error('Browser processing needs a secure page with cross-origin isolation. Check the hosting instructions, or use the desktop app.');
-    ffmpeg = new FFmpeg();
-    const instance = ffmpeg;
-    loading = instance.load({ coreURL: new URL('ffmpeg/ffmpeg-core.js', document.baseURI).href, wasmURL: new URL('ffmpeg/ffmpeg-core.wasm', document.baseURI).href }).then(() => instance).catch(error => {
-      loading = null; ffmpeg = null; throw error;
-    });
-    return loading;
-  }
   const engine: MediaEngine = {
     platform: 'web',
     async importUrl(url, onProgress) {
@@ -144,9 +134,14 @@ export function createBrowserEngine(): MediaEngine {
       finally { ff.off('progress', progress); await resources.cleanup(); await ff.deleteFile(captions).catch(() => {}); for (const name of [...inputs.map(id => `merge-${id}`), output]) await ff.deleteFile(name).catch(() => {}); }
     },
     ...browserAnalysis(ready, files),
+    async waveform(asset, progress) {
+      try { return await browserAnalysis(background.ready, files).waveform(asset, progress); }
+      finally { background.cancel(); }
+    },
+    cancelWaveform: background.cancel,
     beginBatch: async options => { batchOptions = options ?? {}; return 'web'; },
     endBatch: async () => { batchOptions = {}; },
-    cancel() { download?.abort(); cancelled = true; ffmpeg?.terminate(); ffmpeg = null; loading = null; },
+    cancel() { download?.abort(); cancelled = true; runtime.cancel(); },
     async release(asset) { files.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
   };
   return engine;

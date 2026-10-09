@@ -12,7 +12,7 @@ import { previewAudioArgs } from '../src/core/audio-preview';
 import { waveformArgs, WaveformCollector } from '../src/core/waveform';
 import { thumbnailArgs } from '../src/core/thumbnails';
 import { runFfmpeg } from './native';
-import type { MediaJobs } from './jobs';
+import { MediaJobs } from './jobs';
 export function registerAnalysis(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain) {
   function source(event: IpcMainInvokeEvent, id: string) {
     trusted(event); const item = assets.get(id); if (!item) throw new Error('Import the source file again.'); return item;
@@ -28,11 +28,13 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       return collector.finish(item.asset.duration);
     });
   });
+  const waveformJobs = new MediaJobs();
+  ipc.handle('media:cancel-waveform', event => { trusted(event); waveformJobs.cancel(); });
   ipc.handle('media:waveform', (event, id: string) => {
     const item = source(event, id);
-    return jobs.run(async execute => {
+    return waveformJobs.run(async execute => {
       const collector = new WaveformCollector();
-      await execute(runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration, progress(event, 'Reading audio peaks…'), line => collector.push(line)));
+      await execute(runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration, ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:waveform-progress', { ratio, message: 'Reading audio peaks…' }); }, line => collector.push(line)));
       if (!collector.points.length) throw new Error('No audio peaks could be read.'); return collector.points;
     });
   });
@@ -64,4 +66,5 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       } finally { await rm(directory, { recursive: true, force: true }); }
     });
   });
+  return { cancel: () => waveformJobs.cancel() };
 }

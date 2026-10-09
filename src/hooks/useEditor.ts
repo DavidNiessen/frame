@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createEngine } from '../engines';
 import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type ImportReport, type MediaAsset, type MediaEngine } from '../core/types';
 import { parseEdit } from '../core/project';
+import { clipEffectKeys, editClips, clipRecipe, patchClip } from '../core/clips';
 import { editedDuration } from '../core/timeline';
 import { validateEdit } from '../core/export-plan';
 interface History { past: EditSettings[]; present: EditSettings; future: EditSettings[] }
@@ -10,6 +11,7 @@ const messageOf = (error: unknown) => (error instanceof Error ? error.message : 
   .replace(/^Error invoking remote method '[^']+': (Error: )?/, '').slice(0, 600);
 export function useEditor() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
+  const [selectedClip, setSelectedClip] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [histories, setHistories] = useState<Record<string, History>>({});
   const [busy, setBusy] = useState<'import' | 'export' | 'batch' | 'analysis' | 'merge' | null>(null);
@@ -27,7 +29,7 @@ export function useEditor() {
   const edit = history?.present ?? null;
   useEffect(() => () => {
     if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
-    if (engineRef.current) void engineRef.current.then(e => { e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); });
+    if (engineRef.current) void engineRef.current.then(e => { e.cancelWaveform?.(); e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); });
   }, []);
   async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' | 'url' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }, url?: string, urlOptions?: UrlImportOptions) {
     if (busyRef.current) return false;
@@ -47,7 +49,7 @@ export function useEditor() {
         for (const item of imported) if (!next[item.id]) next[item.id] = { past: [], present: defaultSettings(item), future: [] };
         return next;
       });
-      setSelected(imported[0].id);
+      setSelected(imported[0].id); setSelectedClip(null);
       setNotice(`Imported ${imported.length} ${imported.length === 1 ? 'file' : 'files'}.${report.issues.length ? ` ${report.issues.length} could not be read.` : ''}${report.skipped ? ` Skipped ${report.skipped} non-media ${report.skipped === 1 ? 'file' : 'files'}.` : ''}`);
     } catch (error) { if (mode === 'url') throw new Error(messageOf(error)); setNotice(messageOf(error)); }
     finally { busyRef.current = false; setBusy(null); setProgress(null); }
@@ -58,6 +60,12 @@ export function useEditor() {
     setHistories(current => {
       const h = current[selected]; if (!h) return current;
       const next = { ...h.present, ...patch };
+      if (next.clips) {
+        if (patch.start !== undefined || patch.end !== undefined) next.clips = next.clips.map(clip => ({ ...clip, start: Math.max(clip.start, next.start), end: Math.min(clip.end, next.end) })).filter(clip => clip.end - clip.start >= .05);
+        if (!next.clips.length) return current;
+        next.clips = next.clips.map(clip => { const effects = { ...clip.effects }, duration = (clip.end - clip.start) / (effects.speed ?? next.speed); for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) if (effects[key] !== undefined) effects[key] = Math.min(effects[key], duration); return { ...clip, effects }; });
+        next.start = Math.min(...next.clips.map(clip => clip.start)); next.end = Math.max(...next.clips.map(clip => clip.end)); next.cuts = []; next.splits = [];
+      }
       const duration = editedDuration(next);
       for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) next[key] = Math.min(next[key], duration);
       if (JSON.stringify(next) === JSON.stringify(h.present)) return current;
@@ -109,7 +117,7 @@ export function useEditor() {
       }
       return next;
     });
-    setSelected(selectedId);
+    setSelected(selectedId); setSelectedClip(null);
   }
   async function runExclusive<T>(kind: 'batch' | 'analysis' | 'merge', task: (engine: MediaEngine) => Promise<T>): Promise<T> {
     if (busyRef.current) throw new Error('Wait for processing to finish.');
@@ -118,13 +126,25 @@ export function useEditor() {
     finally { busyRef.current = false; setBusy(null); }
   }
   function dismissResult() { if (result?.url) URL.revokeObjectURL(result.url); setResult(null); }
-  return { assets, asset, edit, selected, busy, notice, setNotice, progress, result, dismissResult, importReport,
+  const clip = edit ? editClips(edit).find(clip => clip.id === selectedClip) : undefined;
+  const scopedEdit = edit && clip ? clipRecipe(edit, clip) : edit;
+  return { selectedClip: clip?.id ?? null, selectClip: setSelectedClip, scopedEdit,
+    updateClip: (patch: Partial<EditSettings>) => {
+      if (edit && clip) {
+        const effects = Object.fromEntries(Object.entries(patch).filter(([key]) => clipEffectKeys.includes(key as typeof clipEffectKeys[number])));
+        const next = patchClip(edit, clip.id, effects);
+        if (patch.start !== undefined || patch.end !== undefined) next.clips = next.clips!.map(item => item.id === clip.id ? { ...item, start: Math.max(0, Math.min(item.end - .05, patch.start ?? item.start)), end: Math.min(asset!.duration, Math.max(item.start + .05, patch.end ?? item.end)) } : item);
+        update(next);
+      } else update(patch);
+    },
+    assets, asset, edit, selected, busy, notice, setNotice, progress, result, dismissResult, importReport,
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,
-    select: (id: string) => { if (!busyRef.current) setSelected(id); },
+    select: (id: string) => { if (!busyRef.current) { setSelected(id); setSelectedClip(null); } },
     importMedia: (files?: File[], sample = false) => performImport(files, sample ? 'sample' : 'files'),
     importUrl: (url: string, options?: UrlImportOptions) => performImport(undefined, 'url', undefined, url, options),
     importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive,
     importLaunch: (id: string, activate: () => void, select: (ids: string[]) => void) => performImport(undefined, 'launch', { id, activate, select }),
+    backgroundEngine: engine,
     settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),
     cancel: () => void engine().then(e => e.cancel()),
     undo: () => travel('undo'), redo: () => travel('redo'),

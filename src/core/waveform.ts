@@ -16,7 +16,7 @@ export function waveformPath(points: WaveformPoint[], duration: number, range: T
 export function waveformArgs(asset: MediaAsset, input: string): string[] {
   if (!asset.hasAudio) throw new Error('This file has no audio waveform.');
   const samples = Math.max(1024, Math.ceil(asset.duration * 48000 / 1024));
-  return ['-loglevel', 'info', '-i', input, '-vn', '-af', `aresample=48000,asetnsamples=n=${samples}:p=0,astats=metadata=1:reset=1,ametadata=mode=print:key=lavfi.astats.Overall.Peak_level`, '-f', 'null', '-'];
+  return ['-loglevel', 'info', '-threads', '1', '-filter_threads', '1', '-i', input, '-vn', '-af', `aresample=48000,asetnsamples=n=${samples}:p=0,astats=metadata=1:reset=1,ametadata=mode=print:key=lavfi.astats.Overall.Peak_level`, '-f', 'null', '-'];
 }
 export class WaveformCollector {
   readonly points: WaveformPoint[] = [];

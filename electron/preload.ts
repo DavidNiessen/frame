@@ -33,6 +33,12 @@ const bridge: DesktopBridge = {
   previewFrame: (id, edit, time) => ipcRenderer.invoke('media:frame-preview', id, edit, time),
   previewAudio: (id, edit) => ipcRenderer.invoke('media:audio-preview', id, edit),
   thumbnails: id => ipcRenderer.invoke('media:thumbnails', id),
+  cancelWaveform: () => { void ipcRenderer.invoke('media:cancel-waveform').catch(() => {}); },
+  onWaveformProgress: callback => {
+    const listener = (_event: unknown, progress: Parameters<typeof callback>[0]) => callback(progress);
+    ipcRenderer.on('media:waveform-progress', listener);
+    return () => ipcRenderer.removeListener('media:waveform-progress', listener);
+  },
   waveform: id => ipcRenderer.invoke('media:waveform', id),
   beginBatch: options => ipcRenderer.invoke('batch:begin', options),
   endBatch: token => ipcRenderer.invoke('batch:end', token),

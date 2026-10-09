@@ -1,3 +1,4 @@
+import { clipFilterGraph } from './clip-filters';
 import { resolveSizeTarget } from './size';
 import { frameDimensions } from './geometry';
 import { resourcePaths, type RecipeResources } from './resources';
@@ -27,6 +28,14 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
   clips.forEach(({ asset: source, edit: recipe }, index) => {
     args.push('-ss', String(recipe.start), '-t', String(recipe.end - recipe.start), '-threads', '2', '-i', inputs[index]);
     const ranges = keptRanges(recipe); const v = video; const a = audio && source.hasAudio;
+    if (recipe.clips) {
+      const prefix = `sequence${index}`;
+      graph.push(...clipFilterGraph(source, recipe, String(index), prefix, resources[index], v, a).graph);
+      if (v) graph.push(`[${prefix}v]scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease,pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p,settb=AVTB[v${index}]`);
+      if (a) graph.push(`[${prefix}a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a${index}]`);
+      else if (audio) graph.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${editedDuration(recipe)},asetpts=PTS-STARTPTS[a${index}]`);
+      return;
+    }
     ranges.forEach((range, r) => {
       const trim = `start=${range.start - recipe.start}:end=${range.end - recipe.start}`;
       if (v) graph.push(`[${index}:V:0]trim=${trim},setpts=PTS-STARTPTS[c${index}r${r}v]`);

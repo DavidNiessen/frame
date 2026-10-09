@@ -38,6 +38,8 @@ export interface DesktopBridge {
   previewFrame(id: string, edit: EditSettings, time: number): Promise<Uint8Array>;
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;
   thumbnails(id: string): Promise<Uint8Array>;
+  cancelWaveform(): void;
+  onWaveformProgress(callback: (progress: ExportProgress) => void): () => void;
   waveform(id: string): Promise<WaveformPoint[]>;
   beginBatch(options?: BatchOptions): Promise<string | null>;
   endBatch(token: string): Promise<void>;

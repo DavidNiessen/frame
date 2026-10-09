@@ -1,3 +1,5 @@
+import { clipEffectKeys, clipRecipe } from './clips';
+import { clipFilterGraph } from './clip-filters';
 import { parseAcceleration } from './hardware';
 import { validateSizeTarget, resolveSizeTarget } from './size';
 import { parseColor } from './color';
@@ -14,6 +16,14 @@ import type { EditSettings, MediaAsset } from './types';
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
+  if (edit.clips) {
+    if (!Array.isArray(edit.clips) || !edit.clips.length || edit.clips.length > 1000 || new Set(edit.clips.map(clip => clip.id)).size !== edit.clips.length) throw new Error('Invalid ordered clips.');
+    for (const clip of edit.clips) {
+      if (!clip || typeof clip.id !== 'string' || !clip.id || clip.id.length > 120 || !clip.effects || Object.keys(clip.effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) throw new Error('Invalid clip effects.');
+      if (clip.start < edit.start || clip.end > edit.end) throw new Error('Clip lies outside the source selection.');
+      validateEdit(asset, clipRecipe(edit, clip));
+    }
+  }
   const format = getFormat(edit.format);
   if (![edit.start, edit.end, edit.volume, edit.audioBitrate, edit.fps].every(Number.isFinite)) throw new Error('Enter valid numeric settings.');
   if (edit.start < 0 || edit.end > asset.duration + 0.05 || edit.end - edit.start < 0.05) throw new Error('Choose a trim range of at least 0.05 seconds within the media.');
@@ -50,10 +60,13 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   const hasVideo = format.kind === 'video';
   const hasAudio = asset.hasAudio && edit.format !== 'gif';
   const ranges = keptRanges(edit);
-  const complex = ranges.length > 1 || (ranges.length === 1 && ranges[0].start !== edit.start);
+  const complex = !!edit.clips || ranges.length > 1 || (ranges.length === 1 && ranges[0].start !== edit.start);
   let videoInput = '0:V:0'; let audioInput = '0:a:0';
   let graph: string[] = [];
-  if (complex) {
+  if (edit.clips) {
+    const clips = clipFilterGraph(asset, edit, '0', 'ordered', resources, hasVideo, hasAudio);
+    graph = clips.graph; videoInput = '[orderedv]'; audioInput = '[ordereda]';
+  } else if (complex) {
     ranges.forEach((range, i) => {
       const trim = `start=${range.start - edit.start}:end=${range.end - edit.start}`;
       if (hasVideo) graph.push(`[0:V:0]trim=${trim},setpts=PTS-STARTPTS[v${i}]`);

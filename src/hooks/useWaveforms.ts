@@ -13,17 +13,19 @@ export function useWaveforms(editor: Editor, enabled = true, autoWaveforms = tru
     const ids = new Set(editor.assets.map(a => a.id));
     const keep = <T,>(current: Record<string, T>) => Object.keys(current).some(id => !ids.has(id)) ? Object.fromEntries(Object.entries(current).filter(([id]) => ids.has(id))) : current;
     setWaveforms(keep); setErrors(keep);
+    if (job.current && !ids.has(job.current.id)) { cancelled.current = true; void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.()); }
     for (const id of attempted.current) if (!ids.has(id)) attempted.current.delete(id);
   }, [editor.assets]);
   const generate = useCallback(async (automatic = false) => {
     const current = latest.current, asset = current.asset;
-    if (!asset?.hasAudio || current.busy || (automatic && !automaticAllowed.current)) return;
+    if (!asset?.hasAudio || job.current || current.busy || (automatic && !automaticAllowed.current)) return;
     attempted.current.add(asset.id); cancelled.current = false;
     job.current = { id: asset.id, automatic };
     setProgress(0); setLoading(true);
     setErrors(errors => { const next = { ...errors }; delete next[asset.id]; return next; });
     try {
-      const points = await current.runExclusive('analysis', engine => engine.waveform(asset, p => setProgress(p.ratio)));
+      const points = await (await current.backgroundEngine()).waveform(asset, p => setProgress(p.ratio));
+      if (cancelled.current || !latest.current.assets.some(item => item.id === asset.id)) return;
       setWaveforms(waves => ({ ...waves, [asset.id]: points }));
       if (!automatic) current.setNotice('Audio waveform ready. Peaks follow your timeline sections.');
     } catch (error) {
@@ -37,14 +39,15 @@ export function useWaveforms(editor: Editor, enabled = true, autoWaveforms = tru
       cancelled.current = true;
       // Re-enabling the preference may restart an analysis interrupted by this setting.
       attempted.current.delete(job.current.id);
-      latest.current.cancel();
+      void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.());
     }
   }, [autoWaveforms]);
   useEffect(() => {
     const asset = editor.asset;
     // Mark attempts before awaiting the engine, so errors and cancellation never start a retry loop.
     if (enabled && autoWaveforms && asset?.kind === 'audio' && asset.hasAudio && !editor.busy && !waveforms[asset.id] && !attempted.current.has(asset.id)) void generate(true);
-  }, [enabled, autoWaveforms, editor.asset, editor.busy, waveforms, generate]);
+  }, [enabled, autoWaveforms, editor.asset, editor.busy, waveforms, loading, generate]);
+  useEffect(() => () => { cancelled.current = true; void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.()); }, []);
   return { points: editor.asset ? waveforms[editor.asset.id] : undefined, error: editor.asset ? errors[editor.asset.id] : undefined,
-    generate, progress, loading, cancel: () => { cancelled.current = true; latest.current.cancel(); } };
+    generate, progress, loading: loading && job.current?.id === editor.asset?.id, cancel: () => { cancelled.current = true; void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.()); } };
 }
