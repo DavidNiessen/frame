@@ -2,6 +2,7 @@
 .app-shell { padding: 12px 16px; gap: 12px; }
 .app-header { border: 1px solid var(--border); border-radius: 14px; padding: 0 18px; min-height: 60px; }
 .workspace-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; min-height: 44px; max-width: none; margin: 0; }
+.app-shell > .recovery-banner { margin: 0; border-radius: 14px; flex-shrink: 0; }
 .app-footer { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; margin-top: auto; }
 .app-shell .panel, .preview-panel, .empty-stage { border-radius: 14px; box-shadow: 0 4px 20px color-mix(in srgb, var(--text) 3%, transparent); }
 .app-shell:has(.editor-layout[data-layout='wide']) { height: 100dvh; min-height: 760px; }
