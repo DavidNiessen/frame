@@ -5,6 +5,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 if ($JsonFromStdin) { $data = [Console]::In.ReadToEnd() | ConvertFrom-Json }
 else { $data = @{ operation = $Operation; executable = $Executable; prefix = '"' + $Executable + '"' } }
 $identity = Get-Content (Join-Path $PSScriptRoot 'identity.json') -Raw | ConvertFrom-Json

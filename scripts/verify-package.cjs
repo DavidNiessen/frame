@@ -34,6 +34,15 @@ module.exports = async context => {
   if (!existsSync(require('node:path').join(context.packager.projectDir, 'build/generated/windows-context-menu.nsh'))) {
     throw new Error('Shell integration assets are missing. Run npm run build before packaging.');
   }
+  if (context.electronPlatformName === 'win32') {
+    const binaries = require('../native/windows-shell/binaries.json').platforms[`win32-${targetArch}`];
+    if (!binaries) throw new Error('There is no native Windows shell extension for this architecture.');
+    for (const [name, hash] of Object.entries(binaries)) {
+      const path = join(context.packager.projectDir, 'build/generated/shell-actions/windows', name);
+      if (!existsSync(path) || createHash('sha256').update(readFileSync(path)).digest('hex') !== hash) throw new Error('The Windows shell extension is missing or corrupt. Run npm run build.');
+    }
+    for (const name of ['FrameShell.msix', 'manage-menu.ps1', 'identity.json']) if (!existsSync(join(context.packager.projectDir, 'build/generated/shell-actions/windows', name))) throw new Error('Windows primary-menu registration files are missing. Run npm run build.');
+  }
   if (context.electronPlatformName === 'darwin') {
     context.packager.platformSpecificBuildOptions.fileAssociations = [{ ext: require('../src/core/media-extensions.json'), name: 'Frame media', role: 'Editor', rank: 'Alternate' }];
   }

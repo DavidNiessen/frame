@@ -1,7 +1,7 @@
 import { mkdir, cp, rm, writeFile, chmod, readFile } from 'node:fs/promises';
 import { join, isAbsolute } from 'node:path';
 import { shellActions, dolphinActions, finderAction } from './shell-action-definitions';
-import { windowsShellActions } from './windows-shell-actions';
+import { windowsShellStatus } from './windows-shell-integration';
 import type { ShellIntegrationStatus } from '../src/core/system-integration';
 
 export interface ShellActionLocation { platform: NodeJS.Platform; home: string; resources: string; executable: string; args?: string[]; dataHome?: string }
@@ -9,7 +9,7 @@ function linuxData(location: ShellActionLocation) {
   return location.dataHome && isAbsolute(location.dataHome) ? location.dataHome : join(location.home, '.local', 'share');
 }
 export async function shellActionState(location: ShellActionLocation): Promise<ShellIntegrationStatus['state']> {
-  if (location.platform === 'win32') return windowsShellActions(location, 'status');
+  if (location.platform === 'win32') return (await windowsShellStatus(location)).state;
   const checks: { path: string; content: string }[] = location.platform === 'darwin'
     ? shellActions.flatMap(action => { const files = finderAction(action, location.args?.length ? location : undefined), root = join(location.home, 'Library', 'Services', `${action.label}.workflow`, 'Contents'); return [{ path: join(root, 'Info.plist'), content: files.info }, { path: join(root, 'document.wflow'), content: files.document }]; })
     : ['kio/servicemenus', 'kservices5/ServiceMenus'].map(folder => ({ path: join(linuxData(location), folder, 'frame-media-editor.desktop'), content: dolphinActions(location.executable, location.args) }));
@@ -21,8 +21,8 @@ export async function shellActionState(location: ShellActionLocation): Promise<S
 }
 export async function installShellActions(location: ShellActionLocation, remove = false): Promise<string> {
   if (location.platform === 'win32') {
-    await windowsShellActions(location, remove ? 'remove' : 'install');
-    return remove ? 'Frame’s File Explorer actions were removed.' : 'File Explorer actions installed. On Windows 11, choose Show more options to find Edit in Frame / Convert in Frame.';
+    const result = await windowsShellStatus(location, remove ? 'remove' : 'install');
+    return remove && result.state === 'not-installed' ? 'Frame’s File Explorer actions were removed from both menus.' : result.detail;
   }
   if (location.platform === 'darwin') {
     const services = join(location.home, 'Library', 'Services');

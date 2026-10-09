@@ -2,8 +2,10 @@ import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import { ensureYoutubeTools } from './prepare-youtube.mjs';
 import { ensureFfmpeg } from './prepare-ffmpeg.mjs';
+import { prepareWindowsShell } from './prepare-windows-shell.mjs';
 await ensureFfmpeg();
 await ensureYoutubeTools();
+await prepareWindowsShell();
 await build({
   entryPoints: ['electron/main.ts', 'electron/preload.ts'],
   outdir: 'dist-electron', outExtension: { '.js': '.cjs' },

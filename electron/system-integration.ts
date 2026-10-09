@@ -1,5 +1,6 @@
 import { app, dialog, Menu, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { installShellActions, shellActionState } from './shell-actions';
+import { windowsShellStatus } from './windows-shell-integration';
 import type { ShellIntegrationStatus } from '../src/core/system-integration';
 
 export function shellStartupCommand(argv: string[]) {
@@ -23,8 +24,9 @@ export function configureSystemIntegration(command: 'install' | 'remove' | null,
   const status = async (): Promise<ShellIntegrationStatus> => {
     const supported = ['win32', 'darwin', 'linux'].includes(process.platform);
     const available = supported;
-    return { platform: process.platform, available, state: available ? await shellActionState(location) : 'not-installed',
-      detail: !supported ? 'File-manager actions are not available on this operating system.' : (process.platform === 'win32' ? 'Right-click media in File Explorer. On Windows 11, choose Show more options.' : process.platform === 'darwin' ? 'In Finder, look under Quick Actions or Services. If hidden, enable Frame in System Settings → Keyboard → Keyboard Shortcuts → Services.' : 'Available in KDE Dolphin. Restart Dolphin after changing these actions.') + (!app.isPackaged ? ' These actions open this development checkout. Reinstall them if you move the project.' : '') };
+    const windows = process.platform === 'win32' ? await windowsShellStatus(location) : undefined;
+    return { platform: process.platform, available, state: windows?.state ?? (available ? await shellActionState(location) : 'not-installed'),
+      detail: !supported ? 'File-manager actions are not available on this operating system.' : (windows?.detail ?? (process.platform === 'darwin' ? 'In Finder, look under Quick Actions or Services. If hidden, enable Frame in System Settings → Keyboard → Keyboard Shortcuts → Services.' : 'Available in KDE Dolphin. Restart Dolphin after changing these actions.')) + (!app.isPackaged ? ' These actions open this development checkout. Reinstall them if you move the project.' : '') };
   };
   ipcMain.handle('desktop:shell-status', event => { trusted(event); return status(); });
   ipcMain.handle('desktop:set-shell-actions', async (event, enabled: unknown) => {

@@ -12,6 +12,7 @@ async function windowsRegistry(script: string) {
 }
 
 test('manages file-manager actions in packaged and development builds', async () => {
+  test.setTimeout(120000);
   const directory = await mkdtemp(join(tmpdir(), 'frame-settings-'));
   const executablePath = process.env.FRAME_TEST_EXECUTABLE ? resolve(process.env.FRAME_TEST_EXECUTABLE) : undefined;
   const app = await _electron.launch({ executablePath, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, FRAME_DEV_URL: '', XDG_DATA_HOME: join(directory, 'data') } });
@@ -47,6 +48,16 @@ test('manages file-manager actions in packaged and development builds', async ()
       await expect(page.locator('.integration-badge')).toHaveText('Installed');
     }
     if (process.platform === 'win32') {
+      // Windows 11 checks the native component separately from the classic registry verbs.
+      const primary = await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Frame\\ShellActions'); try { $key.GetValue('PrimaryPackage') } finally { $key.Dispose() }`);
+      if (primary) {
+        await expect(page.locator('.integration-detail')).toContainText('Windows 11 primary menu installed');
+        await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\\Frame\\ShellActions'); try { $key.SetValue('PrimaryDigest', 'stale-package') } finally { $key.Dispose() }`);
+        await page.getByRole('button', { name: 'Refresh integration status' }).click();
+        await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+        await page.getByRole('button', { name: 'Repair actions' }).click();
+        await expect(page.locator('.integration-badge')).toHaveText('Installed');
+      }
       // A different Frame installation can own one verb; removal must leave that command alone.
       await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\\Classes\\SystemFileAssociations\\.mp3\\shell\\Frame.Convert\\command'); $key.SetValue('', 'other-installation'); $key.Dispose()`);
       await page.getByRole('button', { name: 'Refresh integration status' }).click();

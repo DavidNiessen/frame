@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { dolphinActions, extensions, finderAction, shellActions, windowsInstaller } from '../electron/shell-action-definitions';
 import { installShellActions, shellActionState } from '../electron/shell-actions';
 import { windowsShellCommand } from '../electron/shell-command';
+import { windowsIntegrationState } from '../electron/windows-shell-integration';
 
 it('registers both verbs for every supported extension and only removes commands owned by this install', () => {
   const installer = windowsInstaller();
@@ -89,6 +90,21 @@ it('offers an initially checked installer checkbox, restores the preference, and
   expect(installer).toContain('/NOFRAMECONTEXTMENU');
   expect(installer).toContain('/FRAMECONTEXTMENU');
   expect(installer).toContain('${If} $FrameShellEnabled == 1');
+  expect(installer).toContain('!insertmacro FramePrimaryMenu "Install"');
+  expect(installer.match(/!insertmacro FramePrimaryMenu "Remove"/g)).toHaveLength(2);
+  expect(installer).toContain('"$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1"');
+  expect(installer).toContain('$WINDIR\\Sysnative\\WindowsPowerShell');
+  expect(installer).toContain('Windows 11 adds a Frame entry in the primary menu');
+});
+it('reports repair when either supported Windows menu component is incomplete', () => {
+  const primary = { supported: true, owned: true, state: 'installed' as const, detail: '' };
+  expect(windowsIntegrationState('installed', primary)).toBe('installed');
+  expect(windowsIntegrationState('partial', primary)).toBe('partial');
+  expect(windowsIntegrationState('not-installed', primary)).toBe('partial');
+  expect(windowsIntegrationState('installed', { ...primary, state: 'partial' })).toBe('partial');
+  expect(windowsIntegrationState('installed', { ...primary, state: 'not-installed' })).toBe('partial');
+  expect(windowsIntegrationState('not-installed', { ...primary, state: 'not-installed', owned: false })).toBe('not-installed');
+  expect(windowsIntegrationState('installed', { ...primary, supported: false, state: 'not-installed' })).toBe('installed');
 });
 it('launches a development checkout using the Electron executable and safely quoted project arguments', () => {
   const launch = { executable: 'C:\\Program Files\\Electron\\electron.exe', args: ['C:\\Projects\\Frame & songs\\'] };

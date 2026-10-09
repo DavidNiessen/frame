@@ -50,7 +50,7 @@ Function FrameShellPage
   $\{NSD_CreateCheckbox} 0 40u 100% 28u 'Add "Edit in Frame" and "Convert in Frame" to file context menus'
   Pop $FrameShellCheckbox
   $\{NSD_SetState} $FrameShellCheckbox $FrameShellEnabled
-  $\{NSD_CreateLabel} 0 82u 100% 42u "Applies to supported audio and video files, including multiple selections, for your Windows account. On Windows 11, look under Show more options. You can change this later in Frame Settings."
+  $\{NSD_CreateLabel} 0 82u 100% 42u "Applies to supported media and multiple selections. Windows 11 adds a Frame entry in the primary menu and keeps Show more options entries. You can change this later in Frame Settings."
   Pop $R0
   nsDialogs::Show
 FunctionEnd
@@ -70,17 +70,32 @@ FunctionEnd
   StrCmp $R0 '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}" --frame-workflow=$\{Workflow} -- "%1"' 0 +2
   DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}"
 !macroend
+!macro FramePrimaryMenu Operation
+  ; NSIS is 32-bit; use native PowerShell so Appx deployment is available on x64 Windows.
+  StrCpy $R2 "$SYSDIR\\WindowsPowerShell\\v1.0\\powershell.exe"
+  IfFileExists "$WINDIR\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe" 0 +2
+  StrCpy $R2 "$WINDIR\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe"
+  nsExec::ExecToStack /TIMEOUT=60000 '\"$R2\" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1\" -Operation $\{Operation} -Executable \"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}\"'
+  Pop $R0
+  Pop $R1
+  $\{If} $R0 != 0
+    DetailPrint "Windows 11 primary-menu registration needs attention. Open Frame Settings to repair or remove it. Classic entries are managed separately."
+  $\{EndIf}
+!macroend
 !macro customInstall
   WriteRegDWORD HKCU "Software\\Frame\\ShellActions" "Enabled" $FrameShellEnabled
   $\{If} $FrameShellEnabled == 1
 ${install}
+  !insertmacro FramePrimaryMenu "Install"
   $\{Else}
 ${uninstall}
+  !insertmacro FramePrimaryMenu "Remove"
   $\{EndIf}
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 !macro customUnInstall
 ${uninstall}
+  !insertmacro FramePrimaryMenu "Remove"
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 `;

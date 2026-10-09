@@ -82,25 +82,29 @@ test('receives native open-file events before and after the renderer is ready', 
   } finally { await app.close(); await rm(library.directory, { recursive: true, force: true }); }
 });
 
-test('invokes installed Windows shell verbs on a mixed multi-file selection', async () => {
+test('invokes installed Windows classic and primary commands on a mixed multi-file selection', async () => {
+  test.setTimeout(120000);
   test.skip(process.platform !== 'win32' || process.env.FRAME_TEST_SHELL_ACTIONS !== '1', 'Runs against the installed NSIS artifact on Windows CI.');
   const library = await conversionLibrary();
-  await copyFile(library.sources[0], join(library.directory, 'Selection song & Björk.wav'));
+  await copyFile(library.sources[0], join(library.directory, 'Selection song & Björk %10.wav'));
   await copyFile('public/sample.mp4', join(library.directory, 'Selection video.mp4'));
   // Explorer launches use the normal app profile, so the primary must use it too.
   const app = await _electron.launch({ executablePath: resolve(process.env.FRAME_TEST_EXECUTABLE!), args: [], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {
     const page = await app.firstWindow(), workflow = page.getByRole('navigation', { name: 'Workflow' });
     const powershell = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-    const invoke = (mode: string) => exec(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', resolve('tests/helpers/invoke-windows-action.ps1'), '-Directory', library.directory, '-Workflow', mode]);
-    await invoke('Convert');
-    await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
-    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
-    await expect(page.getByText('Selection song & Björk.wav', { exact: true })).toBeVisible();
-    await invoke('Edit');
-    await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
-    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
-    await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
-    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
+    const invoke = (mode: string, primary = false) => exec(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', resolve(`tests/helpers/invoke-windows-${primary ? 'primary' : 'action'}.ps1`), '-Directory', library.directory, '-Workflow', mode], { timeout: 30000 });
+    for (const primary of [false, ...(process.env.FRAME_TEST_PRIMARY_MENU === '1' ? [true] : [])]) {
+      await invoke('Convert', primary);
+      await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
+      await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
+      await expect(page.getByText('Selection song & Björk %10.wav', { exact: true })).toBeVisible();
+      await invoke('Edit', primary);
+      await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
+      expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+      await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
+      await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
+      await workflow.getByRole('button', { name: 'Editor', exact: true }).click();
+    }
   } finally { await app.close(); await rm(library.directory, { recursive: true, force: true }); }
 });
