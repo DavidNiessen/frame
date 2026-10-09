@@ -1,0 +1,15 @@
+# pnpm 10.26+ / 11 requires explicit permission for dependency install scripts.
+# Electron and ffmpeg-static download the portable desktop executables.
+allowBuilds:
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  ffmpeg-static: true
+  '@ffprobe-installer/darwin-arm64': true
+  '@ffprobe-installer/darwin-x64': true
+  '@ffprobe-installer/linux-arm': true
+  '@ffprobe-installer/linux-arm64': true
+  '@ffprobe-installer/linux-ia32': true
+  '@ffprobe-installer/linux-x64': true
+  '@ffprobe-installer/win32-ia32': true
+  '@ffprobe-installer/win32-x64': true

@@ -10,6 +10,19 @@ concurrency:
 permissions:
   contents: read
 jobs:
+  pnpm-install:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - run: pnpm import
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test:desktop
   web:
     runs-on: ubuntu-latest
     steps:

@@ -9,11 +9,20 @@ for (const name of ['ffmpeg-core.js', 'ffmpeg-core.wasm']) {
 await mkdir('public/notices', { recursive: true });
 const native = require('ffmpeg-static');
 const probe = require('@ffprobe-installer/ffprobe');
-const version = binary => execFileSync(binary, ['-version'], { encoding: 'utf8', timeout: 10000 }).split('\n')[0];
+const version = (binary, name) => {
+  try {
+    if (!binary) throw new Error('No binary is available for this OS and architecture.');
+    return execFileSync(binary, ['-version'], { encoding: 'utf8', timeout: 10000 }).split('\n')[0];
+  } catch (error) {
+    console.error(`Asset preparation failed: the bundled ${name} could not run${error.code ? ` (${error.code})` : ''}.`);
+    console.error('Its dependency install script may have been skipped. With pnpm, pull the latest pnpm-workspace.yaml, run "pnpm rebuild", then "pnpm run postinstall". With npm, run "npm ci".');
+    process.exit(1);
+  }
+};
 const core = JSON.parse(await readFile('node_modules/@ffmpeg/core/package.json', 'utf8'));
 const notice = [
   'Frame — third-party media processing tools', '',
-  version(native), version(probe.path),
+  version(native, 'FFmpeg'), version(probe.path, 'FFprobe'),
   `WebAssembly: @ffmpeg/core ${core.version} (${core.license})`, '',
   'Native FFmpeg provider: https://github.com/eugeneware/ffmpeg-static',
   `FFprobe provider: ${probe.url}`,

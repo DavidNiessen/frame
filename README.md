@@ -6,7 +6,7 @@ The interface adapts the typography, green accents, and restrained surfaces in [
 
 ## Develop
 
-Use Node.js 22.12+ (Node 24 LTS recommended) and npm.
+Use Node.js 22.12+ (Node 24 LTS recommended) and npm, or pnpm 10.26+ / 11.
 
 ```sh
 npm ci
@@ -15,6 +15,19 @@ npm run dev:desktop  # Electron + the Vite development server
 ```
 
 Desktop development needs a graphical session. Electron, portable FFmpeg, and portable FFprobe are installed by npm. **End users do not need FFmpeg or FFprobe installed**: the desktop package includes both tools for its OS and architecture.
+
+With pnpm, run `pnpm install` followed by `pnpm run dev:desktop` (or `pnpm run dev` for the web editor). The committed `pnpm-workspace.yaml` permits the dependency scripts that download Electron/FFmpeg and prepare the build tools. npm's `package-lock.json` remains the canonical lockfile; `pnpm import` can create a matching pnpm lockfile before installation.
+
+If an earlier pnpm install skipped those scripts and reports a missing `ffmpeg.exe` / `ENOENT`, update the repository and repair the existing installation:
+
+```sh
+git pull
+pnpm rebuild
+pnpm run postinstall
+pnpm run dev:desktop
+```
+
+If you maintain your own pnpm build policy, allow `ffmpeg-static`, `electron`, `electron-winstaller`, `esbuild`, and the `@ffprobe-installer` package for your platform. `pnpm approve-builds` lets you review blocked dependency scripts. Missing tools are downloaded into dependencies; a system FFmpeg installation is not required.
 
 The browser's first import loads the self-hosted WebAssembly engine (about 32 MB). There are no external CDNs, remote fonts, media APIs, or API keys. Use “Try a sample” to explore with a small bundled video.
 
