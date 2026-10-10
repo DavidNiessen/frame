@@ -37,9 +37,10 @@ export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit:
     function tick() {
       const media = ref.current;
       if (!media || media.paused) return;
+      if (!media.readyState || media.dataset.previewSwitching) { frame = requestAnimationFrame(tick); return; }
       const { edit: recipe, publish: updateClock } = latest.current;
       const sourceTime = readPreviewTime(media);
-      const step = previewPlaybackStep(recipe, sourceTime, playingClip, hasPreviewClock(media));
+      const step = previewPlaybackStep(recipe, sourceTime, playingClip, hasPreviewClock(media) && !media.dataset.previewStale);
       const next = step.time; playingClip = step.clipId;
       if (next === null) { if (!latest.current.loop) media.pause(); seekPreviewTime(media, keptRanges(recipe)[0]?.start ?? recipe.start); playingClip = null; }
       else if (next !== sourceTime) seekPreviewTime(media, next);

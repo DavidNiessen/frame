@@ -1,9 +1,8 @@
 import { editClips } from './clips';
 import type { EditSettings, MediaAsset, TimeRange } from './types';
 
-/** Decoder ranges ignore visual splits. Joined cuts use one continuous encoded stream. */
+/** Any gaps or reordered footage use one stream, independent of visual split/group IDs. */
 export function joinedPreviewRanges(edit: EditSettings): TimeRange[] | null {
-  if (!edit.clips?.some(clip => clip.groupId)) return null;
   const ranges: TimeRange[] = [];
   for (const { start, end } of editClips(edit)) {
     const last = ranges.at(-1);
@@ -14,6 +13,10 @@ export function joinedPreviewRanges(edit: EditSettings): TimeRange[] | null {
 }
 export function validatePreviewRanges(asset: MediaAsset, ranges: TimeRange[]) {
   if (!Array.isArray(ranges) || !ranges.length || ranges.length > 1000 || ranges.some(range => !range || !Number.isFinite(range.start) || !Number.isFinite(range.end) || range.start < 0 || range.end > asset.duration + .05 || range.end <= range.start)) throw new Error('Invalid continuous preview ranges.');
+}
+/** A previous preview can remain visible only if it contains all newly retained footage. */
+export function previewCoversRanges(previous: TimeRange[], next: TimeRange[]) {
+  return next.every(range => previous.some(kept => range.start >= kept.start - 1e-8 && range.end <= kept.end + 1e-8));
 }
 export function joinedPreviewArgs(asset: MediaAsset, ranges: TimeRange[], input: string, output: string) {
   validatePreviewRanges(asset, ranges);

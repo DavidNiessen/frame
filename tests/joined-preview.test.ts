@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
-import { joinedPreviewArgs, joinedPreviewRanges } from '../src/core/joined-preview';
+import { joinedPreviewArgs, joinedPreviewRanges, previewCoversRanges } from '../src/core/joined-preview';
 import { applyPreviewEffects } from '../src/hooks/usePreviewEffects';
 import { configurePreviewClock, previewMediaTime, previewSourceTime } from '../src/core/preview-clock';
 import { previewPlaybackStep } from '../src/core/preview-playback';
@@ -54,4 +54,18 @@ it('evaluates timed preview effects and speed against the source/output clock af
   const faster = { ...edit, speed: 2, effectInstances: edit.effectInstances.map(instance => ({ ...instance, range: { start: instance.range.start / 2, end: instance.range.end / 2 } })) };
   applyPreviewEffects(media, faster);
   expect(media.playbackRate).toBe(2); expect(media.volume).toBeCloseTo(.4); expect(Number(media.style.opacity)).toBeCloseTo(.875);
+});
+it('prepares removed sections and reordered splits independently of Join', () => {
+  const base = defaultSettings({ duration: 6, kind: 'video' } as MediaAsset);
+  const clips = ranges.map((range, i) => ({ ...range, id: String(i), effects: {} }));
+  expect(joinedPreviewRanges({ ...base, clips })).toEqual(ranges);
+  expect(joinedPreviewRanges({ ...base, clips: [clips[1], clips[0]] })).toEqual([...ranges].reverse());
+  expect(joinedPreviewRanges({ ...base, cuts: [{ start: 2, end: 4 }], splits: [1, 5] })).toEqual(ranges);
+  expect(joinedPreviewRanges({ ...base, splits: [2, 4] })).toBeNull();
+  expect(joinedPreviewRanges({ ...base, clips: [{ ...clips[0], end: 4 }, clips[1]] })).toBeNull();
+});
+it('retains an older preview for trimmed footage but falls back when expanding reveals new footage', () => {
+  expect(previewCoversRanges([{ start: 0, end: 6 }], ranges)).toBe(true);
+  expect(previewCoversRanges(ranges, [{ start: .5, end: 1.5 }, { start: 4, end: 5 }])).toBe(true);
+  expect(previewCoversRanges(ranges, [{ start: 0, end: 3 }, { start: 4, end: 6 }])).toBe(false);
 });
