@@ -6,7 +6,7 @@ interface Actions {
   edit: () => void; convert: () => void; settings: () => void; openProject: () => void;
   effects: () => void; exportSettings: () => void;
   contactSheet: () => void; scenes: () => void; merge: () => void; batch: () => void;
-  waveform: () => void; waveformBusy: boolean; timelineAvailable: boolean; resetLayout: () => void; shortcuts: () => void;
+  timelineAvailable: boolean; resetLayout: () => void; shortcuts: () => void;
 }
 export function frameCommands(editor: Editor, projects: Projects, actions: Actions): FrameCommand[] {
   const busy = actions.workspaceBusy ? 'Wait for the current operation to finish' : undefined;
@@ -26,7 +26,6 @@ export function frameCommands(editor: Editor, projects: Projects, actions: Actio
     { id: 'undo', label: 'Undo editor change', description: 'Undo the last change for the selected source', group: 'Editing', shortcut: 'Ctrl / ⌘ Z', disabled: busy || (!editor.canUndo ? 'No change to undo' : undefined), run: editing(editor.undo) },
     { id: 'redo', label: 'Redo editor change', description: 'Restore the last undone change', group: 'Editing', shortcut: 'Ctrl / ⌘ Shift Z', disabled: busy || (!editor.canRedo ? 'No change to redo' : undefined), run: editing(editor.redo) },
     { id: 'effects', label: 'Show effects', description: 'Browse and apply audio, video and timing effects', group: 'Editing', keywords: 'editing controls crop volume speed voiceover ducking audio filters subtitles recipes', disabled: media, run: actions.effects },
-    { id: 'waveform', label: 'Generate audio waveform', description: 'Analyze peaks for the selected source', group: 'Review', disabled: media || (!editor.asset?.hasAudio ? 'This source has no audio' : actions.waveformBusy ? 'Waveform analysis is already running' : undefined), run: editing(actions.waveform) },
     { id: 'scenes', label: 'Find scene changes', description: 'Review likely scene boundaries and split points', group: 'Review', keywords: 'detect cuts scan', disabled: video, run: editing(actions.scenes) },
     { id: 'contact-sheet', label: 'Create video contact sheet', description: 'Download a grid of processed frames and timestamps', group: 'Review', keywords: 'thumbnails storyboard png', disabled: video, run: editing(actions.contactSheet) },
     { id: 'export-settings', label: 'Show export settings', description: 'Format, bitrate, audio delivery, metadata and artwork', group: 'Export', keywords: 'cover tags palette gif precision channels sample rate chapters', disabled: media, run: actions.exportSettings },

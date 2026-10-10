@@ -69,7 +69,7 @@ The window uses context isolation, renderer sandboxing, disabled Node integratio
 
 ## Audio analysis
 
-Waveform generation uses FFmpeg `astats` and bounded peak windows across all channels. Both engines use the same arguments and peak-log collector, returning source-time peak data for an SVG timeline. Source waveform analysis uses its own cancellable background job coordinator, so it does not block editing or exports. Native FFmpeg processes report progress through the narrow bridge; the renderer never chooses input paths. Web analysis explicitly sets the information log level because a preceding FFprobe call changes shared logging state.
+Waveforms generate automatically for the selected audio/video source and linked audio layers when the default-on setting is enabled. Sources without audio are skipped. Manual generation controls are removed; cancelled or failed main-source analysis retains retry, and disabling the preference cancels automatic work. Cached peaks survive selection changes. Waveform generation uses FFmpeg `astats` and bounded peak windows across all channels. Both engines use the same arguments and peak-log collector, returning source-time peak data for an SVG timeline. Source waveform analysis uses its own cancellable background job coordinator, so it does not block editing or exports. Native FFmpeg processes report progress through the narrow bridge; the renderer never chooses input paths. Web analysis explicitly sets the information log level because a preceding FFprobe call changes shared logging state.
 
 
 ## Web boundary

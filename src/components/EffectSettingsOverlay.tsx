@@ -1,5 +1,5 @@
 import { frameDimensions } from '../core/geometry';
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { RotateCcw, Sparkles, Trash2, X } from 'lucide-react';
 import { changeInstance, instanceRecipe, primaryPresent, scopedInstances } from '../core/effect-instances';
 import { availableEffects, resetEffect, sameEffectSettings, type EffectId } from '../core/effect-library';
@@ -32,8 +32,8 @@ export function EffectSettingsOverlay({ id, instanceId, editor, current, seek, c
   const mixed = shared && clips.some(clip => !sameEffectSettings(effect, settingsFor(clipRecipe(edit, clips[0])), settingsFor(clipRecipe(edit, clip))));
   const instance = timelineInstance ?? (instanceId ? scopedInstances(edit, editor.selectedClip).find(item => item.id === instanceId) ?? edit.clips?.flatMap(clip => scopedInstances(edit, clip.id)).find(item => item.id === instanceId) : undefined);
   const present = id === 'captions' ? !!caption : instanceId ? !!instance : primaryPresent(editor.scopedEdit!, asset, id) || !editor.selectedClip && clips.some(clip => primaryPresent(clipRecipe(edit, clip), asset, id));
-  const view = instance ? instanceRecipe(edit, instance) : edit;
-  const scopedView = instance ? instanceRecipe(timelineInstance ? edit : editor.scopedEdit!, instance) : editor.scopedEdit;
+  const view = useMemo(() => instance ? instanceRecipe(edit, instance) : edit, [edit, instance]);
+  const scopedView = useMemo(() => instance ? instanceRecipe(timelineInstance ? edit : editor.scopedEdit!, instance) : editor.scopedEdit, [edit, editor.scopedEdit, instance, timelineInstance]);
   const change = (patch: Partial<typeof edit>) => editor.update(instanceId ? changeInstance(edit, instanceId, editor.selectedClip, patch) : patch);
   const previous = instance ? scopedInstances(edit, editor.selectedClip).findIndex(item => item.id === instance.id) : -1;
   const inputAsset = instance && ['crop', 'transform'].includes(id) ? { ...asset, ...frameDimensions(asset, { ...editor.scopedEdit!, effectInstances: scopedInstances(edit, editor.selectedClip).slice(0, previous) }) } : asset;

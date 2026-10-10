@@ -112,7 +112,7 @@ Edits are nondestructive and support undo/redo. Artwork is enabled by default fo
 
 Keyboard shortcuts: Ctrl/Cmd+O imports, Space plays/pauses (including when timeline clips, trim handles, or the seek slider have focus), I/O set trim boundaries, Ctrl/Cmd+Z undoes, and Ctrl/Cmd+Shift+Z redoes. A shortcut reference is available in the footer.
 
-Audio files automatically generate a **waveform** when selected. For videos with audio, choose Generate waveform in the Timeline. Peaks are cached per source and drawn inside each retained clip: trims and split-section edges crop the matching source peaks live, and removed sections leave empty gaps. Processing runs locally, can be cancelled, and offers a retry if interrupted.
+Audio files and videos with audio automatically generate a **waveform** when selected, and linked music or voiceover tracks generate theirs automatically too. Disable generation in Settings → Editing. Peaks are cached per source and drawn inside each retained clip: trims and split-section edges crop the matching source peaks live, and removed sections leave empty gaps. Processing runs locally, can be cancelled, and offers a retry if interrupted.
 
 
 **Merge clips** combines imported sources in your chosen order. Drag clips or use the up/down buttons; each clip keeps its recipe. Video outputs require video sources, fit frames to the first clip, and use silence for missing audio. Mixed video/audio selections can export audio. Compatible audio outputs keep the first clip’s artwork by default when present.

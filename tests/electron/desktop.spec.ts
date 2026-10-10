@@ -41,7 +41,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await page.getByRole('button', { name: 'Use original preview' }).click();
     await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/asset\//);
-    await page.getByRole('button', { name: 'Generate waveform' }).click();
+    await expect(page.getByRole('button', { name: 'Generate waveform' })).toHaveCount(0);
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Normalize loudness');
 
@@ -67,6 +67,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByLabel('Overlay text', { exact: true }).fill('Desktop title');
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Color & LUTs');
     await page.getByLabel('Color brightness').fill('0.1');
+    await page.getByLabel('Seek playhead').fill('0'); await expect(page.locator('video')).toHaveJSProperty('seeking', false);
     await page.getByRole('button', { name: 'Render edited frame' }).click();
     await expect(page.getByAltText('Rendered edited frame')).toBeVisible({ timeout: 45000 });
     const captionPath = join(directory, 'caption.mp4');
@@ -108,7 +109,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     const batch = page.getByRole('dialog', { name: 'Batch export', exact: true });
     await batch.getByLabel('Batch settings').selectOption('output');
     await batch.getByRole('button', { name: 'Start batch export' }).click();
-    await expect(batch.getByText('done', { exact: true })).toHaveCount(2);
+    await expect(batch.getByText('done', { exact: true })).toHaveCount(2, { timeout: 45000 });
     expect((await readdir(directory)).filter(name => name.startsWith('sample-edited') && name.endsWith('.flac'))).toHaveLength(2);
     await batch.getByRole('button', { name: 'Close batch export' }).click();
     const mergedPath = join(directory, 'native-merged.flac');
@@ -164,7 +165,8 @@ test('automatically renders native audio waveforms inside trimmed and split clip
     await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, input);
     await page.getByRole('button', { name: 'Add media', exact: true }).click();
     const waves = page.getByRole('img', { name: 'Audio waveform', exact: true });
-    await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
     await expect(waves).toHaveCount(0);
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await preference.check();

@@ -60,17 +60,22 @@ test('applies a track effect, reorders split clips and exports the sequence', as
 });
 
 test('keeps waveform generation and cancellation independent of editing and export', async ({ page }) => {
+  // Hold only the first waveform command; probing and export keep their own worker.
+  await page.addInitScript(() => {
+    const post = Worker.prototype.postMessage; let held = false;
+    Worker.prototype.postMessage = function(this: Worker, message: unknown, options?: Transferable[] | StructuredSerializeOptions) {
+      const packet = message as { type?: string; data?: { args?: string[] } };
+      if (!held && packet.type === 'EXEC' && packet.data?.args?.some(arg => arg.includes('astats=metadata'))) { held = true; return; }
+      Reflect.apply(post, this, [message, options ?? []]);
+    };
+  });
   await page.goto('/'); await importTestMedia(page);
-  await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toBeVisible({ timeout: 45000 });
-  // Hold the background worker's download so cancellation cannot race a completed waveform.
-  let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; });
-  await page.route('**/ffmpeg-core.wasm', async route => { await pending; await route.continue().catch(() => {}); });
-  await page.getByRole('button', { name: 'Generate waveform', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Cancel waveform', exact: true })).toBeVisible({ timeout: 45000 });
+  await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Split', exact: true })).toBeEnabled();
   await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.locator('video')).toHaveJSProperty('volume', .5);
   await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
-  await page.getByRole('button', { name: 'Cancel waveform', exact: true }).click(); release();
-  await page.unroute('**/ffmpeg-core.wasm');
+  await page.getByRole('button', { name: 'Cancel waveform', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
   await page.getByRole('button', { name: 'Retry waveform', exact: true }).click();
   await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({ timeout: 45000 });

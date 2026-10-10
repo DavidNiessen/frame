@@ -46,7 +46,7 @@ export function useWaveforms(editor: Editor, enabled = true, autoWaveforms = tru
     }
   }, [autoWaveforms]);
   useEffect(() => {
-    const targets = [...(editor.asset?.kind === 'audio' ? [editor.asset] : []), ...(editor.edit ? allAudioLayers(editor.edit) : []).flatMap(layer => { const source = audioLayerSource(layer, editor.assets); return source ? [source] : []; })];
+    const targets = [...(editor.asset ? [editor.asset] : []), ...(editor.edit ? allAudioLayers(editor.edit) : []).flatMap(layer => { const source = audioLayerSource(layer, editor.assets); return source ? [source] : []; })];
     // A single queue serves main and additional tracks, including the independent WASM worker.
     const asset = targets.find(asset => asset.hasAudio && !waveforms[asset.id] && !attempted.current.has(asset.id));
     if (enabled && autoWaveforms && asset && !editor.busy && !job.current) void generate(true, asset);
