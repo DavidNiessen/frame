@@ -1,3 +1,4 @@
+import { parseAudioLayers, sameLayerSource } from './audio-layers';
 import { parseMarkers } from './markers';
 import { clipEffectKeys, type TimelineClip } from './clips';
 import { parseAcceleration } from './hardware';
@@ -33,6 +34,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const c = e.crop === null ? null : record(e.crop);
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
+    audioLayers: parseAudioLayers(e.audioLayers), audioMixProtectPeaks: e.audioMixProtectPeaks === undefined ? true : boolean(e.audioMixProtectPeaks),
     markers: parseMarkers(e.markers, asset.duration),
     color: parseColor(e.color),
     geometry: parseGeometry(e.geometry),
@@ -92,6 +94,7 @@ export function parseProject(value: unknown): ProjectDocument {
     const asset: MediaAsset = { ...source, id: '', previewUrl: '' };
     return { source, edit: parseEdit(entry.edit, asset) };
   });
+  if (sources.some(entry => entry.edit.audioLayers?.some(layer => !sources.some(item => sameLayerSource(layer.source, item.source))))) throw new Error('This project is missing a music or voiceover source.');
   return { version: 1, name: text(doc.name, 120), selectedSource, sources };
 }
 export function createProject(name: string, assets: MediaAsset[], settingsFor: (id: string) => EditSettings, selected: string): ProjectDocument {

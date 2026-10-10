@@ -1,3 +1,4 @@
+import { hasEditedAudio } from '../core/audio-layers';
 import { ArrowUpRight, Check, Download, X } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import type { EditSettings } from '../core/types';
@@ -14,7 +15,7 @@ export function ExportFooter({ editor }: { editor: Editor }) {
     </div>
     <select id="output-format" aria-label="Output format" value={edit.format} disabled={!!busy}
       onChange={event => editor.update({ format: event.target.value as EditSettings['format'] })}>
-      {availableFormats(asset).map(format => <option value={format.id} key={format.id}>{format.label} — {format.description}</option>)}
+      {availableFormats({ ...asset, hasAudio: hasEditedAudio(asset, edit) }).map(format => <option value={format.id} key={format.id}>{format.label} — {format.description}</option>)}
     </select>
     {busy === 'analysis' ? <div className="export-progress">
       <span>Analyzing your media…</span>

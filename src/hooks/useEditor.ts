@@ -1,3 +1,4 @@
+import { sameLayerSource } from '../core/audio-layers';
 import { notifyCompletion } from '../core/completion-notifications';
 import { sampleRates } from '../core/audio-output';
 import type { UrlImportOptions } from '../core/youtube';
@@ -90,6 +91,7 @@ export function useEditor() {
   }
   async function remove(item: MediaAsset) {
     if (busyRef.current) return;
+    if (assets.some(source => source.id !== item.id && histories[source.id]?.present.audioLayers?.some(layer => sameLayerSource(layer.source, item)))) { setNotice('Remove this source’s music or voiceover tracks before removing it from the library.'); return; }
     await (await engine()).release(item);
     setAssets(current => current.filter(a => a.id !== item.id));
     setHistories(current => { const next = { ...current }; delete next[item.id]; return next; });

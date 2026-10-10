@@ -9,7 +9,7 @@ export function editClips(edit: EditSettings): TimelineClip[] {
 }
 /** Clip recipes inherit shared controls, while fades on the full output remain a final pass. */
 export function clipRecipe(edit: EditSettings, clip: TimelineClip): EditSettings {
-  return { ...edit, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, ...clip.effects,
+  return { ...edit, audioLayers: [], audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, ...clip.effects,
     start: clip.start, end: clip.end, clips: undefined, cuts: [], splits: [] };
 }
 export function clipAtSource(edit: EditSettings, time: number): TimelineClip | undefined {

@@ -1,7 +1,8 @@
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
-export type EffectId = 'volume' | 'speed' | 'audioFadeIn' | 'audioFadeOut' | 'videoFadeIn' | 'videoFadeOut' | 'normalize' | 'noise' | 'equalizer' | 'color' | 'transform' | 'captions' | 'watermark' | 'silence';
+export type EffectId = 'mix' | 'volume' | 'speed' | 'audioFadeIn' | 'audioFadeOut' | 'videoFadeIn' | 'videoFadeOut' | 'normalize' | 'noise' | 'equalizer' | 'color' | 'transform' | 'captions' | 'watermark' | 'silence';
 export interface EffectDefinition { id: EffectId; name: string; description: string; group: 'Audio' | 'Video' | 'Timing'; scope: 'clip' | 'source'; keys: (keyof EditSettings)[] }
 export const effectLibrary: EffectDefinition[] = [
+  { id: 'mix', name: 'Music & voiceover', description: 'Layer music and narration over the edit', group: 'Audio', scope: 'source', keys: ['audioLayers'] },
   { id: 'volume', name: 'Volume', description: 'Mute, balance or boost a clip', group: 'Audio', scope: 'clip', keys: ['volume'] },
   { id: 'speed', name: 'Speed', description: 'Slow down or speed up', group: 'Timing', scope: 'clip', keys: ['speed', 'preservePitch'] },
   { id: 'audioFadeIn', name: 'Audio fade in', description: 'Ease into the sound', group: 'Audio', scope: 'clip', keys: ['audioFadeIn'] },
@@ -17,7 +18,7 @@ export const effectLibrary: EffectDefinition[] = [
   { id: 'watermark', name: 'Watermark', description: 'Place text or artwork', group: 'Video', scope: 'source', keys: ['overlays'] },
   { id: 'silence', name: 'Remove silence', description: 'Find quiet gaps in the source', group: 'Audio', scope: 'source', keys: [] },
 ];
-export function availableEffects(asset: MediaAsset) { return effectLibrary.filter(effect => effect.group !== 'Video' || asset.kind === 'video').filter(effect => effect.group !== 'Audio' || asset.hasAudio); }
+export function availableEffects(asset: MediaAsset) { return effectLibrary.filter(effect => effect.group !== 'Video' || asset.kind === 'video').filter(effect => effect.group !== 'Audio' || asset.hasAudio || effect.id === 'mix'); }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
   const defaults = defaultSettings(asset);
   return effect.keys.some(key => JSON.stringify(edit[key]) !== JSON.stringify(defaults[key]));

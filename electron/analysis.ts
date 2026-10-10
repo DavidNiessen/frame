@@ -1,3 +1,4 @@
+import { resolveAudioLayers } from '../src/core/audio-layers';
 import { contactSheetArgs, parseContactSheet } from '../src/core/contact-sheet';
 import type { WindowIpc } from './window-ipc';
 import { silenceArgs, SilenceCollector, parseSilence } from '../src/core/silence';
@@ -52,7 +53,7 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
     return jobs.run(async execute => {
       const directory = await mkdtemp(join(tmpdir(), 'frame-audio-preview-')); const output = join(directory, 'preview.wav');
       try {
-        await execute(runFfmpeg(previewAudioArgs(item.asset, edit, item.path, output), 10, progress(event, 'Preparing audio effects preview…')));
+        await execute(runFfmpeg(previewAudioArgs(item.asset, edit, item.path, output, resolveAudioLayers(edit, [...assets.values()])), 10, progress(event, 'Preparing audio effects preview…')));
         return new Uint8Array(await readFile(output));
       } finally { await rm(directory, { recursive: true, force: true }); }
     });

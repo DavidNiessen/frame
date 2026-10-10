@@ -1,10 +1,11 @@
+import { hasEditedAudio, type AudioLayerInput } from './audio-layers';
 import { buildExportArgs } from './export-plan';
 import type { EditSettings, MediaAsset } from './types';
 export interface LoudnessStats { integrated: number | null; range: number | null; truePeak: number | null }
-export function loudnessArgs(asset: MediaAsset, edit: EditSettings, input: string): string[] {
-  if (!asset.hasAudio) throw new Error('This source has no audio to measure.');
-  const settings = { ...edit, format: 'wav' as const, audioSampleRate: 48000, audioChannels: null, wavDepth: 32 as const, targetSizeMb: null, includeArtwork: false, keepMetadata: false };
-  const args = buildExportArgs(asset, settings, input, '-'), complex = args.indexOf('-filter_complex'), map = args.indexOf('-map'), simple = args.indexOf('-af');
+export function loudnessArgs(asset: MediaAsset, edit: EditSettings, input: string, layers: AudioLayerInput[] = []): string[] {
+  if (!hasEditedAudio(asset, edit)) throw new Error('This source has no audio to measure.');
+  const settings = { ...edit, format: 'wav' as const, audioSampleRate: 48000, wavDepth: 32 as const, targetSizeMb: null, includeArtwork: false, keepMetadata: false };
+  const args = buildExportArgs(asset, settings, input, '-', undefined, layers), complex = args.indexOf('-filter_complex'), map = args.indexOf('-map'), simple = args.indexOf('-af');
   if (complex >= 0) { args[complex + 1] += `;${args[map + 1]}ebur128=peak=true[measured]`; args[map + 1] = '[measured]'; }
   else if (simple >= 0) args[simple + 1] += ',ebur128=peak=true';
   args.unshift('-loglevel', 'info'); args.splice(args.length - 1, 0, '-f', 'null'); return args;

@@ -1,3 +1,5 @@
+import { sameLayerSource } from '../core/audio-layers';
+import type { MediaAsset } from '../core/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Editor } from './useEditor';
 import type { WaveformPoint } from '../core/waveform';
@@ -16,8 +18,8 @@ export function useWaveforms(editor: Editor, enabled = true, autoWaveforms = tru
     if (job.current && !ids.has(job.current.id)) { cancelled.current = true; void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.()); }
     for (const id of attempted.current) if (!ids.has(id)) attempted.current.delete(id);
   }, [editor.assets]);
-  const generate = useCallback(async (automatic = false) => {
-    const current = latest.current, asset = current.asset;
+  const generate = useCallback(async (automatic = false, requested?: MediaAsset) => {
+    const current = latest.current, asset = requested ?? current.asset;
     if (!asset?.hasAudio || job.current || current.busy || (automatic && !automaticAllowed.current)) return;
     attempted.current.add(asset.id); cancelled.current = false;
     job.current = { id: asset.id, automatic };
@@ -43,11 +45,12 @@ export function useWaveforms(editor: Editor, enabled = true, autoWaveforms = tru
     }
   }, [autoWaveforms]);
   useEffect(() => {
-    const asset = editor.asset;
-    // Mark attempts before awaiting the engine, so errors and cancellation never start a retry loop.
-    if (enabled && autoWaveforms && asset?.kind === 'audio' && asset.hasAudio && !editor.busy && !waveforms[asset.id] && !attempted.current.has(asset.id)) void generate(true);
-  }, [enabled, autoWaveforms, editor.asset, editor.busy, waveforms, loading, generate]);
+    const targets = [...(editor.asset?.kind === 'audio' ? [editor.asset] : []), ...(editor.edit?.audioLayers ?? []).flatMap(layer => { const source = editor.assets.find(asset => sameLayerSource(layer.source, asset)); return source ? [source] : []; })];
+    // A single queue serves main and additional tracks, including the independent WASM worker.
+    const asset = targets.find(asset => asset.hasAudio && !waveforms[asset.id] && !attempted.current.has(asset.id));
+    if (enabled && autoWaveforms && asset && !editor.busy && !job.current) void generate(true, asset);
+  }, [enabled, autoWaveforms, editor.asset, editor.edit?.audioLayers, editor.assets, editor.busy, waveforms, loading, generate]);
   useEffect(() => () => { cancelled.current = true; void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.()); }, []);
-  return { points: editor.asset ? waveforms[editor.asset.id] : undefined, error: editor.asset ? errors[editor.asset.id] : undefined,
+  return { all: waveforms, points: editor.asset ? waveforms[editor.asset.id] : undefined, error: editor.asset ? errors[editor.asset.id] : undefined,
     generate, progress, loading: loading && job.current?.id === editor.asset?.id, cancel: () => { cancelled.current = true; void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.()); } };
 }

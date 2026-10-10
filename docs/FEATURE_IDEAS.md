@@ -17,6 +17,6 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Contact-sheet export | Share a quick visual overview of a video | Implemented |
 | Desktop watch folders | Convert newly added files automatically | Implemented |
 | Export completion notifications | Know when long jobs finish while working elsewhere | Implemented |
-| Multi-track music and voiceover | Mix additional audio with video | Backlog |
+| Multi-track music and voiceover | Mix additional audio with video | Implemented |
 | Scene-change detection | Find likely cut points automatically | Implemented |
 | Audio loudness meter | Assess clipping and perceived loudness while editing | Implemented |

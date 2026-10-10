@@ -1,3 +1,4 @@
+import { hasEditedAudio } from '../core/audio-layers';
 import { useEffect, useRef, useState } from 'react';
 import type { Editor } from './useEditor';
 export function useAudioPreview(editor: Editor) {
@@ -6,7 +7,7 @@ export function useAudioPreview(editor: Editor) {
   useEffect(() => { if (ref.current) URL.revokeObjectURL(ref.current); setUrl(null); setError(''); }, [editor.asset?.id, editor.edit]);
   useEffect(() => () => { if (ref.current) URL.revokeObjectURL(ref.current); }, []);
   async function generate() {
-    if (!editor.asset?.hasAudio || !editor.edit || editor.busy) return;
+    if (!editor.asset || !editor.edit || !hasEditedAudio(editor.asset, editor.edit) || editor.busy) return;
     setLoading(true); setError('');
     try {
       const next = await editor.runExclusive('analysis', engine => engine.previewAudio(editor.asset!, editor.edit!, () => {}));

@@ -1,3 +1,4 @@
+import { parseAudioLayers, audioMixGraph, hasEditedAudio, type AudioLayerInput } from './audio-layers';
 import { parseMarkers } from './markers';
 import { gifPaletteFilters, validateGifOutput } from './gif-output';
 import { audioOutputArgs, outputAudioCodec, validateAudioOutput } from './audio-output';
@@ -17,6 +18,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
+  parseAudioLayers(edit.audioLayers); if (edit.audioMixProtectPeaks !== undefined && typeof edit.audioMixProtectPeaks !== 'boolean') throw new Error('Invalid audio mix protection setting.');
   parseMarkers(edit.markers, asset.duration);
   validateGifOutput(edit); validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
@@ -25,7 +27,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
     for (const clip of edit.clips) {
       if (!clip || typeof clip.id !== 'string' || !clip.id || clip.id.length > 120 || !clip.effects || Object.keys(clip.effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) throw new Error('Invalid clip effects.');
       if (clip.start < edit.start || clip.end > edit.end) throw new Error('Clip lies outside the source selection.');
-      validateEdit(asset, clipRecipe(edit, clip));
+      validateEdit({ ...asset, hasAudio: hasEditedAudio(asset, edit) }, clipRecipe(edit, clip));
     }
   }
   const format = getFormat(edit.format);
@@ -41,15 +43,18 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   if (edit.fps < 1 || edit.fps > 60) throw new Error('GIF frame rate must be between 1 and 60 fps.');
   if (!['high', 'balanced', 'small'].includes(edit.quality)) throw new Error('Choose a valid quality preset.');
   if (format.kind === 'video' && asset.kind !== 'video') throw new Error('Audio cannot be exported as video.');
-  if (format.kind === 'audio' && !asset.hasAudio) throw new Error('This file has no audio to extract.');
+  if (format.kind === 'audio' && !hasEditedAudio(asset, edit)) throw new Error('This file has no audio to extract.');
   const c = edit.crop;
   if (c && (!asset.width || !asset.height || ![c.x, c.y, c.width, c.height].every(Number.isInteger) || c.x < 0 || c.y < 0 || c.width < 2 || c.height < 2 || c.x + c.width > asset.width || c.y + c.height > asset.height)) throw new Error('The crop must fit inside the source frame and be at least 2 × 2 pixels.');
 }
 
 /** Pure argument planning shared by native FFmpeg and WebAssembly. Never uses shell strings. */
-export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: string, output: string, resources: RecipeResources = resourcePaths()): string[] {
+export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: string, output: string, resources: RecipeResources = resourcePaths(), layers: AudioLayerInput[] = []): string[] {
   validateEdit(asset, edit); edit = resolveSizeTarget(asset, edit);
   const format = getFormat(edit.format);
+  const mixing = !!edit.audioLayers?.length && edit.format !== 'gif';
+  if (mixing && (layers.length !== edit.audioLayers!.length || layers.some((item, i) => item.layer.id !== edit.audioLayers![i].id))) throw new Error('Restore all audio track sources before exporting.');
+  const baseEdit = mixing ? { ...edit, audioFadeIn: 0, audioFadeOut: 0 } : edit;
   const artwork = format.kind === 'audio' && edit.includeArtwork && format.artwork && asset.artworkIndex !== undefined;
   // Limit decoding to the source selection, including palette generation for GIF.
   const args = ['-y', '-ss', String(edit.start), '-t', String(edit.end - edit.start), '-i', input];
@@ -57,30 +62,41 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   if (artwork) args.push('-i', input);
   const captions = format.kind === 'video' && edit.subtitles.mode === 'embed' && outputCues(edit).length > 0;
   if (captions) args.push('-i', resources.captions);
+  const firstLayerInput = 1 + Number(artwork) + Number(captions);
+  if (mixing) for (const layer of layers) args.push('-i', layer.path);
   args.push('-t', String(editedDuration(edit)), '-map_metadata', edit.keepMetadata ? '0' : '-1');
   args.push('-filter_threads', '2', '-filter_complex_threads', '1');
   const videoFilters = format.kind === 'video' ? recipeVideoFilters(asset, edit, resources) : [];
   if (format.kind === 'video' && edit.format !== 'gif') videoFilters.push('scale=trunc(iw/2)*2:trunc(ih/2)*2');
   const hasVideo = format.kind === 'video';
-  const hasAudio = asset.hasAudio && edit.format !== 'gif';
+  const sourceAudio = asset.hasAudio && edit.format !== 'gif';
+  const hasAudio = hasEditedAudio(asset, edit) && edit.format !== 'gif';
   const ranges = keptRanges(edit);
   const complex = !!edit.clips || ranges.length > 1 || (ranges.length === 1 && ranges[0].start !== edit.start);
   let videoInput = '0:V:0'; let audioInput = '0:a:0';
   let graph: string[] = [];
-  if (edit.clips) {
-    const clips = clipFilterGraph(asset, edit, '0', 'ordered', resources, hasVideo, hasAudio);
+  if (edit.clips && (hasVideo || sourceAudio)) {
+    const clips = clipFilterGraph(asset, baseEdit, '0', 'ordered', resources, hasVideo, sourceAudio);
     graph = clips.graph; videoInput = '[orderedv]'; audioInput = '[ordereda]';
-  } else if (complex) {
+  } else if (complex && (hasVideo || sourceAudio)) {
     ranges.forEach((range, i) => {
       const trim = `start=${range.start - edit.start}:end=${range.end - edit.start}`;
       if (hasVideo) graph.push(`[0:V:0]trim=${trim},setpts=PTS-STARTPTS[v${i}]`);
-      if (hasAudio) graph.push(`[0:a:0]atrim=${trim},asetpts=PTS-STARTPTS[a${i}]`);
+      if (sourceAudio) graph.push(`[0:a:0]atrim=${trim},asetpts=PTS-STARTPTS[a${i}]`);
     });
-    const inputs = ranges.map((_, i) => `${hasVideo ? `[v${i}]` : ''}${hasAudio ? `[a${i}]` : ''}`).join('');
-    graph.push(`${inputs}concat=n=${ranges.length}:v=${hasVideo ? 1 : 0}:a=${hasAudio ? 1 : 0}${hasVideo ? '[joinedv]' : ''}${hasAudio ? '[joineda]' : ''}`);
+    const inputs = ranges.map((_, i) => `${hasVideo ? `[v${i}]` : ''}${sourceAudio ? `[a${i}]` : ''}`).join('');
+    graph.push(`${inputs}concat=n=${ranges.length}:v=${hasVideo ? 1 : 0}:a=${sourceAudio ? 1 : 0}${hasVideo ? '[joinedv]' : ''}${sourceAudio ? '[joineda]' : ''}`);
     videoInput = '[joinedv]'; audioInput = '[joineda]';
     if (hasVideo && videoFilters.length) { graph.push(`[joinedv]${videoFilters.join(',')}[editedv]`); videoInput = '[editedv]'; }
-    if (hasAudio) { graph.push(`[joineda]${audioFilters(edit, asset).join(',')}[editeda]`); audioInput = '[editeda]'; }
+    if (sourceAudio) { graph.push(`[joineda]${audioFilters(baseEdit, asset).join(',')}[editeda]`); audioInput = '[editeda]'; }
+  }
+  if (mixing) {
+    let base: string | null = null;
+    if (sourceAudio) {
+      if (complex) base = audioInput;
+      else { graph.push(`[0:a:0]${audioFilters(baseEdit, asset).join(',')}[mixbase]`); base = '[mixbase]'; }
+    }
+    const mix = audioMixGraph(edit, layers, firstLayerInput, base); graph.push(...mix.graph); audioInput = mix.output;
   }
   if (edit.format === 'gif') {
     const prefix = complex ? videoInput : '[0:V:0]';
@@ -89,7 +105,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
     args.push('-map', '[gif]', '-an', '-loop', String(edit.gifLoop));
   } else if (hasVideo) {
     args.push('-map', videoInput);
-    if (hasAudio) args.push('-map', complex ? audioInput : '0:a:0?');
+    if (hasAudio) args.push('-map', complex || mixing ? audioInput : '0:a:0?');
     args.push('-c:v', format.videoCodec!, '-pix_fmt', 'yuv420p');
     if (!complex) args.push('-vf', videoFilters.join(','));
     if (edit.videoBitrate) args.push('-b:v', `${edit.videoBitrate}k`);
@@ -111,7 +127,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   if (captions) args.push('-map', `${artwork ? 2 : 1}:s:0`, '-c:s', subtitleCodec(edit.format)!, '-metadata:s:s:0', 'language=und');
   if (graph.length) args.push('-filter_complex', graph.join(';'));
   if (hasAudio) args.push(...audioOutputArgs(edit));
-  if (hasAudio && !complex) args.push('-af', audioFilters(edit, asset).join(','));
+  if (hasAudio && !complex && !mixing) args.push('-af', audioFilters(baseEdit, asset).join(','));
   if (['mp4', 'mov', 'm4a'].includes(edit.format)) args.push('-movflags', '+faststart');
   args.push('-threads', '2', output);
   return args;

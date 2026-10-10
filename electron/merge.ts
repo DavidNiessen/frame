@@ -1,3 +1,4 @@
+import { resolveAudioLayers } from '../src/core/audio-layers';
 import type { WindowIpc } from './window-ipc';
 import { hardwareBitrate } from '../src/core/hardware';
 import { encodeNative } from './acceleration';
@@ -20,18 +21,19 @@ export function registerMerge(assets: Map<string, { path: string; asset: MediaAs
     const sources = entries.map(entry => { const source = assets.get(entry?.id); if (!source) throw new Error('Import each merge source again.'); return { ...source, edit: parseEdit(entry.edit, source.asset) }; });
     const transition = parseTransition(transitionValue);
     const settings = parseOutputSettings(value); const clips = sources.map(s => ({ asset: s.asset, edit: s.edit }));
-    const asset = compositionAsset(clips, transition); buildMergeArgs(clips, settings, sources.map(s => s.path), 'validation', transition);
+    const mixes = clips.map(clip => resolveAudioLayers(clip.edit, [...assets.values()]));
+    const asset = compositionAsset(clips, transition); buildMergeArgs(clips, settings, sources.map(s => s.path), 'validation', transition, undefined, undefined, mixes);
     return jobs.run(async execute => {
       const destination = await dialog.showSaveDialog(window(), { defaultPath: `merged.${settings.format}`, filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }] });
       if (destination.canceled || !destination.filePath) return null;
       const normalize = (path: string) => process.platform === 'win32' ? path.toLowerCase() : path;
       const target = normalize(await realpath(destination.filePath).catch(() => destination.filePath!));
-      for (const source of sources) if (normalize(await realpath(source.path)) === target) throw new Error('Choose a different output path to preserve the original.');
+      for (const source of [...sources, ...mixes.flat()]) if (normalize(await realpath(source.path)) === target) throw new Error('Choose a different output path to preserve the original.');
       const temporary = join(dirname(destination.filePath), `.frame-${randomUUID()}.${settings.format}`);
       try {
         await withResources(clips.map(c => c.edit), async (paths, directory) => {
           const captions = join(directory, 'merged.srt'); await writeFile(captions, serializeSrt(mergedCues(clips, transition)));
-          await encodeNative(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions), asset.duration, settings.acceleration, hardwareBitrate(asset.width ?? 640, asset.height ?? 360, settings.quality), execute, jobs, (ratio, message) => {
+          await encodeNative(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions, mixes), asset.duration, settings.acceleration, hardwareBitrate(asset.width ?? 640, asset.height ?? 360, settings.quality), execute, jobs, (ratio, message) => {
             if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
           });
         }, clips.map(c => c.asset));

@@ -1,3 +1,4 @@
+import { AudioMixControls } from './AudioMixControls';
 import { useState } from 'react';
 import { ArrowLeft, AudioLines, Film, Gauge, Search, Trash2, Check } from 'lucide-react';
 import { availableEffects, effectActive, enableEffect, resetEffect, type EffectDefinition } from '../core/effect-library';
@@ -22,7 +23,8 @@ export function EffectLibrary({ editor, current, seek }: { editor: Editor; curre
   }
   if (opened) return <div className="effect-editor">
     <div className="effect-editor-heading"><button className="icon-button" aria-label="Back to effect library" onClick={() => setOpened(null)}><ArrowLeft size={16} /></button><h3>{opened.name}</h3>{opened.keys.length > 0 && <button className="icon-button" aria-label={`Remove ${opened.name}`} onClick={() => { target.update(resetEffect(opened, asset)); setOpened(null); }}><Trash2 size={15} /></button>}</div>
-    <p className="effect-target-note">{opened.scope === 'source' ? 'Source-wide · timing follows clips when reordered.' : editor.selectedClip ? 'Selected clip' : 'All clips · shared settings'}</p>
+    <p className="effect-target-note">{opened.id === 'mix' ? 'Output timeline · tracks stay in place when clips move.' : opened.scope === 'source' ? 'Source-wide · timing follows clips when reordered.' : editor.selectedClip ? 'Selected clip' : 'All clips · shared settings'}</p>
+    {opened.id === 'mix' && <AudioMixControls editor={editor} current={current} />}
     {opened.id === 'volume' && <section className="control-section"><label className="stacked-label">Volume · {Math.round(edit.volume * 100)}%<input type="range" aria-label="Volume" min={0} max={3} step={.01} value={edit.volume} onChange={event => scoped.update({ volume: Number(event.target.value) })} /></label></section>}
     {opened.id === 'speed' && <SpeedControls edit={edit} update={scoped.update} />}
     {(['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as string[]).includes(opened.id) && <section className="control-section"><label className="stacked-label">Duration · {Number(edit[opened.id as 'audioFadeIn']).toFixed(2)}s<input type="range" aria-label={`${opened.name} duration`} min={0} max={editedDuration(edit)} step={.01} value={Number(edit[opened.id as 'audioFadeIn'])} onChange={event => scoped.update({ [opened.id]: Number(event.target.value) })} /></label><p className="field-note">Drag the matching bar in the timeline to adjust its duration.</p></section>}

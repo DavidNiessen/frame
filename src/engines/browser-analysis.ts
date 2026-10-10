@@ -1,3 +1,6 @@
+import { resolveAudioLayers } from '../core/audio-layers';
+import { writeBrowserLayers } from './browser-audio-layers';
+import type { MediaAsset } from '../core/types';
 import { loudnessArgs, LoudnessCollector } from '../core/loudness';
 import { sceneArgs, SceneCollector } from '../core/scenes';
 import { contactSheetArgs } from '../core/contact-sheet';
@@ -9,7 +12,7 @@ import { previewAudioArgs } from '../core/audio-preview';
 import { thumbnailArgs } from '../core/thumbnails';
 import { waveformArgs, WaveformCollector } from '../core/waveform';
 import type { MediaEngine } from '../core/types';
-export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string, File>): Pick<MediaEngine, 'detectSilence' | 'previewFrame' | 'previewAudio' | 'thumbnails' | 'waveform' | 'contactSheet' | 'detectScenes' | 'measureLoudness'> {
+export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string, File>, sources: Map<string, MediaAsset> = new Map()): Pick<MediaEngine, 'detectSilence' | 'previewFrame' | 'previewAudio' | 'thumbnails' | 'waveform' | 'contactSheet' | 'detectScenes' | 'measureLoudness'> {
   return {
     async detectSilence(asset, options, onProgress) {
       const file = files.get(asset.id); if (!file) throw new Error('Import the source again.'); const ff = await ready(); const input = `silence-${asset.id}`; const collector = new SilenceCollector();
@@ -30,21 +33,22 @@ export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string,
     },
     async previewAudio(asset, edit, onProgress) {
       const source = files.get(asset.id); if (!source) throw new Error('Import the source file again.');
-      const ff = await ready(); const input = `audio-source-${asset.id}`; const output = `audio-preview-${asset.id}.wav`; const errors: string[] = [];
+      const ff = await ready(); const layers = resolveAudioLayers(edit, [...sources.values()].map(asset => ({ asset, path: `layer-${asset.id}` }))); const input = `audio-source-${asset.id}`; const output = `audio-preview-${asset.id}.wav`; const errors: string[] = [];
       const log = ({ message }: { message: string }) => { errors.push(message); if (errors.length > 15) errors.shift(); }; ff.on('log', log);
       try {
         onProgress({ ratio: 0, message: 'Preparing audio effects preview…' });
         await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
-        if (await ff.exec(previewAudioArgs(asset, edit, input, output)) !== 0) throw new Error(`Could not prepare the audio preview. ${errors.slice(-5).join(' ')}`);
+        await writeBrowserLayers(ff, layers, files, sources);
+        if (await ff.exec(previewAudioArgs(asset, edit, input, output, layers)) !== 0) throw new Error(`Could not prepare the audio preview. ${errors.slice(-5).join(' ')}`);
         const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid preview output.');
         return URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'audio/wav' }));
-      } finally { ff.off('log', log); await ff.deleteFile(input).catch(() => {}); await ff.deleteFile(output).catch(() => {}); }
+      } finally { ff.off('log', log); for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {}); await ff.deleteFile(input).catch(() => {}); await ff.deleteFile(output).catch(() => {}); }
     },
     async measureLoudness(asset, edit, onProgress) {
-      const source = files.get(asset.id); if (!source) throw new Error('Import the source again.'); const ff = await ready(), input = `loudness-${asset.id}`, collector = new LoudnessCollector();
+      const source = files.get(asset.id); if (!source) throw new Error('Import the source again.'); const ff = await ready(), input = `loudness-${asset.id}`, collector = new LoudnessCollector(), layers = resolveAudioLayers(edit, [...sources.values()].map(asset => ({ asset, path: `layer-${asset.id}` })));
       const log = ({ message }: { message: string }) => collector.push(message), progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(1, time / 1e6 / asset.duration), message: 'Measuring edited audio…' }); ff.on('log', log); ff.on('progress', progress);
-      try { await ff.writeFile(input, new Uint8Array(await source.arrayBuffer())); if (await ff.exec(loudnessArgs(asset, edit, input)) !== 0) throw new Error('Could not measure edited audio.'); return collector.finish(); }
-      finally { ff.off('log', log); ff.off('progress', progress); await ff.deleteFile(input).catch(() => {}); }
+      try { await ff.writeFile(input, new Uint8Array(await source.arrayBuffer())); await writeBrowserLayers(ff, layers, files, sources); if (await ff.exec(loudnessArgs(asset, edit, input, layers)) !== 0) throw new Error('Could not measure edited audio.'); return collector.finish(); }
+      finally { ff.off('log', log); ff.off('progress', progress); for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {}); await ff.deleteFile(input).catch(() => {}); }
     },
     async detectScenes(asset, options, onProgress) {
       const source = files.get(asset.id); if (!source) throw new Error('Import the source again.'); const ff = await ready(), input = `scenes-${asset.id}`, collector = new SceneCollector(options.minGap);

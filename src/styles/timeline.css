@@ -112,3 +112,22 @@
 .marker-edit-form button { justify-self: start; }
 
 .snapping-toggle[aria-pressed=true] { color: var(--accent); background: var(--accent-dim); }
+.audio-layer-bar { background: var(--audio-dim); border-color: var(--audio); color: var(--audio); }
+.audio-layer-bar .range-body { cursor: grab; }
+.audio-layer-bar .range-body:active { cursor: grabbing; }
+.audio-track-outside { font-size: 10px; color: var(--muted); padding: 6px; }
+.audio-mix-add { display: flex; gap: 8px; margin-top: 14px; }
+.audio-mix-add select { min-width: 0; flex: 1; }
+.audio-mix-track { border: 1px solid var(--border); border-radius: 8px; margin-top: 12px; padding: 10px; }
+.audio-mix-track > summary { display: flex; gap: 8px; align-items: center; font-size: 12px; cursor: pointer; }
+.audio-mix-track > summary span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex: 1; }
+.audio-mix-track-controls { display: grid; gap: 12px; padding-top: 12px; }
+.audio-source-excerpt > summary { font-size: 11px; color: var(--muted); cursor: pointer; }
+.audio-source-excerpt .timeline-lane { margin: 14px 0 8px; background: var(--stage); border-radius: 6px; }
+.audio-mix-controls > .switch-row { margin-top: 16px; }
+.audio-mix-preview > audio { display: none; }
+.audio-mix-preview { color: var(--muted); font-size: 10px; padding: 0 16px; }
+.audio-mix-preview:empty { display: none; }
+.audio-mix-preview > span { display: block; padding: 6px 0; }
+.audio-layer-lane { height: 46px; margin: 3px 0 7px; }
+.audio-source-excerpt .timeline-lane { height: 36px; }

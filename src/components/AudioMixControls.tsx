@@ -1,0 +1,36 @@
+import { useAudioPreview } from '../hooks/useAudioPreview';
+import { pauseOtherMedia } from '../hooks/usePreviewEffects';
+import { useState } from 'react';
+import { AudioLines, Plus, Trash2, VolumeX } from 'lucide-react';
+import type { Editor } from '../hooks/useEditor';
+import { sourceIdentity } from '../core/project';
+import { sameLayerSource, type AudioLayer } from '../core/audio-layers';
+import { editClips } from '../core/clips';
+import { outputTimeAtSource } from '../core/fades';
+import { editedDuration } from '../core/timeline';
+import { TimelineSnapContext } from './TimelineSnapContext';
+import { TimelineRange } from './TimelineRange';
+import { LoudnessControls } from './LoudnessControls';
+import { time } from '../core/format';
+export function AudioMixControls({ editor, current }: { editor: Editor; current: number }) {
+  const preview = useAudioPreview(editor);
+  const [sourceId, setSourceId] = useState(''), edit = editor.edit!, duration = editedDuration(edit), tracks = edit.audioLayers ?? [], sources = editor.assets.filter(asset => asset.hasAudio);
+  const patch = (id: string, values: Partial<AudioLayer>) => editor.update({ audioLayers: tracks.map(layer => { if (layer.id !== id) return layer; const next = { ...layer, ...values }; return { ...next, fadeIn: Math.min(next.fadeIn, next.end - next.start), fadeOut: Math.min(next.fadeOut, next.end - next.start) }; }) });
+  return <section className="control-section audio-mix-controls"><div className="section-title"><AudioLines size={16} /><h3>Music & voiceover</h3></div><p className="field-note">Import audio into the library, then add it here. Tracks follow the edited output time and stay in place when video clips move.</p><div className="audio-mix-add"><select aria-label="Audio track source" value={sourceId} onChange={event => setSourceId(event.target.value)}><option value="">Choose a source…</option>{sources.map(source => <option key={source.id} value={source.id}>{source.name}</option>)}</select><button className="icon-button" aria-label="Add audio track" disabled={!sourceId || tracks.length >= 16} onClick={() => {
+    const source = sources.find(asset => asset.id === sourceId); if (!source) return; const start = Math.min(Math.max(0, outputTimeAtSource(edit, current)), Math.max(0, duration - .05));
+    const layer: AudioLayer = { id: crypto.randomUUID(), source: sourceIdentity(source), start, end: Math.min(duration, start + source.duration), sourceStart: 0, sourceEnd: source.duration, volume: .5, fadeIn: 0, fadeOut: 0, loop: false, muted: false };
+    editor.update({ clips: editClips(edit), audioLayers: [...tracks, layer] });
+  }}><Plus size={16} /></button></div>
+  {tracks.map((layer, index) => <details key={layer.id} className="audio-mix-track" open><summary><span>{index + 1}. {layer.source.name}</span>{layer.muted && <VolumeX size={13} />}</summary><div className="audio-mix-track-controls">
+    {!editor.assets.some(asset => sameLayerSource(layer.source, asset)) && <p role="alert" className="field-note">Import this source to restore its track.</p>}
+    <p className="field-note">{time(layer.start)}–{time(layer.end)} in output{layer.start >= duration ? ' · outside current edit' : ''} · drag its timeline bar to move, or edges to trim.</p>
+    <label className="stacked-label">Track volume · {Math.round(layer.volume * 100)}%<input type="range" aria-label={`Track ${index + 1} volume`} min={0} max={3} step={.01} value={layer.volume} onChange={event => patch(layer.id, { volume: Number(event.target.value) })} /></label>
+    <label className="switch-row"><span>Mute track</span><input type="checkbox" aria-label={`Mute track ${index + 1}`} checked={layer.muted} onChange={event => patch(layer.id, { muted: event.target.checked })} /></label>
+    <label className="switch-row"><span>Loop source excerpt</span><input type="checkbox" aria-label={`Loop track ${index + 1}`} checked={layer.loop} disabled={layer.sourceEnd - layer.sourceStart > 300} onChange={event => patch(layer.id, { loop: event.target.checked })} /></label>
+    <label className="stacked-label">Fade in · {layer.fadeIn.toFixed(2)}s<input type="range" aria-label={`Track ${index + 1} fade in`} min={0} max={layer.end - layer.start} step={.01} value={layer.fadeIn} onChange={event => patch(layer.id, { fadeIn: Number(event.target.value) })} /></label><label className="stacked-label">Fade out · {layer.fadeOut.toFixed(2)}s<input type="range" aria-label={`Track ${index + 1} fade out`} min={0} max={layer.end - layer.start} step={.01} value={layer.fadeOut} onChange={event => patch(layer.id, { fadeOut: Number(event.target.value) })} /></label>
+    <details className="audio-source-excerpt"><summary>Source excerpt · {time(layer.sourceStart)}–{time(layer.sourceEnd)}</summary><TimelineSnapContext value={{ enabled: false, targets: { source: [], output: [] } }}><div className="timeline-lane"><TimelineRange range={{ start: layer.sourceStart, end: layer.sourceEnd }} limits={{ start: 0, end: layer.source.duration }} duration={layer.source.duration} label={`Track ${index + 1} source excerpt`} disabled={false} onSelect={() => {}} onChange={range => patch(layer.id, { sourceStart: range.start, sourceEnd: range.end, loop: layer.loop && range.end - range.start <= 300 })} /></div></TimelineSnapContext><p className="field-note">Choose what part of the original file is used. Loops support excerpts up to five minutes.</p></details>
+    <button className="button subtle small" onClick={() => editor.update({ audioLayers: tracks.filter(track => track.id !== layer.id) })}><Trash2 size={13} />Remove track</button>
+  </div></details>)}
+  {!!tracks.length && <><label className="switch-row"><span>Protect mixed peaks<small>Limit the exported mix to avoid digital clipping.</small></span><input type="checkbox" aria-label="Protect mixed peaks" checked={edit.audioMixProtectPeaks !== false} onChange={event => editor.update({ audioMixProtectPeaks: event.target.checked })} /></label><button className="button subtle small" disabled={preview.loading} onClick={() => void preview.generate()}>{preview.loading ? 'Preparing mix…' : 'Preview exported mix'}</button>{preview.url && <audio className="effects-audio" aria-label="Exported mix preview" controls src={preview.url} onPlay={event => pauseOtherMedia(event.currentTarget)} />}{preview.error && <p className="field-note" role="alert">{preview.error}</p>}<LoudnessControls editor={editor} /><p className="field-note">Live playback approximates levels up to 100%. Exported mix preview renders up to 10 seconds with the final processing. The loudness meter measures the exported mix, including higher gains and peak protection.</p></>}
+  </section>;
+}

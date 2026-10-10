@@ -1,3 +1,4 @@
+import { hasEditedAudio, audioMixGraph, type AudioLayerInput } from './audio-layers';
 import { gifPaletteFilters } from './gif-output';
 import { audioOutputArgs, outputAudioCodec } from './audio-output';
 import { clipFilterGraph } from './clip-filters';
@@ -19,15 +20,16 @@ export function compositionAsset(clips: MediaClip[], transition: TransitionSetti
   const blend = validateTransition(clips, transition);
   const first = clips[0]; const { width, height } = frameDimensions(first.asset, first.edit);
   return { id: 'composition', name: 'Merged clips', previewUrl: '', size: clips.reduce((n, c) => n + c.asset.size, 0),
-    kind: clips.every(c => c.asset.kind === 'video') ? 'video' : 'audio', hasAudio: clips.some(c => c.asset.hasAudio),
+    kind: clips.every(c => c.asset.kind === 'video') ? 'video' : 'audio', hasAudio: clips.some(c => hasEditedAudio(c.asset, c.edit)),
     duration: clips.reduce((n, c) => n + editedDuration(c.edit), 0) - (blend.type === 'fade' ? blend.duration * (clips.length - 1) : 0), width: width ? Math.floor(width / 2) * 2 : undefined, height: height ? Math.floor(height / 2) * 2 : undefined };
 }
-export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition, resources: RecipeResources[] = clips.map((_, i) => resourcePaths(`clip${i}`)), captionPath = 'merge-captions.srt'): string[] {
+export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition, resources: RecipeResources[] = clips.map((_, i) => resourcePaths(`clip${i}`)), captionPath = 'merge-captions.srt', mixes: AudioLayerInput[][] = []): string[] {
   if (clips.length < 2 || inputs.length !== clips.length) throw new Error('Choose at least two clips to merge.');
   const asset = compositionAsset(clips, transition); const settings = parseOutputSettings(output); const edit = resolveSizeTarget(asset, { ...defaultSettings(asset), ...settings });
   validateEdit(asset, edit); const format = getFormat(edit.format); const video = format.kind === 'video'; const audio = asset.hasAudio && edit.format !== 'gif';
   const args: string[] = ['-y', '-filter_complex_threads', '2']; const graph: string[] = [];
-  clips.forEach(({ asset: source, edit: recipe }, index) => {
+  clips.forEach(({ asset: source, edit: originalRecipe }, index) => {
+    const recipe = originalRecipe.audioLayers?.length ? { ...originalRecipe, audioFadeIn: 0, audioFadeOut: 0 } : originalRecipe;
     args.push('-ss', String(recipe.start), '-t', String(recipe.end - recipe.start), '-threads', '2', '-i', inputs[index]);
     const ranges = keptRanges(recipe); const v = video; const a = audio && source.hasAudio;
     if (recipe.clips) {
@@ -53,6 +55,16 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
   if (artwork) args.push('-i', inputs[0]);
   const captions = video && subtitleCodec(settings.format) && mergedCues(clips, transition).length > 0;
   if (captions) args.push('-i', captionPath);
+  let firstLayerInput = clips.length + Number(artwork) + Number(captions);
+  if (audio) clips.forEach((clip, index) => {
+    if (!clip.edit.audioLayers?.length) return;
+    const layers = mixes[index];
+    if (!layers || layers.length !== clip.edit.audioLayers.length || layers.some((item, i) => item.layer.id !== clip.edit.audioLayers![i].id)) throw new Error('Restore all audio track sources before merging.');
+    for (const layer of layers) args.push('-i', layer.path);
+    for (let g = 0; g < graph.length; g++) graph[g] = graph[g].replaceAll(`[a${index}]`, `[mixbase${index}]`);
+    const mix = audioMixGraph(clip.edit, layers, firstLayerInput, `[mixbase${index}]`, `c${index}mix`);
+    graph.push(...mix.graph, `${mix.output}anull[a${index}]`); firstLayerInput += layers.length;
+  });
   if (transition.type === 'fade') {
     let elapsed = editedDuration(clips[0].edit); let v = 'v0'; let a = 'a0';
     for (let i = 1; i < clips.length; i++) {

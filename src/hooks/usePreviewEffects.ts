@@ -4,7 +4,7 @@ import { fadeGain, outputTimeAtSource } from '../core/fades';
 import { editedDuration, nextPlayableTime, keptRanges } from '../core/timeline';
 import type { EditSettings } from '../core/types';
 export function pauseOtherMedia(active: HTMLMediaElement) {
-  for (const element of document.querySelectorAll('video, audio')) if (element !== active) (element as HTMLMediaElement).pause();
+  for (const element of document.querySelectorAll('video, audio')) if (element !== active && !element.hasAttribute('data-frame-mix-layer')) (element as HTMLMediaElement).pause();
 }
 export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings) {
   const position = outputTimeAtSource(edit, media.currentTime); const duration = editedDuration(edit);
