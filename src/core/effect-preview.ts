@@ -40,8 +40,17 @@ export function effectPreviewArgs(asset: MediaAsset, edit: EditSettings, input: 
   if (asset.kind === 'video') {
     const scale = "scale=w='min(720,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1";
     const graph = args.indexOf('-filter_complex'), map = args.indexOf('-map');
-    if (graph >= 0) { args[graph + 1] += `;${args[map + 1]}${scale}[previewvideo]`; args[map + 1] = '[previewvideo]'; }
-    else { const filter = args.indexOf('-vf'); args[filter + 1] += `,${scale}`; }
+    if (graph >= 0) {
+      const videoInput = args[map + 1].startsWith('[') ? args[map + 1] : `[${args[map + 1]}]`;
+      const filter = args.indexOf('-vf'), pipeline = filter >= 0 ? `${args[filter + 1]},${scale}` : scale;
+      args[graph + 1] += `;${videoInput}${pipeline}[previewvideo]`; args[map + 1] = '[previewvideo]';
+      // A mixed audio graph can still have simple video filters from the export planner.
+      if (filter >= 0) args.splice(filter, 2);
+    }
+    else {
+      const filter = args.indexOf('-vf');
+      if (filter >= 0) args[filter + 1] += `,${scale}`; else args.splice(args.length - 1, 0, '-vf', scale);
+    }
     const preset = args.indexOf('-preset'); if (preset >= 0) args[preset + 1] = 'ultrafast';
     args.splice(args.length - 1, 0, '-r', String(Math.min(30, asset.frameRate ?? 30)));
   }

@@ -64,3 +64,16 @@ it('renders a real LUT and temperature on a reordered/speed-adjusted lightweight
   const { stdout } = await exec(ffmpegPath(), ['-v', 'error', '-i', output, '-frames:v', '1', '-vf', 'scale=1:1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer' });
   expect(stdout[0]).toBeGreaterThan(220); expect(stdout[1]).toBeLessThan(25); expect(stdout[2]).toBeLessThan(25);
 });
+
+it('prepares video with audio-only corrections and a mixed audio graph even when no video filters exist', async () => {
+  const input = resolve('tests/fixtures/sample.mp4'), video = { ...await probeFile(input), id: 'video', name: 'sample.mp4', previewUrl: '' };
+  const layer = { id: 'layer', sourceId: audio.id, source: audio, start: 0, end: 4, sourceStart: 0, sourceEnd: 4, volume: .5, fadeIn: 0, fadeOut: 0, loop: false, muted: false };
+  for (const [index, edit] of [
+    { ...defaultSettings(video), equalizer: { bass: -6, mid: 0, treble: 0 } },
+    { ...defaultSettings(video), audioLayers: [layer] },
+  ].entries()) {
+    const recipe = effectPreviewRecipe(video, edit), output = join(directory, `audio-only-${index}.mp4`);
+    await exec(ffmpegPath(), effectPreviewArgs(video, recipe, input, output, resourcePaths(), index ? [{ layer, path: tone }] : []));
+    const preview = await probeFile(output); expect(preview.kind).toBe('video'); expect(preview.hasAudio).toBe(true); expect(preview.duration).toBeCloseTo(video.duration, 1);
+  }
+});

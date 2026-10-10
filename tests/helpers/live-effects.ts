@@ -69,9 +69,14 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
     await page.getByRole('button', { name: 'Clear media library', exact: true }).click();
     // Color LUTs must affect the video frames, not just a CSS approximation or a still export.
     await importTestMedia(page, app); const video = page.locator('video'); await expect(video).toHaveJSProperty('readyState', 4);
+    await openEffect(page, 'Equalizer'); await page.getByLabel('Equalizer mid', { exact: true }).fill('6');
+    await expect(video).toHaveAttribute('data-preview-effects', 'rendered', { timeout: 60000 });
+    await expect(video).toHaveJSProperty('readyState', 4);
+    const audioOnlySource = await video.getAttribute('src');
     await openEffect(page, 'Color & LUTs');
     await page.getByLabel('LUT file', { exact: true }).setInputFiles({ name: 'red.cube', mimeType: 'text/plain', buffer: Buffer.from('LUT_3D_SIZE 2\n' + Array(8).fill('1 0 0').join('\n')) });
-    await expect(video).toHaveAttribute('data-preview-effects', 'rendered', { timeout: 60000 });
+    await expect(video).not.toHaveAttribute('src', audioOnlySource!, { timeout: 60000 });
+    await expect(video).toHaveAttribute('data-preview-effects', 'rendered');
     await expect(video).toHaveJSProperty('readyState', 4); await expect(video).toHaveCSS('filter', 'none');
     const color = app ? [...(await promisify(execFile)(ffmpegPath(), ['-v', 'error', '-i', await fetchPrepared((await video.getAttribute('src'))!, 'playing.mp4'), '-frames:v', '1', '-vf', 'scale=1:1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer' })).stdout] : await video.evaluate(node => { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1; const c = canvas.getContext('2d')!; c.drawImage(node as HTMLVideoElement, 0, 0, 1, 1); return [...c.getImageData(0, 0, 1, 1).data]; });
     expect(color[0]).toBeGreaterThan(220); expect(color[1]).toBeLessThan(25); expect(color[2]).toBeLessThan(25);
