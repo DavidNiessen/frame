@@ -233,3 +233,5 @@ Project tools → Video contact sheet exports a PNG overview of the edited clip 
 Desktop completion notifications report saved exports, merges and batches while Frame is in the background. Settings → Completion notifications controls the persisted preference. Partially failed batches report files needing attention; cancelled batches remain quiet. The setting is visible and disabled on web.
 
 Project tools → Find scene changes scans source RGB frames locally on desktop or web. Adjust the change threshold and minimum gap, review or deselect proposed points, then add markers or split the retained clips in one undoable action. Results are capped at 500 changes, and splits inherit local effects.
+
+Audio cleanup effects include full edited-audio loudness measurement: integrated LUFS, loudness range, and true peak with headroom/clipping guidance. Measurements include cuts, ordered clip effects, speed and fades, are available on desktop and web, and reset after edits so stale readings are not shown.

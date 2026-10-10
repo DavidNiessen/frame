@@ -1,3 +1,4 @@
+import { LoudnessControls } from './LoudnessControls';
 import { AudioLines, ChevronDown } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import { pauseOtherMedia } from '../hooks/usePreviewEffects';
@@ -11,6 +12,7 @@ export function AudioCleanupControls({ editor, effect }: { editor: Editor; effec
     {(!effect || effect === 'equalizer') && <div className="equalizer">{(['bass', 'mid', 'treble'] as const).map(band => <label key={band} className="stacked-label">{band} <span className="unit">{edit.equalizer[band]} dB</span><input type="range" aria-label={`Equalizer ${band}`} min={-12} max={12} step={1} value={edit.equalizer[band]} onChange={event => update({ equalizer: { ...edit.equalizer, [band]: Number(event.target.value) } })} /></label>)}<button className="button subtle small" onClick={() => update({ equalizer: { bass: 0, mid: 0, treble: 0 } })}>Reset equalizer</button></div>}
     <button className="button subtle small" disabled={preview.loading} onClick={() => void preview.generate()}>{preview.loading ? 'Preparing preview…' : 'Preview audio effects'}</button>
     {preview.url && <audio className="effects-audio" aria-label="Processed audio preview" controls src={preview.url} onPlay={event => pauseOtherMedia(event.currentTarget)} />}
+    <LoudnessControls editor={editor} />
     {preview.error && <p className="field-note" role="alert">{preview.error}</p>}
     <p className="field-note">Preview processes a retained section up to 10 seconds, without fades. Export processes the full edit. Volume gain applies after normalization; boosting it can clip.</p>
   </div></details>;

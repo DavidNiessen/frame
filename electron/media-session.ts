@@ -5,6 +5,7 @@ import { registerAcceleration } from './acceleration';
 import { createProxies } from './proxies';
 import { createBatchFolders } from './batch';
 import { registerImports } from './imports';
+import { registerLoudnessAnalysis } from './loudness-analysis';
 import { registerSceneAnalysis } from './scene-analysis';
 import { registerAnalysis } from './analysis';
 import { registerMerge } from './merge';
@@ -20,6 +21,7 @@ export function createMediaSession(window: BrowserWindow, launches: LaunchInbox,
   const proxies = createProxies(assets, jobs, trusted, ipc);
   const folders = createBatchFolders(() => window, trusted, ipc);
   const downloads = registerImports(assets, jobs, () => window, trusted, launches, ipc);
+  registerLoudnessAnalysis(assets, jobs, trusted, ipc);
   registerSceneAnalysis(assets, jobs, trusted, ipc);
   const analysis = registerAnalysis(assets, jobs, trusted, ipc);
   registerMerge(assets, jobs, () => window, trusted, ipc);

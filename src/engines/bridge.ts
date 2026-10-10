@@ -1,3 +1,4 @@
+import type { LoudnessStats } from '../core/loudness';
 import type { SceneOptions, SceneScan } from '../core/scenes';
 import type { CompletionSummary, NotificationPreference } from '../core/completion-notifications';
 import type { ContactSheetOptions } from '../core/contact-sheet';
@@ -43,6 +44,7 @@ export interface DesktopBridge {
   detectSilence(id: string, options: SilenceOptions): Promise<TimeRange[]>;
   previewFrame(id: string, edit: EditSettings, time: number): Promise<Uint8Array>;
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;
+  measureLoudness(id: string, edit: EditSettings): Promise<LoudnessStats>;
   detectScenes(id: string, options: SceneOptions): Promise<SceneScan>;
   contactSheet(id: string, edit: EditSettings, options: ContactSheetOptions): Promise<Uint8Array>;
   thumbnails(id: string): Promise<Uint8Array>;
