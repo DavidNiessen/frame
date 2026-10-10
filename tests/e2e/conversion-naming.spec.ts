@@ -18,5 +18,8 @@ test('previews filename templates and saves named songs inside preserved album f
     const files = unzipSync(await readFile((await (await pending).path())!));
     expect(Object.keys(files).filter(name => name.endsWith('.flac'))).toEqual(['Album One/Album One-001-Song.flac', 'Album Two/Album Two-002-Song.flac']);
     expect(files['Album One/Album One-001-Song.flac'].slice(0, 4)).toEqual(new Uint8Array([102, 76, 97, 67]));
+    const reportDownload = page.waitForEvent('download'); await page.getByRole('button', { name: 'Save conversion report', exact: true }).click();
+    const report = await readFile((await (await reportDownload).path())!, 'utf8');
+    expect(report).toContain('Album One/Album One-001-Song.flac'); expect(report).toContain('Album Two/Album Two-002-Song.flac'); expect(report.match(/"done"/g)).toHaveLength(2); expect(report).toContain('Size change (%)');
   } finally { await rm(library.directory, { recursive: true, force: true }); }
 });
