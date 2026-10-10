@@ -1,11 +1,12 @@
 import { searchCommands } from '../core/command-search';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Search, X, ArrowUpRight } from 'lucide-react';
 export interface FrameCommand { id: string; label: string; description: string; group: string; keywords?: string; shortcut?: string; disabled?: string; run: () => void }
 export function CommandPalette({ open, close, commands }: { open: boolean; close: () => void; commands: FrameCommand[] }) {
   const dialog = useRef<HTMLDialogElement>(null), input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(''), [activeId, setActiveId] = useState('');
-  useEffect(() => { if (open) { setQuery(''); setActiveId(''); dialog.current?.showModal(); input.current?.focus(); } else dialog.current?.close(); }, [open]);
+  // Reset before the dialog can receive input; a deferred effect could erase a fast search.
+  useLayoutEffect(() => { if (open) { setQuery(''); setActiveId(''); dialog.current?.showModal(); input.current?.focus(); } else dialog.current?.close(); }, [open]);
   const matches = open ? searchCommands(commands, query) : [];
   const active = matches.find(command => command.id === activeId) ?? matches[0];
   useEffect(() => { if (open && active) dialog.current?.querySelector<HTMLElement>(`[data-command="${active.id}"]`)?.scrollIntoView({ block: 'nearest' }); }, [active?.id, open, query]);

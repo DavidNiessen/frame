@@ -11,6 +11,8 @@ test('uses native command search to save a real project and navigate export cont
     await page.keyboard.press('Control+k'); const search = page.getByRole('combobox', { name: 'Search commands', exact: true }); await expect(search).toBeFocused(); await search.fill('save project'); await search.press('Enter');
     await expect.poll(async () => readFile(path, 'utf8').then(text => JSON.parse(text).sources.length).catch(() => 0)).toBe(1);
     await page.keyboard.press('Control+k'); await search.fill('export settings'); await search.press('Enter'); await expect(page.getByRole('tab', { name: 'Export', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click();
+    await page.keyboard.press('Control+k'); await search.fill('export settings'); await search.press('Enter'); await expect(page.locator('.app-shell')).not.toHaveClass(/preview-expanded/);
     await page.getByRole('button', { name: 'Settings', exact: true }).click(); await page.getByRole('button', { name: 'Back to workspace', exact: true }).click(); await expect(page.getByRole('tab', { name: 'Export', exact: true })).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('Control+k'); await search.fill('settings'); await search.press('Enter'); await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
