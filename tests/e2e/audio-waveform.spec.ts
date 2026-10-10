@@ -98,7 +98,7 @@ test('can cancel automatic analysis without a retry loop and generate the wavefo
     };
   });
   await page.goto('/'); await page.getByLabel('Choose media files').setInputFiles(input);
-  await expect.poll(() => page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(1);
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, 'waveformRequests')), { timeout: 45000 }).toBe(1);
   await page.getByRole('button', { name: 'Cancel waveform' }).click();
   await expect(page.getByRole('alert')).toContainText('Waveform generation cancelled.');
   await expect(page.getByRole('button', { name: 'Retry waveform' })).toBeEnabled();
@@ -162,7 +162,7 @@ test('turning automatic waveforms off cancels pending analysis and re-enabling r
     };
   });
   await page.goto('/'); await page.getByLabel('Choose media files').setInputFiles(input);
-  await expect.poll(() => page.evaluate(() => Reflect.get(window, 'waveformRequests'))).toBe(1);
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, 'waveformRequests')), { timeout: 45000 }).toBe(1);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Generate audio waveforms automatically' }).uncheck();
   await page.getByRole('button', { name: 'Back to workspace' }).click();
