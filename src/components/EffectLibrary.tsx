@@ -1,7 +1,7 @@
 import { TransientMessage } from './TransientMessage';
 import { useMemo, useState } from 'react';
 import { AudioLines, Check, ChevronRight, Film, Folder, Gauge, Plus, Search } from 'lucide-react';
-import { appliedEffects, availableEffects, type EffectId } from '../core/effect-library';
+import { appliedEffects, availableEffects, effectPlacement, type EffectId } from '../core/effect-library';
 import { effectDragType } from '../core/effect-actions';
 import { applyEditorEffect } from '../hooks/apply-editor-effect';
 import { EffectRecipes } from './EffectRecipes';
@@ -30,12 +30,12 @@ export function EffectLibrary({ editor, current, seek, openCaption, openEffect }
       const items = filtered.filter(effect => effect.group === category); if (!items.length) return null;
       return <details className="effect-bin" key={category} open><summary><ChevronRight size={13} /><Folder size={14} />{category === 'Timing' ? 'Timing' : `${category} Effects`}<span>{items.length}</span></summary>
         <div className="effect-card-grid">{items.map(effect => { const Icon = category === 'Audio' ? AudioLines : category === 'Video' ? Film : Gauge, applied = active.includes(effect); return <div className={`effect-card ${selected === effect.id ? 'selected' : ''}`} key={effect.id}>
-          <button className="effect-catalog-item" aria-label={`Select ${effect.name} effect`} aria-pressed={selected === effect.id} draggable={!editor.busy} onDragStart={event => { setSelected(effect.id); event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData(effectDragType, effect.id); }} onClick={() => { setSelected(effect.id); setMessage(''); }} onDoubleClick={() => apply(effect.id)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); apply(effect.id); } }}><Icon size={14} /><span><strong>{effect.name}</strong></span>{!applied && effect.scope === 'source' && effect.id !== 'captions' ? <small>Source</small> : null}</button>
+          <button className="effect-catalog-item" aria-label={`Select ${effect.name} effect`} aria-pressed={selected === effect.id} draggable={!editor.busy} onDragStart={event => { setSelected(effect.id); event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData(effectDragType, effect.id); }} onClick={() => { setSelected(effect.id); setMessage(''); }} onDoubleClick={() => apply(effect.id)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); apply(effect.id); } }}><Icon size={14} /><span><strong>{effect.name}</strong></span>{effectPlacement(effect) === 'source' ? <small>Source</small> : null}</button>
           <button className="icon-button effect-apply" aria-label={`${applied && !effect.repeatable ? 'Edit' : 'Add'} ${effect.name}`} title={applied && !effect.repeatable ? "Edit existing effect" : "Add to timeline"} onClick={() => apply(effect.id)}>{applied && !effect.repeatable ? <Check size={13} aria-label="Applied" /> : <Plus size={13} />}</button>
         </div>; })}</div>
       </details>;
     })}{!filtered.length && <p className="effect-stack-empty">No matching effects. Try another search or category.</p>}</div>
-    <div className="effect-browser-selection"><strong>{chosen?.name ?? 'Choose an effect'}</strong><p>{chosen?.description ?? 'The catalogue stays here when you apply an effect.'}</p>{chosen && <span>{chosen.repeatable ? chosen.id === 'captions' || chosen.id === 'watermark' ? `Adds one timed ${chosen.id === 'captions' ? 'caption' : 'watermark'} at the playhead` : 'Adds an independent adjustment · drag its timeline bar to set timing' : chosen.scope === 'source' ? 'Applies to the entire source' : 'Applies to the timeline track'}</span>}
+    <div className="effect-browser-selection"><strong>{chosen?.name ?? 'Choose an effect'}</strong><p>{chosen?.description ?? 'The catalogue stays here when you apply an effect.'}</p>{chosen && <span>{chosen.repeatable ? chosen.id === 'captions' || chosen.id === 'watermark' ? `Adds one timed ${chosen.id === 'captions' ? 'caption' : 'watermark'} at the playhead` : 'Adds an independent adjustment · drag its timeline bar to set timing' : effectPlacement(chosen) === 'source' ? 'Analyzes the original source · review cuts before applying' : effectPlacement(chosen) === 'layer' ? 'Adds audio layers to the output timeline' : 'Applies to the timeline track'}</span>}
       {message && <TransientMessage key={messageVersion} className="effect-apply-message" role="status">{message}</TransientMessage>}
     </div>
     {active.some(effect => effect.scope === 'clip') && <button className="effect-clear button subtle small" onClick={() => editor.update(clearClipEffects(edit, asset, null))}>Remove all track effects</button>}

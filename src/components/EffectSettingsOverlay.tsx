@@ -26,7 +26,7 @@ export function EffectSettingsOverlay({ id, instanceId, editor, current, seek, c
   const sequenceFade = id.includes('Fade');
   const caption = id === 'captions' ? captionItems(edit).find(item => item.instanceId === instanceId) : undefined;
   const timelineInstance = edit.effectInstances?.find(item => item.id === instanceId && item.timeSpace === 'output');
-  const target = id === 'captions' ? `Caption ${(caption?.index ?? 0) + 1}` : timelineInstance ? 'Timeline track' : effect.scope === 'source' ? 'Entire source' : clipIndex >= 0 ? `Clip ${clipIndex + 1}` : sequenceFade ? 'Whole sequence' : 'All clips';
+  const target = id === 'captions' ? `Caption ${(caption?.index ?? 0) + 1}` : timelineInstance ? 'Timeline track' : id === 'mix' ? 'Output timeline' : effect.scope === 'source' ? 'Original source' : clipIndex >= 0 ? `Clip ${clipIndex + 1}` : sequenceFade ? 'Whole sequence' : 'All clips';
   const shared = effect.scope === 'clip' && !editor.selectedClip;
   const settingsFor = (recipe: typeof edit) => { const item = instanceId ? recipe.effectInstances?.find(item => item.id === instanceId) : undefined; return item ? instanceRecipe(recipe, item) : recipe; };
   const mixed = shared && clips.some(clip => !sameEffectSettings(effect, settingsFor(clipRecipe(edit, clips[0])), settingsFor(clipRecipe(edit, clip))));

@@ -9,7 +9,7 @@ import { sourceTimeAtOutput } from '../core/fades';
 import { keptRanges, editedDuration } from '../core/timeline';
 import { clipPositions } from '../core/clips';
 import { clipEffectRows } from '../core/effect-timeline';
-import { appliedEffects, type EffectId } from '../core/effect-library';
+import { appliedEffects, effectPlacement, type EffectId } from '../core/effect-library';
 import { ClipEffectLanes } from './ClipEffectLanes';
 import { TimelineEffectLanes } from './TimelineEffectLanes';
 import type { EditSettings, MediaAsset } from '../core/types';
@@ -46,7 +46,7 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
       <ClipEffectLanes asset={asset} edit={edit} total={total} disabled={disabled} update={update} seek={seek} selectClip={selectClip} openEffect={openEffect} />
       <TimelineEffectLanes edit={edit} total={total} disabled={disabled} update={update} seek={seek} selectClip={selectClip} openEffect={openEffect} />
       <WatermarkLanes asset={asset} edit={edit} total={total} disabled={disabled} update={update} seek={seek} openEffect={openEffect} />
-      {sourceEffects.filter(item => item.effect.id !== 'watermark').map(({ effect, id, ordinal }) => <div className="timeline-lane effect-lane" key={id ?? effect.id}><TimelineRange selectOnPointer range={{ start: 0, end: outputDuration }} limits={{ start: 0, end: total }} duration={total} label={`${effect.name}${id ? ` instance ${ordinal}` : ''} effect`} text={`${effect.name} · Source`} edges={[]} disabled={disabled} onChange={() => {}} onSelect={() => openEffect(effect.id, id)} remove={{ label: `Remove ${effect.name} from source`, run: () => update(id ? changeInstance(edit, id, null, 'remove') : effectAction(edit, asset, effect, null, 'remove')) }} /></div>)}
+      {sourceEffects.filter(item => item.effect.id !== 'watermark').map(({ effect, id, ordinal }) => <div className="timeline-lane effect-lane" key={id ?? effect.id}><TimelineRange selectOnPointer range={{ start: 0, end: outputDuration }} limits={{ start: 0, end: total }} duration={total} label={`${effect.name}${id ? ` instance ${ordinal}` : ''} effect`} text={`${effect.name} · ${effectPlacement(effect) === 'source' ? 'Source' : 'Timeline'}`} edges={[]} disabled={disabled} onChange={() => {}} onSelect={() => openEffect(effect.id, id)} remove={{ label: `Remove ${effect.name} from ${effectPlacement(effect) === 'source' ? 'source' : 'timeline'}`, run: () => update(id ? changeInstance(edit, id, null, 'remove') : effectAction(edit, asset, effect, null, 'remove')) }} /></div>)}
       {extraInstances(edit).filter(instance => !instance.timeSpace && instance.effect.includes('Fade')).map((instance, index) => {
         const key = instance.effect as typeof fades[number], value = instance.settings[key] ?? 0;
         const range = key.endsWith('In') ? { start: 0, end: value || outputDuration } : { start: value ? outputDuration - value : 0, end: outputDuration };

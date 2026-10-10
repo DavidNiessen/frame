@@ -22,6 +22,12 @@ export const effectLibrary: EffectDefinition[] = [
   { id: 'watermark', repeatable: true, name: 'Watermark', description: 'Place text or artwork', group: 'Video', scope: 'source', keys: ['overlays'] },
   { id: 'silence', name: 'Remove silence', description: 'Find quiet gaps in the source', group: 'Audio', scope: 'source', keys: ['silenceOptions'] },
 ];
+/** Public placement reflects new timeline effects; scope retains legacy project targeting. */
+export function effectPlacement(effect: EffectDefinition): 'source' | 'layer' | 'timed' | 'track' {
+  if (effect.id === 'silence') return 'source';
+  if (effect.id === 'mix') return 'layer';
+  return effect.repeatable ? 'timed' : 'track';
+}
 export function availableEffects(asset: MediaAsset) { return effectLibrary.filter(effect => effect.group !== 'Video' || asset.kind === 'video').filter(effect => effect.group !== 'Audio' || asset.hasAudio || effect.id === 'mix'); }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
   if (effect.id === 'volume') return edit.volume !== 1;

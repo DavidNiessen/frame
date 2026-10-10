@@ -37,3 +37,5 @@ Contiguous splits play through using the same media decoder and unchanged source
 The playhead follows the draft position while an effect, caption or watermark bar moves; resizing follows the dragged edge. Mouse release commits one undo step. Escape cancels the gesture and restores both the bar and its original cursor position. Keyboard movement also updates the playhead. Music/voiceover layer movement uses the same output clock.
 
 Every catalogue effect is available through Ctrl/Cmd+K. Commands explain media requirements, add independent repeatable instances, or open existing singleton settings. Repeatable catalogue actions keep the + icon after use; only existing singletons show the check and Edit action.
+
+Catalogue placement describes new effects rather than legacy project scope. Only Remove silence carries the Source tag: it scans original audio and asks users to review cuts. Music & voiceover layers belong to the output timeline; captions, watermarks and repeatable adjustments are timed output effects, while Crop, transforms, Speed and normalization apply to the track. Legacy source-timed projects remain supported.
