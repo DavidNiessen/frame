@@ -41,7 +41,7 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
       graph.push(...clipFilterGraph(source, recipe, String(index), prefix, resources[index], v, a).graph);
       // FFmpeg 6.0 can forward the source EOF timestamp through a speed-adjusted
       // sequence. Cap the resampled stream to its edited duration before joining.
-      if (v) graph.push(`[${prefix}v]scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease,pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p,trim=duration=${editedDuration(recipe)},setpts=PTS-STARTPTS,settb=AVTB[v${index}]`);
+      if (v) graph.push(`[${prefix}v]scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease,pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p,trim=duration=${editedDuration(recipe)},settb=AVTB[v${index}]`);
       if (a) graph.push(`[${prefix}a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a${index}]`);
       else if (audio) graph.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${editedDuration(recipe)},asetpts=PTS-STARTPTS[a${index}]`);
       return;
@@ -53,7 +53,7 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
     });
     const stream = (type: string) => ranges.length === 1 ? `c${index}r0${type}` : `c${index}cut${type}`;
     if (ranges.length > 1 && (v || a)) graph.push(`${ranges.map((_, r) => `${v ? `[c${index}r${r}v]` : ''}${a ? `[c${index}r${r}a]` : ''}`).join('')}concat=n=${ranges.length}:v=${v ? 1 : 0}:a=${a ? 1 : 0}${v ? `[${stream('v')}]` : ''}${a ? `[${stream('a')}]` : ''}`);
-    if (v) graph.push(`[${stream('v')}]${[...videoFilters(source, recipe, resources[index]), `scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease`, `pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2`, 'setsar=1', 'fps=30', 'format=yuv420p', `trim=duration=${editedDuration(recipe)}`, 'setpts=PTS-STARTPTS', 'settb=AVTB'].join(',')}[v${index}]`);
+    if (v) graph.push(`[${stream('v')}]${[...videoFilters(source, recipe, resources[index]), `scale=${asset.width}:${asset.height}:force_original_aspect_ratio=decrease`, `pad=${asset.width}:${asset.height}:(ow-iw)/2:(oh-ih)/2`, 'setsar=1', 'fps=30', 'format=yuv420p', `trim=duration=${editedDuration(recipe)}`, 'settb=AVTB'].join(',')}[v${index}]`);
     if (a) graph.push(`[${stream('a')}]${[...audioFilters(recipe, source), 'aresample=48000', 'aformat=sample_fmts=fltp:channel_layouts=stereo'].join(',')}[a${index}]`);
     else if (audio) graph.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${editedDuration(recipe)},asetpts=PTS-STARTPTS[a${index}]`);
   });

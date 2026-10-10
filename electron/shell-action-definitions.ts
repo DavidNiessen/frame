@@ -62,13 +62,13 @@ FunctionEnd
 !endif
 !macro FrameContextVerb Extension Verb Label Workflow
   WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "" "$\{Label}"
-  WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "Icon" '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}",0'
+  WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "Icon" '"$INSTDIR\\$\{PRODUCT_FILENAME}.exe",0'
   WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}" "MultiSelectModel" "Player"
-  WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}\\command" "" '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}" --frame-workflow=$\{Workflow} -- "%1"'
+  WriteRegStr HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}\\command" "" '"$INSTDIR\\$\{PRODUCT_FILENAME}.exe" --frame-workflow=$\{Workflow} -- "%1"'
 !macroend
 !macro FrameRemoveContextVerb Extension Verb Workflow
   ReadRegStr $R0 HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}\\command" ""
-  StrCmp $R0 '"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}" --frame-workflow=$\{Workflow} -- "%1"' 0 +2
+  StrCmp $R0 '"$INSTDIR\\$\{PRODUCT_FILENAME}.exe" --frame-workflow=$\{Workflow} -- "%1"' 0 +2
   DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.$\{Extension}\\shell\\$\{Verb}"
 !macroend
 !macro FramePrimaryMenu Operation
@@ -81,7 +81,7 @@ FunctionEnd
   StrCpy $R2 "$SYSDIR\\WindowsPowerShell\\v1.0\\powershell.exe"
   IfFileExists "$WINDIR\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe" 0 +2
   StrCpy $R2 "$WINDIR\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe"
-  nsExec::ExecToStack /TIMEOUT=$\{FrameShellTimeout} '\"$R2\" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1\" -Operation $\{Operation} -Executable \"$INSTDIR\\$\{APP_EXECUTABLE_FILENAME}\"'
+  nsExec::ExecToStack /TIMEOUT=$\{FrameShellTimeout} '\"$R2\" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1\" -Operation $\{Operation} -Executable \"$INSTDIR\\$\{PRODUCT_FILENAME}.exe\"'
   !undef FrameShellTimeout
   Pop $R0
   Pop $R1

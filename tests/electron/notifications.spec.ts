@@ -18,7 +18,7 @@ test('persists native notification preference and sends completion notices only 
     await send(); expect(await app.evaluate(() => (globalThis as typeof globalThis & { notices: string[] }).notices)).toEqual([]);
     await app.evaluate(() => { (globalThis as typeof globalThis & { focused: boolean }).focused = false; }); await send();
     expect(await app.evaluate(() => (globalThis as typeof globalThis & { notices: string[] }).notices)).toEqual(['2 files saved. 1 file needs attention.']);
-    await toggle.uncheck(); await expect(toggle).not.toBeChecked(); await send(); expect(await app.evaluate(() => (globalThis as typeof globalThis & { notices: string[] }).notices.length)).toBe(1);
+    await toggle.click(); await expect(toggle).not.toBeChecked(); await send(); expect(await app.evaluate(() => (globalThis as typeof globalThis & { notices: string[] }).notices.length)).toBe(1);
     expect(JSON.parse(await readFile(join(directory, 'profile', 'completion-notifications.json'), 'utf8')).enabled).toBe(false);
     await expect(page.evaluate(() => window.frameDesktop!.notifyCompletion({ kind: 'export', total: 1, completed: 4, failed: 0 }))).rejects.toThrow('Invalid completion');
     await page.reload(); await page.getByRole('button', { name: 'Settings', exact: true }).click(); await expect(toggle).not.toBeChecked();

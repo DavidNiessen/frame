@@ -29,7 +29,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
   useLayoutEffect(() => { if (element.current?.contains(document.activeElement)) menu?.focus(target); });
   const [snapped, setSnapped] = useState(false);
   const [draft, setDraft] = useState<TimeRange | null>(null);
-  const gesture = useRef<{ pointer: number; edge: Boundary | 'body'; range: TimeRange; origin: number; width: number; moved: boolean } | null>(null);
+  const gesture = useRef<{ pointer: number; edge: Boundary | 'body'; range: TimeRange; origin: number; width: number; moved: boolean; targets: number[] } | null>(null);
   const suppressClick = useRef(false);
   const pending = useRef(range);
   const shown = draft ?? range;
@@ -42,6 +42,10 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     return edge === 'start' ? { ...base, start: Math.max(bounds?.start ?? limits.start, Math.min(bounds?.end ?? base.end - minimum, next)) }
       : { ...base, end: Math.min(bounds?.end ?? limits.end, Math.max(bounds?.start ?? base.start + minimum, next)) };
   }
+  function gestureTargets() {
+    const values = snapMap ? snapMap(snap.targets[snapSpace]) : snap.targets[snapSpace];
+    return values.filter(value => Math.abs(value - range.start) > .000001 && Math.abs(value - range.end) > .000001);
+  }
   function move(event: PointerEvent<HTMLButtonElement>) {
     const g = gesture.current;
     if (!g || g.pointer !== event.pointerId || disabled) return;
@@ -49,10 +53,8 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     g.moved ||= Math.abs(event.clientX - g.origin) > 3;
     if (g.edge === 'body' && !g.moved) return;
     const raw = g.range[g.edge === 'body' ? 'start' : g.edge] + offset;
-    // The boundary being dragged must not attract itself after every small move.
-    const ownEdges = [g.range.start, g.range.end, pending.current.start, pending.current.end];
-    const targets = (snapMap ? snapMap(snap.targets[snapSpace]) : snap.targets[snapSpace]).filter(value => ownEdges.every(edge => Math.abs(value - edge) > .000001));
-    const value = snap.enabled && !event.altKey ? snapTime(raw, targets, 8 / g.width * duration * displaySpeed, snapSpace === 'source' ? snap.frameRate : undefined) : Math.round(raw * 100) / 100;
+    // Keep landmarks stable while the preview playhead follows the gesture.
+    const value = snap.enabled && !event.altKey ? snapTime(raw, g.targets, 8 / g.width * duration * displaySpeed, snapSpace === 'source' ? snap.frameRate : undefined) : Math.round(raw * 100) / 100;
     setSnapped(Math.abs(value - raw) > .000001 && snap.enabled && !event.altKey);
     if (g.edge === 'body') {
       const bounds = moveLimits ?? { start: limits.start - range.start, end: limits.end - range.end };
@@ -83,7 +85,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
         event.stopPropagation(); if (disabled || event.button !== 0) return;
         const bounds = event.currentTarget.closest('.timeline-lane')!.getBoundingClientRect(); if (!bounds.width) return;
         event.preventDefault(); event.currentTarget.focus({ preventScroll: true }); suppressClick.current = false;
-        gesture.current = { pointer: event.pointerId, edge: 'body', range, origin: event.clientX, width: bounds.width, moved: false }; pending.current = range;
+        gesture.current = { pointer: event.pointerId, edge: 'body', range, origin: event.clientX, width: bounds.width, moved: false, targets: gestureTargets() }; pending.current = range;
         event.currentTarget.setPointerCapture(event.pointerId); onSelect(true);
       } : bodyProps?.onPointerDown}
       onPointerMove={onMove ? move : bodyProps?.onPointerMove} onPointerUp={onMove ? finish : bodyProps?.onPointerUp} onPointerCancel={onMove ? cancel : bodyProps?.onPointerCancel} onLostPointerCapture={onMove ? cancel : bodyProps?.onLostPointerCapture}
@@ -108,7 +110,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
         const bounds = event.currentTarget.closest('.timeline-lane')!.getBoundingClientRect();
         if (!bounds.width) return;
         event.preventDefault(); event.currentTarget.focus({ preventScroll: true });
-        gesture.current = { pointer: event.pointerId, edge, range, origin: event.clientX, width: bounds.width, moved: false };
+        gesture.current = { pointer: event.pointerId, edge, range, origin: event.clientX, width: bounds.width, moved: false, targets: gestureTargets() };
         pending.current = range;
         event.currentTarget.setPointerCapture(event.pointerId); if (selectOnPointer) onSelect(true);
       }} onPointerMove={event => { event.stopPropagation(); move(event); }}

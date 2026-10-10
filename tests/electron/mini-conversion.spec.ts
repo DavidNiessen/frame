@@ -73,7 +73,8 @@ test('collapses real conversion to progress, expands and cancels without closing
     await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height)).toBe(78);
     await page.screenshot({ path: 'test-results/desktop/mini-collapsed.png' });
     await page.getByRole('button', { name: 'Expand conversion' }).click();
-    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height)).toBe(initialHeight);
+    // macOS can round native window bounds by two pixels when restoring them.
+    await expect.poll(async () => Math.abs(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height) - initialHeight)).toBeLessThanOrEqual(2);
     await expect(page.locator('.mini-footer .footer-activity')).toContainText('Converting files');
     await expect(page.locator('.mini-footer .footer-task-percent')).toHaveText(/\d+%/);
     await expect(page.locator('.mini-footer').getByRole('button', { name: 'Add files' })).toBeHidden();

@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { snapTargets, snapTime } from '../src/core/snapping';
-import { defaultSettings, type MediaAsset } from '../src/core/types';
+import { addTimelineEffect } from '../src/core/timeline-effects';
+import { defaultSettings, type EditSettings, type MediaAsset } from '../src/core/types';
 const asset: MediaAsset = { id: 'a', name: 'a.mp4', duration: 10, hasAudio: true, kind: 'video', size: 1, previewUrl: '' };
 it('prioritizes nearby landmarks over frames and does not snap outside tolerance', () => {
   expect(snapTime(1.031, [1.03], .02, 24)).toBe(1.03);
@@ -14,4 +15,14 @@ it('maps source landmarks onto reordered output and keeps playhead optional for 
   expect(snapTargets(edit, asset.duration).source).not.toContain(1.3);
   expect(snapTargets(edit, asset.duration).source).not.toContain(5);
   expect(snapTargets(edit, asset.duration).output).toEqual(expect.arrayContaining([0, 2, 4]));
+});
+it('snaps source trim handles to caption boundaries through cuts, reordering and speed', () => {
+  let edit: EditSettings = { ...defaultSettings(asset), clips: [{ id: 'late', start: 4, end: 8, effects: { speed: 2 } }, { id: 'early', start: 0, end: 2, effects: {} }] };
+  edit = { ...edit, ...addTimelineEffect(edit, asset, 'captions', 6) };
+  const targets = snapTargets(edit, asset.duration);
+  expect(targets.output).toEqual(expect.arrayContaining([1, 3]));
+  expect(targets.source).toEqual(expect.arrayContaining([6, 1]));
+  expect(targets.source).not.toContain(3);
+  expect(snapTime(6.01, targets.source, .02, 24)).toBe(6);
+  expect(snapTime(1.01, targets.source, .02, 24)).toBe(1);
 });

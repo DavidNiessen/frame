@@ -39,12 +39,14 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
     await hide();
     const video = await videoBounds(); await show(); expect(await videoBounds()).toEqual(video); await hide(); expect(await videoBounds()).toEqual(video);
     await settle(); expect(await corners(desktopChromeSpace)).toEqual([0, 0, 0, 0, 255]);
-    await native.evaluate((window, height) => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: 1200, height }); }, 840 + desktopChromeSpace);
-    await expect(page.locator('.desktop-window-content')).toHaveCSS('height', '838px');
+    const work = await app.evaluate(({ screen, BrowserWindow }) => screen.getDisplayMatching(BrowserWindow.getAllWindows()[0].getBounds()).workArea);
+    const resizeHeight = Math.min(840, work.height - desktopChromeSpace), firstWidth = Math.min(1200, work.width), secondWidth = Math.min(1300, work.width);
+    await native.evaluate((window, size) => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: size.width, height: size.height }); }, { width: firstWidth, height: resizeHeight + desktopChromeSpace });
+    await expect(page.locator('.desktop-window-content')).toHaveCSS('height', `${resizeHeight - 2}px`);
     await show();
-    await native.evaluate((window, height) => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: 1300, height }); }, 840 + desktopChromeSpace);
-    await expect(page.locator('.desktop-window-frame')).toHaveCSS('width', '1300px');
-    await expect(page.locator('.desktop-window-content')).toHaveCSS('height', '838px');
+    await native.evaluate((window, size) => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: size.width, height: size.height }); }, { width: secondWidth, height: resizeHeight + desktopChromeSpace });
+    await expect(page.locator('.desktop-window-frame')).toHaveCSS('width', `${secondWidth}px`);
+    await expect(page.locator('.desktop-window-content')).toHaveCSS('height', `${resizeHeight - 2}px`);
     const resized = await videoBounds(); await hide(); expect(await videoBounds()).toEqual(resized);
     const restoreBounds = await native.evaluate(window => window.getBounds());
     if (process.platform === 'linux') {
@@ -75,7 +77,7 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
     else await native.evaluate(window => window.unmaximize());
     await expect.poll(() => native.evaluate(window => window.getBounds())).toEqual(restoreBounds);
     await hide();
-    await expect(page.locator('.desktop-window-frame')).toHaveCSS('height', '840px');
+    await expect(page.locator('.desktop-window-frame')).toHaveCSS('height', `${resizeHeight}px`);
     await show();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await page.getByRole('radio', { name: 'Light theme', exact: true }).check();

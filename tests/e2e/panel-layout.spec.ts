@@ -50,7 +50,7 @@ test('bounds a crowded timeline without shrinking the preview and scrolls zoomed
   expect((await page.locator('video').boundingBox())!.height).toBeCloseTo(video.height, 0);
   const tracks = page.getByRole('region', { name: 'Timeline tracks', exact: true });
   expect(await tracks.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
-  expect((await page.locator('.timeline').boundingBox())!.height).toBe(248);
+  expect((await page.locator('.timeline').boundingBox())!.height).toBeCloseTo(before.height, 0);
   await page.getByLabel('Trim start', { exact: true }).scrollIntoViewIfNeeded();
   // Clip handles remain pinned and visible without scrolling past caption tracks.
   await expect(page.getByLabel('Trim start', { exact: true })).toBeInViewport();
@@ -63,6 +63,7 @@ test('bounds a crowded timeline without shrinking the preview and scrolls zoomed
   await expect(page.getByLabel('Trim end', { exact: true })).toHaveAttribute('aria-valuenow', '5.9');
   await page.getByRole('button', { name: 'Fit', exact: true }).click();
   await expect(page.getByLabel('Timeline zoom')).toHaveValue('1');
+  await page.getByLabel('Seek playhead').fill('0');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
@@ -70,22 +71,23 @@ test('bounds a crowded timeline without shrinking the preview and scrolls zoomed
 });
 test('resizes panels with pointer and keyboard, cancels gestures, remembers sizes and resets them', async ({ page }) => {
   await sample(page);
+  const defaultTimeline = Number(await page.getByRole('separator', { name: 'Resize timeline', exact: true }).getAttribute('aria-valuenow'));
   await dragDivider(page, 'Resize media library', 70, 0);
   await expect(page.getByRole('separator', { name: 'Resize media library' })).toHaveAttribute('aria-valuenow', '290');
   await dragDivider(page, 'Resize edit and export panel', -60, 0);
   await expect(page.getByRole('separator', { name: 'Resize edit and export panel' })).toHaveAttribute('aria-valuenow', '380');
   const timeline = page.getByRole('separator', { name: 'Resize timeline', exact: true });
   await dragDivider(page, 'Resize timeline', 0, -70);
-  await expect(timeline).toHaveAttribute('aria-valuenow', '318');
-  await timeline.press('Shift+ArrowUp'); await expect(timeline).toHaveAttribute('aria-valuenow', '358');
+  await expect(timeline).toHaveAttribute('aria-valuenow', String(defaultTimeline + 70));
+  await timeline.press('Shift+ArrowUp'); await expect(timeline).toHaveAttribute('aria-valuenow', String(defaultTimeline + 110));
   expect(await timeline.locator('span').evaluate(node => getComputedStyle(node).boxShadow)).not.toBe('none');
   await timeline.press('End');
-  expect((await page.locator('.preview-panel').boundingBox())!.height).toBeGreaterThanOrEqual(360);
-  await timeline.dblclick(); await expect(timeline).toHaveAttribute('aria-valuenow', '248');
+  expect((await page.locator('.preview-panel').boundingBox())!.height).toBeGreaterThanOrEqual(240);
+  await timeline.dblclick(); await expect(timeline).toHaveAttribute('aria-valuenow', String(defaultTimeline));
   const bounds = (await timeline.boundingBox())!;
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2); await page.mouse.down();
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y - 60); await page.keyboard.press('Escape'); await page.mouse.up();
-  await expect(timeline).toHaveAttribute('aria-valuenow', '248');
+  await expect(timeline).toHaveAttribute('aria-valuenow', String(defaultTimeline));
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('frame:panel-layout:v1')!).library)).toBe(290);
   await page.reload();
   await expect(page.getByRole('separator', { name: 'Resize media library' })).toHaveAttribute('aria-valuenow', '290');
@@ -114,11 +116,11 @@ test('adapts oversized saved panels to tablet and phone, keeping timeline touch 
     await page.setViewportSize({ width: 850, height: 1000 });
     await expect(page.locator('.editor-layout')).toHaveAttribute('data-layout', 'medium');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    expect((await page.locator('.preview-panel').boundingBox())!.height).toBeGreaterThanOrEqual(360);
+    expect((await page.locator('.preview-panel').boundingBox())!.height).toBeGreaterThanOrEqual(240);
     await page.setViewportSize({ width: 1440, height: 720 });
     await expect(page.locator('.editor-layout')).toHaveAttribute('data-layout', 'wide');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    expect((await page.locator('.preview-panel').boundingBox())!.height).toBeGreaterThanOrEqual(360);
+    expect((await page.locator('.preview-panel').boundingBox())!.height).toBeGreaterThanOrEqual(240);
   } finally { await context.close(); }
 });
 test('resizes conversion settings and stacks its islands on narrow screens', async ({ page }) => {

@@ -41,8 +41,12 @@ test('keeps desktop editing focused and preserves effects across accessible tabs
   await expect(page.getByRole('button', { name: 'Merge clips', exact: true })).toBeHidden();
   await expect(page.getByLabel('Project tools', { exact: true })).toBeFocused();
   await page.keyboard.press('Space');
-  await expect(page.getByRole('button', { name: 'Open project', exact: true })).toBeVisible();
+  await expect(page.locator('video')).toHaveJSProperty('paused', false);
+  await expect(page.getByRole('button', { name: 'Open project', exact: true })).toBeHidden();
+  await page.keyboard.press('Space');
   await expect(page.locator('video')).toHaveJSProperty('paused', true);
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Open project', exact: true })).toBeVisible();
 });
 
 test('supports precise touch seeking and focused tools on narrow screens', async ({ browser, baseURL }) => {
