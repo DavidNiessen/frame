@@ -11,4 +11,5 @@ test('finds and replaces caption text across pages with case and word controls a
   await page.getByRole('button', { name: 'Next match', exact: true }).click(); await page.getByRole('button', { name: 'Next match', exact: true }).click(); await expect(page.getByLabel('Subtitle 61 text', { exact: true })).toBeFocused();
   await page.getByLabel('Replace caption text with', { exact: true }).fill('clip'); await page.getByRole('button', { name: 'Replace all', exact: true }).click(); await expect(page.getByLabel('Subtitle 61 text', { exact: true })).toHaveValue('clip');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByLabel('Subtitle 61 text', { exact: true })).toHaveValue('frame');
+  await page.getByRole('button', { name: 'Previous captions', exact: true }).click(); await page.getByRole('button', { name: 'Add caption', exact: true }).click(); await expect(page.getByLabel('Subtitle 62 text', { exact: true })).toBeFocused();
 });
