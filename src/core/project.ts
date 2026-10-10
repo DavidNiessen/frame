@@ -81,6 +81,10 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
       if (Object.keys(effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) return fail();
       const clip: TimelineClip = { id: text(c.id, 120), start: number(c.start), end: number(c.end), effects: { ...effects } };
       if (c.groupId !== undefined) clip.groupId = text(c.groupId, 120);
+      if (c.joinedRanges !== undefined) {
+        if (!Array.isArray(c.joinedRanges) || !c.joinedRanges.length || c.joinedRanges.length > 1000) return fail();
+        clip.joinedRanges = c.joinedRanges.map(value => { const range = record(value); return { start: number(range.start), end: number(range.end) }; });
+      }
       if (clip.effects.effectInstances !== undefined) clip.effects.effectInstances = parseEffectInstances(clip.effects.effectInstances, asset, recipe => validateEdit(asset, recipe), true);
       if (clip.effects.addedEffects !== undefined) clip.effects.addedEffects = parseAddedEffects(clip.effects.addedEffects);
       if (clip.effects.effectRanges !== undefined) clip.effects.effectRanges = parseEffectRanges(clip.effects.effectRanges);

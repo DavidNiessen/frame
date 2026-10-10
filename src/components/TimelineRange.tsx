@@ -6,6 +6,7 @@ import type { Boundary } from '../core/timeline-edit';
 import { time } from '../core/format';
 interface Props {
   snapSpace?: SnapSpace; selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
+  snapMap?: (targets: number[]) => number[];
   disabled: boolean; onChange: (range: TimeRange) => void; onSelect: (keepView?: boolean) => void;
   onMove?: (delta: number) => void; moveLimits?: TimeRange;
   onPreview?: (range: TimeRange, edge: Boundary | 'body') => void;
@@ -18,7 +19,7 @@ interface Props {
   remove?: { label: string; run: () => void };
 }
 export function TimelineRange({ range, limits, duration, label, text, selectOnPointer = false, className = '', disabled, onChange, onSelect,
-  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', remove, onMove, moveLimits, onPreview, startTitle, endTitle, wideHandles = false, edgeLimits }: Props) {
+  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', snapMap, remove, onMove, moveLimits, onPreview, startTitle, endTitle, wideHandles = false, edgeLimits }: Props) {
   const snap = useContext(TimelineSnapContext);
   const [snapped, setSnapped] = useState(false);
   const [draft, setDraft] = useState<TimeRange | null>(null);
@@ -44,7 +45,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     const raw = g.range[g.edge === 'body' ? 'start' : g.edge] + offset;
     // The boundary being dragged must not attract itself after every small move.
     const ownEdges = [g.range.start, g.range.end, pending.current.start, pending.current.end];
-    const targets = snap.targets[snapSpace].filter(value => ownEdges.every(edge => Math.abs(value - edge) > .000001));
+    const targets = (snapMap ? snapMap(snap.targets[snapSpace]) : snap.targets[snapSpace]).filter(value => ownEdges.every(edge => Math.abs(value - edge) > .000001));
     const value = snap.enabled && !event.altKey ? snapTime(raw, targets, 8 / g.width * duration * displaySpeed, snapSpace === 'source' ? snap.frameRate : undefined) : Math.round(raw * 100) / 100;
     setSnapped(Math.abs(value - raw) > .000001 && snap.enabled && !event.altKey);
     if (g.edge === 'body') {

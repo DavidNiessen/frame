@@ -6,7 +6,7 @@ import { clipGroups, resizeClipGroup } from '../src/core/clip-groups';
 import { sourceTimeAtOutput } from '../src/core/fades';
 import { editedDuration } from '../src/core/timeline';
 import { parseEdit } from '../src/core/project';
-import { defaultSettings, type MediaAsset } from '../src/core/types';
+import { defaultSettings, type EditSettings, type MediaAsset } from '../src/core/types';
 const asset = { duration: 6, width: 640, height: 360, kind: 'video', hasAudio: true } as MediaAsset;
 function split() { const edit = defaultSettings(asset); return { ...edit, ...splitClip(edit, editClips(edit)[0].id, 3) }; }
 it('joins either selected neighbour without changing track effects, duration or saved settings', () => {
@@ -47,11 +47,11 @@ it('joins retained pieces across deleted footage without restoring it or moving 
   const saved = parseEdit(JSON.parse(JSON.stringify(joined)), asset);
   expect(clipGroups(saved)).toHaveLength(1); expect(JSON.stringify(edit)).toBe(snapshot);
   expect(clipGroups({ ...joined, ...splitClip(joined, joined.clips![1].id, 4) })).toHaveLength(2);
-  const trimmed = { ...joined, ...resizeClipGroup(joined, joined.clips!, { start: .5, end: 5.5 }, 6) };
+  const trimmed = { ...joined, ...resizeClipGroup(joined, joined.clips!, { start: .5, end: 4.5 }, 6) };
   expect(trimmed.clips!.map(({ start, end }) => [start, end])).toEqual([[.5, 3], [4, 5.5]]);
 });
 it('splits and moves a joined bar as a unit while retaining its internal cuts', () => {
-  const edit = { ...defaultSettings(asset), clips: [{ id: 'a', start: 0, end: 1, effects: {} }, { id: 'b', start: 2, end: 4, effects: {} }, { id: 'c', start: 4, end: 6, effects: {} }] };
+  const edit: EditSettings = { ...defaultSettings(asset), clips: [{ id: 'a', start: 0, end: 1, effects: {} }, { id: 'b', start: 2, end: 4, effects: {} }, { id: 'c', start: 4, end: 6, effects: {} }] };
   const joined = { ...edit, ...joinSplitClips(edit, 'a') };
   expect(clipGroups(joined)).toHaveLength(2);
   const moved = { ...joined, ...reorderClip(joined, 'a', 2) };
@@ -60,4 +60,25 @@ it('splits and moves a joined bar as a unit while retaining its internal cuts', 
   expect(clipGroups(divided).map(group => group.clips.map(clip => [clip.start, clip.end]))).toEqual([[[0, 1], [2, 3]], [[3, 4]], [[4, 6]]]);
   const rejoined = { ...divided, ...joinSplitClips(divided, 'a') }; expect(clipGroups(rejoined)).toHaveLength(2);
   expect(() => parseEdit({ ...joined, clips: [...joined.clips!, { ...joined.clips![0], id: 'bad' }] }, asset)).toThrow('Joined pieces must stay together');
+});
+
+it('trims through internal cuts from either side and restores hidden pieces after save', () => {
+  const edit: EditSettings = { ...defaultSettings(asset), clips: [{ id: 'a', start: 0, end: 2, effects: {} }, { id: 'b', start: 4, end: 6, effects: {} }] };
+  const joined = { ...edit, ...joinSplitClips(edit, 'a') };
+  for (const range of [{ start: 2.5, end: 4 }, { start: 0, end: 1.5 }, { start: 1.99, end: 2.05 }]) {
+    const trimmed = { ...joined, ...resizeClipGroup(joined, joined.clips!, range, 6) };
+    expect(editedDuration(trimmed)).toBeCloseTo(range.end - range.start);
+    expect(clipGroups(trimmed)).toHaveLength(1);
+    const saved = parseEdit(JSON.parse(JSON.stringify({ ...trimmed, start: trimmed.clips![0].start, end: trimmed.clips!.at(-1)!.end })), asset);
+    const restored = { ...saved, ...resizeClipGroup(saved, saved.clips!, { start: 0, end: 4 }, 6) };
+    expect(restored.clips!.map(({ start, end }) => [start, end])).toEqual([[0, 2], [4, 6]]);
+  }
+});
+it('partitions restore ranges when splitting a joined bar', () => {
+  const edit: EditSettings = { ...defaultSettings(asset), clips: [{ id: 'a', start: 0, end: 2, effects: {} }, { id: 'b', start: 4, end: 6, effects: {} }] };
+  const joined = { ...edit, ...joinSplitClips(edit, 'a') };
+  const split = { ...joined, ...splitClip(joined, 'b', 5) };
+  expect(split.clips![0].joinedRanges).toEqual([{ start: 0, end: 2 }, { start: 4, end: 5 }]);
+  expect(split.clips!.at(-1)!.joinedRanges).toEqual([{ start: 5, end: 6 }]);
+  expect(() => parseEdit(JSON.parse(JSON.stringify(split)), asset)).not.toThrow();
 });

@@ -6,7 +6,7 @@ import { preserveSplitFades } from './split-effects';
 
 export const clipEffectKeys = ['effectRanges', 'effectInstances', 'addedEffects', 'volume', 'speed', 'preservePitch', 'normalizeLoudness', 'targetLufs', 'reduceNoise', 'noiseStrength', 'noiseFloor', 'equalizer', 'audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut', 'color', 'geometry', 'crop'] as const;
 export type ClipEffects = Partial<Pick<EditSettings, typeof clipEffectKeys[number]>>;
-export interface TimelineClip extends TimeRange { id: string; effects: ClipEffects; groupId?: string }
+export interface TimelineClip extends TimeRange { id: string; effects: ClipEffects; groupId?: string; joinedRanges?: TimeRange[] }
 export function editClips(edit: EditSettings): TimelineClip[] {
   return edit.clips ?? timelineSections(edit).map(range => ({ ...range, id: `source-${range.start}-${range.end}`, effects: {} }));
 }
@@ -32,13 +32,18 @@ export function splitClip(edit: EditSettings, id: string, time: number): Partial
   const index = clips.findIndex(item => item.id === id);
   if (clip?.groupId && time === clip.start && clips[index - 1]?.groupId === clip.groupId) {
     const rightGroup = crypto.randomUUID();
-    return { clips: clips.map((item, i) => i >= index && item.groupId === clip.groupId ? { ...item, groupId: rightGroup } : item) };
+    return { clips: splitJoinedRanges(clips.map((item, i) => i >= index && item.groupId === clip.groupId ? { ...item, groupId: rightGroup } : item), clip.groupId, rightGroup) };
   }
   if (!clip || !hasMinimumDuration({ start: clip.start, end: time }, effectiveSpeed(clipRecipe(edit, clip))) || !hasMinimumDuration({ start: time, end: clip.end }, effectiveSpeed(clipRecipe(edit, clip)))) return {};
   const position = clipPositions(edit).find(item => item.clip.id === id)!;
   const preserved = preserveSplitFades(edit, clip, position.start, position.speed);
   const rightGroup = clip.groupId ? crypto.randomUUID() : undefined;
-  return { effectInstances: preserved.instances, clips: clips.flatMap((item, i) => item.id === id ? [{ ...item, end: time, effects: preserved.effects }, { ...item, id: `source-${time}-${clip.end}`, groupId: rightGroup, start: time, effects: structuredClone(preserved.effects) }] : [item.groupId && item.groupId === clip.groupId && i > index ? { ...item, groupId: rightGroup } : item]) };
+  const result = clips.flatMap((item, i) => item.id === id ? [{ ...item, end: time, effects: preserved.effects }, { ...item, id: `source-${time}-${clip.end}`, groupId: rightGroup, start: time, effects: structuredClone(preserved.effects) }] : [item.groupId && item.groupId === clip.groupId && i > index ? { ...item, groupId: rightGroup } : item]);
+  return { effectInstances: preserved.instances, clips: splitJoinedRanges(result, clip.groupId, rightGroup) };
+}
+function splitJoinedRanges(clips: TimelineClip[], ...groups: (string | undefined)[]) {
+  // A deliberate split creates two independent restore ranges, never a shared hidden seam.
+  return clips.map(clip => groups.includes(clip.groupId) && clip.groupId ? { ...clip, joinedRanges: clips.filter(item => item.groupId === clip.groupId).map(({ start, end }) => ({ start, end })) } : clip);
 }
 export function reorderClip(edit: EditSettings, id: string, index: number): Partial<EditSettings> {
   const clips = [...editClips(edit)], from = clips.findIndex(clip => clip.id === id);

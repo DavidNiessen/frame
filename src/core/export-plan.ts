@@ -26,7 +26,7 @@ import { getFormat } from './formats';
 import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
-export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
+export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragment = false): void {
   parseEffectRanges(edit.effectRanges);
   parseAddedEffects(edit.addedEffects);
   parseEffectInstances(edit.effectInstances, asset, recipe => validateEdit(asset, recipe));
@@ -45,24 +45,26 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
     for (const clip of edit.clips) {
       if (!clip || typeof clip.id !== 'string' || !clip.id || clip.id.length > 120 || !clip.effects || Object.keys(clip.effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) throw new Error('Invalid clip effects.');
       if (clip.start < edit.start || clip.end > edit.end) throw new Error('Clip lies outside the source selection.');
-      validateEdit({ ...asset, hasAudio: hasEditedAudio(asset, edit) }, clipRecipe(edit, clip));
+      validateEdit({ ...asset, hasAudio: hasEditedAudio(asset, edit) }, clipRecipe(edit, clip), !!clip.groupId);
     }
     const completed = new Set<string>();
     edit.clips.forEach((clip, index) => {
       if (clip.groupId === undefined) return;
       if (typeof clip.groupId !== 'string' || !clip.groupId.trim() || clip.groupId.length > 120) throw new Error('Invalid joined section.');
+      if (clip.joinedRanges !== undefined && (!Array.isArray(clip.joinedRanges) || !clip.joinedRanges.length || clip.joinedRanges.length > 1000 || clip.joinedRanges.some((range, i, ranges) => !Number.isFinite(range.start) || !Number.isFinite(range.end) || range.start < 0 || range.end > asset.duration + .05 || range.end <= range.start || (i > 0 && range.start < ranges[i - 1].end)) || !clip.joinedRanges.some(range => clip.start >= range.start && clip.end <= range.end))) throw new Error('Invalid joined restore ranges.');
       const previous = edit.clips![index - 1];
       if (previous?.groupId !== clip.groupId) {
         if (completed.has(clip.groupId)) throw new Error('Joined pieces must stay together.');
         completed.add(clip.groupId);
-      } else if (clip.start < previous.end - timeEpsilon || effectiveSpeed(clipRecipe(edit, clip)) !== effectiveSpeed(clipRecipe(edit, previous))) throw new Error('Invalid joined section timing.');
+      } else if (clip.start < previous.end - timeEpsilon || effectiveSpeed(clipRecipe(edit, clip)) !== effectiveSpeed(clipRecipe(edit, previous)) || JSON.stringify(clip.joinedRanges) !== JSON.stringify(previous.joinedRanges)) throw new Error('Invalid joined section timing.');
     });
+    for (const group of completed) if (edit.clips.filter(clip => clip.groupId === group).reduce((sum, clip) => sum + (clip.end - clip.start) / effectiveSpeed(clipRecipe(edit, clip)), 0) + timeEpsilon < minimumSection) throw new Error('Keep at least 0.05 seconds of joined media.');
   }
   const format = getFormat(edit.format);
   if (![edit.start, edit.end, edit.volume, edit.audioBitrate, edit.fps].every(Number.isFinite)) throw new Error('Enter valid numeric settings.');
-  if (edit.start < 0 || edit.end > asset.duration + 0.05 || !hasMinimumDuration(edit)) throw new Error('Choose a trim range of at least 0.05 seconds within the media.');
+  if (edit.start < 0 || edit.end > asset.duration + 0.05 || !(joinedFragment ? edit.end > edit.start : hasMinimumDuration(edit))) throw new Error('Choose a trim range of at least 0.05 seconds within the media.');
   if (!Array.isArray(edit.cuts) || !Array.isArray(edit.splits) || edit.cuts.some(c => !Number.isFinite(c.start) || !Number.isFinite(c.end) || c.start < 0 || c.end <= c.start || c.end > asset.duration + 0.05) || edit.splits.some(s => !Number.isFinite(s) || s < 0 || s > asset.duration)) throw new Error('Invalid timeline sections.');
-  if (editedDuration(edit) + timeEpsilon < minimumSection) throw new Error('Keep at least 0.05 seconds of media.');
+  if (!joinedFragment && editedDuration(edit) + timeEpsilon < minimumSection) throw new Error('Keep at least 0.05 seconds of media.');
   if (!Number.isFinite(edit.speed) || edit.speed < 0.25 || edit.speed > 4 || typeof edit.preservePitch !== 'boolean') throw new Error('Playback speed must be between 0.25× and 4×.');
   if ([edit.audioFadeIn, edit.audioFadeOut, edit.videoFadeIn, edit.videoFadeOut].some(d => !Number.isFinite(d) || d < 0 || d > editedDuration(edit))) throw new Error('Fade duration must fit within the edited output.');
   if (edit.volume < 0 || edit.volume > 3) throw new Error('Volume must be between 0% and 300%.');
