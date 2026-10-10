@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -69,7 +70,7 @@ test('keeps waveform generation and cancellation independent of editing and expo
   await page.route('**/ffmpeg-core.wasm', async route => { await pending; await route.continue().catch(() => {}); });
   await page.getByRole('button', { name: 'Generate waveform', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Split', exact: true })).toBeEnabled();
-  await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.locator('video')).toHaveJSProperty('volume', .5);
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.locator('video')).toHaveJSProperty('volume', .5);
   await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
   await page.getByRole('button', { name: 'Cancel waveform', exact: true }).click(); release();
   await page.unroute('**/ffmpeg-core.wasm');

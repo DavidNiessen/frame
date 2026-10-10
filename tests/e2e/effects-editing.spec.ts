@@ -1,0 +1,41 @@
+import { expect, test } from '@playwright/test';
+import { openEffect } from '../helpers/effects';
+import { conversionLibrary } from '../helpers/conversion-library';
+import { rm } from 'node:fs/promises';
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false')); });
+for (const width of [1440, 390]) test(`provides all former editing controls in Effects at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 }); await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Edit', exact: true })).toHaveCount(0); await expect(page.getByRole('tab')).toHaveCount(2);
+  await expect(page.getByRole('tab', { name: 'Effects', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await openEffect(page, 'Trim'); await page.getByLabel('Seek playhead').fill('1'); await page.getByRole('button', { name: 'Set in at playhead' }).click();
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
+  await page.getByLabel('Seek playhead').fill('5'); await page.getByRole('button', { name: 'Set out' }).click(); await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '5');
+  await openEffect(page, 'Crop'); await page.getByRole('button', { name: '1:1', exact: true }).click(); await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await page.getByLabel('Crop width').fill('320'); await page.getByLabel('Crop x', { exact: true }).fill('100'); await expect(page.getByLabel('Crop x', { exact: true })).toHaveValue('100');
+  await page.getByRole('button', { name: 'Original', exact: true }).click(); await expect(page.getByLabel('Crop width')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Set custom crop', exact: true }).click(); await expect(page.getByLabel('Crop width')).toHaveValue('640');
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('1.4'); await expect(page.getByText('Boost above 100% is applied on export and may clip.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Reset to 100%', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
+  await page.getByRole('button', { name: 'Mute', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('volume', 0);
+  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
+  await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
+  await expect(page.getByLabel('Search effects')).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+test('scopes trim and volume to split clips and preserves trimming when removing clip effects', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+  await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await page.getByLabel('Effect target').selectOption({ index: 2 });
+  await openEffect(page, 'Trim'); await page.getByLabel('Seek playhead').fill('3.5'); await page.getByRole('button', { name: 'Set in at playhead' }).click();
+  await expect(page.getByLabel('Section 2 start')).toHaveAttribute('aria-valuenow', '3.5'); await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.4'); await page.getByLabel('Effect target').selectOption({ index: 1 }); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
+  await page.getByLabel('Effect target').selectOption({ index: 2 }); await page.getByRole('button', { name: 'Remove all clip effects', exact: true }).click(); await expect(page.getByLabel('Section 2 start')).toHaveAttribute('aria-valuenow', '3.5');
+  await expect(page.getByRole('button', { name: 'Remove Volume', exact: true })).toHaveCount(0);
+});
+test('offers trimming, mute and reset for audio while keeping video controls out', async ({ page }) => {
+  const library = await conversionLibrary();
+  try {
+    await page.goto('/'); await page.getByLabel('Choose media files').setInputFiles(library.sources[0]);
+    await openEffect(page, 'Trim'); await page.getByLabel('Seek playhead').fill('0.4'); await page.getByRole('button', { name: 'Set in at playhead' }).click(); await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0.4');
+    await openEffect(page, 'Volume'); await page.getByRole('button', { name: 'Mute', exact: true }).click(); await expect(page.locator('audio').first()).toHaveJSProperty('volume', 0); await page.getByRole('button', { name: 'Reset to 100%', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
+    await expect(page.getByRole('button', { name: 'Add Crop', exact: true })).toHaveCount(0);
+  } finally { await rm(library.directory, { recursive: true, force: true }); }
+});

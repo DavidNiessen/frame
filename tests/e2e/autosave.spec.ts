@@ -22,25 +22,25 @@ test('automatically reopens retained browser media and edits without another imp
   await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '2');
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4); await expect(page.locator('.asset-list li')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Recover workspace' })).toHaveCount(0);
-  await page.getByLabel('Volume', { exact: true }).fill('0.4'); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.4'); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
   expect(await retainedKeys(page)).toEqual(keys); // Editing does not copy the source again.
-  await page.reload(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.4', { timeout: 45000 });
+  await page.reload(); await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.4', { timeout: 45000 });
 });
 test('clears the library and retained media even with a pending edit save', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
-  await page.getByLabel('Volume', { exact: true }).fill('0.3'); await page.getByRole('button', { name: 'Clear media library', exact: true }).click();
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.3'); await page.getByRole('button', { name: 'Clear media library', exact: true }).click();
   await expect(page.locator('.asset-list li')).toHaveCount(0); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
   expect(await retainedKeys(page)).toEqual([]);
   await page.reload(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready'); await expect(page.locator('video')).toHaveCount(0);
 });
 test('keeps the last saved workspace when autosave is off, and clears it explicitly', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
   await page.getByRole('button', { name: 'Settings', exact: true }).click(); await page.getByLabel('Autosave workspace', { exact: true }).uncheck(); await page.getByRole('button', { name: 'Back to workspace', exact: true }).click();
-  await page.getByLabel('Volume', { exact: true }).fill('0.2');
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.2');
   const downloaded = page.waitForEvent('download'); await page.getByRole('button', { name: 'Save project', exact: true }).click(); expect((await downloaded).suggestedFilename()).toMatch(/\.frame\.json$/);
-  await page.reload(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5', { timeout: 45000 }); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave off');
+  await page.reload(); await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5', { timeout: 45000 }); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave off');
   await page.getByRole('button', { name: 'Clear media library', exact: true }).click();
   await expect(page.locator('.asset-list li')).toHaveCount(0); expect(await retainedKeys(page)).toEqual([]);
   await page.reload(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave off'); await expect(page.locator('.asset-list li')).toHaveCount(0);
@@ -79,7 +79,7 @@ test('preserves available media and the checkpoint when a retained source is mis
   expect(sourceCount).toBe(2);
 });
 test('keeps the previous checkpoint when storage rejects a save', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click(); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
+  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click(); await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
   await page.evaluate(() => {
     const original = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore['put']>) {
@@ -87,8 +87,8 @@ test('keeps the previous checkpoint when storage rejects a save', async ({ page 
       return original.apply(this, args);
     };
   });
-  await page.getByLabel('Volume', { exact: true }).fill('0.2'); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave paused');
-  await page.reload(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5', { timeout: 45000 }); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.2'); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave paused');
+  await page.reload(); await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5', { timeout: 45000 }); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
 });
 test('keeps library actions inside the narrowest resizable panel', async ({ page }) => {
   await page.goto('/'); const divider = page.getByRole('separator', { name: 'Resize media library', exact: true }); await divider.press('Home');

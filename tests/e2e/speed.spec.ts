@@ -14,7 +14,7 @@ test('previews and exports speed edits with undo support', async ({ page }, test
   await expect(page.locator('video')).toHaveJSProperty('preservesPitch', false);
   await page.getByRole('button', { name: 'Undo edit' }).click();
   await expect(page.getByLabel('Audio pitch')).toHaveValue('preserve');
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 1);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 1);
   await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 45000 });
   const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file' }).click();

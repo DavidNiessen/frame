@@ -1,3 +1,5 @@
+import { TrimControls } from './TrimControls';
+import { VolumeControls } from './VolumeControls';
 import type { EffectDefinition } from '../core/effect-library';
 import type { Editor } from '../hooks/useEditor';
 import { AudioMixControls } from './AudioMixControls';
@@ -15,7 +17,8 @@ export function EffectControls({ effect, editor, current, seek }: { effect: Effe
   return <div className="effect-editor">
     <p className="effect-target-note">{effect.id === 'mix' ? 'Output timeline · tracks stay in place when clips move.' : effect.scope === 'source' ? 'Source-wide · timing follows clips when reordered.' : editor.selectedClip ? 'Selected clip' : 'All clips · shared settings'}</p>
     {effect.id === 'mix' && <AudioMixControls editor={editor} current={current} />}
-    {effect.id === 'volume' && <section className="control-section"><label className="stacked-label">Volume · {Math.round(edit.volume * 100)}%<input type="range" aria-label="Volume" min={0} max={3} step={.01} value={edit.volume} onChange={event => scoped.update({ volume: Number(event.target.value) })} /></label></section>}
+    {effect.id === 'trim' && <TrimControls edit={edit} update={scoped.update} current={current} />}
+    {effect.id === 'volume' && <VolumeControls asset={asset} edit={edit} update={scoped.update} />}
     {effect.id === 'speed' && <SpeedControls edit={edit} update={scoped.update} />}
     {(['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as string[]).includes(effect.id) && <section className="control-section"><label className="stacked-label">Duration · {Number(edit[effect.id as 'audioFadeIn']).toFixed(2)}s<input type="range" aria-label={`${effect.name} duration`} min={0} max={editedDuration(edit)} step={.01} value={Number(edit[effect.id as 'audioFadeIn'])} onChange={event => scoped.update({ [effect.id]: Number(event.target.value) })} /></label><p className="field-note">Drag the matching bar in the timeline to adjust its duration.</p></section>}
     {(['normalize', 'noise', 'equalizer'] as string[]).includes(effect.id) && <AudioCleanupControls editor={scoped} effect={effect.id as 'normalize' | 'noise' | 'equalizer'} />}

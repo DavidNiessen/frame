@@ -90,13 +90,13 @@ Packaged Frame also accepts file arguments directly: `Frame.exe --frame-workflow
 
 1. Import or drop video/audio files and choose a file in the library.
 2. Drag a clip’s left or right timeline edge to set its start or end. Split sections have their own handles and can shrink or expand into free space without overlapping neighbours. Click or drag inside the track to seek, then split and remove unwanted sections. Handles support touch, arrow-key nudging (Shift for larger steps), Page Up/Down, and Home/End. A drag is one undo step; Escape or an interrupted touch cancels it.
-3. Choose a video crop preset, drag the crop frame/corners, or enter precise dimensions.
-4. Adjust volume and choose an output format.
+3. In **Effects → Crop**, choose a video crop preset, drag the crop frame/corners, or enter precise dimensions.
+4. Open **Effects → Volume** to adjust the level, then choose an output format.
 5. In **Export**, choose a built-in export preset or save your own format/quality settings for reuse. Presets keep trim, crop, and volume unchanged. Custom presets persist on this device (up to 20).
 6. In **Export**, open Advanced settings for bitrate, GIF frame rate, embedded artwork, and metadata.
 7. Export: desktop opens a save dialog; the browser provides a downloadable file.
 
-**Edit** contains trim, crop, and volume. **Effects** contains speed, fades, audio cleanup, silence removal, transforms, color, subtitles, and watermarks. Applied effects are summarized in Edit. **Export** contains presets, quality, size, advanced encoding options, and desktop performance tools. Output format and the export action remain available in every tab. Open **Project tools** for project opening, merge, and batch export; saving a project stays directly available.
+**Effects** contains trim, crop, volume, speed, fades, audio cleanup, silence removal, transforms, color, subtitles, and watermarks. Use its searchable browser to open controls and its applied-effects stack to revisit, reset or remove adjustments. **Export** contains presets, quality, size, advanced encoding options, and desktop performance tools. Output format and the export action remain available in every tab. Open **Project tools** for project opening, merge, and batch export; saving a project stays directly available.
 
 The workspace uses separate panels for the library, preview, timeline, and editing controls. Drag the dividers to resize them; focused dividers also support arrow keys, Shift for larger steps, and Home/End. Sizes are remembered on this device. Double-click a divider to reset its panel, or choose **Project tools → Reset panel layout** to reset all sizes. Convert also has a resizable settings panel.
 
@@ -207,7 +207,7 @@ Desktop performance: test available VideoToolbox, NVENC, Quick Sync and AMF H.26
 
 ## Effects and clip sequencing
 
-The Effects tab is a searchable library, grouped into Audio, Video and Timing. Choose a card to open its controls; the applied-effects list lets you revisit or remove an effect. The **Apply to** selector targets all clips or one split clip. Selecting a timeline clip also sets the target. Volume, speed, fades, cleanup, equalizer, color/LUTs, crop and transforms support individual clips. Shared changes replace that setting on all clips; other clip-specific settings remain. Captions, watermarks and silence detection are labeled source-wide. Caption timing follows cuts, clip order and speed on export.
+The inspector has two tabs: Effects and Export. Effects contains all editing controls in a searchable library, grouped into Audio, Video and Timing. Trim provides playhead in/out actions alongside the timeline handles and I/O shortcuts; Crop includes presets and custom dimensions, and Volume includes mute, reset and boost controls. Choose a card to open its controls; the applied-effects list lets you revisit or remove an effect. The **Apply to** selector targets all clips or one split clip. Selecting a timeline clip also sets the target. Volume, speed, fades, cleanup, equalizer, color/LUTs, crop and transforms support individual clips. Shared changes replace that setting on all clips; other clip-specific settings remain. Captions, watermarks and silence detection are labeled source-wide. Caption timing follows cuts, clip order and speed on export.
 
 Drag a clip body to reorder it, or focus it and use **Alt + Left/Right**. Drag its edges to trim. Splitting carries its settings into both children. Ordering and scoped effects are included in undo, project files, autosave, export and merge. Clips are joined without gaps; different crop or transform dimensions fit inside the shared output canvas.
 

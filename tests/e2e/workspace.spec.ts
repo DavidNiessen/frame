@@ -5,10 +5,11 @@ test('keeps desktop editing focused and preserves effects across accessible tabs
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Try a sample' }).click();
-  const edit = page.getByRole('tab', { name: 'Edit', exact: true });
   const effects = page.getByRole('tab', { name: 'Effects', exact: true });
   const output = page.getByRole('tab', { name: 'Export', exact: true });
-  await expect(edit).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Edit', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab')).toHaveCount(2);
+  await expect(effects).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Playback speed')).toBeHidden();
   await expect(page.getByLabel('Export preset')).toBeHidden();
@@ -16,7 +17,10 @@ test('keeps desktop editing focused and preserves effects across accessible tabs
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   const timeline = (await page.locator('.timeline').boundingBox())!;
   expect(timeline.y + timeline.height).toBeLessThan(900);
-  await edit.focus(); await edit.press('ArrowRight');
+  await effects.focus(); await effects.press('ArrowRight');
+  await expect(output).toBeFocused();
+  await expect(output).toHaveAttribute('aria-selected', 'true');
+  await output.press('ArrowRight');
   await expect(effects).toBeFocused();
   await expect(effects).toHaveAttribute('aria-selected', 'true');
   await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
@@ -24,15 +28,14 @@ test('keeps desktop editing focused and preserves effects across accessible tabs
   await page.getByLabel('Output format').selectOption('gif');
   await page.getByText('Advanced settings', { exact: true }).click();
   await expect(page.getByLabel('GIF frame rate')).toBeVisible();
-  await edit.click();
-  await expect(page.getByLabel('Playback speed')).toBeHidden();
-  await page.getByRole('button', { name: 'View applied effects: Speed' }).click();
+  await effects.click();
   await expect(page.getByLabel('Playback speed')).toHaveValue('2');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(page.getByLabel('Output format')).toHaveValue('mp4');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
-  await edit.click();
-  await expect(page.getByRole('button', { name: /View applied effects/ })).toHaveCount(0);
+  await effects.click();
+  await expect(page.locator('.effect-stack-heading h3 span')).toHaveText('0');
+  await expect(page.getByLabel('Playback speed')).toHaveValue('1');
   await page.getByLabel('Project tools', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Merge clips', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Merge clips', exact: true }).focus();
@@ -59,7 +62,7 @@ test('supports precise touch seeking and focused tools on narrow screens', async
     await expect(page.getByLabel('Search effects')).toBeVisible();
     await page.getByRole('tab', { name: 'Export', exact: true }).click();
     await expect(page.getByLabel('Export preset')).toBeVisible();
-    await page.getByRole('tab', { name: 'Edit', exact: true }).click();
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
     await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   } finally { await context.close(); }

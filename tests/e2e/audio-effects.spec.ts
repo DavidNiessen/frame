@@ -7,7 +7,7 @@ import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 test('previews and exports browser audio cleanup', async ({ page }, testInfo) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 1);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 1);
   await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Normalize loudness');
 
   await openEffect(page, 'Noise reduction');

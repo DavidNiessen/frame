@@ -1,17 +1,21 @@
+import { openEffect } from '../helpers/effects';
 import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { trim } from '../helpers/timeline';
 test('saves minimum split clips and removes an inherited effect through the native timeline', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-effects-')), executablePath = process.env.FRAME_TEST_EXECUTABLE;
   const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {
     const page = await app.firstWindow(); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
-    await trim(page, 'start', 2.4); await trim(page, 'end', 2.5); await page.getByLabel('Volume', { exact: true }).fill('0.5');
+    await expect(page.getByRole('tab', { name: 'Edit', exact: true })).toHaveCount(0);
+    await openEffect(page, 'Trim'); await page.getByLabel('Seek playhead').fill('2.4'); await page.getByRole('button', { name: 'Set in at playhead' }).click();
+    await page.getByLabel('Seek playhead').fill('2.5'); await page.getByRole('button', { name: 'Set out' }).click();
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '2.4');
+    await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '2.5'); await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5');
     await page.getByLabel('Seek playhead').fill('2.45'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await expect(page.locator('.timeline-clip')).toHaveCount(2);
     await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
-    const destination = join(directory, 'minimum.frame.json'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, destination);
+    const destination = join(directory, 'minimum.frame.json'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); return true; }, destination);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect.poll(() => readFile(destination, 'utf8').then(text => JSON.parse(text).sources[0].edit.clips.length), { timeout: 30000 }).toBe(2);
     await page.getByRole('button', { name: 'Fit', exact: true }).click();

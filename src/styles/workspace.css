@@ -73,15 +73,10 @@
   .timeline-analysis > .button { min-height: 38px; }
   .export-footer { padding: 18px; }
 }
-.applied-effects { display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; padding: 16px 20px; color: var(--accent-text); font-size: 12px; line-height: 1.6; }
-.applied-effects:hover { background: var(--surface-raised); }
-.applied-effects > svg { flex-shrink: 0; }
-.applied-effects small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; }
 
 /* The track is the visual slider; retain a native range for keyboard and assistive technology. */
 .timeline-track .seek-slider { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; opacity: 0; margin: 0; pointer-events: none; }
 .workspace-heading h2 { margin-top: 0; }
-.inspector-scroll [data-tool='edit'] .control-section { padding-top: 14px; padding-bottom: 14px; }
 .crop-presets { margin-bottom: 12px; }
 @media (min-width: 981px) {
   .audio-preview { padding: 0; }

@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { expect, test, _electron } from '@playwright/test';
 import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -13,12 +14,12 @@ test('automatically reopens desktop media and recipes, then clears without resur
   let app = await launch(directory);
   try {
     let page = await app.firstWindow(); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
-    await trim(page, 'start', 1); await trim(page, 'end', 2); await page.getByLabel('Volume', { exact: true }).fill('0.5');
+    await trim(page, 'start', 1); await trim(page, 'end', 2); await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5');
     await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
     await app.close(); app = await launch(directory); page = await app.firstWindow();
-    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1', { timeout: 30000 }); await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '2'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5');
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1', { timeout: 30000 }); await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '2'); await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5');
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4); await expect(page.getByRole('button', { name: 'Recover workspace' })).toHaveCount(0);
-    await page.getByLabel('Volume', { exact: true }).fill('0.3'); await page.getByRole('button', { name: 'Clear media library', exact: true }).click(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
+    await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.3'); await page.getByRole('button', { name: 'Clear media library', exact: true }).click(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
     await app.close(); app = await launch(directory); page = await app.firstWindow(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready'); await expect(page.locator('video')).toHaveCount(0);
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
 });

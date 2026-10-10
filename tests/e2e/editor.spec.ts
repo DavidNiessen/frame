@@ -1,3 +1,4 @@
+import { openEffect } from '../helpers/effects';
 import { trim } from '../helpers/timeline';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
@@ -30,14 +31,14 @@ test('imports, previews, edits, undoes, and exports a real GIF in the browser', 
     const video = node as HTMLVideoElement;
     return { readyState: video.readyState, error: video.error?.message ?? null };
   }), { timeout: 15000 }).toEqual({ readyState: 4, error: null });
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 1);
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 3);
-  await page.getByRole('button', { name: '1:1', exact: true }).click();
-  await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 3);
+  await openEffect(page, 'Crop'); await page.getByRole('button', { name: '1:1', exact: true }).click();
+  await openEffect(page, 'Crop'); await expect(page.getByLabel('Crop width')).toHaveValue('360');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(page.getByLabel('Crop width')).toHaveCount(0);
   await page.getByRole('button', { name: 'Redo edit', exact: true }).click();
-  await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await openEffect(page, 'Crop'); await expect(page.getByLabel('Crop width')).toHaveValue('360');
   await page.getByLabel('Output format').selectOption('gif');
   await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();
   await page.getByLabel('GIF frame rate').fill('10');
@@ -59,8 +60,8 @@ test('imports, previews, edits, undoes, and exports a real GIF in the browser', 
 test('exports every advertised browser output format', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 0.5);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 0.5);
   for (const format of ['mp4', 'webm', 'mov', 'mkv', 'mp3', 'wav', 'flac', 'ogg', 'm4a']) {
     await page.getByLabel('Output format').selectOption(format);
     await page.getByRole('button', { name: `Export ${format.toUpperCase()}`, exact: true }).click();
@@ -80,7 +81,7 @@ test('exports every advertised browser output format', async ({ page }, testInfo
 test('splits, removes a section, and exports the remaining browser timeline', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
   const seek = page.getByLabel('Seek playhead');
   await seek.focus(); await seek.press('Home'); await seek.press('ArrowRight');
   await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight');
@@ -102,6 +103,7 @@ test('splits, removes a section, and exports the remaining browser timeline', as
 });
 test('rejects corrupt imports and recovers with a valid file', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
   await page.getByLabel('Choose media files').setInputFiles({ name: 'broken.mp4', mimeType: 'video/mp4', buffer: Buffer.from('not a media file') });
   await expect(page.getByRole('button', { name: 'Dismiss message' })).toBeVisible();
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveCount(0);
@@ -111,12 +113,12 @@ test('rejects corrupt imports and recovers with a valid file', async ({ page }) 
 test('cancels browser processing and can export again', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
   await page.getByLabel('Output format').selectOption('gif');
   await page.getByRole('button', { name: 'Export GIF', exact: true }).click();
   await page.getByRole('button', { name: 'Cancel export' }).click();
   await expect(page.getByRole('status')).toContainText('Export cancelled.');
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 0.5);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 0.5);
   await page.getByLabel('Output format').selectOption('mp4');
   await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
@@ -141,9 +143,9 @@ test('imports WAV audio and converts it to FLAC', async ({ page }, testInfo) => 
 test('saves a portable project, relinks media after reload, and restores edits with undo', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 1);
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 3);
-  await page.getByRole('button', { name: '1:1', exact: true }).click();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 3);
+  await openEffect(page, 'Crop'); await page.getByRole('button', { name: '1:1', exact: true }).click();
   await page.getByLabel('Output format').selectOption('gif');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save project', exact: true }).click();
@@ -154,6 +156,8 @@ test('saves a portable project, relinks media after reload, and restores edits w
   expect(doc.sources[0].edit.start).toBe(1);
   expect(JSON.stringify(doc)).not.toMatch(/blob:|media:\/\//);
   await page.reload();
+  await expect(page.getByRole('button', { name: 'Clear media library', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Clear media library', exact: true }).click();
   await page.getByLabel('Choose project file').setInputFiles(saved);
   const dialog = page.getByRole('dialog', { name: 'Open project' });
   await expect(dialog.getByRole('button', { name: 'Restore edits' })).toBeDisabled();
@@ -164,7 +168,7 @@ test('saves a portable project, relinks media after reload, and restores edits w
   await dialog.getByRole('button', { name: 'Restore edits' }).click();
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
   await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '3');
-  await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await openEffect(page, 'Crop'); await expect(page.getByLabel('Crop width')).toHaveValue('360');
   await expect(page.getByLabel('Output format')).toHaveValue('gif');
   await page.getByRole('button', { name: 'Undo edit' }).click();
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
@@ -177,12 +181,12 @@ test('saves a portable project, relinks media after reload, and restores edits w
 test('reuses export presets across sessions while preserving source edits', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 1);
-  await page.getByRole('button', { name: '1:1', exact: true }).click();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
+  await openEffect(page, 'Crop'); await page.getByRole('button', { name: '1:1', exact: true }).click();
   await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByLabel('Export preset').selectOption('builtin:small');
-  await page.getByRole('tab', { name: 'Edit', exact: true }).click();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
-  await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await openEffect(page, 'Crop'); await expect(page.getByLabel('Crop width')).toHaveValue('360');
   await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();
   await expect(page.getByLabel('Audio bitrate')).toHaveValue('128');
   await page.getByLabel('Output format').selectOption('mp3');
@@ -191,14 +195,15 @@ test('reuses export presets across sessions while preserving source edits', asyn
   await page.getByLabel('Preset name').fill('Podcast delivery');
   await page.getByRole('button', { name: 'Save settings', exact: true }).click();
   await expect(page.getByLabel('Export preset')).toHaveValue(/^user:/);
+  await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
   await page.reload();
-  await page.getByRole('button', { name: 'Try a sample' }).click();
+  await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByLabel('Export preset').selectOption({ label: 'Podcast delivery' });
   await expect(page.getByLabel('Output format')).toHaveValue('mp3');
   await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();
   await expect(page.getByLabel('Audio bitrate')).toHaveValue('256');
   await expect(page.getByLabel('Include artwork')).toBeChecked();
-  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
   await page.getByRole('button', { name: 'Delete selected preset' }).click();
   await expect(page.getByLabel('Export preset').locator('option').filter({ hasText: 'Podcast delivery' })).toHaveCount(0);
   await expect(page.getByLabel('Output format')).toHaveValue('mp3');

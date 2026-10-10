@@ -30,7 +30,7 @@ for (const width of [1440, 390]) test(`keeps the effect browser available while 
 });
 test('removes effects directly from the timeline and from a persistent collapsible stack', async ({ page }) => {
   await sample(page); await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await page.getByLabel('Effect target').selectOption({ index: 2 });
-  await page.getByLabel('Volume', { exact: true }).fill('0.5'); await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click();
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toBeInViewport(); await page.getByRole('button', { name: 'Volume clip 2', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit Volume', exact: true })).toHaveAttribute('aria-expanded', 'true');
   await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
@@ -43,7 +43,7 @@ test('removes effects directly from the timeline and from a persistent collapsib
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
 });
 test('handles shared effects, isolated resets and clearing clip effects without removing captions', async ({ page }) => {
-  await sample(page); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await sample(page); await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click(); await page.getByRole('button', { name: 'Remove Volume from clip 2', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Volume clip 1', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toHaveCount(0);
   await page.getByLabel('Effect target').selectOption('all'); await openEffect(page, 'Captions'); await page.getByRole('button', { name: 'Add caption', exact: true }).click();

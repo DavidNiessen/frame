@@ -45,7 +45,7 @@ export default function App() {
   const editor = useEditor(); const { theme, setTheme } = useTheme();
   const [workflow, setWorkflow] = useState<'edit' | 'convert'>(() => { try { return localStorage.getItem('frame:workflow') === 'convert' ? 'convert' : 'edit'; } catch { return 'edit'; } });
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('edit');
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('effects');
   const [effectRequest, setEffectRequest] = useState<EffectRequest | null>(null);
   const openTimelineEffect = useCallback((id: EffectRequest['id']) => { setInspectorTab('effects'); setEffectRequest(previous => ({ id, token: (previous?.token ?? 0) + 1 })); }, []);
   const [urlOpen, setUrlOpen] = useState(false);
@@ -87,7 +87,7 @@ export default function App() {
     workspaceBusy: libraryBusy,
     importFiles: () => { changeWorkflow(workflow); onImport(); }, importFolder: () => { changeWorkflow(workflow); onFolder(); }, folderSupported, url: onUrl,
     edit: () => changeWorkflow('edit'), convert: () => changeWorkflow('convert'), settings: () => { mediaRef.current?.pause(); setSettingsOpen(true); }, openProject: () => projectInput.current?.click(),
-    editControls: () => showInspector('edit'), effects: () => showInspector('effects'), exportSettings: () => showInspector('export'),
+    effects: () => showInspector('effects'), exportSettings: () => showInspector('export'),
     contactSheet: () => setSheetOpen(true), scenes: () => setScenesOpen(true), merge: () => setMergeOpen(true), batch: () => setBatchOpen(true),
     waveform: () => { void waves.generate(); }, waveformBusy: !!waves.generatingId, timelineAvailable: !settingsOpen && workflow === 'edit', resetLayout: () => layoutRef.current?.reset(), shortcuts: () => setShortcuts(true),
   });
