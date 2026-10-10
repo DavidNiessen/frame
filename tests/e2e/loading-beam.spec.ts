@@ -15,6 +15,8 @@ test('moves loading light through the footer without shifting layout and respect
     await expect(footer).toHaveAttribute('aria-busy', 'false'); const bounds = await footer.boundingBox();
     await openEffect(page, 'Equalizer'); await page.getByLabel('Equalizer mid', { exact: true }).fill('-6');
     await expect(beam).toHaveAttribute('data-active', 'true');
+    await expect(footer.getByRole('button', { name: 'Keyboard shortcuts' })).toBeHidden();
+    await expect(footer.getByLabel('Autosave status')).toBeHidden();
     await expect(page.locator('progress, [role=progressbar]')).toHaveCount(0);
     const positions = await beam.locator('span').evaluate(async node => {
       const positions: string[] = [];
@@ -26,6 +28,7 @@ test('moves loading light through the footer without shifting layout and respect
     await page.emulateMedia({ reducedMotion: 'reduce' }); await expect(beam.locator('span')).toHaveCSS('animation-name', 'none');
     await page.getByRole('button', { name: 'Remove Equalizer', exact: true }).click();
     await expect(footer).toHaveAttribute('aria-busy', 'false'); await expect(beam).toHaveAttribute('data-active', 'false');
+    await expect(footer.getByRole('button', { name: 'Keyboard shortcuts' })).toBeVisible();
   } finally { release(); }
 });
 test('keeps export progress and cancellation in the bottom island at desktop and mobile sizes', async ({ page }, testInfo) => {
@@ -46,10 +49,16 @@ test('keeps export progress and cancellation in the bottom island at desktop and
     await footer.scrollIntoViewIfNeeded();
     await expect(footer.getByRole('button', { name: 'Cancel export' })).toBeInViewport();
     await expect(footer.locator('.footer-task-percent')).toBeInViewport();
+    const island = (await footer.boundingBox())!, activity = (await footer.getByRole('status').boundingBox())!;
+    expect(Math.abs(activity.x + activity.width / 2 - island.x - island.width / 2)).toBeLessThan(1.5);
+    await expect(footer.getByRole('status')).toHaveCSS('font-size', '12px');
+    await expect(footer.getByRole('button', { name: 'Keyboard shortcuts' })).toBeHidden();
+    await expect(footer.getByLabel('Autosave status')).toBeHidden();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.screenshot({ path: 'test-results/browser/footer-export-mobile.png', fullPage: true });
   await footer.getByRole('button', { name: 'Cancel export' }).click();
   await expect(footer).toHaveAttribute('aria-busy', 'false');
   await expect(footer.getByRole('status')).toContainText('All processing happens on your device');
+  await expect(footer.getByRole('button', { name: 'Keyboard shortcuts' })).toBeVisible();
 });

@@ -10,6 +10,6 @@ export function ActivityStatus() {
       {task?.message && task.message !== task.label && <span className="footer-task-detail">{task.message}</span>}
       {percent !== null && <span className="footer-task-percent">{percent}%</span>}
     </span>
-    {task?.cancel && <button className="footer-cancel" onClick={task.cancel}><X size={13} />{task.cancelLabel || 'Cancel'}</button>}
+    {task?.cancel && <button className="footer-cancel" aria-label={task.cancelLabel || 'Cancel'} title={task.cancelLabel || 'Cancel'} onClick={task.cancel}><X size={14} /><span className="footer-cancel-label">{task.cancelLabel || 'Cancel'}</span></button>}
   </div>;
 }

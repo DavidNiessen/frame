@@ -73,6 +73,10 @@ test('collapses real conversion to progress, expands and cancels without closing
     await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height)).toBe(740);
     await expect(page.locator('.mini-footer .footer-activity')).toContainText('Converting files');
     await expect(page.locator('.mini-footer .footer-task-percent')).toHaveText(/\d+%/);
+    await expect(page.locator('.mini-footer').getByRole('button', { name: 'Add files' })).toBeHidden();
+    await expect(page.locator('.mini-footer').getByRole('button', { name: 'Add folder' })).toBeHidden();
+    const footer = (await page.locator('.mini-footer').boundingBox())!, activity = (await page.locator('.mini-footer .footer-activity').boundingBox())!;
+    expect(Math.abs(activity.x + activity.width / 2 - footer.x - footer.width / 2)).toBeLessThan(1.5);
     await expect(page.locator('.mini-footer').getByRole('button', { name: 'Cancel conversion' })).toBeVisible();
     await page.getByRole('button', { name: 'Cancel conversion' }).click();
     await expect(page.getByRole('button', { name: 'Retry unfinished files' })).toBeEnabled();
