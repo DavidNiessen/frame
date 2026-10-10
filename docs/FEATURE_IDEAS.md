@@ -12,7 +12,7 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Loop sequence or selected clip | Review short edits without repeatedly restarting | Implemented |
 | Frame stepping and precise time navigation | Inspect cut points with keyboard or transport controls | Implemented |
 | Reusable effect settings | Copy effects between clips and save favorite recipes | Implemented |
-| Caption find and replace | Correct repeated words across caption sets | Planned |
+| Caption find and replace | Correct repeated words across caption sets | Implemented |
 | Source media information | Inspect codecs, frame rate and audio properties | Implemented |
 | Contact-sheet export | Share a quick visual overview of a video | Backlog |
 | Desktop watch folders | Convert newly added files automatically | Backlog |
