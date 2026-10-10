@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  watchFoldersStatus: () => ipcRenderer.invoke('watch:status'),
+  chooseWatchFolders: () => ipcRenderer.invoke('watch:choose'),
+  addWatchFolder: draft => ipcRenderer.invoke('watch:add', draft),
+  setWatchFolderEnabled: (id, enabled) => ipcRenderer.invoke('watch:enabled', id, enabled),
+  removeWatchFolder: id => ipcRenderer.invoke('watch:remove', id),
+  retryWatchFolder: id => ipcRenderer.invoke('watch:retry', id),
+  openWatchFolderOutput: id => ipcRenderer.invoke('watch:open', id),
   notificationPreference: () => ipcRenderer.invoke('desktop:notification-preference'),
   setCompletionNotifications: enabled => ipcRenderer.invoke('desktop:set-notifications', enabled),
   notifyCompletion: summary => ipcRenderer.invoke('desktop:notify-completion', summary),

@@ -4,6 +4,7 @@ import type { ShellIntegrationStatus } from '../../core/system-integration';
 import type { Theme } from '../../hooks/useTheme';
 import { ThemeChoices } from './ThemeChoices';
 import { CompletionNotifications } from './CompletionNotifications';
+import { WatchFolders } from './WatchFolders';
 import { CertificateTrust } from './CertificateTrust';
 
 const webStatus: ShellIntegrationStatus = { platform: 'web', available: false, state: 'not-installed', detail: 'Available in the desktop app. Browsers cannot add actions to your file manager.' };
@@ -51,6 +52,7 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
       <label className="switch-row settings-preference"><span>Generate audio waveforms automatically<small id="waveform-preference-description">Show audio peaks when you select a track. Turn off to skip automatic analysis; you can still generate a waveform from the timeline.</small></span><input type="checkbox" checked={autoWaveforms} onChange={event => setAutoWaveforms(event.target.checked)} aria-label="Generate audio waveforms automatically" aria-describedby="waveform-preference-description" /></label>
     </section>
     <CompletionNotifications />
+    <WatchFolders />
     <section className="settings-card" aria-labelledby="integration-heading">
       <div className="settings-section-heading"><FolderOpen size={19} /><div><h2 id="integration-heading">File-manager actions</h2><p>Start editing or converting directly from your files.</p></div><span className={`integration-badge ${installed ? 'installed' : ''}`}>{pending === 'checking' ? 'Checking…' : !status ? 'Status unavailable' : !status.available ? status.platform === 'web' ? 'Desktop only' : 'Unavailable' : installed ? 'Installed' : partial ? 'Needs repair' : 'Not installed'}</span></div>
       <p className="integration-detail">{status?.detail || 'Refresh to check your file-manager actions.'}</p>

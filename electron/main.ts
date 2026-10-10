@@ -1,4 +1,5 @@
 import { configureCompletionNotifications } from './completion-notifications';
+import { configureWatchFolders } from './watch-folders';
 import { app, BrowserWindow, ipcMain, protocol, screen, type IpcMainInvokeEvent, type IpcMainEvent } from 'electron';
 import { join } from 'node:path';
 import { mediaResponse } from './media-response';
@@ -18,6 +19,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard:
 const windows = new Map<WindowKind, BrowserWindow>(), sessions = new Map<number, MediaSession>();
 const creating = new Set<WindowKind>(), router = new WindowIpcRouter();
 let desktopReady = false, lastClosed: WindowKind = 'editor';
+let stopWatchFolders = () => {};
 const shellCommand = shellStartupCommand(process.argv);
 const ownsInstance = !!shellCommand || app.requestSingleInstanceLock();
 if (!ownsInstance) app.quit();
@@ -78,6 +80,7 @@ if (ownsInstance && !shellCommand) {
 app.whenReady().then(() => {
   if (!ownsInstance || configureSystemIntegration(shellCommand, trusted)) return;
   configureCompletionNotifications(trusted);
+  stopWatchFolders = configureWatchFolders(trusted);
   protocol.handle('media', request => {
     const url = new URL(request.url), id = url.pathname.slice(1);
     for (const session of sessions.values()) {
@@ -96,4 +99,4 @@ app.whenReady().then(() => {
   app.on('activate', () => { if (!windows.size) openWindow('editor'); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin' || lastClosed === 'mini') app.quit(); });
-app.on('before-quit', () => { for (const session of sessions.values()) session.clear(); });
+app.on('before-quit', () => { stopWatchFolders(); for (const session of sessions.values()) session.clear(); });

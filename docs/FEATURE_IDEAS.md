@@ -15,7 +15,7 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Caption find and replace | Correct repeated words across caption sets | Implemented |
 | Source media information | Inspect codecs, frame rate and audio properties | Implemented |
 | Contact-sheet export | Share a quick visual overview of a video | Implemented |
-| Desktop watch folders | Convert newly added files automatically | Backlog |
+| Desktop watch folders | Convert newly added files automatically | Implemented |
 | Export completion notifications | Know when long jobs finish while working elsewhere | Implemented |
 | Multi-track music and voiceover | Mix additional audio with video | Backlog |
 | Scene-change detection | Find likely cut points automatically | Implemented |

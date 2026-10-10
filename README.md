@@ -235,3 +235,5 @@ Desktop completion notifications report saved exports, merges and batches while 
 Project tools → Find scene changes scans source RGB frames locally on desktop or web. Adjust the change threshold and minimum gap, review or deselect proposed points, then add markers or split the retained clips in one undoable action. Results are capped at 500 changes, and splits inherit local effects.
 
 Audio cleanup effects include full edited-audio loudness measurement: integrated LUFS, loudness range, and true peak with headroom/clipping guidance. Measurements include cuts, ordered clip effects, speed and fades, are available on desktop and web, and reset after edits so stale readings are not shown.
+
+Desktop Settings includes watch folders: Frame polls up to 10 input folders while it is open, waits for files to stop changing, and converts them with a chosen output preset. Existing files are skipped by default; enable their conversion during setup if desired. Outputs must be outside the input folder. Pause/resume, explicit retries, preserved subfolders, collision-safe filenames and durable completion records keep ongoing imports manageable.
