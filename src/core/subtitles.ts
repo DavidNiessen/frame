@@ -2,9 +2,10 @@ import { effectiveSpeed } from './effect-instances';
 import { clipPositions } from './clips';
 import { keptRanges } from './timeline';
 import type { EditSettings } from './types';
-/** Percentages of the output frame; the anchor is the caption's bottom center. */
+import { assColor, captionFont, defaultCaptionStyle, parseCaptionStyle, type CaptionStyle } from './caption-style';
+/** Percentages of the output frame; the bottom anchor follows caption alignment. */
 export interface CaptionPosition { x: number; y: number }
-export interface SubtitleCue { start: number; end: number; text: string; position?: CaptionPosition }
+export interface SubtitleCue { start: number; end: number; text: string; position?: CaptionPosition; style?: CaptionStyle }
 export interface Subtitles { mode: 'none' | 'embed' | 'burn'; cues: SubtitleCue[] }
 export const emptySubtitles = (): Subtitles => ({ mode: 'none', cues: [] });
 export function parseSubtitles(value: unknown): Subtitles {
@@ -15,7 +16,8 @@ export function parseSubtitles(value: unknown): Subtitles {
     if (!c || !Number.isFinite(c.start) || !Number.isFinite(c.end) || c.start < 0 || c.end <= c.start || c.end > 86400 || typeof c.text !== 'string' || c.text.length > 2000 || c.text.includes('\0')) throw new Error('Invalid subtitle timing or text.');
     const p = c.position;
     if (p !== undefined && (!p || ![p.x, p.y].every(n => Number.isFinite(n) && n >= 0 && n <= 100))) throw new Error('Invalid caption position.');
-    return { start: c.start, end: c.end, text: c.text, ...(p ? { position: { x: p.x, y: p.y } } : {}) };
+    const style = parseCaptionStyle(c.style);
+    return { start: c.start, end: c.end, text: c.text, ...(p ? { position: { x: p.x, y: p.y } } : {}), ...(style ? { style } : {}) };
   }) };
 }
 function seconds(value: string): number {
@@ -62,11 +64,15 @@ export function serializeCaptionAss(cues: SubtitleCue[], { width, height }: { wi
     const cs = Math.round(time * 100);
     return `${Math.floor(cs / 360000)}:${String(Math.floor(cs / 6000) % 60).padStart(2, '0')}:${String(Math.floor(cs / 100) % 60).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}`;
   };
-  const events = cues.map(c => {
+  const styles = cues.map((cue, index) => {
+    const style = cue.style ?? defaultCaptionStyle, size = width * style.size / 100;
+    return `Style: Caption${index},${captionFont(style).family},${size},${assColor(style.color)},${assColor(style.outline ? style.outlineColor : style.background, style.outline ? 1 : style.backgroundOpacity)},${assColor(style.background, style.backgroundOpacity)},${style.bold ? -1 : 0},${style.italic ? -1 : 0},${style.outline ? 4 : 3},${style.outline ? size * .08 : 3},0,${style.align === 'left' ? 1 : style.align === 'right' ? 3 : 2},${width * .05},${width * .05},${height * .08},1`;
+  });
+  const events = cues.map((c, index) => {
     const position = c.position ? `{\\pos(${width * c.position.x / 100},${height * c.position.y / 100})}` : '';
     const text = c.text.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}').replace(/\r/g, '').replace(/\n/g, '\\N');
-    return `Dialogue: 0,${assStamp(c.start)},${assStamp(c.end)},Default,${position}${text}`;
+    return `Dialogue: 0,${assStamp(c.start)},${assStamp(c.end)},Caption${index},${position}${text}`;
   });
-  return `[Script Info]\nScriptType: v4.00+\nPlayResX: ${width}\nPlayResY: ${height}\nWrapStyle: 0\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,DejaVu Sans,${width * .035},&H00FFFFFF,&H66000000,&H66000000,3,3,0,2,${width * .05},${width * .05},${height * .08},1\n[Events]\nFormat: Layer, Start, End, Style, Text\n${events.join('\n')}\n`;
+  return `[Script Info]\nScriptType: v4.00+\nPlayResX: ${width}\nPlayResY: ${height}\nWrapStyle: 0\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n${styles.join('\n')}\n[Events]\nFormat: Layer, Start, End, Style, Text\n${events.join('\n')}\n`;
 }
 export const subtitleCodec = (format: string) => ({ mp4: 'mov_text', mov: 'mov_text', mkv: 'srt', webm: 'webvtt' }[format]);

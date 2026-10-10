@@ -29,7 +29,7 @@ test('moves captions with one undo per drag, keyboard nudges and saved project p
   await drag(page, 60, -60); await page.mouse.up();
   const moved = (await caption.boundingBox())!;
   expect(moved.x - initial.x).toBeCloseTo(60, 0); expect(moved.y - initial.y).toBeCloseTo(-60, 0);
-  await openEffect(page, 'Captions'); await expect(page.getByRole('button', { name: 'Reset caption 1 position' })).toBeVisible(); await closeEffect(page);
+  await openEffect(page, 'Captions'); await expect(page.getByRole('button', { name: 'Reset caption position' })).toBeVisible(); await closeEffect(page);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(caption).not.toHaveClass(/positioned/);
   await page.getByRole('button', { name: 'Redo edit', exact: true }).click();
@@ -50,9 +50,9 @@ test('moves captions with one undo per drag, keyboard nudges and saved project p
   expect(await caption.evaluate(node => Number.parseFloat((node as HTMLElement).style.top))).toBe(position.y);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openEffect(page, 'Captions');
-  await page.getByRole('button', { name: 'Reset caption 1 position' }).click();
+  await page.getByRole('button', { name: 'Reset caption position' }).click();
   await expect(caption).not.toHaveClass(/positioned/);
-  await page.getByLabel('Subtitle export').selectOption('embed'); await expect(caption).toBeDisabled();
+  await page.getByLabel('Caption export').selectOption('embed'); await expect(caption).toBeDisabled();
 });
 
 test('supports touch placement, clamps captions inside the frame and cancels interrupted gestures', async ({ browser, baseURL }) => {
@@ -83,11 +83,12 @@ test('supports touch placement, clamps captions inside the frame and cancels int
 test('burns the moved caption at the selected position with browser FFmpeg', async ({ page }, testInfo) => {
   const input = testInfo.outputPath('black.mp4');
   await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'color=black:s=360x240:d=0.5', input]);
-  await page.goto('/'); await page.getByLabel('Choose media files').setInputFiles(input);
+  await page.goto('/'); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
+  await page.getByLabel('Choose media files').setInputFiles(input);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openEffect(page, 'Captions');
 
-  await page.getByLabel('Subtitle 1 text').fill('PLACED');
+  await page.getByLabel('Caption text', { exact: true }).fill('PLACED');
   await page.evaluate(() => document.fonts.ready);
   const frame = (await page.locator('.caption-preview').boundingBox())!;
   await drag(page, -frame.width * .25, -frame.height * .6); await page.mouse.up();

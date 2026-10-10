@@ -6,6 +6,7 @@ import type { EffectId } from './effect-ids';
 /** The first instance uses legacy recipe fields; additional instances own their parameters. */
 export interface EffectInstance { id: string; effect: EffectId; settings: Partial<EditSettings> }
 export const instanceLimit = 128;
+export const captionLimit = 1000;
 export const definitionFor = (id: EffectId) => effectLibrary.find(effect => effect.id === id)!;
 export const extraInstances = (edit: Pick<EditSettings, 'effectInstances'>, id?: EffectId) => (edit.effectInstances ?? []).filter(instance => !id || instance.effect === id);
 export const primaryPresent = (edit: EditSettings, asset: MediaAsset, id: EffectId) => !!edit.addedEffects?.includes(id) || effectActive(definitionFor(id), edit, asset);

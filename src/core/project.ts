@@ -1,4 +1,5 @@
 import { parseEffectInstances } from './effect-instance-validation';
+import { individualCaptionEffects } from './caption-effects';
 import { allAudioLayers } from './effect-instances';
 import { parseSilence, defaultSilence } from './silence';
 import { parseAddedEffects } from './effect-ids';
@@ -85,7 +86,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     });
   }
   validateEdit(asset, edit);
-  return edit;
+  return individualCaptionEffects(edit);
 }
 export function parseProject(value: unknown): ProjectDocument {
   const doc = record(value);

@@ -41,10 +41,10 @@ test('adds multiple captions at the playhead and adjusts their own text and posi
   await page.getByLabel('Seek playhead').fill('1'); await page.getByRole('button', { name: 'Add Captions', exact: true }).click();
   await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Add Captions', exact: true }).click();
   await page.getByRole('button', { name: 'Caption 2', exact: true }).click(); await expect(page.getByRole('button', { name: 'Add caption', exact: true })).toHaveCount(0);
-  await page.getByLabel('Subtitle 1 text', { exact: true }).fill('Second caption'); await closeEffect(page);
+  await page.getByLabel('Caption text', { exact: true }).fill('Second caption'); await closeEffect(page);
   const movable = page.getByRole('button', { name: 'Move caption 2', exact: true }); await expect(movable).toHaveText('Second caption');
   await movable.focus(); await movable.press('ArrowUp');
-  await page.getByRole('button', { name: 'Caption 1', exact: true }).click(); await expect(page.getByLabel('Subtitle 1 text', { exact: true })).toHaveValue('New caption'); await closeEffect(page);
+  await page.getByRole('button', { name: 'Caption 1', exact: true }).click(); await expect(page.getByLabel('Caption text', { exact: true })).toHaveValue('New caption'); await closeEffect(page);
   await page.getByRole('button', { name: 'Remove caption 1', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Caption 1', exact: true })).toHaveText('Second caption');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Caption 2', exact: true })).toHaveText('Second caption');

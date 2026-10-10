@@ -16,6 +16,7 @@ import type { DesktopLaunchRequest } from '../core/launch';
 import type { ShellIntegrationStatus } from '../core/system-integration';
 import type { WindowAction, WindowState } from '../core/window-controls';
 export interface DesktopBridge extends ExportHistoryBridge {
+  installedFonts(): Promise<string[]>;
   saveWorkspace(document: import('../core/autosave').AutosaveDocument, assetIds: string[]): Promise<void>;
   recoverWorkspace(): Promise<import('../core/workspace-recovery').WorkspaceRecovery | null>;
   discardWorkspace(): Promise<void>;

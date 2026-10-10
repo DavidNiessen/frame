@@ -54,7 +54,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.getByLabel('Remove silent section 1')).toBeVisible();
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
 
-    await page.getByLabel('Subtitle 1 text').fill('Portable caption');
+    await page.getByLabel('Caption text', { exact: true }).fill('Portable caption');
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.fonts.check('12px "Frame Captions"'))).toBe(true);
     const caption = page.getByRole('button', { name: 'Move caption 1', exact: true });
@@ -75,7 +75,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
     await expect(page.getByText('Export ready', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Dismiss export result' }).click();
-    await openEffect(page, 'Captions'); await page.getByLabel('Subtitle export').selectOption('none');
+    await openEffect(page, 'Captions'); await page.getByLabel('Caption export').selectOption('none');
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 2);
     const projectPath = join(directory, 'edit.frame.json');

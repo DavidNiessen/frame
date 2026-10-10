@@ -1,20 +1,16 @@
-import { CaptionFindReplace } from './CaptionFindReplace';
-import { useRef, useState } from 'react';
-import { importSubtitles, outputCues, serializeSrt } from '../core/subtitles';
 import type { EditSettings } from '../core/types';
-export function SubtitleControls({ edit, update, expanded = false }: { expanded?: boolean; edit: EditSettings; update: (patch: Partial<EditSettings>) => void }) {
-  const input = useRef<HTMLInputElement>(null); const [error, setError] = useState(''), [page, setPage] = useState(0); const s = edit.subtitles;
-  const pageSize = 30, pages = Math.max(1, Math.ceil(s.cues.length / pageSize)), currentPage = Math.min(page, pages - 1);
-  const change = (index: number, patch: Partial<typeof s.cues[number]>) => update({ subtitles: { ...s, cues: s.cues.map((c, i) => i === index ? { ...c, ...patch } : c) } });
-  return <details className="advanced" open={expanded || undefined}><summary>Subtitles</summary><div className="advanced-content">
-    <input ref={input} type="file" accept=".srt,.vtt" hidden aria-label="Import subtitle file" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; void file.text().then(text => { update({ subtitles: importSubtitles(text) }); setPage(0); setError(''); }).catch(e => setError(e.message)); }} />
-    <button className="button subtle small" onClick={() => input.current?.click()}>Import SRT / VTT</button>
-    <label className="stacked-label">Subtitle export<select value={s.mode} onChange={e => update({ subtitles: { ...s, mode: e.target.value as typeof s.mode } })}><option value="none">Off</option><option value="burn">Burn into video</option><option value="embed">Embed selectable captions</option></select></label>
-    {s.cues.length > 0 && <CaptionFindReplace subtitles={s} change={subtitles => update({ subtitles })} jump={index => { setPage(Math.floor(index / pageSize)); setTimeout(() => document.querySelector<HTMLTextAreaElement>(`textarea[aria-label="Subtitle ${index + 1} text"]`)?.focus(), 0); }} />}
-    <div className="cue-list">{s.cues.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map((c, row) => { const i = currentPage * pageSize + row; return <div className="cue" key={i}><span className="cue-timing">Caption {i + 1} · {c.start.toFixed(2)}–{c.end.toFixed(2)}s</span><textarea aria-label={`Subtitle ${i + 1} text`} maxLength={2000} value={c.text} onChange={e => change(i, { text: e.target.value })} />{c.position && <button className="button subtle small" onClick={() => change(i, { position: undefined })}>Reset caption {i + 1} position</button>}<button className="button subtle small" onClick={() => update({ subtitles: { ...s, cues: s.cues.filter((_, j) => i !== j) } })}>Remove cue {i + 1}</button></div>; })}</div>
-    {pages > 1 && <div className="caption-pagination"><button className="button subtle small" disabled={!currentPage} onClick={() => setPage(currentPage - 1)}>Previous captions</button><span>{currentPage + 1} / {pages}</span><button className="button subtle small" disabled={currentPage >= pages - 1} onClick={() => setPage(currentPage + 1)}>Next captions</button></div>}
-    {s.cues.length > 0 && <button className="button subtle small" onClick={() => { const url = URL.createObjectURL(new Blob([serializeSrt(outputCues(edit))], { type: 'text/plain' })); const a = document.createElement('a'); a.href = url; a.download = 'captions.srt'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 10000); }}>Save output SRT</button>}
-    <p className="field-note">Drag captions in the preview to place them. Arrow keys nudge; Shift moves faster. Placement applies to burned-in captions. Selectable captions and SRT files use the player's layout.</p>
-    <p className="field-note">Drag caption bar edges above the timeline to adjust timing. Cue times refer to the source. Trimming, removed sections and speed changes adjust export timing automatically. Embedded captions require MP4, MOV, MKV or WebM.</p>{error && <p role="alert">{error}</p>}
-  </div></details>;
+import { CaptionStyleControls } from './CaptionStyleControls';
+export function SubtitleControls({ edit, update }: { edit: EditSettings; update: (patch: Partial<EditSettings>) => void }) {
+  const subtitles = edit.subtitles, cue = subtitles.cues[0];
+  if (!cue) return null;
+  const change = (patch: Partial<typeof cue>) => update({ subtitles: { ...subtitles, cues: [{ ...cue, ...patch }] } });
+  return <section className="control-section caption-settings">
+    <label className="stacked-label">Caption text<textarea aria-label="Caption text" maxLength={2000} value={cue.text} onChange={event => change({ text: event.target.value })} /></label>
+    <span className="cue-timing">{cue.start.toFixed(2)}–{cue.end.toFixed(2)}s</span>
+    <p className="field-note">Drag this caption’s bar or its edges in the timeline to adjust timing.</p>
+    <label className="stacked-label">Caption export<select value={subtitles.mode} onChange={event => update({ subtitles: { ...subtitles, mode: event.target.value as typeof subtitles.mode } })}><option value="none">Off</option><option value="burn">Burn into video</option><option value="embed">Embed selectable captions</option></select></label>
+    {cue.position && <button className="button subtle small" onClick={() => change({ position: undefined })}>Reset caption position</button>}
+    <CaptionStyleControls value={cue.style} change={style => change({ style })} selectable={subtitles.mode === 'embed'} />
+    <p className="field-note">Drag this caption in the preview to place it. Arrow keys nudge; Shift moves faster. Selectable captions use the player’s layout and require MP4, MOV, MKV or WebM.</p>
+  </section>;
 }

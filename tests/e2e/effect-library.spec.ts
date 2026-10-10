@@ -1,4 +1,4 @@
-import { closeEffect, openEffect } from '../helpers/effects';
+import { closeEffect, openEffect, openCaptionTools } from '../helpers/effects';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -8,13 +8,13 @@ const exec = promisify(execFile);
 test('keeps the opposite caption boundary when resizing a cue that spans split clips', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openCaptionTools(page);
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'spanning.srt', mimeType: 'text/plain', buffer: Buffer.from('1\n00:00:01,000 --> 00:00:05,000\nAcross both clips\n') });
   await page.locator('.timeline-track-filters').getByRole('button', { name: 'captions', exact: true }).click();
   await page.getByLabel('Caption 1 start', { exact: true }).first().press('Shift+ArrowRight');
-  await openEffect(page, 'Captions'); await expect(page.locator('.cue-timing')).toHaveText('Caption 1 · 1.10–5.00s');
+  await openEffect(page, 'Captions'); await expect(page.locator('.cue-timing')).toHaveText('1.10–5.00s');
   await page.getByLabel('Caption 1 end', { exact: true }).last().press('Shift+ArrowLeft');
-  await openEffect(page, 'Captions'); await expect(page.locator('.cue-timing')).toHaveText('Caption 1 · 1.10–4.90s');
+  await openEffect(page, 'Captions'); await expect(page.locator('.cue-timing')).toHaveText('1.10–4.90s');
 });
 
 test('plays reordered clips across the source end and restarts at the sequence beginning', async ({ page }) => {
@@ -81,7 +81,7 @@ test('keeps waveform generation and cancellation independent of editing and expo
 
 test('navigates dense tracks without losing clips and pans the overview independently', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openCaptionTools(page);
   const srt = Array.from({ length: 35 }, (_, index) => `${index + 1}\n00:00:00,000 --> 00:00:05,000\nCaption ${index + 1}\n`).join('\n');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'dense.srt', mimeType: 'text/plain', buffer: Buffer.from(srt) });
   await closeEffect(page);

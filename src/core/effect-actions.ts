@@ -1,4 +1,4 @@
-import { definitionFor, extraInstances, instanceLimit, newInstance, primaryPresent } from './effect-instances';
+import { captionLimit, definitionFor, extraInstances, instanceLimit, newInstance, primaryPresent } from './effect-instances';
 import { clipRecipe, editClips, patchClip } from './clips';
 import { availableEffects, resetEffect, type EffectDefinition } from './effect-library';
 import { type EffectId } from './effect-ids';
@@ -14,7 +14,10 @@ export function effectAction(edit: EditSettings, asset: MediaAsset, effect: Effe
   const instanceId = action === 'add' ? crypto.randomUUID() : '';
   function patch(recipe: EditSettings): Partial<EditSettings> {
     if (action === 'add') {
-      if (extraInstances(recipe).length >= instanceLimit) throw new Error(`Use up to ${instanceLimit} effects per target.`);
+      if (effect.id === 'captions') {
+        const count = recipe.subtitles.cues.length + extraInstances(recipe, 'captions').reduce((sum, instance) => sum + (instance.settings.subtitles?.cues.length ?? 0), 0);
+        if (count >= captionLimit) throw new Error(`Use up to ${captionLimit.toLocaleString('en-US')} captions per source.`);
+      } else if (extraInstances(recipe).filter(instance => instance.effect !== 'captions').length >= instanceLimit) throw new Error(`Use up to ${instanceLimit} effects per target.`);
       const instance = newInstance(recipe, asset, effect.id, instanceId, current);
       if (primaryPresent(recipe, asset, effect.id)) return { effectInstances: [...extraInstances(recipe), instance] };
       return { ...instance.settings, addedEffects: membership(recipe, effect, action) };

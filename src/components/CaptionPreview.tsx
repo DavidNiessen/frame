@@ -2,6 +2,7 @@ import { captionItems, changeCaption } from '../core/caption-items';
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { CaptionPosition, SubtitleCue } from '../core/subtitles';
 import type { EditSettings, MediaAsset } from '../core/types';
+import { defaultCaptionStyle, captionFont } from '../core/caption-style';
 
 type Gesture = { id: number; x: number; y: number; position: CaptionPosition; next: CaptionPosition; moved: boolean };
 function MovableCaption({ cue, index, disabled, pause, change }: {
@@ -11,6 +12,7 @@ function MovableCaption({ cue, index, disabled, pause, change }: {
   const gesture = useRef<Gesture | null>(null);
   const [draft, setDraft] = useState<CaptionPosition | null>(null);
   const position = draft ?? cue.position;
+  const style = cue.style ?? defaultCaptionStyle;
   function cancel() { gesture.current = null; setDraft(null); }
   useEffect(cancel, [cue, disabled]);
   function bounds() {
@@ -20,13 +22,15 @@ function MovableCaption({ cue, index, disabled, pause, change }: {
   }
   function anchor(): CaptionPosition {
     const { frame, text } = bounds();
-    return { x: (text.x + text.width / 2 - frame.x) / frame.width * 100, y: (text.bottom - frame.y) / frame.height * 100 };
+    return { x: ((style.align === 'left' ? text.x : style.align === 'right' ? text.right : text.x + text.width / 2) - frame.x) / frame.width * 100, y: (text.bottom - frame.y) / frame.height * 100 };
   }
   function clamp(p: CaptionPosition): CaptionPosition {
     const { frame, text } = bounds();
-    const half = Math.min(50, text.width / frame.width * 50), top = Math.min(100, text.height / frame.height * 100);
+    const width = Math.min(100, text.width / frame.width * 100), top = Math.min(100, text.height / frame.height * 100);
+    const min = style.align === 'left' ? 0 : style.align === 'right' ? width : width / 2;
+    const max = style.align === 'left' ? 100 - width : style.align === 'right' ? 100 : 100 - width / 2;
     const round = (n: number) => Math.round(n * 100) / 100;
-    return { x: round(Math.max(half, Math.min(100 - half, p.x))), y: round(Math.max(top, Math.min(100, p.y))) };
+    return { x: round(Math.max(min, Math.min(max, p.x))), y: round(Math.max(top, Math.min(100, p.y))) };
   }
   function start(event: PointerEvent<HTMLButtonElement>) {
     if (disabled || event.button !== 0 || !event.isPrimary) return;
@@ -57,9 +61,13 @@ function MovableCaption({ cue, index, disabled, pause, change }: {
     const p = anchor(), step = event.shiftKey ? 5 : 1;
     change(clamp({ x: p.x + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0), y: p.y + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0) }));
   }
-  return <button ref={button} type="button" className={`caption-position ${position ? 'positioned' : ''} ${draft ? 'dragging' : ''}`} disabled={disabled}
+  return <button ref={button} type="button" className={`caption-position align-${style.align} ${position ? 'positioned' : ''} ${draft ? 'dragging' : ''}`} disabled={disabled}
     aria-label={`Move caption ${index + 1}`} title="Drag to move. Arrow keys nudge; Shift moves faster. Escape cancels."
-    style={position ? { left: `${position.x}%`, top: `${position.y}%` } : undefined}
+    style={{ ...(position ? { left: `${position.x}%`, top: `${position.y}%` } : {}),
+      fontFamily: `${JSON.stringify(captionFont(style).family)}, sans-serif`, fontSize: `${style.size}cqw`, fontWeight: style.bold ? 700 : 400, fontStyle: style.italic ? 'italic' : 'normal', color: style.color, textAlign: style.align,
+      background: `rgba(${[1, 3, 5].map(index => Number.parseInt(style.background.slice(index, index + 2), 16)).join(',')},${style.backgroundOpacity})`,
+      WebkitTextStroke: style.outline ? `.08em ${style.outlineColor}` : undefined, paintOrder: 'stroke fill',
+    }}
     onPointerDown={start} onPointerMove={move} onPointerUp={finish} onPointerCancel={cancel} onLostPointerCapture={cancel} onKeyDown={key}>{cue.text || 'Empty caption'}</button>;
 }
 
@@ -70,7 +78,7 @@ export function CaptionPreview({ asset, edit, current, disabled, pause, update }
   const active = captionItems(edit).map(item => ({ cue: item.cue, mode: item.mode, index: item.index })).filter(({ cue, mode }) => mode !== 'none' && current >= cue.start && current < cue.end);
   const area = crop && asset.width && asset.height ? { left: `${crop.x / asset.width * 100}%`, top: `${crop.y / asset.height * 100}%`, width: `${crop.width / asset.width * 100}%`, height: `${crop.height / asset.height * 100}%` } : undefined;
   return <div className="caption-preview" style={area}><div className="caption-defaults">{active.map(({ cue, mode, index }) =>
-    <MovableCaption key={index} cue={mode === 'embed' ? { ...cue, position: undefined } : cue} index={index} disabled={disabled || mode !== 'burn'} pause={pause}
+    <MovableCaption key={index} cue={mode === 'embed' ? { ...cue, position: undefined, style: undefined } : cue} index={index} disabled={disabled || mode !== 'burn'} pause={pause}
       change={position => update(changeCaption(edit, captionItems(edit)[index], { position }))} />
   )}</div></div>;
 }

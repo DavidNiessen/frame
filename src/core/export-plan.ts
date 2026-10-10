@@ -1,5 +1,5 @@
 import { parseEffectInstances } from './effect-instance-validation';
-import { allAudioLayers, effectiveSpeed } from './effect-instances';
+import { allAudioLayers, captionLimit, effectiveSpeed, extraInstances } from './effect-instances';
 import { parseSilence, defaultSilence } from './silence';
 import { parseAddedEffects } from './effect-ids';
 import { parseCoverArtwork } from './cover-art';
@@ -28,6 +28,8 @@ import type { EditSettings, MediaAsset } from './types';
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   parseAddedEffects(edit.addedEffects);
   parseEffectInstances(edit.effectInstances, asset, recipe => validateEdit(asset, recipe));
+  parseSubtitles(edit.subtitles);
+  if (edit.subtitles.cues.length + extraInstances(edit, 'captions').reduce((sum, instance) => sum + (instance.settings.subtitles?.cues.length ?? 0), 0) > captionLimit) throw new Error('Use up to 1,000 captions per source.');
   parseSilence(edit.silenceOptions ?? defaultSilence);
   if (edit.audioDucking !== undefined && typeof edit.audioDucking !== 'boolean') throw new Error('Invalid music ducking setting.');
   parseAudioLayers(allAudioLayers(edit)); if (edit.audioMixProtectPeaks !== undefined && typeof edit.audioMixProtectPeaks !== 'boolean') throw new Error('Invalid audio mix protection setting.');

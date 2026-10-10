@@ -14,7 +14,7 @@ test('edits, saves and exports independent effects with the portable desktop eng
     await page.getByRole('button', { name: 'Volume clip 1', exact: true }).click(); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await closeEffect(page);
     await page.getByRole('button', { name: 'Volume instance 2 clip 1', exact: true }).click(); await page.getByLabel('Volume', { exact: true }).fill('0.4'); await expect(page.locator('video')).toHaveJSProperty('volume', .2); await closeEffect(page);
     await page.getByRole('button', { name: 'Add Captions', exact: true }).click(); await page.getByRole('button', { name: 'Add Captions', exact: true }).click();
-    await page.getByRole('button', { name: 'Caption 2', exact: true }).click(); await page.getByLabel('Subtitle 1 text').fill('Second caption'); await closeEffect(page);
+    await page.getByRole('button', { name: 'Caption 2', exact: true }).click(); await page.getByLabel('Caption text', { exact: true }).fill('Second caption'); await closeEffect(page);
     const project = join(directory, 'instances.frame.json'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, project);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect.poll(() => readFile(project, 'utf8').then(text => JSON.parse(text).sources[0].edit.effectInstances.length)).toBe(2);

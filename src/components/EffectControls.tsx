@@ -14,7 +14,7 @@ import { editedDuration } from '../core/timeline';
 export function EffectControls({ effect, editor, current, seek }: { effect: EffectDefinition; editor: Editor; current: number; seek: (time: number) => void }) {
   const scoped: Editor = { ...editor, edit: editor.scopedEdit, update: editor.updateClip }, edit = scoped.edit!, asset = editor.asset!;
   return <div className="effect-editor">
-    {effect.scope === 'source' && <p className="effect-target-note">{effect.id === 'mix' ? 'Output timeline · tracks stay in place when clips move.' : 'Source-wide · timing follows clips when reordered.'}</p>}
+    {effect.scope === 'source' && effect.id !== 'captions' && <p className="effect-target-note">{effect.id === 'mix' ? 'Output timeline · tracks stay in place when clips move.' : 'Source-wide · timing follows clips when reordered.'}</p>}
     {effect.id === 'mix' && <AudioMixControls editor={editor} current={current} />}
     {effect.id === 'volume' && <VolumeControls asset={asset} edit={edit} update={scoped.update} />}
     {effect.id === 'speed' && <SpeedControls edit={edit} update={scoped.update} />}
@@ -23,7 +23,7 @@ export function EffectControls({ effect, editor, current, seek }: { effect: Effe
     {effect.id === 'color' && <ColorControls editor={scoped} current={current} expanded />}
     {effect.id === 'crop' && <CropControls asset={asset} edit={edit} update={scoped.update} />}
     {effect.id === 'transform' && <GeometryControls asset={asset} edit={edit} update={scoped.update} expanded />}
-    {effect.id === 'captions' && <SubtitleControls expanded edit={editor.edit!} update={editor.update} />}
+    {effect.id === 'captions' && <SubtitleControls edit={editor.edit!} update={editor.update} />}
     {effect.id === 'watermark' && <OverlayControls expanded edit={editor.edit!} update={editor.update} />}
     {effect.id === 'silence' && <SilenceControls expanded editor={editor} seek={seek} />}
   </div>;

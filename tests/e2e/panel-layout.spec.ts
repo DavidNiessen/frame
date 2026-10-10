@@ -1,4 +1,4 @@
-import { closeEffect, openEffect } from '../helpers/effects';
+import { closeEffect, openEffect, openCaptionTools } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 
 async function sample(page: Page) {
@@ -8,7 +8,7 @@ async function sample(page: Page) {
 }
 async function crowdedTimeline(page: Page) {
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await openEffect(page, 'Captions');
+  await openCaptionTools(page);
   const srt = Array.from({ length: 40 }, (_, index) => `${index + 1}\n00:00:00,500 --> 00:00:05,500\nCaption ${index + 1}\n`).join('\n');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'crowded.srt', mimeType: 'text/plain', buffer: Buffer.from(srt) });
   await expect(page.locator('.caption-lane')).toHaveCount(40);

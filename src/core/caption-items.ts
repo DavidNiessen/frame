@@ -9,5 +9,6 @@ export function changeCaption(edit: EditSettings, item: ReturnType<typeof captio
   const subtitles = sourceRecipes(edit, 'captions').find(recipe => recipe.id === item.instanceId)!.recipe.subtitles;
   const cues = subtitles.cues.flatMap((cue, index) => index !== item.localIndex ? [cue] : patch === 'remove' ? [] : [{ ...cue, ...patch }]);
   const value = { subtitles: { ...subtitles, cues } };
+  if (!cues.length) return item.instanceId ? changeInstance(edit, item.instanceId, null, 'remove') : { subtitles: { mode: 'none', cues: [] }, addedEffects: edit.addedEffects?.filter(id => id !== 'captions') };
   return item.instanceId ? changeInstance(edit, item.instanceId, null, value) : value;
 }

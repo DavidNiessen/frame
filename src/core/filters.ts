@@ -1,8 +1,7 @@
 import { colorFilters } from './color';
 import { frameDimensions, geometryFilters } from './geometry';
 import { overlayFilters } from './overlays';
-import { filterPath, resourcePaths, instancePaths, type RecipeResources } from './resources';
-import { outputCues } from './subtitles';
+import { burnedCues, burnedCaptionPath, filterPath, resourcePaths, instancePaths, type RecipeResources } from './resources';
 import { cleanupFilters } from './audio-effects';
 import { fadeFilters } from './fades';
 import { editedDuration } from './timeline';
@@ -19,11 +18,10 @@ export function videoFilters(asset: MediaAsset, edit: EditSettings, resources: R
   }
   const speed = effectiveSpeed(edit);
   if (speed !== 1) filters.push(`setpts=(PTS-STARTPTS)/${speed}`);
-  if (edit.subtitles.mode === 'burn' && outputCues(edit).length) filters.push(`subtitles=filename=${filterPath(resources.captions)}:fontsdir=${filterPath(resources.fonts)}`);
+  if (burnedCues(edit).length) filters.push(`subtitles=filename=${filterPath(burnedCaptionPath(edit, resources))}:fontsdir=${filterPath(resources.fonts)}`);
   filters.push(...overlayFilters(asset, edit, resources), ...fadeFilters(edit, 'video'));
   for (const instance of extraInstances(edit)) {
     const recipe = instanceRecipe(edit, instance), paths = instancePaths(resources, instance);
-    if (instance.effect === 'captions' && recipe.subtitles.mode === 'burn' && outputCues(recipe).length) filters.push(`subtitles=filename=${filterPath(paths.captions)}:fontsdir=${filterPath(paths.fonts)}`);
     if (instance.effect === 'watermark') filters.push(...overlayFilters(asset, { ...recipe, crop: null, geometry: { ...recipe.geometry, rotation: 0, resize: { ...frameDimensions(asset, edit), fit: 'stretch' } } }, paths));
     if (instance.effect.startsWith('videoFade')) filters.push(...fadeFilters({ ...recipe, speed }, 'video').filter(filter => filter.includes(instance.effect.endsWith('In') ? 't=in' : 't=out')));
   }

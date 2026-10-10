@@ -64,8 +64,8 @@ test('Space toggles playback on timeline ranges and clips without activating the
   // Typing in caption text must never invoke playback shortcuts.
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openEffect(page, 'Captions');
-  await page.getByLabel('Subtitle 1 text').fill('Hello'); await page.getByLabel('Subtitle 1 text').press('End'); await page.getByLabel('Subtitle 1 text').press('Space');
-  await expect(page.getByLabel('Subtitle 1 text')).toHaveValue('Hello ');
+  await page.getByLabel('Caption text', { exact: true }).fill('Hello'); await page.getByLabel('Caption text', { exact: true }).press('End'); await page.getByLabel('Caption text', { exact: true }).press('Space');
+  await expect(page.getByLabel('Caption text', { exact: true })).toHaveValue('Hello ');
   await expect(page.locator('video')).toHaveJSProperty('paused', true);
   const captions = page.locator('.timeline-lane-group').filter({ has: page.locator('.caption-lane') });
   await captions.locator('summary').press('Space'); await expect(captions).not.toHaveAttribute('open');

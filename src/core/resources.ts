@@ -13,6 +13,10 @@ export function instancePaths(paths: RecipeResources, instance: EffectInstance):
 export function embeddedCues(edit: EditSettings) {
   return [{ ...edit, effectInstances: extraInstances(edit).filter(instance => definitionFor(instance.effect).scope === 'clip') }, ...extraInstances(edit, 'captions').map(instance => instanceRecipe(edit, instance))].filter(recipe => recipe.subtitles.mode === 'embed').flatMap(recipe => outputCues(recipe)).sort((a, b) => a.start - b.start);
 }
+export function burnedCues(edit: EditSettings) {
+  return [{ ...edit, effectInstances: extraInstances(edit).filter(instance => definitionFor(instance.effect).scope === 'clip') }, ...extraInstances(edit, 'captions').map(instance => instanceRecipe(edit, instance))].filter(recipe => recipe.subtitles.mode === 'burn').flatMap(recipe => outputCues(recipe)).sort((a, b) => a.start - b.start);
+}
+export const burnedCaptionPath = (edit: EditSettings, paths: RecipeResources) => extraInstances(edit, 'captions').length ? `${paths.captions}-burned.ass` : paths.captions;
 export const embeddedCaptionPath = (edit: EditSettings, paths: RecipeResources) => extraInstances(edit, 'captions').some(instance => instance.settings.subtitles?.mode === 'embed') ? `${paths.captions}-embedded.srt` : paths.captions;
 export function recipeImages(edit: EditSettings, paths: RecipeResources) {
   return [...(edit.overlays.image ? [{ path: paths.image, data: edit.overlays.image }] : []), ...extraInstances(edit, 'watermark').flatMap(instance => instance.settings.overlays?.image ? [{ path: instancePaths(paths, instance).image, data: instance.settings.overlays.image }] : [])];
@@ -28,6 +32,7 @@ export function recipeFiles(edit: EditSettings, paths: RecipeResources, asset?: 
   const cues = outputCues(edit);
   const captions = edit.subtitles.mode === 'burn' ? serializeCaptionAss(cues, asset ? frameDimensions(asset, edit) : { width: 640, height: 360 }) : serializeSrt(cues);
   const files = edit.subtitles.mode !== 'none' && cues.length ? [{ path: paths.captions, text: captions }] : [];
+  if (extraInstances(edit, 'captions').length && burnedCues(edit).length) files.push({ path: burnedCaptionPath(edit, paths), text: serializeCaptionAss(burnedCues(edit), asset ? frameDimensions(asset, edit) : { width: 640, height: 360 }) });
   if (edit.includeChapters && timelineChapters(edit).length) files.push({ path: paths.chapters, text: serializeChapters(timelineChapters(edit)) });
   if (edit.overlays.text) files.push({ path: paths.text, text: textAss(edit, asset) });
   if (edit.color.lut) files.push({ path: paths.lut, text: edit.color.lut });
@@ -36,10 +41,6 @@ export function recipeFiles(edit: EditSettings, paths: RecipeResources, asset?: 
     const recipe = instanceRecipe(edit, instance), resources = instancePaths(paths, instance);
     if (instance.effect === 'color' && recipe.color.lut) files.push({ path: resources.lut, text: recipe.color.lut });
     if (instance.effect === 'watermark' && recipe.overlays.text) files.push({ path: resources.text, text: textAss(recipe, asset, asset ? frameDimensions(asset, edit) : undefined) });
-    if (instance.effect === 'captions' && recipe.subtitles.mode !== 'none' && recipe.subtitles.cues.length) {
-      const cues = outputCues(recipe);
-      files.push({ path: resources.captions, text: recipe.subtitles.mode === 'burn' ? serializeCaptionAss(cues, asset ? frameDimensions(asset, edit) : { width: 640, height: 360 }) : serializeSrt(cues) });
-    }
   }
   edit.clips?.forEach((clip, index) => { for (const instance of extraInstances(clipRecipe(edit, clip), 'color')) if (instance.settings.color?.lut) files.push({ path: instancePaths({ ...paths, lut: `${paths.lut}-clip${index}.cube` }, instance).lut, text: instance.settings.color.lut }); });
   if (embeddedCaptionPath(edit, paths) !== paths.captions) files.push({ path: embeddedCaptionPath(edit, paths), text: serializeSrt(embeddedCues(edit)) });

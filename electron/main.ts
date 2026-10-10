@@ -1,4 +1,5 @@
 import { configureCompletionNotifications } from './completion-notifications';
+import { configureInstalledFonts } from './installed-fonts';
 import { configureExportHistory } from './export-history';
 import { configureWatchFolders } from './watch-folders';
 import { app, BrowserWindow, ipcMain, protocol, screen, type IpcMainInvokeEvent, type IpcMainEvent } from 'electron';
@@ -83,6 +84,7 @@ if (ownsInstance && !shellCommand) {
 app.whenReady().then(() => {
   if (!ownsInstance || configureSystemIntegration(shellCommand, trusted)) return;
   configureCompletionNotifications(trusted);
+  configureInstalledFonts(trusted);
   flushExportHistory = configureExportHistory(trusted);
   stopWatchFolders = configureWatchFolders(trusted);
   protocol.handle('media', request => {

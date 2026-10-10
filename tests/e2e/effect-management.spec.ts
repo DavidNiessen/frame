@@ -44,7 +44,7 @@ test('handles shared effects, isolated resets and clearing clip effects without 
   await expect(page.getByRole('button', { name: 'Volume clip 1', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toHaveCount(0);
   await closeEffect(page); await page.getByLabel('Effect target').selectOption('all'); await openEffect(page, 'Captions');
   await closeEffect(page); await page.getByRole('button', { name: 'Remove all clip effects', exact: true }).click();
-  await expect(page.locator('.effect-lane')).toHaveCount(1); await expect(page.getByRole('button', { name: 'Captions effect', exact: true })).toBeVisible();
+  await expect(page.locator('.effect-lane')).toHaveCount(0); await expect(page.getByRole('button', { name: 'Caption 1', exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume clip 1', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toHaveCount(0);
 });
 test('keeps tiny split clips recoverable and allows trimming back and restoring the outside edges', async ({ page }) => {

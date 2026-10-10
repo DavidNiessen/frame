@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  installedFonts: () => ipcRenderer.invoke('desktop:fonts'),
   saveWorkspace: (document, ids) => ipcRenderer.invoke('workspace:save', document, ids),
   recoverWorkspace: () => ipcRenderer.invoke('workspace:recover'),
   discardWorkspace: () => ipcRenderer.invoke('workspace:clear'),

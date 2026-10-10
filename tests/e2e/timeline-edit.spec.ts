@@ -1,4 +1,4 @@
-import { closeEffect, openEffect } from '../helpers/effects';
+import { closeEffect, openEffect, openCaptionTools } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 import { setBoundary } from '../helpers/timeline';
 async function dragEdge(page: Page, label: string, delta: number) {
@@ -43,7 +43,7 @@ test('drags, restores, and independently resizes split clips with one undo per g
 test('resizes overlapping captions and fades above the clip and preserves exported cue timing', async ({ page }) => {
   await sample(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await openEffect(page, 'Captions');
+  await openCaptionTools(page);
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'timing.srt', mimeType: 'text/plain', buffer: Buffer.from('1\n00:00:00,000 --> 00:00:03,000\nFirst caption\n\n2\n00:00:01,000 --> 00:00:04,000\nOverlapping caption\n') });
   await expect(page.locator('.caption-lane')).toHaveCount(2);
   await expect(page.getByRole('spinbutton', { name: /Subtitle .* (start|end)/ })).toHaveCount(0);
@@ -62,7 +62,7 @@ test('resizes overlapping captions and fades above the clip and preserves export
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(page.getByLabel('Audio fade in end')).toHaveAttribute('aria-valuenow', '0.5');
   const downloadPromise = page.waitForEvent('download');
-  await openEffect(page, 'Captions'); await page.getByRole('button', { name: 'Save output SRT' }).click();
+  await openCaptionTools(page); await page.getByRole('button', { name: 'Save output SRT' }).click();
   const download = await downloadPromise;
   const path = await download.path();
   const { readFile } = await import('node:fs/promises');
