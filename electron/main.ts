@@ -1,3 +1,7 @@
+import { configureCompletionNotifications } from './completion-notifications';
+import { configureInstalledFonts } from './installed-fonts';
+import { configureExportHistory } from './export-history';
+import { configureWatchFolders } from './watch-folders';
 import { app, BrowserWindow, ipcMain, protocol, screen, type IpcMainInvokeEvent, type IpcMainEvent } from 'electron';
 import { join } from 'node:path';
 import { mediaResponse } from './media-response';
@@ -17,6 +21,9 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'media', privileges: { standard:
 const windows = new Map<WindowKind, BrowserWindow>(), sessions = new Map<number, MediaSession>();
 const creating = new Set<WindowKind>(), router = new WindowIpcRouter();
 let desktopReady = false, lastClosed: WindowKind = 'editor';
+let stopWatchFolders: () => Promise<void> = async () => {};
+let quitting = false;
+let flushExportHistory: () => Promise<void> = async () => {};
 const shellCommand = shellStartupCommand(process.argv);
 const ownsInstance = !!shellCommand || app.requestSingleInstanceLock();
 if (!ownsInstance) app.quit();
@@ -48,7 +55,7 @@ function openWindow(kind: WindowKind) {
     });
     windows.set(kind, window);
     const id = window.webContents.id, ipc = router.scope(window);
-    const session = createMediaSession(window, inboxes[kind], ipc); sessions.set(id, session);
+    const session = createMediaSession(window, inboxes[kind], ipc, !mini); sessions.set(id, session);
     if (mini) {
       const layout = configureMiniWindow(window);
       ipc.handle('desktop:mini-expanded', (_event, expanded: unknown, reducedMotion: unknown) => layout.setExpanded(expanded, reducedMotion));
@@ -76,6 +83,10 @@ if (ownsInstance && !shellCommand) {
 }
 app.whenReady().then(() => {
   if (!ownsInstance || configureSystemIntegration(shellCommand, trusted)) return;
+  configureCompletionNotifications(trusted);
+  configureInstalledFonts(trusted);
+  flushExportHistory = configureExportHistory(trusted);
+  stopWatchFolders = configureWatchFolders(trusted);
   protocol.handle('media', request => {
     const url = new URL(request.url), id = url.pathname.slice(1);
     for (const session of sessions.values()) {
@@ -94,4 +105,11 @@ app.whenReady().then(() => {
   app.on('activate', () => { if (!windows.size) openWindow('editor'); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin' || lastClosed === 'mini') app.quit(); });
-app.on('before-quit', () => { for (const session of sessions.values()) session.clear(); });
+app.on('before-quit', event => {
+  for (const session of sessions.values()) session.clear();
+  if (quitting) return;
+  event.preventDefault(); quitting = true;
+  // Flush completion records before exiting, without letting disconnected network folders stall shutdown.
+  const timeout = new Promise<void>(resolve => { const timer = setTimeout(resolve, 3000); timer.unref(); });
+  void Promise.race([(async () => { await stopWatchFolders(); await flushExportHistory(); })(), timeout]).catch(() => {}).finally(() => app.quit());
+});

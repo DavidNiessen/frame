@@ -21,6 +21,6 @@ export async function conversionLibrary() {
   return { directory, root, sources };
 }
 export async function probeConversion(path: string) {
-  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path], { env: { ...process.env, PATH: '' } });
+  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-show_streams', '-show_chapters', '-of', 'json', path], { env: { ...process.env, PATH: '' } });
   return JSON.parse(stdout);
 }

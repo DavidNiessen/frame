@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { test, expect } from '@playwright/test';
 
 test('shows disabled file-manager actions on web and previewed themes that persist', async ({ page }) => {
@@ -8,11 +9,15 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   await expect(page.getByRole('radio', { name: 'System theme' })).toBeChecked();
+  await expect(page.getByLabel('Show timeline preview')).toBeChecked();
+  await page.getByLabel('Show timeline preview').uncheck();
   await expect(page.locator('.theme-preview')).toHaveCount(4);
   await expect(page.getByRole('button', { name: 'Install actions' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Remove actions' })).toBeDisabled();
-  await expect(page.getByText('Desktop only', { exact: true })).toBeVisible();
+  await expect(page.locator('section[aria-labelledby="integration-heading"]').getByText('Desktop only', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add watch folder', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Show saved exports' })).toBeDisabled();
   await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
   await page.getByRole('radio', { name: 'Light theme', exact: true }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -27,25 +32,30 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await page.reload();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Midnight theme', exact: true })).toBeChecked();
+  await expect(page.getByLabel('Show timeline preview')).not.toBeChecked();
   await page.getByRole('radio', { name: 'System theme' }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.getByRole('button', { name: 'Back to workspace' }).click();
-  await expect(page.getByRole('button', { name: 'Try a sample' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add media' })).toBeVisible();
 });
 
 test('preserves timeline edits and the conversion selection when navigating through settings', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Try a sample' }).click();
+  await importTestMedia(page);
   const start = page.getByLabel('Trim start', { exact: true });
   await expect(start).toBeVisible({ timeout: 45000 });
   await start.press('ArrowRight');
   const value = await start.getAttribute('aria-valuenow');
+  await expect(page.locator('.timeline-overview')).toBeVisible();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByLabel('Show timeline preview').uncheck();
   await page.keyboard.press('i');
   await page.getByRole('button', { name: 'Back to workspace' }).click();
   await expect(start).toHaveAttribute('aria-valuenow', value!);
+  await expect(page.locator('.timeline-overview')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Compact', exact: true })).toBeVisible();
   const workflows = page.getByRole('navigation', { name: 'Workflow' });
   await workflows.getByRole('button', { name: 'Convert', exact: true }).click();
   await page.getByLabel('Conversion format').selectOption('gif');

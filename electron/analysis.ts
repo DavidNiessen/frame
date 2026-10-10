@@ -1,3 +1,5 @@
+import { resolveAudioLayers } from '../src/core/audio-layers';
+import { contactSheetArgs, parseContactSheet } from '../src/core/contact-sheet';
 import type { WindowIpc } from './window-ipc';
 import { silenceArgs, SilenceCollector, parseSilence } from '../src/core/silence';
 import { withResources } from './resources';
@@ -7,12 +9,13 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { MediaAsset } from '../src/core/types';
+import type { WaveformPoint } from '../src/core/waveform';
 import { parseEdit } from '../src/core/project';
 import { previewAudioArgs } from '../src/core/audio-preview';
 import { waveformArgs, WaveformCollector } from '../src/core/waveform';
 import { thumbnailArgs } from '../src/core/thumbnails';
 import { runFfmpeg } from './native';
-import type { MediaJobs } from './jobs';
+import { MediaJobs } from './jobs';
 export function registerAnalysis(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain) {
   function source(event: IpcMainInvokeEvent, id: string) {
     trusted(event); const item = assets.get(id); if (!item) throw new Error('Import the source file again.'); return item;
@@ -28,13 +31,19 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       return collector.finish(item.asset.duration);
     });
   });
-  ipc.handle('media:waveform', (event, id: string) => {
+  const waveformJobs = new MediaJobs();
+  let waveformSource: string | null = null, waveformTask: Promise<WaveformPoint[]> | null = null;
+  ipc.handle('media:cancel-waveform', event => { trusted(event); waveformJobs.cancel(); });
+  ipc.handle('media:waveform', async (event, id: string) => {
     const item = source(event, id);
-    return jobs.run(async execute => {
+    if (waveformJobs.busy) throw new Error('Wait for waveform generation to finish.');
+    waveformSource = id;
+    const task = waveformTask = waveformJobs.run(async execute => {
       const collector = new WaveformCollector();
-      await execute(runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration, progress(event, 'Reading audio peaks…'), line => collector.push(line)));
+      await execute(runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration, ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:waveform-progress', { ratio, message: 'Reading audio peaks…' }); }, line => collector.push(line)));
       if (!collector.points.length) throw new Error('No audio peaks could be read.'); return collector.points;
     });
+    try { return await task; } finally { if (waveformTask === task) { waveformTask = null; waveformSource = null; } }
   });
   ipc.handle('media:frame-preview', (event, id: string, value: unknown, time: number) => {
     const item = source(event, id); const edit = parseEdit(value, item.asset);
@@ -49,10 +58,18 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
     return jobs.run(async execute => {
       const directory = await mkdtemp(join(tmpdir(), 'frame-audio-preview-')); const output = join(directory, 'preview.wav');
       try {
-        await execute(runFfmpeg(previewAudioArgs(item.asset, edit, item.path, output), 10, progress(event, 'Preparing audio effects preview…')));
+        await execute(runFfmpeg(previewAudioArgs(item.asset, edit, item.path, output, resolveAudioLayers(edit, [...assets.values()])), 10, progress(event, 'Preparing audio effects preview…')));
         return new Uint8Array(await readFile(output));
       } finally { await rm(directory, { recursive: true, force: true }); }
     });
+  });
+  ipc.handle('media:contact-sheet', (event, id: string, value: unknown, options: unknown) => {
+    const item = source(event, id), edit = parseEdit(value, item.asset), settings = parseContactSheet(options);
+    return jobs.run(execute => withResources([edit], async (paths, directory) => {
+      const output = join(directory, 'sheet.png');
+      await execute(runFfmpeg(contactSheetArgs(item.asset, edit, settings, item.path, output, paths[0]), item.asset.duration, progress(event, 'Building contact sheet…')));
+      return new Uint8Array(await readFile(output));
+    }, [item.asset]));
   });
   ipc.handle('media:thumbnails' , (event, id: string) => {
     const item = source(event, id);
@@ -64,4 +81,8 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       } finally { await rm(directory, { recursive: true, force: true }); }
     });
   });
+  return { cancel: () => waveformJobs.cancel(), release: async (id: string) => {
+    if (waveformSource !== id) return;
+    waveformJobs.cancel(); await waveformTask?.catch(() => {});
+  } };
 }

@@ -1,37 +1,83 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createProject } from '../core/project';
-import { MAX_AUTOSAVE_BYTES, type AutosaveDocument } from '../core/autosave';
-import { discardAutosave, readAutosave, writeAutosave } from '../storage/autosave';
+import { parseAutosave, type AutosaveDocument } from '../core/autosave';
+import { discardAutosave, readAutosave } from '../storage/autosave';
 import type { Editor } from './useEditor';
-export function useAutosave(editor: Editor, name: string, restoreGeneration: number) {
-  const [loading, setLoading] = useState(true), [recovery, setRecovery] = useState<AutosaveDocument | null>(null), [savedAt, setSavedAt] = useState<number | null>(null), [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const requested = useRef(false), generation = useRef(restoreGeneration), mounted = useRef(true);
-  useEffect(() => { mounted.current = true; void readAutosave().then(value => { if (mounted.current) setRecovery(value); }).catch(e => { if (mounted.current) setError(e.message); }).finally(() => { if (mounted.current) setLoading(false); }); return () => { mounted.current = false; }; }, []);
-  useEffect(() => { if (requested.current && restoreGeneration > generation.current) { requested.current = false; setRecovery(null); setError(''); } generation.current = restoreGeneration; }, [restoreGeneration]);
-  const snapshot = useMemo(() => {
-    if (!editor.asset || !editor.assets.length) return null;
-    try { const project = createProject(name || 'Recovered workspace', editor.assets, editor.settingsFor, editor.asset.id); const serialized = JSON.stringify(project); if (serialized.length > MAX_AUTOSAVE_BYTES - 1000) throw new Error('This workspace exceeds the 16 MB autosave limit. Save a project manually.'); return { project, serialized, error: '' }; }
-    catch (e) { return { project: null, serialized: '', error: e instanceof Error ? e.message : String(e) }; }
-  }, [editor.assets, editor.edit, editor.selected, name]);
-  const hadWorkspace = useRef(false);
+const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '').slice(0, 600);
+
+export function useAutosave(editor: Editor, name: string, onRecovered: (name: string) => void, enabled = true) {
+  const [loading, setLoading] = useState(true), [savedAt, setSavedAt] = useState<number | null>(null), [error, setError] = useState('');
+  const [saving, setSaving] = useState(false), [clearing, setClearing] = useState(false);
+  const mounted = useRef(false), boot = useRef<ReturnType<Editor['recoverWorkspace']> | null>(null);
+  const pending = useRef<Promise<unknown>>(Promise.resolve()), epoch = useRef(0), clearingRef = useRef(false), hadWorkspace = useRef(false);
+  const restoredSnapshot = useRef<string | null>(null), latest = useRef({ editor, onRecovered }); latest.current = { editor, onRecovered };
   useEffect(() => {
-    if (snapshot?.project) hadWorkspace.current = true;
-    if (!loading && !recovery && !snapshot && hadWorkspace.current) { hadWorkspace.current = false; void discardAutosave().then(() => { if (mounted.current) { setSavedAt(null); setSaving(false); } }).catch(e => { if (mounted.current) setError(e.message); }); }
-  }, [!!snapshot, loading, recovery]);
+    mounted.current = true;
+    boot.current ??= editor.recoverWorkspace().then(async value => {
+      // Older desktop versions kept only recipes in IndexedDB, without file locations.
+      if (!value && editor.platform === 'desktop' && await readAutosave()) throw new Error('This older autosave did not retain its media. Import your files once; new workspaces reopen automatically.');
+      return value;
+    });
+    let active = true;
+    void boot.current.then(value => {
+      if (!active) return;
+      if (value) { latest.current.onRecovered(value.document.project.name); setSavedAt(value.document.savedAt); restoredSnapshot.current = value.baseline ? JSON.stringify(value.baseline) : null; }
+    }).catch(e => { if (active) { setError(messageOf(e)); latest.current.editor.setNotice(messageOf(e)); } }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; mounted.current = false; };
+  }, []);
+  const snapshot = useMemo(() => enabled && editor.asset && editor.assets.length ? { editor, name } : null, [editor.assets, editor.edit, editor.selected, name, enabled]);
   const snapshotRef = useRef(snapshot); snapshotRef.current = snapshot;
+  function enqueue(task: () => Promise<void>) {
+    const next = pending.current.catch(() => {}).then(task); pending.current = next; return next;
+  }
   useEffect(() => {
-    if (loading || recovery || !snapshot) return;
-    if (snapshot.error) { setError(`Autosave paused: ${snapshot.error}`); return; }
-    setSaving(true); let active = true;
+    if (loading || clearing || !enabled) return;
+    if (snapshot) hadWorkspace.current = true;
+    else if (hadWorkspace.current) {
+      hadWorkspace.current = false;
+      void enqueue(async () => { await (await latest.current.editor.backgroundEngine()).discardWorkspace?.(); await discardAutosave(); }).then(() => { if (mounted.current) setSavedAt(null); }).catch(e => { if (mounted.current) setError(messageOf(e)); });
+    }
+  }, [!!snapshot, loading, clearing, enabled]);
+  useEffect(() => {
+    if (loading || clearing || !snapshot) { setSaving(false); return; }
+    setSaving(true);
+    let active = true;
+    const revision = epoch.current;
     const persist = () => {
-      if (!snapshotRef.current?.project) return; const value: AutosaveDocument = { version: 1, savedAt: Date.now(), project: snapshotRef.current.project };
-      void writeAutosave(value).then(() => { if (mounted.current && active) { setSavedAt(value.savedAt); setSaving(false); setError(''); } }).catch(e => { if (mounted.current && active) { setSaving(false); setError(e.message); } });
+      const current = snapshotRef.current;
+      if (revision !== epoch.current || clearingRef.current || !current?.editor.asset) return;
+      try {
+        const project = createProject(current.name || 'Recovered workspace', current.editor.assets, current.editor.settingsFor, current.editor.asset.id);
+        // Opening a partial workspace must not erase unavailable sources until the user edits it.
+        if (restoredSnapshot.current === JSON.stringify(project)) { setSaving(false); return; }
+        restoredSnapshot.current = null;
+        const document: AutosaveDocument = parseAutosave({ version: 1, savedAt: Date.now(), project });
+        const ids = current.editor.assets.map(asset => asset.id);
+        setSaving(true);
+        void enqueue(async () => {
+          if (revision !== epoch.current) return;
+          const e = await current.editor.backgroundEngine();
+          if (!e.saveWorkspace) throw new Error('Workspace storage is unavailable.');
+          await e.saveWorkspace(document, ids);
+        }).then(() => { if (mounted.current && active && revision === epoch.current) { setSavedAt(document.savedAt); setSaving(false); setError(''); } }).catch(e => { if (mounted.current && active) { setSaving(false); setError(messageOf(e)); } });
+      } catch (e) { if (mounted.current && active) { setSaving(false); setError(messageOf(e)); } }
     };
-    const timer = window.setTimeout(persist, 700); const hidden = () => { if (document.visibilityState === 'hidden') persist(); };
+    const timer = window.setTimeout(persist, 700), hidden = () => { if (document.visibilityState === 'hidden') persist(); };
     window.addEventListener('pagehide', persist); document.addEventListener('visibilitychange', hidden);
     return () => { active = false; clearTimeout(timer); window.removeEventListener('pagehide', persist); document.removeEventListener('visibilitychange', hidden); };
-  }, [snapshot?.serialized, snapshot?.error, loading, recovery]);
-  async function discard() { try { await discardAutosave(); requested.current = false; setRecovery(null); setSavedAt(null); setError(''); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } }
-  return { recovery, loading, saving, savedAt, error, discard, prepareRecovery: () => { requested.current = true; } };
+  }, [snapshot, loading, clearing]);
+  async function clear() {
+    if (loading || clearingRef.current || latest.current.editor.busy) return false;
+    clearingRef.current = true; setClearing(true); epoch.current++; snapshotRef.current = null; restoredSnapshot.current = null;
+    try {
+      await latest.current.editor.clearLibrary(() => pending.current.catch(() => {}));
+      await enqueue(async () => {
+        await (await latest.current.editor.backgroundEngine()).discardWorkspace?.();
+        await discardAutosave();
+      });
+      hadWorkspace.current = false; setSavedAt(null); setSaving(false); setError(''); return true;
+    } catch (e) { setError(messageOf(e)); latest.current.editor.setNotice(`Could not clear the saved workspace: ${messageOf(e)}`); return false; }
+    finally { clearingRef.current = false; setClearing(false); }
+  }
+  return { loading, saving, savedAt, error, clearing, clear };
 }

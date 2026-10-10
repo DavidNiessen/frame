@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 /** One eased light source follows the pointer across the whole app viewport. */
 export function useBorderLight() {
   useEffect(() => {
-    const surfaces = () => document.querySelectorAll<HTMLElement>('.app-header, .workspace-bar, .app-footer, .panel, .preview-panel, .empty-stage, .conversion-intro, .settings-card, .recovery-banner, .mini-card, .desktop-window-frame');
+    const surfaces = () => document.querySelectorAll<HTMLElement>('.app-header, .app-footer, .panel, .preview-panel, .empty-stage, .conversion-intro, .settings-card, .mini-card, .desktop-window-frame');
     const pointer = matchMedia('(hover: hover) and (pointer: fine)');
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
     let x = 25, y = 15, targetX = x, targetY = y, frame = 0, last = 0;

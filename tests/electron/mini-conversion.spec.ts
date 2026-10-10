@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { test, expect, _electron } from '@playwright/test';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -106,7 +107,7 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
   const launchOptions = options(library.directory), app = await _electron.launch(launchOptions);
   try {
     const editor = await app.firstWindow();
-    await editor.getByRole('button', { name: /Start with a sample/ }).click();
+    await importTestMedia(editor, app);
     await expect(editor.getByLabel('Trim start', { exact: true })).toBeEnabled();
     await editor.getByLabel('Trim start', { exact: true }).press('ArrowRight');
     const draft = await editor.getByLabel('Trim start', { exact: true }).getAttribute('aria-valuenow');

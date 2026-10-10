@@ -56,3 +56,32 @@
 .certificate-trust dl { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; margin-top: 14px; }
 .certificate-trust dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
 .certificate-fingerprint { font-family: ui-monospace, monospace; }
+.watch-folder-list { display: grid; gap: 12px; margin: 16px 0; }
+.watch-folder { border: 1px solid var(--border); border-radius: 12px; padding: 14px; min-width: 0; }
+.watch-folder-heading, .watch-folder-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.watch-folder-heading strong { flex: 1; }
+.watch-folder-heading > span, .watch-folder-actions small { color: var(--muted); font-size: 11px; }
+.watch-folder > p { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 8px 0; }
+.watch-folder-heading .switch-row { margin: 0; }
+.watch-activity { margin-top: 16px; }
+.watch-activity ul { padding: 0; list-style: none; max-height: 240px; overflow: auto; }
+.watch-activity li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.watch-activity li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-activity li p { grid-column: 1 / -1; color: var(--accent-text); margin: 0; }
+.watch-dialog { width: min(560px, calc(100vw - 32px)); }
+.watch-dialog fieldset { border: 0; padding: 0; display: grid; gap: 12px; min-width: 0; }
+.watch-dialog details { display: grid; gap: 8px; }
+.watch-dialog details > :not(summary) { margin-top: 12px; }
+.watch-path { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; margin: 0; }
+
+.recent-export-toolbar { display: flex; gap: 12px; align-items: center; margin-top: 18px; }
+.recent-export-toolbar input { flex: 1; min-width: 0; }
+.recent-export-toolbar button { flex-shrink: 0; }
+.recent-export-list { list-style: none; padding: 0; margin: 14px 0 0; }
+.recent-export-list li { display: flex; gap: 8px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.recent-export-list li > div { flex: 1; min-width: 0; }
+.recent-export-list strong { display: block; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-export-list small { display: block; font-size: 10px; color: var(--muted); margin: 5px 0; }
+.recent-export-list p { font-size: 10px; color: var(--quiet); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-export-list .icon-button { flex-shrink: 0; }
+.recent-export-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 14px; font-size: 11px; color: var(--muted); }

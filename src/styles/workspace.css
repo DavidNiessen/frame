@@ -20,7 +20,8 @@
   .library-url { flex: 1; white-space: nowrap; }
 }
 .inspector-tabs { display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
-.inspector-tabs button { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 1; padding: 10px 4px; border-radius: 6px; color: var(--muted); font-size: 12px; }
+.inspector-tabs button { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; min-width: 0; padding: 10px 3px; border-radius: 6px; color: var(--muted); font-size: 11px; }
+.inspector-tabs button svg { width: 13px; flex-shrink: 0; }
 .inspector-tabs button:hover { background: var(--surface-raised); color: var(--text); }
 .inspector-tabs button[aria-selected='true'] { background: var(--accent-dim); color: var(--accent-text); font-weight: 600; }
 .inspector-scroll [role='tabpanel'][hidden] { display: none; }
@@ -34,11 +35,6 @@
 .workspace-tools-menu { position: absolute; right: 0; top: calc(100% + 6px); width: 200px; z-index: 10; padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); box-shadow: var(--shadow); }
 .workspace-tools-menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 12px; border-radius: 5px; font-size: 12px; }
 .workspace-tools-menu button:hover:not(:disabled) { background: var(--surface-hover); }
-.library-bottom { border-top: 1px solid var(--border-soft); padding: 0 14px; }
-.sample-card { padding: 14px 0; }
-.sample-card strong { font-size: 11px; }
-.sample-card small { font-size: 10px; }
-.sample-art { width: 32px; height: 36px; }
 .timeline-toolbar { padding: 8px 16px; }
 .timeline-toolbar h2 { font-size: 13px; }
 .timeline-analysis { gap: 4px; }
@@ -68,27 +64,15 @@
 }
 @media (max-width: 980px) and (min-width: 701px) { .inspector { max-height: 750px; } }
 @media (max-width: 700px) {
-  .workspace-bar { gap: 8px; padding: 12px 16px; }
-  .workspace-bar > div { gap: 6px; }
-  .workspace-bar strong { font-size: 12px; }
-  .workspace-subtitle { max-width: 130px; }
-  .workspace-actions { width: 100%; }
-  .workspace-tools { margin-right: auto; }
-  .workspace-tools-menu { right: auto; left: 0; }
   .inspector-tabs button { padding: 12px 4px; }
   .timeline-summary > span { font-size: 10px; }
   .timeline-analysis > .button { min-height: 38px; }
   .export-footer { padding: 18px; }
 }
-.applied-effects { display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; padding: 16px 20px; color: var(--accent-text); font-size: 12px; line-height: 1.6; }
-.applied-effects:hover { background: var(--surface-raised); }
-.applied-effects > svg { flex-shrink: 0; }
-.applied-effects small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; }
 
 /* The track is the visual slider; retain a native range for keyboard and assistive technology. */
 .timeline-track .seek-slider { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; opacity: 0; margin: 0; pointer-events: none; }
 .workspace-heading h2 { margin-top: 0; }
-.inspector-scroll [data-tool='edit'] .control-section { padding-top: 14px; padding-bottom: 14px; }
 .crop-presets { margin-bottom: 12px; }
 @media (min-width: 981px) {
   .audio-preview { padding: 0; }

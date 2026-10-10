@@ -1,3 +1,6 @@
+import { taggedNamingAsset } from '../src/core/media-tags';
+import { recordExport } from './export-history';
+import { resolveAudioLayers } from '../src/core/audio-layers';
 import { dialog, type BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { join, dirname, basename } from 'node:path';
@@ -20,20 +23,21 @@ export function registerExports(window: BrowserWindow, assets: SessionAssets, jo
     const item = assets.get(id);
     if (!item) throw new Error('Import the media file again.');
     validateEdit(item.asset, settings);
+    const layers = resolveAudioLayers(settings, [...assets.values()]);
     return jobs.run(async execute => {
       let temporary: string | undefined;
       try {
-        const batchName = batchToken ? folders.name(batchToken, item.asset, settings.format) : outputName(item.asset.name, settings.format);
+        const batchName = batchToken ? folders.name(batchToken, taggedNamingAsset(item.asset, settings.outputTags), settings.format) : outputName(item.asset.name, settings.format);
         const destination = batchToken ? { canceled: false, filePath: await folders.destination(batchToken, batchName) } : await dialog.showSaveDialog(window, { defaultPath: outputName(item.asset.name, settings.format), filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }] });
         if (destination.canceled || !destination.filePath) return null;
         const sourcePath = await realpath(item.path);
         const destinationPath = await realpath(destination.filePath).catch(() => destination.filePath!);
         const comparable = (path: string) => process.platform === 'win32' ? path.toLowerCase() : path;
-        if (!batchToken && comparable(destinationPath) === comparable(sourcePath)) throw new Error('Choose a different output path to preserve the original.');
+        if (!batchToken && [sourcePath, ...await Promise.all(layers.map(layer => realpath(layer.path)))].some(path => comparable(destinationPath) === comparable(path))) throw new Error('Choose a different output path to preserve the original.');
         temporary = join(dirname(destination.filePath), `.frame-${randomUUID()}.${settings.format}`);
         await withResources([settings], async paths => {
           const { width, height } = frameDimensions(item.asset, settings);
-          await encodeNative(buildExportArgs(item.asset, settings, item.path, temporary!, paths[0]), editedDuration(settings), settings.acceleration, hardwareBitrate(width, height, settings.quality), execute, jobs, (ratio, message) => {
+          await encodeNative(buildExportArgs(item.asset, settings, item.path, temporary!, paths[0], layers), editedDuration(settings), settings.acceleration, hardwareBitrate(width, height, settings.quality), execute, jobs, (ratio, message) => {
             if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
           });
         }, [item.asset]);
@@ -41,7 +45,7 @@ export function registerExports(window: BrowserWindow, assets: SessionAssets, jo
         if (jobs.cancelled || window.isDestroyed()) throw new Error('Conversion cancelled.');
         const savedPath = batchToken ? await folders.publish(temporary, batchToken, batchName) : destination.filePath;
         if (!batchToken) await rename(temporary, savedPath);
-        return { name: basename(savedPath), path: savedPath, size };
+        const result = { name: basename(savedPath), path: savedPath, size }; await recordExport(result, batchToken ? folders.kind(batchToken) : 'export', item.asset.name, settings.format); return result;
       } finally { if (temporary) await rm(temporary, { force: true }); }
     });
   });

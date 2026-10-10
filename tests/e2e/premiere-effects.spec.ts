@@ -1,0 +1,67 @@
+import { importTestMedia } from '../helpers/import-media';
+import { expect, test } from '@playwright/test';
+import { closeEffect, openEffect } from '../helpers/effects';
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false')); await page.goto('/'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4); });
+for (const width of [1440, 390]) test(`edits timeline effects in an overlay aligned with the right island at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await expect(page.getByRole('tab')).toHaveCount(2);
+  await expect(page.getByRole('tab', { name: 'Effect Controls', exact: true })).toHaveCount(0);
+  await page.getByLabel('Search effects').fill('Color');
+  const item = page.getByRole('button', { name: 'Select Color & LUTs effect', exact: true }); await item.click(); await expect(page.getByRole('button', { name: 'Apply effect', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Color & LUTs effect', exact: true })).toHaveCount(0);
+  await item.press('Enter'); await expect(page.getByRole('tab', { name: 'Effects', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const bar = page.getByRole('button', { name: 'Color & LUTs effect', exact: true }); await bar.click();
+  const dialog = page.getByRole('dialog', { name: 'Color & LUTs settings', exact: true }); await expect(dialog).toBeVisible();
+  const island = (await page.locator('#media-inspector').boundingBox())!, bounds = (await dialog.boundingBox())!;
+  expect(bounds.x).toBeCloseTo(island.x, 0); expect(bounds.width).toBeCloseTo(island.width, 0);
+  expect(bounds.height).toBeCloseTo(Math.min(island.height, 900 - bounds.y - 12), 0);
+  expect(bounds.y).toBeGreaterThanOrEqual(12); expect(bounds.y + bounds.height).toBeLessThanOrEqual(900);
+  await page.getByLabel('Color brightness').fill('0.2'); await expect(page.locator('video')).toHaveCSS('filter', /brightness/);
+  await page.getByRole('button', { name: 'Reset Color & LUTs', exact: true }).click(); await expect(page.getByLabel('Color brightness')).toHaveValue('0');
+  await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0); await expect(bar).toBeFocused();
+  await expect(page.getByLabel('Search effects')).toHaveValue('Color');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+test('persists neutral bars and removes or restores them with undo', async ({ page }) => {
+  await openEffect(page, 'Equalizer'); await page.getByLabel('Equalizer bass').fill('2'); await page.getByRole('button', { name: 'Reset Equalizer', exact: true }).click();
+  await expect(page.getByLabel('Equalizer bass')).toHaveValue('0'); await closeEffect(page);
+  await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 }); await page.reload();
+  const bar = page.getByRole('button', { name: 'Equalizer effect', exact: true }); await bar.click(); await expect(page.getByLabel('Equalizer bass')).toHaveValue('0');
+  await page.getByRole('button', { name: 'Remove Equalizer', exact: true }).click(); await expect(page.getByRole('dialog')).toHaveCount(0); await expect(bar).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(bar).toBeVisible();
+  await page.getByRole('button', { name: 'Redo edit', exact: true }).click(); await expect(bar).toHaveCount(0);
+  await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
+  await page.getByRole('button', { name: 'Remove Volume', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume effect', exact: true })).toHaveCount(0);
+});
+test('drops an effect onto the track and opens its settings across splits', async ({ page }) => {
+  await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await page.getByLabel('Search effects').fill('Noise');
+  const transfer = await page.evaluateHandle(() => new DataTransfer());
+  await page.getByRole('button', { name: 'Select Noise reduction effect', exact: true }).dispatchEvent('dragstart', { dataTransfer: transfer });
+  await page.locator('.movable-clip').nth(1).dispatchEvent('dragover', { dataTransfer: transfer }); await expect(page.locator('.movable-clip').nth(1)).toHaveClass(/effect-drop-target/);
+  await page.locator('.movable-clip').nth(1).dispatchEvent('drop', { dataTransfer: transfer });
+  const bar = page.getByRole('button', { name: 'Noise reduction effect', exact: true }); await expect(bar).toHaveCount(1); await bar.click();
+  await expect(page.getByRole('dialog')).toContainText('Timeline track');
+  await expect(page.getByLabel('Noise reduction amount')).toHaveValue('12'); await page.getByLabel('Noise reduction amount').fill('20');
+  await page.getByRole('button', { name: 'Remove Noise reduction', exact: true }).click(); await expect(page.locator('.effect-lane')).toHaveCount(0);
+  await transfer.dispose();
+});
+test('opens caption and neutral fade settings without requiring content first', async ({ page }) => {
+  await openEffect(page, 'Captions'); await expect(page.getByRole('dialog')).toContainText('Caption 1'); await closeEffect(page);
+  await page.getByRole('button', { name: 'Caption 1', exact: true }).click(); await expect(page.getByRole('dialog', { name: 'Caption settings', exact: true })).toBeVisible();
+  await openEffect(page, 'Audio fade in'); await page.getByRole('button', { name: 'Reset Audio fade in', exact: true }).click(); await closeEffect(page);
+  await page.getByRole('button', { name: 'Audio fade in effect', exact: true }).click(); await expect(page.getByLabel('Audio fade in duration')).toHaveValue('0');
+  await page.getByRole('button', { name: 'Remove Audio fade in', exact: true }).click(); await expect(page.getByRole('button', { name: 'Caption 1', exact: true })).toBeVisible();
+});
+test('applies one track adjustment across all splits and removes it with one undo step', async ({ page }) => {
+  await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.3');
+  await expect(page.getByLabel('Apply settings to all clips', { exact: true })).toHaveCount(0);
+  await page.getByLabel('Seek playhead').fill('1'); await expect(page.locator('video')).toHaveJSProperty('volume', .3);
+  await page.getByLabel('Seek playhead').fill('4'); await expect(page.locator('video')).toHaveJSProperty('volume', .3);
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Volume', exact: true }).click(); await expect(page.locator('.clip-effect-bar')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.locator('.clip-effect-bar')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Volume effect', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.3');
+});

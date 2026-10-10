@@ -9,10 +9,15 @@ export function editorBounds(work: Rectangle): Rectangle {
 /** Reserve transparent headroom once; hover only changes paint, never native geometry. */
 export function configureEditorChrome(window: BrowserWindow) {
   let expanded = false;
-  const state = (): WindowState => ({
-    maximized: window.isMaximized(), fullscreen: window.isFullScreen(), focused: window.isFocused(),
-    contentHeight: window.getContentBounds().height - desktopChromeSpace, chromeInset: desktopChromeSpace, chromeExpanded: expanded,
-  });
+  const state = (): WindowState => {
+    const maximized = window.isMaximized(), fullscreen = window.isFullScreen();
+    return {
+      maximized, fullscreen, focused: window.isFocused(),
+      contentHeight: window.getContentBounds().height - desktopChromeSpace, chromeInset: desktopChromeSpace,
+      // Native state takes precedence over late hover/blur requests from the renderer.
+      chromeExpanded: expanded || maximized || fullscreen,
+    };
+  };
   const notify = () => {
     if (window.isDestroyed() || window.webContents.isDestroyed()) return;
     window.webContents.send('desktop:window-state', state());

@@ -1,10 +1,20 @@
+import { browserWorkspace } from './browser-workspace';
+import { browserPreparedMedia } from './browser-prepared-media';
+import { resolveAudioLayers } from '../core/audio-layers';
+import type { MediaAsset } from '../core/types';
+import { taggedNamingAsset } from '../core/media-tags';
+import { sourceFingerprint } from '../core/source-fingerprint';
+import { mergedChapters, serializeChapters } from '../core/chapters';
+import { writeBrowserLayers } from './browser-audio-layers';
+import { conversionIndex, validateBatchOptions } from '../core/output-naming';
 import { youtubeVideo } from '../core/youtube';
 import { browserAnalysis } from './browser-analysis';
 import { serializeSrt } from '../core/subtitles';
 import { browserResources } from './browser-resources';
 import { buildMergeArgs, compositionAsset, mergedCues } from '../core/composition';
 import { editedDuration } from '../core/timeline';
-import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { browserRuntime } from './browser-runtime';
+import { browserJoinedPreview } from './browser-joined-preview';
 import { buildExportArgs, outputName } from '../core/export-plan';
 import { getFormat } from '../core/formats';
 import { conversionName } from '../core/conversion';
@@ -15,24 +25,18 @@ import { parseProbe } from '../core/probe';
 import type { BatchOptions, ImportReport, MediaEngine } from '../core/types';
 
 export function createBrowserEngine(): MediaEngine {
-  let ffmpeg: FFmpeg | null = null;
-  let loading: Promise<FFmpeg> | null = null;
-  const files = new Map<string, File>();
+  const runtime = browserRuntime(), background = browserRuntime();
+  const ready = runtime.ready;
+  const files = new Map<string, File>(), sources = new Map<string, MediaAsset>();
+  const joined = browserJoinedPreview(files);
+  const prepared = browserPreparedMedia(files, sources);
   let cancelled = false;
   let download: AbortController | null = null;
   let batchOptions: BatchOptions = {};
-  async function ready(): Promise<FFmpeg> {
-    if (loading) return loading;
-    if (!window.isSecureContext || !crossOriginIsolated) throw new Error('Browser processing needs a secure page with cross-origin isolation. Check the hosting instructions, or use the desktop app.');
-    ffmpeg = new FFmpeg();
-    const instance = ffmpeg;
-    loading = instance.load({ coreURL: new URL('ffmpeg/ffmpeg-core.js', document.baseURI).href, wasmURL: new URL('ffmpeg/ffmpeg-core.wasm', document.baseURI).href }).then(() => instance).catch(error => {
-      loading = null; ffmpeg = null; throw error;
-    });
-    return loading;
-  }
   const engine: MediaEngine = {
     platform: 'web',
+    appendVideo: prepared.appendVideo, extractAudio: prepared.extractAudio,
+    joinedPreview: joined.generate, cancelJoinedPreview: joined.cancel, releaseProxy: joined.release,
     async importUrl(url, onProgress) {
       if (youtubeVideo(url)) throw new Error('YouTube imports are available in the Frame desktop app. On web, paste a direct audio or video file link.');
       if (files.size >= MAX_IMPORT_FILES) throw new Error('The library is full. Remove some files before importing another URL.');
@@ -53,11 +57,6 @@ export function createBrowserEngine(): MediaEngine {
         if (message.startsWith('Could not download this URL.')) throw new Error(message + ' On web, the host must allow cross-origin access (CORS), and HTTPS pages need HTTPS links. Try desktop if the host blocks browser downloads.');
         throw error;
       } finally { chunks.length = 0; download = null; }
-    },
-    async importSample() {
-      const response = await fetch(new URL('sample.mp4', document.baseURI));
-      if (!response.ok) throw new Error('Unable to load the sample.');
-      return engine.importFiles([new File([await response.blob()], 'Studio study.mp4', { type: 'video/mp4' })]);
     },
     async importFiles(selected = [], onProgress) {
       const media = selected.filter(file => isMediaFilename(file.name));
@@ -81,8 +80,8 @@ export function createBrowserEngine(): MediaEngine {
             if (code !== 0 && code !== -1) throw new Error(`Cannot read “${file.name}”. Try a different media file.`);
             const data = await ff.readFile(metadata, 'utf8');
             const asset = { ...parseProbe(JSON.parse(String(data))), id, name: file.name, size: file.size,
-              relativePath: browserRelativePath(file.webkitRelativePath), previewUrl: URL.createObjectURL(file) };
-            files.set(id, file); report.assets.push(asset); retained += file.size;
+              fingerprint: await sourceFingerprint(file), relativePath: browserRelativePath(file.webkitRelativePath), previewUrl: URL.createObjectURL(file) };
+            files.set(id, file); sources.set(id, asset); report.assets.push(asset); retained += file.size;
           } catch (error) {
             report.issues.push({ name: browserRelativePath(file.webkitRelativePath) || file.name, message: error instanceof Error ? error.message : 'Unable to read this file.' });
           } finally {
@@ -101,6 +100,7 @@ export function createBrowserEngine(): MediaEngine {
       const ff = await ready();
       const input = `source-${asset.id}`;
       const output = `export.${settings.format}`;
+      const layers = resolveAudioLayers(settings, [...sources.values()].map(asset => ({ asset, path: `layer-${asset.id}` })));
       const resources = await browserResources(ff, [settings], [asset]);
       const errors: string[] = [];
       const log = ({ message }: { message: string }) => { errors.push(message); if (errors.length > 15) errors.shift(); };
@@ -108,20 +108,21 @@ export function createBrowserEngine(): MediaEngine {
       ff.on('progress', progress); ff.on('log', log);
       try {
         await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
-        const code = await ff.exec(buildExportArgs(asset, settings, input, output, resources.paths[0]));
+        await writeBrowserLayers(ff, layers, files, sources);
+        const code = await ff.exec(buildExportArgs(asset, settings, input, output, resources.paths[0], layers));
         if (code !== 0) throw new Error(`Export failed. ${errors.slice(-4).join(' ')}`);
         const data = await ff.readFile(output);
         if (typeof data === 'string') throw new Error('Invalid export output.');
         const blob = new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime });
         onProgress({ ratio: 1, message: 'Your export is ready.' });
-        return { name: batchToken && batchOptions.conversion ? conversionName(asset, settings.format) : outputName(asset.name, settings.format),
-          relativePath: batchToken && batchOptions.conversion ? conversionName(asset, settings.format, batchOptions.keepFolders) : undefined,
+        return { name: batchToken && batchOptions.conversion ? conversionName(taggedNamingAsset(asset, settings.outputTags), settings.format, false, batchOptions.namingTemplate, conversionIndex(batchOptions, asset.id)) : outputName(asset.name, settings.format),
+          relativePath: batchToken && batchOptions.conversion ? conversionName(taggedNamingAsset(asset, settings.outputTags), settings.format, batchOptions.keepFolders, batchOptions.namingTemplate, conversionIndex(batchOptions, asset.id)) : undefined,
           url: URL.createObjectURL(blob), size: blob.size };
       } catch (error) {
         if (cancelled) throw new Error('Export cancelled.');
         throw error;
       } finally {
-        ff.off('progress', progress); ff.off('log', log); await resources.cleanup();
+        ff.off('progress', progress); ff.off('log', log); await resources.cleanup(); for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {});
         if (!cancelled) {
           await ff.deleteFile(input).catch(() => {});
           await ff.deleteFile(output).catch(() => {});
@@ -133,21 +134,28 @@ export function createBrowserEngine(): MediaEngine {
       const paths = clips.map(c => `merge-${c.asset.id}`); const output = `merged.${settings.format}`; cancelled = false;
       const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(0.99, time / 1e6 / asset.duration), message: 'Merging your clips…' });
       ff.on('progress', progress);
-      const resources = await browserResources(ff, clips.map(c => c.edit), clips.map(c => c.asset)); const captions = 'merged-captions.srt';
+      const mixes = clips.map(clip => resolveAudioLayers(clip.edit, [...sources.values()].map(asset => ({ asset, path: `layer-${asset.id}` })))); const resources = await browserResources(ff, clips.map(c => c.edit), clips.map(c => c.asset)); const captions = 'merged-captions.srt';
       try {
         await ff.writeFile(captions, serializeSrt(mergedCues(clips, transition)));
+        await ff.writeFile(`${captions}-chapters.ffmetadata`, serializeChapters(mergedChapters(clips, transition)));
         for (const id of inputs) { const file = files.get(id); if (!file) throw new Error('Import each merge source again.'); await ff.writeFile(`merge-${id}`, new Uint8Array(await file.arrayBuffer())); }
-        if (await ff.exec(buildMergeArgs(clips, settings, paths, output, transition, resources.paths, captions)) !== 0) throw new Error('Could not merge these clips. Try a smaller selection or the desktop editor.');
+        for (const layers of mixes) await writeBrowserLayers(ff, layers, files, sources);
+        if (await ff.exec(buildMergeArgs(clips, settings, paths, output, transition, resources.paths, captions, mixes)) !== 0) throw new Error('Could not merge these clips. Try a smaller selection or the desktop editor.');
         const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid merge output.');
         return { name: output, url: URL.createObjectURL(new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime })), size: data.length };
       } catch (error) { if (cancelled) throw new Error('Merge cancelled.'); throw error; }
-      finally { ff.off('progress', progress); await resources.cleanup(); await ff.deleteFile(captions).catch(() => {}); for (const name of [...inputs.map(id => `merge-${id}`), output]) await ff.deleteFile(name).catch(() => {}); }
+      finally { ff.off('progress', progress); await resources.cleanup(); for (const layer of mixes.flat()) await ff.deleteFile(layer.path).catch(() => {}); await ff.deleteFile(captions).catch(() => {}); await ff.deleteFile(`${captions}-chapters.ffmetadata`).catch(() => {}); for (const name of [...inputs.map(id => `merge-${id}`), output]) await ff.deleteFile(name).catch(() => {}); }
     },
-    ...browserAnalysis(ready, files),
-    beginBatch: async options => { batchOptions = options ?? {}; return 'web'; },
+    ...browserAnalysis(ready, files, sources),
+    async waveform(asset, progress) {
+      try { return await browserAnalysis(background.ready, files).waveform(asset, progress); }
+      finally { background.cancel(); }
+    },
+    cancelWaveform: background.cancel,
+    beginBatch: async options => { validateBatchOptions(options ?? {}); batchOptions = options ?? {}; return 'web'; },
     endBatch: async () => { batchOptions = {}; },
-    cancel() { download?.abort(); cancelled = true; ffmpeg?.terminate(); ffmpeg = null; loading = null; },
-    async release(asset) { files.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
+    cancel() { download?.abort(); cancelled = true; runtime.cancel(); prepared.cancel(); },
+    async release(asset) { await joined.releaseAsset(asset.id); files.delete(asset.id); sources.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
   };
-  return engine;
+  return Object.assign(engine, browserWorkspace(engine, files, sources));
 }

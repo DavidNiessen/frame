@@ -1,3 +1,4 @@
+import { TransientMessage } from '../TransientMessage';
 import { ChevronDown, ChevronUp, Clapperboard, FolderPlus, Plus, TriangleAlert, X } from 'lucide-react';
 import { useEditor } from '../../hooks/useEditor';
 import { useConversion } from '../../hooks/useConversion';
@@ -32,7 +33,7 @@ export function MiniConversion() {
         <div className="mini-body">
           {editor.busy === 'import' && <p className="mini-status" role="status">{editor.progress?.message || 'Reading your files…'}</p>}
           {editor.assets.length > 0 && <details className="mini-files"><summary>Selected files <span>{conversion.ids.length}</span></summary><ConversionQueue editor={editor} conversion={conversion} /></details>}
-          {editor.importReport && editor.importReport.issues.length > 0 && <div className="mini-import-errors" role="alert"><TriangleAlert size={16} /><div><strong>{editor.importReport.issues.length} {editor.importReport.issues.length === 1 ? 'file' : 'files'} could not be read</strong>{editor.importReport.issues.slice(0, 50).map((issue, i) => <p key={i}>{issue.name}: {issue.message}</p>)}</div></div>}
+          {editor.importReport && editor.importReport.issues.length > 0 && <TransientMessage className="mini-import-errors" role="alert"><TriangleAlert size={16} /><div><strong>{editor.importReport.issues.length} {editor.importReport.issues.length === 1 ? 'file' : 'files'} could not be read</strong>{editor.importReport.issues.slice(0, 50).map((issue, i) => <p key={i}>{issue.name}: {issue.message}</p>)}</div></TransientMessage>}
           {jobs.length > 0 && <ConversionResults editor={editor} conversion={conversion} />}
           <ConversionSettings editor={editor} conversion={conversion} />
         </div>

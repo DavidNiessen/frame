@@ -1,3 +1,4 @@
+import { TransientMessage } from './TransientMessage';
 import { useState } from 'react';
 import { BookmarkPlus, Trash2, X } from 'lucide-react';
 import { builtInPresets, compatiblePresets, outputSettings, sameOutput } from '../core/presets';
@@ -11,6 +12,6 @@ export function PresetControls({ asset, edit, update }: { asset: MediaAsset; edi
     <div className="preset-actions"><button className="button subtle small" onClick={() => { setNaming(true); setName(user.find(p => p.id === selected)?.name ?? ''); }}><BookmarkPlus size={13} />Save preset</button>{selected.startsWith('user:') && <button className="icon-button" aria-label="Delete selected preset" onClick={() => saved.remove(selected)}><Trash2 size={14} /></button>}</div>
     {naming && <form className="preset-form" onSubmit={event => { event.preventDefault(); if (saved.save(name, edit)) setNaming(false); }}><label className="stacked-label">Preset name<input type="text" autoFocus aria-label="Preset name" maxLength={60} value={name} onChange={event => setName(event.target.value)} placeholder="e.g. Podcast delivery" /></label><div className="preset-actions"><button type="submit" className="button primary small">Save settings</button><button type="button" className="icon-button" aria-label="Cancel preset saving" onClick={() => setNaming(false)}><X size={14} /></button></div></form>}
     <p className="field-note">Presets change output settings. Your trim, crop, and volume stay as they are.</p>
-    {saved.message && <p className="field-note" role="status">{saved.message}</p>}
+    {saved.message && <TransientMessage className="field-note" role="status">{saved.message}</TransientMessage>}
   </div>;
 }

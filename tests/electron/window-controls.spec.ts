@@ -52,12 +52,32 @@ test('reveals frameless controls without moving panels, supports keyboard access
     await page.locator('.desktop-window-frame').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
     await expect.poll(() => native.evaluate(window => window.getBounds())).toEqual(initialNative);
     expect(await contentBounds()).toEqual(before);
-    await page.getByRole('button', { name: 'Try a sample', exact: true }).focus();
+    await page.getByRole('button', { name: 'Add media', exact: true }).focus();
     await page.keyboard.press('Control+Shift+Space');
     await expect(page.getByRole('button', { name: 'Minimize window' })).toBeFocused();
     await page.keyboard.press('Tab'); await expect(page.getByRole('button', { name: 'Maximize window' })).toBeFocused();
     await page.keyboard.press('Escape'); await expect(bar).toBeHidden();
-    await expect(page.getByRole('button', { name: 'Try a sample', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeFocused();
+    // Fullscreen pins the controls even when the pointer leaves the top edge.
+    if (process.platform === 'linux') {
+      // Xvfb has no window manager; emit the fullscreen signal through the real native bridge.
+      await app.evaluate(({ BrowserWindow }) => {
+        const window = BrowserWindow.getAllWindows()[0], original = window.isFullScreen.bind(window);
+        window.isFullScreen = () => true; window.emit('enter-full-screen');
+        (globalThis as typeof globalThis & { restoreFullscreenTest: () => void }).restoreFullscreenTest = () => { window.isFullScreen = original; window.emit('leave-full-screen'); };
+        return true;
+      });
+    } else await native.evaluate(window => window.setFullScreen(true));
+    await expect(bar).toBeVisible();
+    await page.mouse.move(100, 400);
+    await expect(page.getByRole('button', { name: 'Restore window', exact: true })).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await expect(bar).toBeVisible();
+    expect((await page.evaluate(() => window.frameDesktop!.setWindowChrome(false))).chromeExpanded).toBe(true);
+    await expect(bar).toBeVisible();
+    if (process.platform === 'linux') await app.evaluate(() => { (globalThis as typeof globalThis & { restoreFullscreenTest: () => void }).restoreFullscreenTest(); return true; });
+    else await native.evaluate(window => window.setFullScreen(false));
+    await expect(bar).toBeHidden();
     // Xvfb has no window manager; observe native calls there and real window state on other platforms.
     await app.evaluate(({ BrowserWindow }) => {
       const window = BrowserWindow.getAllWindows()[0];
@@ -80,6 +100,8 @@ test('reveals frameless controls without moving panels, supports keyboard access
     await expect.poll(() => app.evaluate(() => (globalThis as typeof globalThis & { chromeActions: string[] }).chromeActions.at(-1))).toBe('maximize');
     if (process.platform !== 'linux') {
       await expect.poll(() => native.evaluate(window => window.isMaximized())).toBe(true);
+      await page.mouse.move(100, 400);
+      await page.evaluate(() => window.dispatchEvent(new Event('blur')));
       await expect(page.getByRole('button', { name: 'Restore window' })).toBeVisible();
       await page.getByRole('button', { name: 'Restore window' }).click();
       await expect.poll(() => native.evaluate(window => window.isMaximized())).toBe(false);

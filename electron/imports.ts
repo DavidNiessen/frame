@@ -70,9 +70,6 @@ export function registerImports(assets: Map<string, { path: string; asset: Media
       return read(event, inputs, skipped);
     });
   });
-  ipc.handle('media:sample', async event => {
-    trusted(event);
-    return jobs.run(() => read(event, [{ path: app.isPackaged ? join(process.resourcesPath, 'sample.mp4') : join(__dirname, '../public/sample.mp4') }]));
-  });
-  return registerUrlImports(assets, jobs, trusted, (event, inputs) => read(event, inputs, 0, undefined, false, true), ipc);
+  const downloads = registerUrlImports(assets, jobs, trusted, (event, inputs) => read(event, inputs, 0, undefined, false, true), ipc);
+  return { ...downloads, read };
 }

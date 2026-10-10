@@ -1,3 +1,4 @@
+import { notifyCompletion } from '../core/completion-notifications';
 import { useEffect, useRef, useState } from 'react';
 import { batchSettings, runBatch, type BatchJob, type BatchMode } from '../core/batch';
 import { conversionSettings } from '../core/conversion';
@@ -6,9 +7,10 @@ import type { BatchOptions } from '../core/types';
 import type { Editor } from './useEditor';
 export function useBatch(editor: Editor) {
   const [jobs, setJobs] = useState<BatchJob[]>([]);
+  const namingOrder = useRef<string[]>([]);
   const [running, setRunning] = useState(false); const runningRef = useRef(false);
   const cancelled = useRef(false); const jobsRef = useRef(jobs); jobsRef.current = jobs;
-  const clear = () => { if (runningRef.current) return; for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); setJobs([]); };
+  const clear = () => { if (runningRef.current) return; namingOrder.current = []; for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); setJobs([]); };
   useEffect(() => () => { for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); }, []);
   async function execute(queue: BatchJob[], options?: BatchOptions, keepResults = false) {
     if (runningRef.current || editor.busy || !queue.length) return;
@@ -16,6 +18,7 @@ export function useBatch(editor: Editor) {
     const retained = keepResults ? jobsRef.current.filter(job => !queue.some(next => next.asset.id === job.asset.id)) : [];
     for (const job of jobsRef.current) if (!retained.includes(job) && job.result?.url) URL.revokeObjectURL(job.result.url);
     setJobs([...retained, ...queue]);
+    const outcomes = new Map(queue.map(job => [job.id, job]));
     try {
       await editor.runExclusive('batch', async engine => {
         const token = await engine.beginBatch(options);
@@ -28,9 +31,11 @@ export function useBatch(editor: Editor) {
               URL.revokeObjectURL(result.url); throw new Error('Batch downloads reached 500 MB. Save and clear them, then export the remaining files.');
             }
             retainedBytes += result?.url ? result.size : 0; return result;
-          }, () => cancelled.current, job => setJobs(current => current.map(item => item.id === job.id ? job : item)));
+          }, () => cancelled.current, job => { outcomes.set(job.id, job); setJobs(current => current.map(item => item.id === job.id ? job : item)); });
         } finally { if (token) await engine.endBatch(token); }
       });
+      const completed = [...outcomes.values()].filter(job => job.status === 'done').length, failed = [...outcomes.values()].filter(job => job.status === 'failed').length;
+      if (completed && !cancelled.current) await notifyCompletion({ kind: options?.conversion ? 'conversion' : 'batch', total: queue.length, completed, failed });
       editor.setNotice(cancelled.current ? 'Batch cancelled. Completed exports are still available.' : 'Batch finished. Review the results for each file.');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -44,12 +49,15 @@ export function useBatch(editor: Editor) {
       edit: batchSettings(asset, editor.settingsFor(asset.id), editor.asset!, editor.edit!, mode), status: 'waiting', progress: 0 }));
     await execute(queue);
   }
-  async function convert(ids: string[], output: OutputSettings, keepFolders: boolean) {
+  const orderFor = (ids: string[]) => [...new Set([...namingOrder.current, ...editor.assets.filter(asset => ids.includes(asset.id)).map(asset => asset.id)])];
+  async function convert(ids: string[], output: OutputSettings, keepFolders: boolean, namingTemplate = '{name}', customArtwork: string | null = null) {
+    if (runningRef.current || editor.busy) return;
     const queue: BatchJob[] = editor.assets.filter(asset => ids.includes(asset.id)).map(asset => ({ id: crypto.randomUUID(), asset,
-      edit: conversionSettings(asset, output), status: 'waiting', progress: 0 }));
-    await execute(queue, { conversion: true, keepFolders }, true);
+      edit: { ...conversionSettings(asset, output), customArtwork }, status: 'waiting', progress: 0 }));
+    namingOrder.current = orderFor(ids);
+    await execute(queue, { conversion: true, keepFolders, namingTemplate, order: namingOrder.current }, true);
   }
   async function openFolder() { try { await window.frameDesktop?.openBatchFolder(); } catch (error) { editor.setNotice(error instanceof Error ? error.message : String(error)); } }
-  return { jobs, start, convert, running, clear, openFolder, cancel: () => { if (runningRef.current) { cancelled.current = true; editor.cancel(); } } };
+  return { jobs, start, convert, orderFor, running, clear, openFolder, cancel: () => { if (runningRef.current) { cancelled.current = true; editor.cancel(); } } };
 }
 export type Batch = ReturnType<typeof useBatch>;

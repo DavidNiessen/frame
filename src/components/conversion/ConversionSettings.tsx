@@ -1,3 +1,9 @@
+import { TransientMessage } from '../TransientMessage';
+import { CoverArtworkControls } from '../CoverArtworkControls';
+import { MetadataControls } from '../MetadataControls';
+import { ConversionNaming } from './ConversionNaming';
+import { GifOutputControls } from '../GifOutputControls';
+import { AudioOutputControls } from '../AudioOutputControls';
 import { ArrowRight, Check, ChevronDown, FolderTree, Settings2 } from 'lucide-react';
 import { formats, getFormat } from '../../core/formats';
 import type { FormatId } from '../../core/types';
@@ -26,14 +32,19 @@ export function ConversionSettings({ conversion: c, editor }: { conversion: Conv
       <details className="conversion-advanced"><summary><Settings2 size={15} />Advanced options<ChevronDown size={15} /></summary><div>
         {format.kind === 'video' && s.format !== 'gif' && <label className="stacked-label">Video bitrate <span className="unit">kbps</span><input aria-label="Conversion video bitrate" type="number" min={100} max={100000} step={100} placeholder="Automatic" value={s.videoBitrate ?? ''} onChange={event => c.update({ videoBitrate: event.target.value === '' ? null : Number(event.target.value) })} /></label>}
         {!lossless && s.format !== 'gif' && <label className="stacked-label">Audio bitrate<select aria-label="Conversion audio bitrate" value={s.audioBitrate} onChange={event => c.update({ audioBitrate: Number(event.target.value) })}>{[64, 96, 128, 192, 256, 320].map(rate => <option value={rate} key={rate}>{rate} kbps</option>)}</select></label>}
+        {s.format === 'gif' && <GifOutputControls settings={s} update={c.update} />}
+        {s.format !== 'gif' && <AudioOutputControls settings={s} update={c.update} />}
         <label className="switch-row"><span>Include artwork<small>{format.artwork ? 'Keep embedded album covers when present.' : 'This format does not support cover artwork.'}</small></span><input type="checkbox" role="switch" aria-label="Conversion include artwork" checked={format.artwork && s.includeArtwork} disabled={!format.artwork} onChange={event => c.update({ includeArtwork: event.target.checked })} /></label>
         <label className="switch-row"><span>Keep metadata<small>Titles, artists, albums and other source tags.</small></span><input type="checkbox" role="switch" aria-label="Conversion keep metadata" checked={s.keepMetadata} onChange={event => c.update({ keepMetadata: event.target.checked })} /></label>
+        {s.format !== 'gif' && <MetadataControls tags={s.outputTags} update={outputTags => c.update({ outputTags })} bulk />}
+        {format.artwork && <CoverArtworkControls artwork={c.artwork} update={value => { c.setArtwork(value); if (value) c.update({ includeArtwork: true }); }} bulk />}
+        <ConversionNaming conversion={c} />
       </div></details>
     </fieldset>
     <div className="conversion-action">
       <div className="conversion-output-summary"><span>{s.keepMetadata ? 'Metadata retained' : 'Metadata removed'}</span>{format.artwork && <span>{s.includeArtwork ? 'Artwork retained' : 'Artwork removed'}</span>}</div>
       <p className="conversion-destination">{editor.platform === 'desktop' ? 'Choose an output folder when you start. Existing files get numbered names.' : 'Download the converted files together as a ZIP, or save them individually.'}</p>
-      {c.error && <p className="conversion-error" role="alert">{c.error}{c.incompatible.length > 0 && <button onClick={() => c.setIds(c.ids.filter(id => !c.incompatible.some(asset => asset.id === id)))}>Deselect incompatible files</button>}</p>}
+      {c.error && <TransientMessage className="conversion-error" role="alert">{c.error}{c.incompatible.length > 0 && <button onClick={() => c.setIds(c.ids.filter(id => !c.incompatible.some(asset => asset.id === id)))}>Deselect incompatible files</button>}</TransientMessage>}
       {c.batch.running ? <button className="button subtle conversion-start" onClick={c.batch.cancel}>Cancel conversion</button> : <button className="button primary conversion-start" disabled={c.busy || !c.selected.length || !!c.error} onClick={c.start}>{allDone ? <><Check size={17} />Conversion complete</> : <><ArrowRight size={17} />Convert {c.selected.length || ''} {c.selected.length === 1 ? 'file' : 'files'}</>}</button>}
       {retryable.length > 0 && !c.batch.running && <button className="conversion-retry" disabled={c.busy || !!c.error} onClick={c.retry}>Retry unfinished files</button>}
       <span className="conversion-originals">{allDone ? 'Clear results to convert these files again.' : 'Full-length files. Originals untouched.'}</span>

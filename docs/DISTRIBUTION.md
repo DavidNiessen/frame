@@ -4,12 +4,13 @@ Frame uses Electron Builder for Windows NSIS installers, macOS DMG files, and op
 
 ## Portable media tools
 
+The violet application logo comes from `public/favicon.svg`. Maintainers can run `pnpm exec playwright install chromium` and `pnpm build:icon` to regenerate `build/icon.png`, which Electron Builder uses for application icons. After changing the logo, regenerate the signed Windows shell assets in this order: `pnpm sign:windows-shell`, `pnpm build:windows-shell`, then `pnpm build`. Signing changes integrity metadata included in the native source fingerprint, so the native build must follow signing. These commands require the signing and compiler tools described in the native component guide; normal installation uses the committed assets. Existing development shell registrations need **Settings → Repair actions** to receive updated Explorer icons. Packaged application icons require rebuilding and installing the updated desktop artifact.
+
 - FFmpeg archives and standalone yt-dlp binaries are committed in `vendor/media-tools/`. Setup verifies their SHA-256 checksums and extracts/copies only the host target into `build/media-tools/`; no GitHub download is needed during setup or build.
 - `@ffprobe-installer/ffprobe` installs a platform-specific FFprobe binary through optional npm dependencies.
 - FFmpeg and yt-dlp are copied into external `resources/media-tools`; FFprobe remains a production dependency unpacked outside Electron's ASAR archive.
 - `electron/tool-paths.ts` selects the prepared development or packaged resource paths. `electron/native.ts` resolves FFprobe's unpacked package path.
 - No system FFmpeg discovery, user PATH setup, shell invocation, runtime download, or install prompt is needed.
-- The sample media is copied to the external resources directory for native subprocess access.
 
 The same desktop smoke test can run against an unpacked artifact:
 
@@ -17,7 +18,7 @@ The same desktop smoke test can run against an unpacked artifact:
 FRAME_TEST_EXECUTABLE=/absolute/path/to/Frame npm run test:desktop
 ```
 
-On Windows set environment variables using PowerShell syntax; on Linux provide a display or run under Xvfb. The test launches the application with an empty PATH, imports and previews the sample, performs a native FLAC export, and checks output duration and cleanup.
+On Windows set environment variables using PowerShell syntax; on Linux provide a display or run under Xvfb. The test launches the application with an empty PATH, imports and previews a test fixture, performs a native FLAC export, and checks output duration and cleanup.
 
 ## File-manager integration
 

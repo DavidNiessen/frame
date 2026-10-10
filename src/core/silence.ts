@@ -26,7 +26,12 @@ export function silenceCandidates(ranges: TimeRange[], edit: EditSettings, paddi
 export function applySilenceCuts(edit: EditSettings, selected: TimeRange[]): EditSettings {
   const sorted = [...edit.cuts, ...selected].sort((a, b) => a.start - b.start), cuts: TimeRange[] = [];
   for (const r of sorted) { const last = cuts.at(-1); if (last && r.start <= last.end) last.end = Math.max(last.end, r.end); else cuts.push({ ...r }); }
-  const next = { ...edit, cuts }; const duration = editedDuration(next);
+  const clips = edit.clips?.flatMap(clip => {
+    const retained = keptRanges({ start: clip.start, end: clip.end, cuts });
+    return retained.filter(range => range.end - range.start >= .05).map((range, index) => ({ ...clip, ...range, id: `silence-${clip.id.slice(-70)}-${index}`, effects: { ...clip.effects } }));
+  });
+  if (clips?.length === 0) throw new Error('Keep at least 0.05 seconds. Deselect a silent section or increase padding.');
+  const next = { ...edit, cuts, ...(clips ? { clips } : {}) }; const duration = editedDuration(next);
   if (duration < .05) throw new Error('Keep at least 0.05 seconds. Deselect a silent section or increase padding.');
   if (cuts.length > 1000) throw new Error('The project supports up to 1,000 removed sections.');
   return { ...next, audioFadeIn: Math.min(edit.audioFadeIn, duration), audioFadeOut: Math.min(edit.audioFadeOut, duration), videoFadeIn: Math.min(edit.videoFadeIn, duration), videoFadeOut: Math.min(edit.videoFadeOut, duration) };

@@ -10,7 +10,7 @@ const ffmpeg = ffmpegPath();
 export async function mediaServer() {
   const directory = await mkdtemp(join(tmpdir(), 'frame-url-server-')), path = join(directory, 'tone.wav');
   await promisify(execFile)(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=1', path]);
-  const wav = await readFile(path), video = await readFile('public/sample.mp4');
+  const wav = await readFile(path), video = await readFile('tests/fixtures/sample.mp4');
   const requests: string[] = [];
   let slowClosed = false;
   const server = createServer((request, response) => {

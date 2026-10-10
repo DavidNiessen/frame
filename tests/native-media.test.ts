@@ -9,7 +9,7 @@ import { defaultSettings, type MediaAsset, type FormatId } from '../src/core/typ
 const exec = promisify(execFile);
 let directory: string;
 let asset: MediaAsset;
-const source = resolve('public/sample.mp4');
+const source = resolve('tests/fixtures/sample.mp4');
 async function inspect(path: string) {
   const { stdout } = await exec(ffprobePath(), ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path], { env: { ...process.env, PATH: '' } });
   return JSON.parse(stdout);

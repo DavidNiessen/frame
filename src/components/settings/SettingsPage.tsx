@@ -1,12 +1,16 @@
+import { TransientMessage } from '../TransientMessage';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, AudioLines, FolderOpen, LoaderCircle, Monitor, Palette, RefreshCw } from 'lucide-react';
 import type { ShellIntegrationStatus } from '../../core/system-integration';
 import type { Theme } from '../../hooks/useTheme';
 import { ThemeChoices } from './ThemeChoices';
+import { CompletionNotifications } from './CompletionNotifications';
+import { RecentExports } from './RecentExports';
+import { WatchFolders } from './WatchFolders';
 import { CertificateTrust } from './CertificateTrust';
 
 const webStatus: ShellIntegrationStatus = { platform: 'web', available: false, state: 'not-installed', detail: 'Available in the desktop app. Browsers cannot add actions to your file manager.' };
-export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms, back }: { theme: Theme; setTheme: (theme: Theme) => void; autoWaveforms: boolean; setAutoWaveforms: (enabled: boolean) => void; back: () => void }) {
+export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms, workspaceAutosave, setWorkspaceAutosave, timelinePreview, setTimelinePreview, back }: { theme: Theme; setTheme: (theme: Theme) => void; autoWaveforms: boolean; setAutoWaveforms: (enabled: boolean) => void; workspaceAutosave: boolean; setWorkspaceAutosave: (enabled: boolean) => void; timelinePreview: boolean; setTimelinePreview: (enabled: boolean) => void; back: () => void }) {
   const bridge = window.frameDesktop;
   const [status, setStatus] = useState<ShellIntegrationStatus | null>(bridge ? null : webStatus);
   const [pending, setPending] = useState<'checking' | 'installing' | 'removing' | 'certificate' | null>(bridge ? 'checking' : null);
@@ -46,9 +50,14 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
       <ThemeChoices theme={theme} setTheme={setTheme} />
     </section>
     <section className="settings-card" aria-labelledby="editing-heading">
-      <div className="settings-section-heading"><AudioLines size={19} /><div><h2 id="editing-heading">Editing</h2><p>Choose how Frame prepares your timeline.</p></div></div>
-      <label className="switch-row settings-preference"><span>Generate audio waveforms automatically<small id="waveform-preference-description">Show audio peaks when you select a track. Turn off to skip automatic analysis; you can still generate a waveform from the timeline.</small></span><input type="checkbox" checked={autoWaveforms} onChange={event => setAutoWaveforms(event.target.checked)} aria-label="Generate audio waveforms automatically" aria-describedby="waveform-preference-description" /></label>
+      <div className="settings-section-heading"><AudioLines size={19} /><div><h2 id="editing-heading">Editing</h2><p>Choose how Frame prepares and saves your workspace.</p></div></div>
+      <label className="switch-row settings-preference"><span>Show timeline preview<small id="timeline-preview-description">Show the miniature sequence overview above the timeline. Hide it for more room to edit.</small></span><input type="checkbox" checked={timelinePreview} onChange={event => setTimelinePreview(event.target.checked)} aria-label="Show timeline preview" aria-describedby="timeline-preview-description" /></label>
+      <label className="switch-row settings-preference"><span>Generate audio waveforms automatically<small id="waveform-preference-description">Show waveforms for audio files, videos with audio, and inserted audio layers. Turn off to skip waveform analysis.</small></span><input type="checkbox" checked={autoWaveforms} onChange={event => setAutoWaveforms(event.target.checked)} aria-label="Generate audio waveforms automatically" aria-describedby="waveform-preference-description" /></label>
+      <label className="switch-row settings-preference"><span>Autosave workspace<small id="autosave-preference-description">Keep media and edits on this device to reopen your workspace automatically. Turning off keeps the last saved workspace. Clear library removes it.</small></span><input type="checkbox" checked={workspaceAutosave} onChange={event => setWorkspaceAutosave(event.target.checked)} aria-label="Autosave workspace" aria-describedby="autosave-preference-description" /></label>
     </section>
+    <CompletionNotifications />
+    <WatchFolders />
+    <RecentExports />
     <section className="settings-card" aria-labelledby="integration-heading">
       <div className="settings-section-heading"><FolderOpen size={19} /><div><h2 id="integration-heading">File-manager actions</h2><p>Start editing or converting directly from your files.</p></div><span className={`integration-badge ${installed ? 'installed' : ''}`}>{pending === 'checking' ? 'Checking…' : !status ? 'Status unavailable' : !status.available ? status.platform === 'web' ? 'Desktop only' : 'Unavailable' : installed ? 'Installed' : partial ? 'Needs repair' : 'Not installed'}</span></div>
       <p className="integration-detail">{status?.detail || 'Refresh to check your file-manager actions.'}</p>
@@ -57,7 +66,7 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
         <button className="button subtle" disabled={!status?.available || !!pending || (!installed && !partial)} onClick={() => void update(false)}>{pending === 'removing' ? 'Removing…' : 'Remove actions'}</button>
         {bridge && <button className="icon-button" disabled={!!pending} aria-label="Refresh integration status" title="Refresh integration status" onClick={() => void update()}><RefreshCw size={16} /></button>}
       </div>
-      {error && <p className="settings-error" role="alert">{error}</p>}
+      {error && <TransientMessage className="settings-error" role="alert">{error}</TransientMessage>}
       <p className="settings-note"><Monitor size={13} />Applies to your user account. Your default media apps stay the same.</p>
       {status?.certificate && <CertificateTrust certificate={status.certificate} pending={!!pending} change={action => void certificate(action)} />}
     </section>

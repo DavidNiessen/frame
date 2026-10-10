@@ -1,6 +1,5 @@
 .app-shell.preview-expanded:has(.editor-layout) { height: var(--app-height, 100dvh); min-height: 0; }
 .preview-expanded > .app-header, .preview-expanded > .app-footer { flex-shrink: 0; }
-.preview-expanded > .workspace-bar, .preview-expanded > .recovery-banner { display: none; }
 .workspace.editor-layout[data-expanded] { display: block; flex: 1; height: 0; min-height: 0; }
 .editor-layout[data-expanded] > .library, .editor-layout[data-expanded] > .inspector,
 .editor-layout[data-expanded] .library-divider, .editor-layout[data-expanded] .inspector-divider,
@@ -12,7 +11,7 @@
   position: absolute; left: 0; right: 0; z-index: 3; opacity: 0; pointer-events: none;
   transition: opacity 180ms ease; color: var(--text); background: color-mix(in srgb, var(--surface) 92%, transparent);
 }
-.editor-layout[data-expanded] .workspace-heading { top: 0; }
+.editor-layout[data-expanded] .workspace-heading { top: 0; opacity: 1; pointer-events: auto; }
 .editor-layout[data-expanded] .transport { bottom: 0; }
 .editor-layout[data-expanded] .preview-label { display: none; }
 .editor-layout[data-expanded] .preview-panel:hover .workspace-heading,
@@ -25,3 +24,7 @@
 @media (prefers-reduced-motion: reduce) {
   .editor-layout[data-expanded] .workspace-heading, .editor-layout[data-expanded] .transport { transition: none; }
 }
+.fullscreen-scrubber { position: absolute; z-index: 4; left: 20px; right: 20px; bottom: 62px; padding: 4px 12px; border-radius: 8px; background: color-mix(in srgb, var(--surface) 92%, transparent); opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+.fullscreen-scrubber input { display: block; }
+.preview-panel:hover .fullscreen-scrubber, .preview-panel:focus-within .fullscreen-scrubber { opacity: 1; pointer-events: auto; }
+@media (hover: none) { .fullscreen-scrubber { opacity: 1; pointer-events: auto; } }

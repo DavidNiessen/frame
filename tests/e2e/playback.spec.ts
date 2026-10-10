@@ -1,6 +1,7 @@
+import { importTestMedia } from '../helpers/import-media';
 import { test, expect, type Page } from '@playwright/test';
 async function sample(page: Page) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
+  await page.goto('/'); await importTestMedia(page);
   await page.getByLabel('Seek playhead').waitFor();
 }
 test('publishes playback time every animation frame and skips removed footage promptly', async ({ page }) => {

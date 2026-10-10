@@ -1,3 +1,4 @@
+import { nativeSourceFingerprint } from './source-fingerprint';
 import type { RecipeResources } from '../src/core/resources';
 import { editedDuration } from '../src/core/timeline';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -29,7 +30,7 @@ export async function probeFile(path: string, options?: { rawOnly?: boolean; sig
   });
   const info = await stat(path);
   if (!info.isFile()) throw new Error('Select a media file.');
-  return { ...parseProbe(JSON.parse(metadata)), size: info.size };
+  return { ...parseProbe(JSON.parse(metadata)), size: info.size, fingerprint: await nativeSourceFingerprint(path, info.size) };
 }
 
 export function transcode(input: string, output: string, asset: MediaAsset, edit: EditSettings, progress: (ratio: number) => void, resources?: RecipeResources): { child: ChildProcess; done: Promise<void> } {

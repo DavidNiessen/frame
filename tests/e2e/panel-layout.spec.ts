@@ -1,13 +1,15 @@
+import { importTestMedia } from '../helpers/import-media';
+import { closeEffect, openEffect, openCaptionTools } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 
 async function sample(page: Page) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 45000 });
   await page.evaluate(() => document.fonts.ready);
 }
 async function crowdedTimeline(page: Page) {
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await page.getByText('Subtitles', { exact: true }).click();
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await openCaptionTools(page);
   const srt = Array.from({ length: 40 }, (_, index) => `${index + 1}\n00:00:00,500 --> 00:00:05,500\nCaption ${index + 1}\n`).join('\n');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'crowded.srt', mimeType: 'text/plain', buffer: Buffer.from(srt) });
   await expect(page.locator('.caption-lane')).toHaveCount(40);
@@ -26,7 +28,7 @@ test('fits the empty preview at short desktop heights and contains genuine overf
   await page.evaluate(() => document.fonts.ready);
   const scroller = page.locator('.empty-stage-scroll');
   expect(await scroller.evaluate(node => node.scrollHeight)).toBe(await scroller.evaluate(node => node.clientHeight));
-  await page.getByRole('button', { name: 'Try a sample', exact: true }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: 'Add media', exact: true }).scrollIntoViewIfNeeded();
   expect(await scroller.evaluate(node => node.scrollTop)).toBe(0);
   await expect(page.locator('.empty-stage')).toHaveCSS('overflow', 'hidden');
   const panel = (await page.locator('.empty-stage').boundingBox())!, inner = (await scroller.boundingBox())!;
@@ -50,7 +52,8 @@ test('bounds a crowded timeline without shrinking the preview and scrolls zoomed
   expect(await tracks.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
   expect((await page.locator('.timeline').boundingBox())!.height).toBe(248);
   await page.getByLabel('Trim start', { exact: true }).scrollIntoViewIfNeeded();
-  expect(await tracks.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+  // Clip handles remain pinned and visible without scrolling past caption tracks.
+  await expect(page.getByLabel('Trim start', { exact: true })).toBeInViewport();
   await page.getByLabel('Timeline zoom', { exact: true }).fill('4');
   expect(await tracks.evaluate(node => node.scrollWidth > node.clientWidth * 3)).toBe(true);
   await page.getByLabel('Seek playhead').fill('4.5');
@@ -86,7 +89,7 @@ test('resizes panels with pointer and keyboard, cancels gestures, remembers size
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('frame:panel-layout:v1')!).library)).toBe(290);
   await page.reload();
   await expect(page.getByRole('separator', { name: 'Resize media library' })).toHaveAttribute('aria-valuenow', '290');
-  await page.getByText('Project tools', { exact: true }).click();
+  await page.getByLabel('Project tools', { exact: true }).click();
   await page.getByRole('button', { name: 'Reset panel layout' }).click();
   await expect(page.getByRole('separator', { name: 'Resize media library' })).toHaveAttribute('aria-valuenow', '220');
   await expect(page.getByRole('separator', { name: 'Resize edit and export panel' })).toHaveAttribute('aria-valuenow', '320');

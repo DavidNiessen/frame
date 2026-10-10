@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { test, expect, _electron } from '@playwright/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -9,7 +10,7 @@ test('expands the desktop workspace and plays from focused timeline controls', a
   const app = await _electron.launch({ executablePath, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, FRAME_DEV_URL: '' } });
   try {
     const page = await app.firstWindow();
-    await page.getByRole('button', { name: /Start with a sample/ }).click();
+    await importTestMedia(page, app);
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await page.getByLabel('Trim start', { exact: true }).press('Space');
     await expect(page.locator('video')).toHaveJSProperty('paused', false);

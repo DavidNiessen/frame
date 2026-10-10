@@ -1,19 +1,29 @@
+import { importTestMedia } from '../helpers/import-media';
+import { closeEffect, openEffect } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 
 async function sample(page: Page) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 45000 });
 }
 
 test('expands the existing playing preview into the workspace and restores panel sizes with Escape', async ({ page }) => {
   await sample(page);
+  const initialPreview = (await page.locator('#media-preview').boundingBox())!, initialTimeline = (await page.locator('#media-timeline').boundingBox())!;
+  expect(Math.abs(initialPreview.height - initialTimeline.height)).toBeLessThanOrEqual(1);
   await page.getByRole('separator', { name: 'Resize timeline', exact: true }).press('Shift+ArrowUp');
+  const resizedTimeline = await page.getByRole('separator', { name: 'Resize timeline', exact: true }).getAttribute('aria-valuenow');
   const preview = page.getByRole('region', { name: 'Media preview', exact: true });
   const original = (await preview.boundingBox())!;
   await page.evaluate(() => { (window as unknown as { originalVideo: Element | null }).originalVideo = document.querySelector('video'); });
+  await page.getByLabel('Playback loop', { exact: true }).click(); await page.getByRole('button', { name: 'Loop sequence', exact: true }).click();
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click();
-  expect(await preview.evaluate(node => node.getAnimations().some(animation => animation.playState === 'running'))).toBe(true);
+  // Sample the animation during its first frame rather than after a test-driver round trip.
+  const animating = await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).evaluate(node => {
+    (node as HTMLButtonElement).click();
+    return new Promise<boolean>(resolve => requestAnimationFrame(() => resolve(document.querySelector('.preview-panel')!.getAnimations().some(animation => animation.playState === 'running'))));
+  });
+  expect(animating).toBe(true);
   await expect.poll(async () => (await preview.boundingBox())!.width).toBeGreaterThan(original.width + 400);
   await preview.evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
   const workspace = (await page.locator('.editor-layout').boundingBox())!, expanded = (await preview.boundingBox())!;
@@ -27,13 +37,15 @@ test('expands the existing playing preview into the workspace and restores panel
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).focus(); await page.mouse.move(40, 40);
   await expect.poll(() => page.locator('.transport').evaluate(node => getComputedStyle(node).opacity)).toBe('0');
+  await expect(page.locator('.preview-panel .workspace-heading')).toHaveCSS('opacity', '1');
+  await expect(page.getByRole('button', { name: 'Exit fullscreen preview', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Exit fullscreen preview', exact: true }).focus();
   await expect.poll(() => page.locator('.transport').evaluate(node => getComputedStyle(node).opacity)).toBe('1');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Fullscreen preview', exact: true })).toBeFocused();
   await preview.evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
   expect((await preview.boundingBox())!.height).toBeCloseTo(original.height, 0);
-  await expect(page.getByRole('separator', { name: 'Resize timeline', exact: true })).toHaveAttribute('aria-valuenow', '288');
+  await expect(page.getByRole('separator', { name: 'Resize timeline', exact: true })).toHaveAttribute('aria-valuenow', resizedTimeline!);
   await expect(page.locator('.timeline')).toBeVisible();
 });
 
@@ -50,19 +62,21 @@ test('Space toggles playback on timeline ranges and clips without activating the
   }
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
   await expect(page.getByLabel('Trim end', { exact: true })).toHaveAttribute('aria-valuenow', '6');
-  // Ordinary timeline buttons keep their native Space activation.
+  // Timeline buttons reserve Space for playback; Enter still activates them.
+  await page.getByRole('button', { name: 'Split', exact: true }).press('Space'); await expect(page.locator('video')).toHaveJSProperty('paused', false);
   await page.getByRole('button', { name: 'Split', exact: true }).press('Space');
+  await page.getByRole('button', { name: 'Split', exact: true }).press('Enter');
   await expect(page.locator('.timeline-clip')).toHaveCount(2);
   await expect(page.locator('video')).toHaveJSProperty('paused', true);
   // Typing in caption text must never invoke playback shortcuts.
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await page.getByText('Subtitles', { exact: true }).click(); await page.getByRole('button', { name: 'Add caption', exact: true }).click();
-  await page.getByLabel('Subtitle 1 text').fill('Hello'); await page.getByLabel('Subtitle 1 text').press('End'); await page.getByLabel('Subtitle 1 text').press('Space');
-  await expect(page.getByLabel('Subtitle 1 text')).toHaveValue('Hello ');
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await openEffect(page, 'Captions');
+  await page.getByLabel('Caption text', { exact: true }).fill('Hello'); await page.getByLabel('Caption text', { exact: true }).press('End'); await page.getByLabel('Caption text', { exact: true }).press('Space');
+  await expect(page.getByLabel('Caption text', { exact: true })).toHaveValue('Hello ');
   await expect(page.locator('video')).toHaveJSProperty('paused', true);
   const captions = page.locator('.timeline-lane-group').filter({ has: page.locator('.caption-lane') });
-  await captions.locator('summary').press('Space'); await expect(captions).not.toHaveAttribute('open');
-  await expect(page.locator('video')).toHaveJSProperty('paused', true);
+  await captions.locator('summary').press('Space'); await expect(captions).toHaveAttribute('open', '');
+  await expect(page.locator('video')).toHaveJSProperty('paused', false); await captions.locator('summary').press('Space');
 });
 
 test('fills phone and short desktop screens, respects reduced motion and restores on navigation', async ({ page }) => {

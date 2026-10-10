@@ -32,10 +32,10 @@ test('manages file-manager actions in packaged and development builds', async ()
     await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
     if (initial.state !== 'not-installed') {
       await page.getByRole('button', { name: 'Remove actions' }).click();
-      await expect(page.locator('.integration-badge')).toHaveText('Not installed');
+      await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Not installed');
     }
     await page.getByRole('button', { name: 'Install actions' }).click();
-    await expect(page.locator('.integration-badge')).toHaveText('Installed');
+    await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Installed');
     await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Remove actions' })).toBeEnabled();
     if (process.platform === 'win32' && initial.certificate?.trusted) {
@@ -58,36 +58,36 @@ test('manages file-manager actions in packaged and development builds', async ()
       if (!launch.packaged) expect(entry).toContain(`"${launch.path}" --frame-workflow=convert`);
       await writeFile(path, 'stale command');
       await page.getByRole('button', { name: 'Refresh integration status' }).click();
-      await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+      await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Needs repair');
       await page.getByRole('button', { name: 'Repair actions' }).click();
-      await expect(page.locator('.integration-badge')).toHaveText('Installed');
+      await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Installed');
     }
     if (process.platform === 'win32') {
       // Windows 11 checks the native component separately from the classic registry verbs.
       const primary = await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Frame\\ShellActions'); try { $key.GetValue('PrimaryPackage') } finally { $key.Dispose() }`);
       if (primary) {
-        await expect(page.locator('.integration-detail')).toContainText('Windows 11 primary menu installed');
+        await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-detail')).toContainText('Windows 11 primary menu installed');
         await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\\Frame\\ShellActions'); try { $key.SetValue('PrimaryDigest', 'stale-package') } finally { $key.Dispose() }`);
         await page.getByRole('button', { name: 'Refresh integration status' }).click();
-        await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+        await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Needs repair');
         await page.getByRole('button', { name: 'Repair actions' }).click();
-        await expect(page.locator('.integration-badge')).toHaveText('Installed');
+        await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Installed');
         const mode = await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Frame\\ShellActions'); try { $key.GetValue('PrimaryMode') } finally { $key.Dispose() }`);
         if (mode === 'development') {
           await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Frame\\ShellActions'); try { Set-Content -LiteralPath (Join-Path ($key.GetValue('PrimaryRoot')) 'Assets\\Logo44.png') -Value 'damaged' } finally { $key.Dispose() }`);
           await page.getByRole('button', { name: 'Refresh integration status' }).click();
-          await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+          await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Needs repair');
           await page.getByRole('button', { name: 'Repair actions' }).click();
-          await expect(page.locator('.integration-badge')).toHaveText('Installed');
+          await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Installed');
         }
       }
       // A different Frame installation can own one verb; removal must leave that command alone.
       await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\\Classes\\SystemFileAssociations\\.mp3\\shell\\Frame.Convert\\command'); $key.SetValue('', 'other-installation'); $key.Dispose()`);
       await page.getByRole('button', { name: 'Refresh integration status' }).click();
-      await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+      await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Needs repair');
     }
     await page.getByRole('button', { name: 'Remove actions' }).click();
-    await expect(page.locator('.integration-badge')).toHaveText('Not installed');
+    await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Not installed');
     expect((await status()).state).toBe('not-installed');
     if (process.platform === 'win32') {
       expect(await windowsRegistry(`$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Classes\\SystemFileAssociations\\.mp3\\shell\\Frame.Convert\\command'); try { $key.GetValue('') } finally { $key.Dispose() }`)).toBe('other-installation');
@@ -97,7 +97,7 @@ test('manages file-manager actions in packaged and development builds', async ()
     // Windows installer launch tests still need the registrations enabled.
     if (initial.state === 'installed') {
       await page.getByRole('button', { name: 'Install actions' }).click();
-      await expect(page.locator('.integration-badge')).toHaveText('Installed');
+      await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Installed');
     }
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
 });

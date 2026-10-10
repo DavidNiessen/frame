@@ -21,14 +21,14 @@ it('maps imported source cues through removed sections and speed changes', () =>
 it('embeds a selectable caption stream and burns captions using the bundled font', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-captions-'));
   try {
-    const paths = { captions: join(directory, 'captions.srt'), fonts: resolve('public/fonts'), text: join(directory, 'text.txt'), image: join(directory, 'image.png'), lut: join(directory, 'lut.cube') };
+    const paths = { artwork: join(directory, 'artwork.png'), chapters: join(directory, 'chapters.ffmetadata'), captions: join(directory, 'captions.srt'), fonts: resolve('public/fonts'), text: join(directory, 'text.txt'), image: join(directory, 'image.png'), lut: join(directory, 'lut.cube') };
     const edit = { ...defaultSettings(asset), end: 1, subtitles: importSubtitles('1\n00:00:00,000 --> 00:00:01,000\nA real caption') };
     await writeFile(paths.captions, serializeSrt(outputCues(edit)));
     const embedded = join(directory, 'embedded.mp4'); const burned = join(directory, 'burned.mp4');
-    await exec(ffmpeg!, buildExportArgs(asset, { ...edit, subtitles: { ...edit.subtitles, mode: 'embed' } }, resolve('public/sample.mp4'), embedded, paths));
+    await exec(ffmpeg!, buildExportArgs(asset, { ...edit, subtitles: { ...edit.subtitles, mode: 'embed' } }, resolve('tests/fixtures/sample.mp4'), embedded, paths));
     const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', embedded]);
     expect(JSON.parse(stdout).streams.some((s: { codec_name: string }) => s.codec_name === 'mov_text')).toBe(true);
-    await exec(ffmpeg!, buildExportArgs(asset, edit, resolve('public/sample.mp4'), burned, paths));
+    await exec(ffmpeg!, buildExportArgs(asset, edit, resolve('tests/fixtures/sample.mp4'), burned, paths));
     const frame = async (p: string) => (await exec(ffmpeg!, ['-v', 'error', '-i', p, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer', maxBuffer: 2_000_000 })).stdout;
     expect((await frame(burned)).equals(await frame(embedded))).toBe(false);
   } finally { await rm(directory, { recursive: true, force: true }); }

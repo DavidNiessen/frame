@@ -20,7 +20,7 @@ it('renders literal text and a real image watermark without interpreting text as
     await writeFile(paths.text, textAss(edit, asset));
     await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'color=red:s=64x64', '-frames:v', '1', '-threads', '1', paths.image]);
     edit.overlays.image = `data:image/png;base64,${(await readFile(paths.image)).toString('base64')}`;
-    const output = join(directory, 'marked.mp4'); await exec(ffmpeg!, buildExportArgs(asset, edit, resolve('public/sample.mp4'), output, paths));
+    const output = join(directory, 'marked.mp4'); await exec(ffmpeg!, buildExportArgs(asset, edit, resolve('tests/fixtures/sample.mp4'), output, paths));
     const { stdout } = await exec(ffmpeg!, ['-v', 'error', '-ss', '0.1', '-i', output, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer', maxBuffer: 2_000_000 });
     const offset = (Math.round(360 * .8) * 640 + Math.round(640 * .9)) * 3;
     expect(stdout[offset]).toBeGreaterThan(200); expect(stdout[offset + 1]).toBeLessThan(50);
