@@ -29,6 +29,7 @@ export function WatermarkLanes({ asset, edit, total, disabled, update, seek, ope
       className="watermark-bar" label={label} text={recipe.overlays.text || `Watermark ${ordinal}`} disabled={disabled}
       onSelect={keepView => { seek(timeline ? sourceTimeAtOutput(edit, fragment.range.start) : fragment.range.start); openEffect('watermark', id, keepView); }}
       onMove={delta => patch({ start: range.start + delta, end: range.end + delta })} moveLimits={{ start: -range.start, end: maximum - range.end }}
+      onPreview={(next, edge) => { const position = next[edge === 'body' ? 'start' : edge]; seek(timeline ? sourceTimeAtOutput(edit, position) : position); }}
       onChange={next => patch({ start: next.start !== fragment.range.start ? next.start : range.start, end: next.end !== fragment.range.end ? next.end : range.end })}
       remove={{ label: `Remove Watermark${id ? ` instance ${ordinal}` : ''} from source`, run: () => update(id ? changeInstance(edit, id, null, 'remove') : effectAction(edit, asset, definitionFor('watermark'), null, 'remove')) }}
     />)}</div>;

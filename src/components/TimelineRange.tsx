@@ -8,6 +8,7 @@ interface Props {
   snapSpace?: SnapSpace; selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
   disabled: boolean; onChange: (range: TimeRange) => void; onSelect: (keepView?: boolean) => void;
   onMove?: (delta: number) => void; moveLimits?: TimeRange;
+  onPreview?: (range: TimeRange, edge: Boundary | 'body') => void;
   startTitle?: string; endTitle?: string;
   wideHandles?: boolean;
   startLabel?: string; endLabel?: string; edges?: Boundary[]; minimum?: number;
@@ -16,7 +17,7 @@ interface Props {
   remove?: { label: string; run: () => void };
 }
 export function TimelineRange({ range, limits, duration, label, text, selectOnPointer = false, className = '', disabled, onChange, onSelect,
-  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', remove, onMove, moveLimits, startTitle, endTitle, wideHandles = false }: Props) {
+  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', remove, onMove, moveLimits, onPreview, startTitle, endTitle, wideHandles = false }: Props) {
   const snap = useContext(TimelineSnapContext);
   const [snapped, setSnapped] = useState(false);
   const [draft, setDraft] = useState<TimeRange | null>(null);
@@ -49,8 +50,9 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
       pending.current = { start: g.range.start + delta, end: g.range.end + delta };
     } else pending.current = constrain(g.edge, value, g.range);
     setDraft(pending.current);
+    onPreview?.(pending.current, g.edge);
   }
-  function cancel() { if (gesture.current) suppressClick.current = true; gesture.current = null; setDraft(null); }
+  function cancel() { if (gesture.current) { suppressClick.current = true; onPreview?.(gesture.current.range, gesture.current.edge); } gesture.current = null; setDraft(null); }
   function finish(event: PointerEvent<HTMLButtonElement>) {
     event.stopPropagation(); const g = gesture.current; if (!g || g.pointer !== event.pointerId) return;
     move(event); gesture.current = null; suppressClick.current = g.edge === 'body' && g.moved;
@@ -75,7 +77,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
         if (event.key === 'Escape') { cancel(); event.stopPropagation(); return; }
         if (!event.defaultPrevented && onMove && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
           event.preventDefault(); event.stopPropagation(); const delta = (event.key === 'ArrowLeft' ? -1 : 1) * (event.shiftKey ? .1 : .01);
-          const bounds = moveLimits ?? { start: limits.start - range.start, end: limits.end - range.end }; onSelect(true); onMove(Math.max(bounds.start, Math.min(bounds.end, delta)));
+          const bounds = moveLimits ?? { start: limits.start - range.start, end: limits.end - range.end }, movement = Math.max(bounds.start, Math.min(bounds.end, delta)); onSelect(true); onMove(movement); onPreview?.({ start: range.start + movement, end: range.end + movement }, 'body');
         }
         if (!event.defaultPrevented && remove && ['Delete', 'Backspace'].includes(event.key)) { event.preventDefault(); event.stopPropagation(); remove.run(); }
       }}
@@ -104,7 +106,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
           : event.key === 'ArrowLeft' ? shown[edge] - step : event.key === 'ArrowRight' ? shown[edge] + step
           : event.key === 'PageDown' ? shown[edge] - 1 : event.key === 'PageUp' ? shown[edge] + 1 : null;
         if (next === null) return;
-        event.preventDefault(); event.stopPropagation(); if (selectOnPointer) onSelect(true); onChange(constrain(edge, Math.round(next * 100) / 100, range));
+        event.preventDefault(); event.stopPropagation(); if (selectOnPointer) onSelect(true); const updated = constrain(edge, Math.round(next * 100) / 100, range); onChange(updated); onPreview?.(updated, edge);
       }}><span aria-hidden="true" /></button>)}
     {draft && <output className="range-readout">{snapped ? 'Snapped · ' : ''}{shown.start.toFixed(2)}–{shown.end.toFixed(2)}s</output>}
   </div>;

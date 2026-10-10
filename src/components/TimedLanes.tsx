@@ -35,6 +35,7 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
       {captionRows.map((row, rowIndex) => <div className="timeline-lane caption-lane" key={rowIndex}>
         {row.map((cue, index) => <TimelineRange selectOnPointer key={`${cue.index}-${index}`} range={cue} displayRange={cue.shown} displaySpeed={cue.speed} snapSpace={cue.timeSpace === 'output' ? 'output' : 'source'} limits={{ start: 0, end: cue.timeSpace === 'output' ? outputDuration : asset.duration }} duration={total}
           onMove={delta => update(changeCaption(edit, cue, { start: cue.cue.start + delta, end: cue.cue.end + delta }))} moveLimits={{ start: -cue.cue.start, end: (cue.timeSpace === 'output' ? outputDuration : asset.duration) - cue.cue.end }}
+          onPreview={(range, edge) => { const position = range[edge === 'body' ? 'start' : edge]; seek(cue.timeSpace === 'output' ? sourceTimeAtOutput(edit, position) : position); }}
           label={`Caption ${cue.index + 1}`} text={cue.text} className={`caption-bar ${cue.mode === 'none' ? 'inactive' : ''}`} disabled={disabled}
           remove={{ label: `Remove caption ${cue.index + 1}`, run: () => update(changeCaption(edit, cue, 'remove')) }}
           onSelect={keepView => { seek(cue.timeSpace === 'output' ? sourceTimeAtOutput(edit, cue.start) : cue.start); openEffect('captions', cue.instanceId, keepView); }} onChange={range => update(changeCaption(edit, cue, { ...(range.start !== cue.start ? { start: range.start } : {}), ...(range.end !== cue.end ? { end: range.end } : {}) }))} />)}
@@ -57,6 +58,7 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
           <TimelineRange selectOnPointer range={range} limits={{ start: 0, end: outputDuration }}
             duration={total} snapSpace="output" label={fadeLabel(key)} text={`${fadeLabel(key)} · ${edit[key].toFixed(2)}s`} className={`fade-bar ${key.endsWith('In') ? 'fade-in' : 'fade-out'}`} minimum={.01}
             edges={[key.endsWith('In') ? 'end' : 'start']} disabled={disabled} onSelect={keepView => { selectClip(null); seek(retained[0]?.start ?? edit.start); openEffect(key, undefined, keepView); }}
+            onPreview={(range, edge) => seek(sourceTimeAtOutput(edit, range[edge === 'body' ? 'start' : edge]))}
             remove={{ label: `Remove ${fadeLabel(key)} from sequence`, run: () => update({ [key]: 0, addedEffects: edit.addedEffects?.filter(id => id !== key), ...(edit.clips ? { clips: edit.clips.map(clip => ({ ...clip, effects: { ...clip.effects, addedEffects: (clip.effects[key] ?? 0) > 0 ? clip.effects.addedEffects : clip.effects.addedEffects?.filter(id => id !== key) } })) } : {}) }) }}
             onChange={range => update({ [key]: key.endsWith('In') ? range.end : outputDuration - range.start })} />
           <span className="effect-lane-label">{fadeLabel(key)} · {edit[key].toFixed(2)}s</span>

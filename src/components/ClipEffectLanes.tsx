@@ -25,6 +25,7 @@ export function ClipEffectLanes({ asset, edit, total, disabled, update, seek, se
     return <TimelineRange key={clip.id} selectOnPointer range={range} displayRange={shown} displaySpeed={speed} limits={timed || fade ? clip : { start: 0, end: asset.duration }} minimum={fade ? .01 * speed : Math.min(.05, range.end - range.start)} duration={total}
       label={`${effect.name}${instanceId ? ` instance ${ordinal}` : ''} clip ${index + 1}`} text={`${effect.name}${instanceId ? ` ${ordinal}` : ''} · ${effectSummary(effect, recipe)}`} className={`clip-effect-bar ${fade ? 'clip-fade-bar' : ''}`} edges={timed ? ['start', 'end'] : value ? [incoming ? 'end' : 'start'] : []} disabled={disabled} onChange={changeRange}
       onMove={timed ? delta => changeRange({ start: range.start + delta, end: range.end + delta }) : undefined}
+      onPreview={(next, edge) => seek(next[edge === 'body' ? 'start' : edge])}
       onSelect={keepView => { selectClip(scope); seek(range.start); openEffect(effect.id, instanceId, keepView); }}
       remove={{ label: `Remove ${effect.name}${instanceId ? ` instance ${ordinal}` : ''} from clip ${index + 1}`, run: () => update(instanceId ? changeInstance(edit, instanceId, scope, 'remove') : effectAction(edit, asset, effect, scope, 'remove')) }} />;
   })}</div>)}</>;

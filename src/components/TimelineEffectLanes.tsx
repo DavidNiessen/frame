@@ -19,6 +19,7 @@ export function TimelineEffectLanes({ edit, total, disabled, update, seek, selec
       label={label} text={`${effect.name}${ordinal > 1 ? ` ${ordinal}` : ''} · ${effectSummary(effect, { ...edit, ...instance.settings })}`} className={`clip-effect-bar ${effect.id.includes('Fade') ? 'clip-fade-bar' : ''}`}
       edges={instance.range ? ['start', 'end'] : []} disabled={disabled} onChange={change}
       onMove={instance.range ? delta => change({ start: range.start + delta, end: range.end + delta }) : undefined}
+      onPreview={(range, edge) => seek(sourceTimeAtOutput(edit, range[edge === 'body' ? 'start' : edge]))}
       onSelect={keepView => { selectClip(null); seek(sourceTimeAtOutput(edit, range.start)); openEffect(effect.id, instance.id, keepView); }}
       remove={{ label: `Remove ${label}`, run: () => update(changeInstance(edit, instance.id, null, 'remove')) }} />
     </div>;
