@@ -175,7 +175,9 @@ npm run package:dir # Unpacked desktop application
 npm run package     # Windows NSIS / macOS DMG / Linux AppImage
 ```
 
-Build on the target OS and architecture so the bundled media binaries match. Cross-packaging is deliberately rejected. CI prepares native artifacts for Windows, macOS (Apple Silicon and Intel), and Linux; it also validates the web build. Artifacts are saved under `release/`. Commands do not publish a release.
+Build on the target OS and architecture so the bundled media binaries match. Cross-packaging is deliberately rejected. CI prepares native artifacts for Windows, macOS (Apple Silicon and Intel), and Linux; it also validates the web build. Local artifacts are saved under `release/`; local packaging commands do not publish them.
+
+Every successful CI run on `master` automatically publishes a [GitHub prerelease](https://github.com/DavidNiessen/frame/releases) tagged `v<version>-build.<run number>`. Each release includes all four installers with platform/architecture names, SHA-256 checksums, the exact source commit, and generated change notes. Publication waits for browser, desktop, and pnpm checks to pass and rejects missing, empty, or unexpected installers. Pull requests never publish releases. Rerunning a successful workflow updates that build's assets instead of creating a duplicate release. Stable version releases can be published separately when ready.
 
 Unsigned local builds are available without credentials. Public Windows signing and macOS signing/notarization require the appropriate certificates and accounts; configure Electron Builder's supported signing environment variables separately. See [distribution notes](docs/DISTRIBUTION.md) for portable-tool packaging and third-party notices.
 

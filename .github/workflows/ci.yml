@@ -160,9 +160,44 @@ jobs:
         run: ./scripts/test-windows-shell.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: frame-${{ matrix.os }}
+          name: frame-desktop-${{ matrix.os }}
           path: |
             release/*.exe
             release/*.dmg
             release/*.AppImage
           if-no-files-found: error
+  release:
+    name: Publish desktop installers
+    needs: [web, pnpm-install, desktop]
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Collect all four verified desktop packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: frame-desktop-*
+          merge-multiple: true
+          path: installers
+      - name: Verify completeness and generate checksums
+        id: release
+        run: node scripts/prepare-release.mjs installers "$RUNNER_TEMP/frame-release-notes.md"
+      - name: Publish the installers as a GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.release.outputs.title }}
+        run: |
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" installers/* --clobber
+          else
+            gh release create "$RELEASE_TAG" installers/* \
+              --target "$GITHUB_SHA" --title "$RELEASE_TITLE" \
+              --prerelease --generate-notes --notes-file "$RUNNER_TEMP/frame-release-notes.md"
+          fi

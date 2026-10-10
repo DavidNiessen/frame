@@ -51,6 +51,7 @@
   "build": {
     "appId": "io.frame.mediaeditor",
     "productName": "Frame",
+    "artifactName": "Frame-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
