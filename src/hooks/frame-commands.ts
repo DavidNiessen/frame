@@ -1,15 +1,18 @@
 import type { FrameCommand } from '../components/CommandPalette';
 import type { Editor } from './useEditor';
 import type { Projects } from './useProjects';
+import { availableEffects, effectLibrary, type EffectId } from '../core/effect-library';
+import { existingEffectTarget } from '../core/effect-actions';
 interface Actions {
   workspaceBusy: boolean; importFiles: () => void; importFolder: () => void; folderSupported: boolean; url: () => void;
   edit: () => void; convert: () => void; settings: () => void; openProject: () => void;
   effects: () => void; exportSettings: () => void;
+  applyEffect: (id: EffectId) => void;
   contactSheet: () => void; scenes: () => void; merge: () => void; batch: () => void;
   timelineAvailable: boolean; resetLayout: () => void; shortcuts: () => void;
 }
 export function frameCommands(editor: Editor, projects: Projects, actions: Actions): FrameCommand[] {
-  const busy = actions.workspaceBusy ? 'Wait for the current operation to finish' : undefined;
+  const busy = actions.workspaceBusy || editor.busy ? 'Wait for the current operation to finish' : undefined;
   const media = busy || (!editor.asset ? 'Import media first' : undefined);
   const video = media || (editor.asset?.kind !== 'video' ? 'Select a video first' : undefined);
   const editing = (run: () => void) => () => { actions.edit(); run(); };
@@ -26,6 +29,14 @@ export function frameCommands(editor: Editor, projects: Projects, actions: Actio
     { id: 'undo', label: 'Undo editor change', description: 'Undo the last change for the selected source', group: 'Editing', shortcut: 'Ctrl / ⌘ Z', disabled: busy || (!editor.canUndo ? 'No change to undo' : undefined), run: editing(editor.undo) },
     { id: 'redo', label: 'Redo editor change', description: 'Restore the last undone change', group: 'Editing', shortcut: 'Ctrl / ⌘ Shift Z', disabled: busy || (!editor.canRedo ? 'No change to redo' : undefined), run: editing(editor.redo) },
     { id: 'effects', label: 'Show effects', description: 'Browse and apply audio, video and timing effects', group: 'Editing', keywords: 'editing controls crop volume speed voiceover ducking audio filters subtitles recipes', disabled: media, run: actions.effects },
+    ...effectLibrary.map(effect => {
+      const supported = !editor.asset || availableEffects(editor.asset).includes(effect);
+      const existing = editor.asset && editor.edit ? existingEffectTarget(editor.edit, editor.asset, effect, null) : null;
+      return { id: `effect-${effect.id}`, label: `${existing ? 'Edit' : 'Add'} ${effect.name}`, description: effect.description,
+        group: `${effect.group} effects`, keywords: `effect ${effect.id} ${effect.id === 'captions' ? 'subtitles text' : effect.id === 'equalizer' ? 'EQ bass mids treble' : ''}`,
+        disabled: media || (!supported ? effect.group === 'Video' ? 'Select a video first' : 'This source has no audio' : undefined),
+        run: editing(() => actions.applyEffect(effect.id)) };
+    }),
     { id: 'scenes', label: 'Find scene changes', description: 'Review likely scene boundaries and split points', group: 'Review', keywords: 'detect cuts scan', disabled: video, run: editing(actions.scenes) },
     { id: 'contact-sheet', label: 'Create video contact sheet', description: 'Download a grid of processed frames and timestamps', group: 'Review', keywords: 'thumbnails storyboard png', disabled: video, run: editing(actions.contactSheet) },
     { id: 'export-settings', label: 'Show export settings', description: 'Format, bitrate, audio delivery, metadata and artwork', group: 'Export', keywords: 'cover tags palette gif precision channels sample rate chapters', disabled: media, run: actions.exportSettings },

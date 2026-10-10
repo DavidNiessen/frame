@@ -35,3 +35,5 @@ For timed corrections, the first addition covers the track and later instances s
 Contiguous splits play through using the same media decoder and unchanged source clock. Clip identity advances without assigning `currentTime`, including when an animation frame crosses several short splits. Actual gaps and reordered clips still seek, and looping uses the existing playback boundary handling.
 
 The playhead follows the draft position while an effect, caption or watermark bar moves; resizing follows the dragged edge. Mouse release commits one undo step. Escape cancels the gesture and restores both the bar and its original cursor position. Keyboard movement also updates the playhead. Music/voiceover layer movement uses the same output clock.
+
+Every catalogue effect is available through Ctrl/Cmd+K. Commands explain media requirements, add independent repeatable instances, or open existing singleton settings. Repeatable catalogue actions keep the + icon after use; only existing singletons show the check and Edit action.

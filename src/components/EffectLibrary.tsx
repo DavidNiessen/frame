@@ -2,8 +2,8 @@ import { TransientMessage } from './TransientMessage';
 import { useMemo, useState } from 'react';
 import { AudioLines, Check, ChevronRight, Film, Folder, Gauge, Plus, Search } from 'lucide-react';
 import { appliedEffects, availableEffects, type EffectId } from '../core/effect-library';
-import { effectAction, effectDragType, existingEffectTarget } from '../core/effect-actions';
-import { addTimelineEffect } from '../core/timeline-effects';
+import { effectDragType } from '../core/effect-actions';
+import { applyEditorEffect } from '../hooks/apply-editor-effect';
 import { EffectRecipes } from './EffectRecipes';
 import { clearClipEffects } from '../core/effect-actions';
 import type { Editor } from '../hooks/useEditor';
@@ -17,10 +17,8 @@ export function EffectLibrary({ editor, current, seek, openCaption, openEffect }
   const filtered = effects.filter(effect => (group === 'All' || effect.group === group) && `${effect.name} ${effect.description}`.toLowerCase().includes(query.toLowerCase()));
   function apply(id: EffectId) {
     const effect = effects.find(item => item.id === id); if (!effect) return;
-    const existing = existingEffectTarget(edit, asset, effect, null);
-    if (existing) { setSelected(id); setMessage(''); if (effect.scope === 'clip') editor.selectClip(existing.clipId); openEffect(id, existing.instanceId); return; }
     setSelected(id); setMessageVersion(version => version + 1);
-    try { editor.update(['mix', 'silence'].includes(id) ? effectAction(edit, asset, effect, null, 'add', current) : addTimelineEffect(edit, asset, id, current)); editor.selectClip(null); } catch (error) { setMessage((error as Error).message); return; }
+    try { const applied = applyEditorEffect(editor, id, current); if (!applied) return; if (applied.existing) { setMessage(''); openEffect(id, applied.instanceId); return; } } catch (error) { setMessage((error as Error).message); return; }
     setMessage(`${effect.name} added. Click its timeline bar to adjust settings.`);
   }
   return <section className="effect-browser" aria-label="Effect browser">
@@ -32,7 +30,7 @@ export function EffectLibrary({ editor, current, seek, openCaption, openEffect }
       const items = filtered.filter(effect => effect.group === category); if (!items.length) return null;
       return <details className="effect-bin" key={category} open><summary><ChevronRight size={13} /><Folder size={14} />{category === 'Timing' ? 'Timing' : `${category} Effects`}<span>{items.length}</span></summary>
         <div className="effect-card-grid">{items.map(effect => { const Icon = category === 'Audio' ? AudioLines : category === 'Video' ? Film : Gauge, applied = active.includes(effect); return <div className={`effect-card ${selected === effect.id ? 'selected' : ''}`} key={effect.id}>
-          <button className="effect-catalog-item" aria-label={`Select ${effect.name} effect`} aria-pressed={selected === effect.id} draggable={!editor.busy} onDragStart={event => { setSelected(effect.id); event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData(effectDragType, effect.id); }} onClick={() => { setSelected(effect.id); setMessage(''); }} onDoubleClick={() => apply(effect.id)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); apply(effect.id); } }}><Icon size={14} /><span><strong>{effect.name}</strong></span>{applied && effect.repeatable ? <Check size={13} aria-label="Applied" /> : !applied && effect.scope === 'source' && effect.id !== 'captions' ? <small>Source</small> : null}</button>
+          <button className="effect-catalog-item" aria-label={`Select ${effect.name} effect`} aria-pressed={selected === effect.id} draggable={!editor.busy} onDragStart={event => { setSelected(effect.id); event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData(effectDragType, effect.id); }} onClick={() => { setSelected(effect.id); setMessage(''); }} onDoubleClick={() => apply(effect.id)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); apply(effect.id); } }}><Icon size={14} /><span><strong>{effect.name}</strong></span>{!applied && effect.scope === 'source' && effect.id !== 'captions' ? <small>Source</small> : null}</button>
           <button className="icon-button effect-apply" aria-label={`${applied && !effect.repeatable ? 'Edit' : 'Add'} ${effect.name}`} title={applied && !effect.repeatable ? "Edit existing effect" : "Add to timeline"} onClick={() => apply(effect.id)}>{applied && !effect.repeatable ? <Check size={13} aria-label="Applied" /> : <Plus size={13} />}</button>
         </div>; })}</div>
       </details>;

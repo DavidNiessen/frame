@@ -10,7 +10,7 @@ export function CommandPalette({ open, close, commands }: { open: boolean; close
   const matches = open ? searchCommands(commands, query) : [];
   const active = matches.find(command => command.id === activeId) ?? matches[0];
   useEffect(() => { if (open && active) dialog.current?.querySelector<HTMLElement>(`[data-command="${active.id}"]`)?.scrollIntoView({ block: 'nearest' }); }, [active?.id, open, query]);
-  function run(command: FrameCommand) { if (command.disabled) return; close(); command.run(); }
+  function run(command: FrameCommand) { if (command.disabled) return; dialog.current?.close(); close(); command.run(); }
   function move(direction: number) { const available = matches.filter(command => !command.disabled); if (!available.length) return; const index = available.findIndex(command => command.id === active?.id); const next = index < 0 ? direction > 0 ? 0 : available.length - 1 : (index + direction + available.length) % available.length; setActiveId(available[next].id); }
   return <dialog ref={dialog} data-command-palette className="command-palette" aria-label="Command palette" onCancel={event => { event.preventDefault(); close(); }} onClick={event => { if (event.target === dialog.current) close(); }}>
     <div className="dialog-heading"><h2>Commands</h2><button className="icon-button" aria-label="Close command palette" onClick={close}><X size={17} /></button></div>

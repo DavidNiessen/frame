@@ -3,6 +3,7 @@ import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { closeEffect } from '../helpers/effects';
 test('uses native command search to save a real project and navigate export controls', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-command-test-')), executablePath = process.env.FRAME_TEST_EXECUTABLE;
   const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
@@ -11,6 +12,12 @@ test('uses native command search to save a real project and navigate export cont
     const path = join(directory, 'command.frame.json'); await app.evaluate(({ dialog }, destination) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination }); return true; }, path);
     await page.keyboard.press('Control+k'); const search = page.getByRole('combobox', { name: 'Search commands', exact: true }); await expect(search).toBeFocused(); await search.fill('save project'); await search.press('Enter');
     await expect.poll(async () => readFile(path, 'utf8').then(text => JSON.parse(text).sources.length).catch(() => 0)).toBe(1);
+    for (const id of ['captions', 'captions', 'crop', 'crop']) {
+      await closeEffect(page); await page.keyboard.press('Control+k'); await search.fill(id); await page.locator(`[data-command="effect-${id}"]`).click(); await expect(page.locator('.effect-settings-overlay')).toBeVisible();
+    }
+    await closeEffect(page); await page.keyboard.press('Control+k'); await search.fill('save project'); await search.press('Enter');
+    await expect.poll(async () => readFile(path, 'utf8').then(text => JSON.parse(text).sources[0].edit.effectInstances.filter((instance: { effect: string }) => instance.effect === 'captions').length)).toBe(2);
+    expect(JSON.parse(await readFile(path, 'utf8')).sources[0].edit.effectInstances.filter((instance: { effect: string }) => instance.effect === 'crop')).toHaveLength(1);
     await page.keyboard.press('Control+k'); await search.fill('export settings'); await search.press('Enter'); await expect(page.getByRole('tab', { name: 'Export', exact: true })).toHaveAttribute('aria-selected', 'true');
     await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click();
     await page.keyboard.press('Control+k'); await search.fill('export settings'); await search.press('Enter'); await expect(page.locator('.app-shell')).not.toHaveClass(/preview-expanded/);

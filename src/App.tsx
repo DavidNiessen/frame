@@ -4,6 +4,7 @@ import { EffectSettingsOverlay } from './components/EffectSettingsOverlay';
 import { CommandPalette } from './components/CommandPalette';
 import { useCommandPalette } from './hooks/useCommandPalette';
 import { frameCommands } from './hooks/frame-commands';
+import { applyEditorEffect } from './hooks/apply-editor-effect';
 import type { InspectorTab } from './components/InspectorTabs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDownUp, Clapperboard, Monitor, Globe, Keyboard, Scissors, Upload, X, LoaderCircle, Settings, Search } from 'lucide-react';
@@ -86,6 +87,7 @@ export default function App() {
     importFiles: () => { changeWorkflow(workflow); onImport(); }, importFolder: () => { changeWorkflow(workflow); onFolder(); }, folderSupported, url: onUrl,
     edit: () => changeWorkflow('edit'), convert: () => changeWorkflow('convert'), settings: () => { mediaRef.current?.pause(); setSettingsOpen(true); }, openProject: () => projectInput.current?.click(),
     effects: () => showInspector('effects'), exportSettings: () => showInspector('export'),
+    applyEffect: id => { showInspector('effects'); try { const applied = applyEditorEffect(editor, id, current); if (applied) setOpenEffect({ id, instanceId: applied.instanceId }); } catch (error) { editor.setNotice((error as Error).message); } },
     contactSheet: () => setSheetOpen(true), scenes: () => setScenesOpen(true), merge: () => setMergeOpen(true), batch: () => setBatchOpen(true),
     timelineAvailable: !settingsOpen && workflow === 'edit', resetLayout: () => layoutRef.current?.reset(), shortcuts: () => setShortcuts(true),
   });
@@ -98,7 +100,8 @@ export default function App() {
     else if (editor.platform === 'desktop') { if (files.length) void editor.importMedia(files); }
     else { try { const selected = await droppedFiles(event.dataTransfer); if (selected.length) void editor.importMedia(selected); } catch (error) { editor.setNotice(error instanceof Error ? error.message : 'Could not read the dropped folder. Try Add folder instead.'); } }
   }
-  useEffect(() => { setOpenEffect(null); }, [editor.asset?.id, workflow, settingsOpen]);
+  useEffect(() => { setOpenEffect(null); }, [editor.asset?.id]);
+  useEffect(() => { if (workflow !== 'edit' || settingsOpen) setOpenEffect(null); }, [workflow, settingsOpen]);
   const seek = useCallback((value: number) => { setCurrent(value); if (mediaRef.current) mediaRef.current.currentTime = value; }, []);
   useEffect(() => {
     function key(event: KeyboardEvent) {
