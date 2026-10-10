@@ -1,5 +1,6 @@
 import { resolveAudioLayers } from '../core/audio-layers';
 import type { MediaAsset } from '../core/types';
+import { mergedChapters, serializeChapters } from '../core/chapters';
 import { writeBrowserLayers } from './browser-audio-layers';
 import { conversionIndex, validateBatchOptions } from '../core/output-naming';
 import { youtubeVideo } from '../core/youtube';
@@ -132,13 +133,14 @@ export function createBrowserEngine(): MediaEngine {
       const mixes = clips.map(clip => resolveAudioLayers(clip.edit, [...sources.values()].map(asset => ({ asset, path: `layer-${asset.id}` })))); const resources = await browserResources(ff, clips.map(c => c.edit), clips.map(c => c.asset)); const captions = 'merged-captions.srt';
       try {
         await ff.writeFile(captions, serializeSrt(mergedCues(clips, transition)));
+        await ff.writeFile(`${captions}-chapters.ffmetadata`, serializeChapters(mergedChapters(clips, transition)));
         for (const id of inputs) { const file = files.get(id); if (!file) throw new Error('Import each merge source again.'); await ff.writeFile(`merge-${id}`, new Uint8Array(await file.arrayBuffer())); }
         for (const layers of mixes) await writeBrowserLayers(ff, layers, files, sources);
         if (await ff.exec(buildMergeArgs(clips, settings, paths, output, transition, resources.paths, captions, mixes)) !== 0) throw new Error('Could not merge these clips. Try a smaller selection or the desktop editor.');
         const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid merge output.');
         return { name: output, url: URL.createObjectURL(new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime })), size: data.length };
       } catch (error) { if (cancelled) throw new Error('Merge cancelled.'); throw error; }
-      finally { ff.off('progress', progress); await resources.cleanup(); for (const layer of mixes.flat()) await ff.deleteFile(layer.path).catch(() => {}); await ff.deleteFile(captions).catch(() => {}); for (const name of [...inputs.map(id => `merge-${id}`), output]) await ff.deleteFile(name).catch(() => {}); }
+      finally { ff.off('progress', progress); await resources.cleanup(); for (const layer of mixes.flat()) await ff.deleteFile(layer.path).catch(() => {}); await ff.deleteFile(captions).catch(() => {}); await ff.deleteFile(`${captions}-chapters.ffmetadata`).catch(() => {}); for (const name of [...inputs.map(id => `merge-${id}`), output]) await ff.deleteFile(name).catch(() => {}); }
     },
     ...browserAnalysis(ready, files, sources),
     async waveform(asset, progress) {

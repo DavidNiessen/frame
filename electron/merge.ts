@@ -1,3 +1,4 @@
+import { mergedChapters, serializeChapters } from '../src/core/chapters';
 import { recordExport } from './export-history';
 import { resolveAudioLayers } from '../src/core/audio-layers';
 import type { WindowIpc } from './window-ipc';
@@ -34,6 +35,7 @@ export function registerMerge(assets: Map<string, { path: string; asset: MediaAs
       try {
         await withResources(clips.map(c => c.edit), async (paths, directory) => {
           const captions = join(directory, 'merged.srt'); await writeFile(captions, serializeSrt(mergedCues(clips, transition)));
+          await writeFile(`${captions}-chapters.ffmetadata`, serializeChapters(mergedChapters(clips, transition)));
           await encodeNative(buildMergeArgs(clips, settings, sources.map(s => s.path), temporary, transition, paths, captions, mixes), asset.duration, settings.acceleration, hardwareBitrate(asset.width ?? 640, asset.height ?? 360, settings.quality), execute, jobs, (ratio, message) => {
             if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
           });

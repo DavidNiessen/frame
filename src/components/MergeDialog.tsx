@@ -1,3 +1,4 @@
+import { chapterFormats } from '../core/chapters';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUp, ArrowDown, GripVertical, X, Combine } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
@@ -25,6 +26,7 @@ export function MergeDialog({ open, close, editor, merge }: { open: boolean; clo
       <label className="stacked-label">Between clips<select aria-label="Merge transition" value={transition.type} onChange={event => setTransition({ type: event.target.value as TransitionSettings['type'], duration: Math.min(0.3, Math.max(0.05, maxTransition)) })}><option value="none">Cut — no overlap</option><option value="fade" disabled={maxTransition < 0.05}>Crossfade audio and video</option></select></label>
       {transition.type === 'fade' && <label className="stacked-label">Transition duration <span className="unit">sec</span><input type="number" aria-label="Transition duration" min={0.05} max={maxTransition} step={0.05} value={transition.duration} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value)) setTransition(current => ({ ...current, duration: Math.max(0.05, Math.min(maxTransition, value)) })); }} /></label>}
       {settings && <label className="switch-row"><span>Include first clip artwork<small>For compatible audio formats</small></span><input type="checkbox" aria-label="Include merge artwork" checked={settings.includeArtwork} disabled={!format || !getFormat(format).artwork || clips[0]?.artworkIndex === undefined} onChange={event => setSettings(current => current ? { ...current, includeArtwork: event.target.checked } : current)} /></label>}
+      {settings && <label className="switch-row"><span>Include chapters<small>Use clip names and timeline markers</small></span><input type="checkbox" aria-label="Include merge chapters" checked={settings.includeChapters ?? false} disabled={!format || !chapterFormats.includes(format)} onChange={event => setSettings(current => current ? { ...current, includeChapters: event.target.checked } : current)} /></label>}
       <p className="field-note">{(ids.reduce((total, id) => total + editedDuration(editor.settingsFor(id)), 0) - (transition.type === 'fade' ? transition.duration * Math.max(0, ids.length - 1) : 0)).toFixed(2)} seconds • output quality and bitrate use your current settings.</p>
     </fieldset>
     {merge.error && <p className="project-error" role="alert">{merge.error}</p>}

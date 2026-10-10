@@ -21,4 +21,4 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Scene-change detection | Find likely cut points automatically | Implemented |
 | Audio loudness meter | Assess clipping and perceived loudness while editing | Implemented |
 | Recent saved exports | Find background and bulk outputs without searching folders | Implemented |
-| Chapters from timeline markers | Add navigable chapters and share timestamp lists | In progress |
+| Chapters from timeline markers | Add navigable chapters and share timestamp lists | Implemented |

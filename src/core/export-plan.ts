@@ -1,3 +1,4 @@
+import { chapterFormats, timelineChapters } from './chapters';
 import { parseAudioLayers, audioMixGraph, hasEditedAudio, type AudioLayerInput } from './audio-layers';
 import { parseMarkers } from './markers';
 import { gifPaletteFilters, validateGifOutput } from './gif-output';
@@ -19,6 +20,7 @@ import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   parseAudioLayers(edit.audioLayers); if (edit.audioMixProtectPeaks !== undefined && typeof edit.audioMixProtectPeaks !== 'boolean') throw new Error('Invalid audio mix protection setting.');
+  if (edit.includeChapters !== undefined && typeof edit.includeChapters !== 'boolean') throw new Error('Invalid chapter setting.');
   parseMarkers(edit.markers, asset.duration);
   validateGifOutput(edit); validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
@@ -62,9 +64,12 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   if (artwork) args.push('-i', input);
   const captions = format.kind === 'video' && edit.subtitles.mode === 'embed' && outputCues(edit).length > 0;
   if (captions) args.push('-i', resources.captions);
-  const firstLayerInput = 1 + Number(artwork) + Number(captions);
+  const chapters = edit.includeChapters && chapterFormats.includes(edit.format) && timelineChapters(edit).length > 0;
+  const chapterInput = 1 + Number(artwork) + Number(captions);
+  if (chapters) args.push('-f', 'ffmetadata', '-i', resources.chapters);
+  const firstLayerInput = chapterInput + Number(!!chapters);
   if (mixing) for (const layer of layers) args.push('-i', layer.path);
-  args.push('-t', String(editedDuration(edit)), '-map_metadata', edit.keepMetadata ? '0' : '-1');
+  args.push('-t', String(editedDuration(edit)), '-map_metadata', edit.keepMetadata ? '0' : '-1', '-map_chapters', chapters ? String(chapterInput) : '-1');
   args.push('-filter_threads', '2', '-filter_complex_threads', '1');
   const videoFilters = format.kind === 'video' ? recipeVideoFilters(asset, edit, resources) : [];
   if (format.kind === 'video' && edit.format !== 'gif') videoFilters.push('scale=trunc(iw/2)*2:trunc(ih/2)*2');

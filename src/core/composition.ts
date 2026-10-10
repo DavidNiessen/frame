@@ -1,3 +1,4 @@
+import { chapterFormats } from './chapters';
 import { hasEditedAudio, audioMixGraph, type AudioLayerInput } from './audio-layers';
 import { gifPaletteFilters } from './gif-output';
 import { audioOutputArgs, outputAudioCodec } from './audio-output';
@@ -23,7 +24,7 @@ export function compositionAsset(clips: MediaClip[], transition: TransitionSetti
     kind: clips.every(c => c.asset.kind === 'video') ? 'video' : 'audio', hasAudio: clips.some(c => hasEditedAudio(c.asset, c.edit)),
     duration: clips.reduce((n, c) => n + editedDuration(c.edit), 0) - (blend.type === 'fade' ? blend.duration * (clips.length - 1) : 0), width: width ? Math.floor(width / 2) * 2 : undefined, height: height ? Math.floor(height / 2) * 2 : undefined };
 }
-export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition, resources: RecipeResources[] = clips.map((_, i) => resourcePaths(`clip${i}`)), captionPath = 'merge-captions.srt', mixes: AudioLayerInput[][] = []): string[] {
+export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition, resources: RecipeResources[] = clips.map((_, i) => resourcePaths(`clip${i}`)), captionPath = 'merge-captions.srt', mixes: AudioLayerInput[][] = [], chapterPath = `${captionPath}-chapters.ffmetadata`): string[] {
   if (clips.length < 2 || inputs.length !== clips.length) throw new Error('Choose at least two clips to merge.');
   const asset = compositionAsset(clips, transition); const settings = parseOutputSettings(output); const edit = resolveSizeTarget(asset, { ...defaultSettings(asset), ...settings });
   validateEdit(asset, edit); const format = getFormat(edit.format); const video = format.kind === 'video'; const audio = asset.hasAudio && edit.format !== 'gif';
@@ -55,7 +56,9 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
   if (artwork) args.push('-i', inputs[0]);
   const captions = video && subtitleCodec(settings.format) && mergedCues(clips, transition).length > 0;
   if (captions) args.push('-i', captionPath);
-  let firstLayerInput = clips.length + Number(artwork) + Number(captions);
+  const chapters = settings.includeChapters && chapterFormats.includes(settings.format), chapterInput = clips.length + Number(artwork) + Number(captions);
+  if (chapters) args.push('-f', 'ffmetadata', '-i', chapterPath);
+  let firstLayerInput = chapterInput + Number(!!chapters);
   if (audio) clips.forEach((clip, index) => {
     if (!clip.edit.audioLayers?.length) return;
     const layers = mixes[index];
@@ -91,7 +94,7 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
   if (artwork) { args.push('-map', `${clips.length}:${clips[0].asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic'); if (settings.format === 'mp3') args.push('-id3v2_version', '3'); }
   if (captions) args.push('-map', `${clips.length + (artwork ? 1 : 0)}:s:0`, '-c:s', subtitleCodec(settings.format)!);
   if (audio) args.push(...audioOutputArgs(edit));
-  args.push('-filter_complex', graph.join(';'), '-map_metadata', edit.keepMetadata ? '0' : '-1');
+  args.push('-filter_complex', graph.join(';'), '-map_metadata', edit.keepMetadata ? '0' : '-1', '-map_chapters', chapters ? String(chapterInput) : '-1');
   if (['mp4', 'mov', 'm4a'].includes(edit.format)) args.push('-movflags', '+faststart');
   args.push('-t', String(asset.duration), '-threads', '2', destination); return args;
 }
