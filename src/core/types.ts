@@ -48,6 +48,7 @@ export interface TimeRange { start: number; end: number }
 export interface EditSettings {
   audioLayers?: AudioLayer[];
   audioMixProtectPeaks?: boolean;
+  audioDucking?: boolean;
   clips?: TimelineClip[];
   markers?: TimelineMarker[];
   color: ColorSettings;
@@ -110,7 +111,7 @@ export interface MediaEngine {
 export { supportedExtensions };
 export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
-  return { audioLayers: [], audioMixProtectPeaks: true, markers: [], clips: undefined, color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
+  return { audioLayers: [], audioMixProtectPeaks: true, audioDucking: false, markers: [], clips: undefined, color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
     format: asset.kind === 'audio' ? 'mp3' : 'mp4', quality: 'balanced',
     acceleration: parseAcceleration(undefined), targetSizeMb: null, videoBitrate: null, audioBitrate: 192, audioSampleRate: null, audioChannels: null, wavDepth: 16, fps: 15, gifLoop: 0, gifColors: 256, gifDither: 'sierra2_4a', gifWidth: null, outputTags: {}, includeChapters: false, includeArtwork: true, keepMetadata: true };
 }

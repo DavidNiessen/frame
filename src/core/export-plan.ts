@@ -20,6 +20,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
+  if (edit.audioDucking !== undefined && typeof edit.audioDucking !== 'boolean') throw new Error('Invalid music ducking setting.');
   parseAudioLayers(edit.audioLayers); if (edit.audioMixProtectPeaks !== undefined && typeof edit.audioMixProtectPeaks !== 'boolean') throw new Error('Invalid audio mix protection setting.');
   if (edit.includeChapters !== undefined && typeof edit.includeChapters !== 'boolean') throw new Error('Invalid chapter setting.');
   parseTagOverrides(edit.outputTags);

@@ -23,4 +23,4 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Recent saved exports | Find background and bulk outputs without searching folders | Implemented |
 | Chapters from timeline markers | Add navigable chapters and share timestamp lists | Implemented |
 | Output metadata editor and tag-based filenames | Prepare album information and name collections from their tags | Implemented |
-| Automatic music ducking | Keep speech intelligible over background tracks | In progress |
+| Automatic music ducking | Keep speech intelligible over background tracks | Implemented |

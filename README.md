@@ -250,3 +250,5 @@ Timeline markers can become chapters in MP4, MOV, MKV and M4A exports. Enable **
 Project relinking also compares a small sampled content fingerprint, helping distinguish equally named files from different albums without hashing entire large videos. Audio tracks preserve their specific source references in saved projects.
 
 Advanced output settings include an optional metadata editor for titles, artists, albums, track numbers, dates, genres, comments and copyright. Explicit changes apply even when source metadata is removed; clearing a field removes that tag. Bulk conversion and watch folders can apply shared tag changes. Filename patterns also support `{title}`, `{artist}`, `{album}` and `{track}`, using any edited values.
+
+Music tracks can duck automatically under original dialogue or tracks marked as voiceover. Enable **Duck music under dialogue** in Music & voiceover, and use the exported mix preview to hear the final result. Export applies dialogue-driven compression with a smooth attack and recovery; live playback retains the original levels.
