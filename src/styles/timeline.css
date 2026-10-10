@@ -131,3 +131,5 @@
 .audio-mix-preview > span { display: block; padding: 6px 0; }
 .audio-layer-lane { height: 46px; margin: 3px 0 7px; }
 .audio-source-excerpt .timeline-lane { height: 36px; }
+
+.timeline-ruler { cursor: crosshair; touch-action: none; user-select: none; }

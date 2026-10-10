@@ -50,6 +50,11 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
     const value = snapping && !event.altKey ? snapTime(raw, scrubTargets[sequence ? 'output' : 'source'], 8 / bounds.width * total, sequence ? undefined : asset.frameRate) : raw;
     seek(sequence ? sourceTimeAtOutput(edit, value) : value);
   }
+  const scrubProps = {
+    onPointerDown: (event: PointerEvent<HTMLDivElement>) => { if (disabled || event.button !== 0) return; event.preventDefault(); slider.current?.focus({ preventScroll: true }); event.currentTarget.setPointerCapture(event.pointerId); scrub(event); },
+    onPointerMove: (event: PointerEvent<HTMLDivElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) scrub(event); },
+    onPointerUp: (event: PointerEvent<HTMLDivElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) { scrub(event); event.currentTarget.releasePointerCapture(event.pointerId); } },
+  };
   function split() {
     if (!active || current - active.start < 0.05 || active.end - current < 0.05) { notify('Move the playhead inside a section to split it.'); return; }
     const clip = clips.find(clip => current >= clip.start && current < clip.end)!;
@@ -67,26 +72,13 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
       {asset.kind === 'video' && !thumbnails && <><button className="button small" disabled={disabled} onClick={generateThumbnails}>{thumbnailLoading ? `Reading frames ${Math.round(thumbnailProgress * 100)}%` : 'Generate thumbnails'}</button>{thumbnailLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel thumbnails</button>}</>}
       {asset.hasAudio && !waveform && <>{asset.kind === 'audio' && autoWaveforms && !waveformError ? <span className="waveform-status" role="status">{waveformLoading ? `Reading waveform ${Math.round(analysisProgress * 100)}%` : 'Preparing waveform…'}</span> : <button className="button small" disabled={disabled} onClick={generateWaveform}>{waveformLoading ? `Reading peaks ${Math.round(analysisProgress * 100)}%` : waveformError ? 'Retry waveform' : 'Generate waveform'}</button>}{waveformLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel waveform</button>}{waveformError && <span className="waveform-error" role="alert">{waveformError}</span>}</>}
       </div>
-    <div ref={scroll} className="timeline-body" onScroll={event => { const node = event.currentTarget; setScrollLeft(node.scrollLeft); setFraction(node.scrollWidth > node.clientWidth ? node.scrollLeft / (node.scrollWidth - node.clientWidth) : 0); }} role="region" aria-label="Timeline tracks" tabIndex={0}><div ref={content} className="timeline-content" style={{ width: `${zoom * 100}%` }}><div className="timeline-ruler">{[0, 1, 2, 3, 4].map(i => <span key={i}>{time(total * i / 4)}</span>)}</div>
+    <div ref={scroll} className="timeline-body" onScroll={event => { const node = event.currentTarget; setScrollLeft(node.scrollLeft); setFraction(node.scrollWidth > node.clientWidth ? node.scrollLeft / (node.scrollWidth - node.clientWidth) : 0); }} role="region" aria-label="Timeline tracks" tabIndex={0}><div ref={content} className="timeline-content" style={{ width: `${zoom * 100}%` }}><div className="timeline-ruler" {...scrubProps} title="Drag to scrub the sequence">{[0, 1, 2, 3, 4].map(i => <span key={i}>{time(total * i / 4)}</span>)}</div>
       <TimelineMarkers edit={edit} current={current} total={total} sequence={sequence} zoom={1} scrollLeft={0} disabled={disabled} seek={seek} update={update} notify={notify} />
       {thumbnails && <ThumbnailStrip url={thumbnails} duration={asset.duration} edit={edit} seek={seek} disabled={disabled} />}
       {filter !== 'clips' && filter !== 'captions' && <AudioLayerLanes assets={assets} waveforms={waveforms} edit={edit} compact={compact} disabled={disabled} update={update} seek={seek} />}
       <TimedLanes compact={compact} filter={filter} selectClip={selectClip} asset={asset} edit={edit} update={update} disabled={disabled} seek={seek} />
     </div></div>
-    <div className="timeline-clip-viewport">      <div className="timeline-track timeline-lane" style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }} onPointerDown={event => {
-        if (disabled || event.button !== 0) return;
-        event.preventDefault();
-        slider.current?.focus({ preventScroll: true });
-        event.currentTarget.setPointerCapture(event.pointerId);
-        scrub(event);
-      }} onPointerMove={event => {
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) scrub(event);
-      }} onPointerUp={event => {
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-          scrub(event);
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        }
-      }}><div className="track-baseline" />{clips.map((clip, i) => <TimelineClip key={clip.id} clip={clip} index={i} edit={edit} asset={asset} duration={total} position={sequence ? positions[i] : clip} speed={sequence ? positions[i].speed : 1} disabled={disabled} selected={selectedClip === clip.id || !selectedClip && active?.start === clip.start} select={selectClip} seek={seek} update={update} waveform={waveform}
+    <div className="timeline-clip-viewport">      <div className="timeline-track timeline-lane" style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }} {...scrubProps}><div className="track-baseline" />{clips.map((clip, i) => <TimelineClip key={clip.id} clip={clip} index={i} edit={edit} asset={asset} duration={total} position={sequence ? positions[i] : clip} speed={sequence ? positions[i].speed : 1} disabled={disabled} selected={selectedClip === clip.id || !selectedClip && active?.start === clip.start} select={selectClip} seek={seek} update={update} waveform={waveform}
         dropIndex={x => { const bounds = content.current!.getBoundingClientRect(), value = Math.max(0, Math.min(total, (x - bounds.left) / bounds.width * total)); const index = (sequence ? positions : clips).findIndex(item => value < item.end); return index < 0 ? clips.length - 1 : index; }} />)}
         <div className="playhead" style={{ left: `${position / total * 100}%` }}><span /></div>
       <input ref={slider} className="seek-slider" type="range" aria-label="Seek playhead" aria-valuetext={`${current.toFixed(2)} of ${asset.duration.toFixed(2)} seconds`} min={0} max={asset.duration} step={0.01} value={current} disabled={disabled} onChange={event => seek(Number(event.target.value))} /></div>
