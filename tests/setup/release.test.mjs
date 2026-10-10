@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { prepareRelease } from '../../scripts/prepare-release.mjs';
 
-const names = ['win-x64.exe', 'mac-arm64.dmg', 'mac-x64.dmg', 'linux-x64.AppImage'].map(suffix => `Frame-0.1.0-${suffix}`);
+const names = ['win-x64.exe', 'mac-arm64.dmg', 'mac-x64.dmg', 'linux-x86_64.AppImage'].map(suffix => `Frame-0.1.0-${suffix}`);
 async function fixture(t, include = names) {
   const directory = await mkdtemp(join(tmpdir(), 'frame-release-'));
   t.after(() => rm(directory, { recursive: true, force: true }));

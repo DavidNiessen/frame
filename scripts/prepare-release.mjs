@@ -11,7 +11,7 @@ export async function prepareRelease(directory, { version, runNumber, sha, notes
   }
   const platforms = [
     ['Windows x64', 'win-x64.exe'], ['Mac Apple Silicon', 'mac-arm64.dmg'],
-    ['Mac Intel', 'mac-x64.dmg'], ['Linux x64', 'linux-x64.AppImage'],
+    ['Mac Intel', 'mac-x64.dmg'], ['Linux x64', 'linux-x86_64.AppImage'],
   ];
   const names = platforms.map(([, suffix]) => `Frame-${version}-${suffix}`);
   const actual = (await readdir(directory)).filter(name => /\.(exe|dmg|AppImage)$/.test(name));
