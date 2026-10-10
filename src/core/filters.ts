@@ -7,7 +7,7 @@ import { fadeFilters } from './fades';
 import { editedDuration } from './timeline';
 import { effectiveSpeed, extraInstances, instanceRecipe } from './effect-instances';
 import type { EditSettings, MediaAsset } from './types';
-export function videoFilters(asset: MediaAsset, edit: EditSettings, resources: RecipeResources = resourcePaths()): string[] {
+export function videoFilters(asset: MediaAsset, edit: EditSettings, resources: RecipeResources = resourcePaths(), timing = edit): string[] {
   const c = edit.crop; const filters = c ? [`crop=${c.width}:${c.height}:${c.x}:${c.y}`] : [];
   filters.push(...geometryFilters(edit), ...colorFilters(edit.color, resources));
   for (const instance of extraInstances(edit)) {
@@ -19,10 +19,10 @@ export function videoFilters(asset: MediaAsset, edit: EditSettings, resources: R
   const speed = effectiveSpeed(edit);
   if (speed !== 1) filters.push(`setpts=(PTS-STARTPTS)/${speed}`);
   if (burnedCues(edit).length) filters.push(`subtitles=filename=${filterPath(burnedCaptionPath(edit, resources))}:fontsdir=${filterPath(resources.fonts)}`);
-  filters.push(...overlayFilters(asset, edit, resources), ...fadeFilters(edit, 'video'));
+  filters.push(...overlayFilters(asset, edit, resources, timing), ...fadeFilters(edit, 'video'));
   for (const instance of extraInstances(edit)) {
     const recipe = instanceRecipe(edit, instance), paths = instancePaths(resources, instance);
-    if (instance.effect === 'watermark') filters.push(...overlayFilters(asset, { ...recipe, crop: null, geometry: { ...recipe.geometry, rotation: 0, resize: { ...frameDimensions(asset, edit), fit: 'stretch' } } }, paths));
+    if (instance.effect === 'watermark') filters.push(...overlayFilters(asset, { ...recipe, crop: null, geometry: { ...recipe.geometry, rotation: 0, resize: { ...frameDimensions(asset, edit), fit: 'stretch' } } }, paths, timing));
     if (instance.effect.startsWith('videoFade')) filters.push(...fadeFilters({ ...recipe, speed }, 'video').filter(filter => filter.includes(instance.effect.endsWith('In') ? 't=in' : 't=out')));
   }
   return filters;

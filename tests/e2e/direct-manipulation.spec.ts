@@ -29,7 +29,8 @@ for (const width of [1440, 390]) test(`selects, edits and resizes a caption in t
   await page.getByRole('combobox', { name: 'Font', exact: true }).fill('Ser'); await expect(page.getByRole('option', { name: 'Serif', exact: true })).toBeVisible(); await page.getByRole('combobox', { name: 'Font', exact: true }).press('Enter');
   await expect(page.getByRole('combobox', { name: 'Font', exact: true })).toHaveValue('Serif'); await expect(page.getByLabel('Search installed fonts')).toHaveCount(0);
   await selectFont(page, 'Monospace'); await expect(page.getByRole('combobox', { name: 'Font', exact: true })).toHaveValue('Monospace');
-  await expect(page.getByRole('button', { name: 'Reset caption position', exact: true })).toBeVisible(); await page.screenshot({ path: info.outputPath(`preview-edit-${width}.png`) });
+  await expect(page.getByRole('button', { name: 'Reset caption position', exact: true })).toBeVisible();
+  const resetBox = (await page.getByRole('button', { name: 'Reset caption position', exact: true }).boundingBox())!, appearance = (await page.locator('.caption-appearance').boundingBox())!; expect(appearance.y - resetBox.y - resetBox.height).toBeGreaterThanOrEqual(18); await page.screenshot({ path: info.outputPath(`preview-edit-${width}.png`) });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test('moves a whole caption without shortening it, opens settings during drag and retains settings during trim', async ({ page }) => {
@@ -54,7 +55,7 @@ test('keeps grab handles usable on a one-hour timeline', async ({ page }, info) 
 test('Space always plays from focused buttons and messages expire after five seconds', async ({ page }) => {
   await sample(page); const compact = page.getByRole('button', { name: 'Compact', exact: true }); await compact.focus(); const value = await compact.getAttribute('aria-pressed'); await compact.press('Space'); await expect(page.locator('video')).toHaveJSProperty('paused', false); await compact.press('Space'); await expect(page.locator('video')).toHaveJSProperty('paused', true); await expect(compact).toHaveAttribute('aria-pressed', value!);
   await page.clock.install({ time: new Date('2026-10-10T10:00:00Z') }); await page.clock.pauseAt(new Date('2026-10-10T10:00:01Z'));
-  await openEffect(page, 'Volume'); await closeEffect(page); await page.getByRole('button', { name: 'Add Volume', exact: true }).click(); const note = page.locator('.effect-apply-message'); await expect(note).toBeVisible(); await expect(note.locator('.message-countdown')).toHaveCount(1);
+  await openEffect(page, 'Watermark'); await closeEffect(page); await page.getByRole('button', { name: 'Add Watermark', exact: true }).click(); const note = page.locator('.effect-apply-message'); await expect(note).toBeVisible(); await expect(note.locator('.message-countdown')).toHaveCount(1);
   await page.clock.fastForward(4999); await expect(note).toBeVisible(); await page.clock.fastForward(2); await expect(note).toHaveCount(0);
 });
 test('selects and edits watermark text and resizes a watermark image directly', async ({ page }) => {

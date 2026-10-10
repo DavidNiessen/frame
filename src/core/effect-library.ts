@@ -3,7 +3,7 @@ import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 import { clipRecipe, editClips } from './clips';
 import type { EffectId } from './effect-ids';
 export type { EffectId } from './effect-ids';
-export interface EffectDefinition { id: EffectId; name: string; description: string; group: 'Audio' | 'Video' | 'Timing'; scope: 'clip' | 'source'; keys: (keyof EditSettings)[] }
+export interface EffectDefinition { id: EffectId; name: string; description: string; group: 'Audio' | 'Video' | 'Timing'; scope: 'clip' | 'source'; repeatable?: boolean; keys: (keyof EditSettings)[] }
 export const effectLibrary: EffectDefinition[] = [
   { id: 'mix', name: 'Music & voiceover', description: 'Layer music and narration over the edit', group: 'Audio', scope: 'source', keys: ['audioLayers'] },
   { id: 'volume', name: 'Volume', description: 'Mute, balance or boost a clip', group: 'Audio', scope: 'clip', keys: ['volume'] },
@@ -18,8 +18,8 @@ export const effectLibrary: EffectDefinition[] = [
   { id: 'color', name: 'Color & LUTs', description: 'Adjust the look and import a LUT', group: 'Video', scope: 'clip', keys: ['color'] },
   { id: 'crop', name: 'Crop', description: 'Trim the edges of the picture', group: 'Video', scope: 'clip', keys: ['crop'] },
   { id: 'transform', name: 'Rotate, flip & resize', description: 'Reframe your picture', group: 'Video', scope: 'clip', keys: ['geometry'] },
-  { id: 'captions', name: 'Captions', description: 'Import or write timed captions', group: 'Video', scope: 'source', keys: ['subtitles'] },
-  { id: 'watermark', name: 'Watermark', description: 'Place text or artwork', group: 'Video', scope: 'source', keys: ['overlays'] },
+  { id: 'captions', repeatable: true, name: 'Captions', description: 'Import or write timed captions', group: 'Video', scope: 'source', keys: ['subtitles'] },
+  { id: 'watermark', repeatable: true, name: 'Watermark', description: 'Place text or artwork', group: 'Video', scope: 'source', keys: ['overlays'] },
   { id: 'silence', name: 'Remove silence', description: 'Find quiet gaps in the source', group: 'Audio', scope: 'source', keys: ['silenceOptions'] },
 ];
 export function availableEffects(asset: MediaAsset) { return effectLibrary.filter(effect => effect.group !== 'Video' || asset.kind === 'video').filter(effect => effect.group !== 'Audio' || asset.hasAudio || effect.id === 'mix'); }

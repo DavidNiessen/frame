@@ -6,7 +6,7 @@ Features are implemented and pushed individually in this order. Each implementat
 | --- | --- | --- |
 | 1 | Batch processing and export queue | Implemented |
 | 2 | Audio waveforms | Implemented |
-| 3 | Timeline thumbnails | Implemented |
+| 3 | Timeline thumbnails | Removed from editor |
 | 4 | Merge clips | Implemented |
 | 5 | Playback speed with pitch preservation | Implemented |
 | 6 | Fades and transitions | Implemented |

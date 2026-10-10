@@ -142,4 +142,9 @@ test('restores the end of a very short retained clip on a long video', async ({ 
   expect(Number(await end.getAttribute('aria-valuenow'))).toBeGreaterThan(59);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(end).toHaveAttribute('aria-valuenow', '0.05');
+  const snap = page.getByRole('button', { name: 'Timeline snapping', exact: true });
+  if (await snap.getAttribute('aria-pressed') !== 'true') await snap.click();
+  const before = Number(await end.getAttribute('aria-valuenow'));
+  await dragEdge(page, 'Trim end', 15); // About four pixels: the opposite edge must not trap it.
+  expect(Number(await end.getAttribute('aria-valuenow'))).toBeGreaterThan(before);
 });

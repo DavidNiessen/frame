@@ -1,6 +1,6 @@
 import { effectiveSpeed } from '../core/effect-instances';
-import { availableEffects } from '../core/effect-library';
-import { effectAction, effectDragType } from '../core/effect-actions';
+import { availableEffects, type EffectId } from '../core/effect-library';
+import { effectAction, effectDragType, existingEffectTarget } from '../core/effect-actions';
 import type { DragEvent } from 'react';
 import { useRef, useState } from 'react';
 import { TimelineRange } from './TimelineRange';
@@ -11,7 +11,8 @@ import type { EditSettings, MediaAsset } from '../core/types';
 import type { WaveformPoint } from '../core/waveform';
 import { time } from '../core/format';
 import { minimumSourceDuration } from '../core/time-range';
-export function TimelineClip({ clip, index, edit, asset, position, duration, speed, disabled, waveform, selected, select, seek, update, dropIndex, effectCount, notify }: {
+export function TimelineClip({ clip, index, edit, asset, position, duration, speed, disabled, waveform, selected, select, seek, update, dropIndex, effectCount, notify, openEffect }: {
+  openEffect: (id: EffectId, instanceId?: string) => void;
   notify: (message: string) => void;
   effectCount: number; clip: Clip; index: number; edit: EditSettings; asset: MediaAsset; position: { start: number; end: number }; duration: number; speed: number; disabled: boolean;
   waveform?: WaveformPoint[]; selected: boolean; select: (id: string) => void; seek: (time: number) => void; update: (patch: Partial<EditSettings>) => void; dropIndex: (x: number) => number;
@@ -30,8 +31,9 @@ export function TimelineClip({ clip, index, edit, asset, position, duration, spe
     if (disabled) return;
     const effect = availableEffects(asset).find(item => item.id === event.dataTransfer.getData(effectDragType));
     if (!effect) return;
-    update(effectAction(edit, asset, effect, clip.id, 'add', clip.start));
-    select(clip.id);
+    const existing = existingEffectTarget(edit, asset, effect, clip.id);
+    if (existing) { if (effect.scope === 'clip') select(clip.id); openEffect(effect.id, existing.instanceId); return; }
+    try { update(effectAction(edit, asset, effect, clip.id, 'add', clip.start)); select(clip.id); } catch (error) { notify((error as Error).message); }
   }
   return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange wideHandles range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(effectiveSpeed({ ...edit, ...clip.effects }))} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
     text={`${index + 1} · ${asset.name}${effectCount ? ' ✦' : ''}`} label={`Select section ${index + 1}, ${time(clip.start)} to ${time(clip.end)}`} startLabel={index === 0 ? 'Trim start' : `Section ${index + 1} start`} endLabel={index === editClips(edit).length - 1 ? 'Trim end' : `Section ${index + 1} end`}

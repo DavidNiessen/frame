@@ -41,7 +41,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     if (g.edge === 'body' && !g.moved) return;
     const raw = g.range[g.edge === 'body' ? 'start' : g.edge] + offset;
     // The boundary being dragged must not attract itself after every small move.
-    const targets = snap.targets[snapSpace].filter(value => g.edge === 'body' ? value !== g.range.start && value !== g.range.end : value !== g.range[g.edge]);
+    const targets = snap.targets[snapSpace].filter(value => value !== g.range.start && value !== g.range.end);
     const value = snap.enabled && !event.altKey ? snapTime(raw, targets, 8 / g.width * duration * displaySpeed, snapSpace === 'source' ? snap.frameRate : undefined) : Math.round(raw * 100) / 100;
     g.limit = g.edge === 'start' && raw < limits.start ? 'start' : g.edge === 'end' && raw > limits.end ? 'end' : undefined;
     setSnapped(Math.abs(value - raw) > .000001 && snap.enabled && !event.altKey);

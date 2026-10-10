@@ -20,6 +20,7 @@ export function OverlayControls({ edit, update, expanded = false }: { expanded?:
     <div className="field-grid">{(['x', 'y', 'size', 'imageWidth'] as const).map(key => <label key={key}>{({ x: 'Horizontal position %', y: 'Vertical position %', size: 'Text size px', imageWidth: 'Image width %' })[key]}<input aria-label={`Overlay ${key}`} type="number" min={key === 'size' ? 12 : key === 'imageWidth' ? 1 : 0} max={key === 'size' ? 200 : 100} value={o[key]} onChange={e => change({ [key]: Number(e.target.value) })} /></label>)}</div>
     <label className="stacked-label">Text color<input aria-label="Overlay text color" type="color" value={o.color} onChange={e => change({ color: e.target.value })} /></label>
     <label className="stacked-label">Opacity {Math.round(o.opacity * 100)}%<input aria-label="Overlay opacity" type="range" min="0" max="1" step="0.05" value={o.opacity} onChange={e => change({ opacity: Number(e.target.value) })} /></label>
+    <p className="field-note">Drag the watermark bar or its edges in the timeline to adjust timing.</p>
     <p className="field-note">Text and images are baked into video exports and merged clips. Position controls apply to both. Preview shows placement; font sizing is finalized on export.</p>{error && <TransientMessage role="alert">{error}</TransientMessage>}
   </div></details>;
 }

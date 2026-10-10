@@ -19,6 +19,10 @@ export function instanceRecipe(edit: EditSettings, instance: EffectInstance): Ed
 export function newInstance(edit: EditSettings, asset: MediaAsset, id: EffectId, key: string = crypto.randomUUID(), current = edit.start): EffectInstance {
   const defaults = defaultSettings(asset), effect = definitionFor(id);
   const settings: Partial<EditSettings> = { ...Object.fromEntries(effect.keys.map(key => [key, defaults[key]])), ...enableEffect(effect, edit) };
+  if (id === 'watermark') {
+    const start = Math.max(edit.start, Math.min(current, edit.end - .05));
+    settings.overlays = { ...defaults.overlays, range: { start, end: Math.min(edit.end, start + 2) } };
+  }
   if (id === 'captions') {
     const start = Math.max(edit.start, Math.min(current, edit.end - .05));
     settings.subtitles = { mode: edit.subtitles.mode === 'none' ? 'burn' : edit.subtitles.mode, cues: [{ start, end: Math.min(edit.end, start + 2), text: 'New caption' }] };

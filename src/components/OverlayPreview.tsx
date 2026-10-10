@@ -5,12 +5,13 @@ import type { EffectId } from '../core/effect-library';
 import type { EditSettings, MediaAsset } from '../core/types';
 import type { Overlays } from '../core/overlays';
 import { FrameObject } from './FrameObject';
-export function OverlayPreview({ edit, asset, disabled, update, pause, openEffect, selectedEffect }: {
-  edit: EditSettings; asset: MediaAsset; disabled: boolean; update: (patch: Partial<EditSettings>) => void; pause: () => void;
+export function OverlayPreview({ edit, asset, current, disabled, update, pause, openEffect, selectedEffect }: {
+  edit: EditSettings; asset: MediaAsset; current: number; disabled: boolean; update: (patch: Partial<EditSettings>) => void; pause: () => void;
   openEffect: (id: EffectId, instanceId?: string) => void; selectedEffect: { id: EffectId; instanceId?: string } | null;
 }) {
   return <div className="overlay-preview" data-frame-area>{sourceRecipes(edit, 'watermark').map(({ id, recipe }, index) => {
     const o = recipe.overlays;
+    if (o.range && (current < o.range.start || current >= o.range.end)) return null;
     const change = (overlays: Overlays) => update(id ? changeInstance(edit, id, null, { overlays }) : { overlays });
     function position(box: Box, frame: Box) { return { x: round(clamp((box.left - frame.left) / Math.max(1, frame.width - box.width) * 100, 0, 100)), y: round(clamp((box.top - frame.top) / Math.max(1, frame.height - box.height) * 100, 0, 100)) }; }
     const common = {

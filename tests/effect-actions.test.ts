@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { effectAction, clearClipEffects } from '../src/core/effect-actions';
+import { effectAction, clearClipEffects, existingEffectTarget } from '../src/core/effect-actions';
 import { appliedEffects, effectLibrary } from '../src/core/effect-library';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
 import { clipRecipe, editClips, splitClip } from '../src/core/clips';
@@ -74,5 +74,36 @@ describe('persistent effect application', () => {
     edit = { ...edit, ...clearClipEffects(edit, asset, null) };
     expect(appliedEffects(asset, edit, null).map(e => e.id)).toEqual(['captions']);
     for (const addedEffects of [['unknown'], ['color', 'color'], 'color', Array(100).fill('color')]) expect(() => parseEdit({ ...edit, addedEffects }, asset)).toThrow('Invalid added effects');
+  });
+});
+
+describe('catalogue repeat policy', () => {
+  it('reuses every singleton adjustment without resetting its settings or stacking filters', () => {
+    for (const effect of effectLibrary.filter(effect => !effect.repeatable)) {
+      let edit = defaultSettings(asset); edit = { ...edit, ...effectAction(edit, asset, effect, null, 'add') };
+      expect(existingEffectTarget(edit, asset, effect, null)).toEqual({ clipId: null });
+      expect(effectAction(edit, asset, effect, null, 'add')).toEqual({});
+      expect(edit.effectInstances ?? []).toHaveLength(0);
+    }
+    const edit = { ...defaultSettings(asset), volume: .4 };
+    expect(effectAction(edit, asset, find('volume'), null, 'add')).toEqual({}); expect(edit.volume).toBe(.4);
+  });
+  it('permits the same adjustment on another clip but reopens the selected clip on repeats', () => {
+    let edit = split(); const [a, b] = edit.clips!;
+    edit = { ...edit, ...effectAction(edit, asset, find('crop'), a.id, 'add') };
+    expect(existingEffectTarget(edit, asset, find('crop'), b.id)).toBeNull();
+    edit = { ...edit, ...effectAction(edit, asset, find('crop'), b.id, 'add') };
+    expect(existingEffectTarget(edit, asset, find('crop'), b.id)).toEqual({ clipId: b.id });
+    expect(effectAction(edit, asset, find('crop'), b.id, 'add')).toEqual({});
+    expect(edit.clips!.every(clip => clip.effects.addedEffects?.includes('crop'))).toBe(true);
+  });
+  it('keeps captions and artwork independent and finds existing legacy stacks', () => {
+    for (const id of ['captions', 'watermark']) {
+      let edit = defaultSettings(asset); for (let i = 0; i < 3; i++) edit = { ...edit, ...effectAction(edit, asset, find(id), null, 'add', i) };
+      expect(edit.effectInstances).toHaveLength(2); expect(existingEffectTarget(edit, asset, find(id), null)).toBeNull();
+    }
+    const edit = { ...defaultSettings(asset), effectInstances: [{ id: 'legacy-crop', effect: 'crop' as const, settings: { crop: null } }] };
+    expect(existingEffectTarget(edit, asset, find('crop'), null)).toEqual({ clipId: null, instanceId: 'legacy-crop' });
+    expect(effectAction(edit, asset, find('crop'), null, 'add')).toEqual({});
   });
 });

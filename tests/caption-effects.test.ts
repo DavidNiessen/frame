@@ -35,10 +35,10 @@ it('upgrades grouped legacy captions once while retaining styles, positions and 
 it('supports 1,000 individually editable captions without consuming the other effect budget', () => {
   let edit = { ...defaultSettings(asset), ...importCaptionEffects(defaultSettings(asset), { mode: 'burn', cues: Array.from({ length: 1000 }, (_, index) => ({ start: 0, end: 1, text: String(index) })) }) };
   expect(parseEdit(edit, asset).effectInstances).toHaveLength(999);
-  const volume = effectLibrary.find(effect => effect.id === 'volume')!, caption = effectLibrary.find(effect => effect.id === 'captions')!;
-  edit = { ...edit, ...effectAction(edit, asset, volume, null, 'add') };
-  edit = { ...edit, ...effectAction(edit, asset, volume, null, 'add') };
-  expect(extraInstances(parseEdit(edit, asset), 'volume')).toHaveLength(1);
+  const watermark = effectLibrary.find(effect => effect.id === 'watermark')!, caption = effectLibrary.find(effect => effect.id === 'captions')!;
+  edit = { ...edit, ...effectAction(edit, asset, watermark, null, 'add') };
+  edit = { ...edit, ...effectAction(edit, asset, watermark, null, 'add') };
+  expect(extraInstances(parseEdit(edit, asset), 'watermark')).toHaveLength(1);
   expect(() => importCaptionEffects(edit, captions)).toThrow('1,000 captions');
   expect(() => effectAction(edit, asset, caption, null, 'add')).toThrow('1,000 captions');
 });

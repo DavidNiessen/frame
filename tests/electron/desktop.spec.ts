@@ -31,8 +31,6 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
     await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
     await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
-    await page.getByRole('button', { name: 'Generate thumbnails' }).click();
-    await expect(page.getByRole('group', { name: 'Timeline thumbnails', exact: true }).getByRole('button')).toHaveCount(12);
     await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Desktop performance', { exact: true }).click();
     await page.getByLabel('Desktop export encoder').selectOption('auto');
     await page.getByRole('button', { name: 'Check hardware encoders' }).click();

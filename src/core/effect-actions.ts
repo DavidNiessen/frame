@@ -9,8 +9,18 @@ function membership(recipe: EditSettings, effect: EffectDefinition, action: Effe
   if (action === 'remove') return ids.filter(id => id !== effect.id);
   return !ids.includes(effect.id) ? [...ids, effect.id] : ids;
 }
+/** Reuse one adjustment per target; legacy stacks remain editable without creating more. */
+export function existingEffectTarget(edit: EditSettings, asset: MediaAsset, effect: EffectDefinition, selectedClip: string | null): { clipId: string | null; instanceId?: string } | null {
+  if (effect.repeatable) return null;
+  const locate = (recipe: EditSettings, clipId: string | null) => primaryPresent(recipe, asset, effect.id) ? { clipId } : extraInstances(recipe, effect.id)[0] ? { clipId, instanceId: extraInstances(recipe, effect.id)[0].id } : null;
+  if (effect.scope === 'source') return locate(edit, null);
+  const clips = editClips(edit), clip = clips.find(item => item.id === selectedClip);
+  if (clip) return locate(clipRecipe(edit, clip), clip.id);
+  return locate(edit, null) ?? clips.map(clip => locate(clipRecipe(edit, clip), clip.id)).find(Boolean) ?? null;
+}
 /** All UI entry points share one undoable, clip-scoped application/removal operation. */
 export function effectAction(edit: EditSettings, asset: MediaAsset, effect: EffectDefinition, selectedClip: string | null, action: EffectAction, current?: number): Partial<EditSettings> {
+  if (action === 'add' && existingEffectTarget(edit, asset, effect, selectedClip)) return {};
   const instanceId = action === 'add' ? crypto.randomUUID() : '';
   function patch(recipe: EditSettings): Partial<EditSettings> {
     if (action === 'add') {

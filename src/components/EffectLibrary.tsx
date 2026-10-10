@@ -2,12 +2,12 @@ import { TransientMessage } from './TransientMessage';
 import { useMemo, useState } from 'react';
 import { AudioLines, Check, ChevronRight, Film, Folder, Gauge, Plus, Search } from 'lucide-react';
 import { appliedEffects, availableEffects, type EffectId } from '../core/effect-library';
-import { effectAction, effectDragType } from '../core/effect-actions';
+import { effectAction, effectDragType, existingEffectTarget } from '../core/effect-actions';
 import { EffectRecipes } from './EffectRecipes';
 import { clearClipEffects } from '../core/effect-actions';
 import type { Editor } from '../hooks/useEditor';
 import { CaptionTools } from './CaptionTools';
-export function EffectLibrary({ editor, current, seek, openCaption }: { editor: Editor; current: number; seek: (time: number) => void; openCaption: (instanceId?: string) => void }) {
+export function EffectLibrary({ editor, current, seek, openCaption, openEffect }: { editor: Editor; current: number; seek: (time: number) => void; openCaption: (instanceId?: string) => void; openEffect: (id: EffectId, instanceId?: string) => void }) {
   const [query, setQuery] = useState(''), [group, setGroup] = useState('All'), [selected, setSelected] = useState<EffectId | null>(null), [message, setMessage] = useState(''), [messageVersion, setMessageVersion] = useState(0);
   const asset = editor.asset!, edit = editor.edit!;
   const effects = useMemo(() => availableEffects(asset), [asset]);
@@ -16,6 +16,8 @@ export function EffectLibrary({ editor, current, seek, openCaption }: { editor: 
   const filtered = effects.filter(effect => (group === 'All' || effect.group === group) && `${effect.name} ${effect.description}`.toLowerCase().includes(query.toLowerCase()));
   function apply(id: EffectId) {
     const effect = effects.find(item => item.id === id); if (!effect) return;
+    const existing = existingEffectTarget(edit, asset, effect, editor.selectedClip);
+    if (existing) { setSelected(id); setMessage(''); if (effect.scope === 'clip') editor.selectClip(existing.clipId); openEffect(id, existing.instanceId); return; }
     setSelected(id); setMessageVersion(version => version + 1);
     try { editor.update(effectAction(edit, asset, effect, editor.selectedClip, 'add', current)); } catch (error) { setMessage((error as Error).message); return; }
     setMessage(`${effect.name} added. Click its timeline bar to adjust settings.`);
@@ -30,11 +32,11 @@ export function EffectLibrary({ editor, current, seek, openCaption }: { editor: 
       return <details className="effect-bin" key={category} open><summary><ChevronRight size={13} /><Folder size={14} />{category === 'Timing' ? 'Timing' : `${category} Effects`}<span>{items.length}</span></summary>
         <div className="effect-card-grid">{items.map(effect => { const Icon = category === 'Audio' ? AudioLines : category === 'Video' ? Film : Gauge, applied = active.includes(effect); return <div className={`effect-card ${selected === effect.id ? 'selected' : ''}`} key={effect.id}>
           <button className="effect-catalog-item" aria-label={`Select ${effect.name} effect`} aria-pressed={selected === effect.id} draggable={!editor.busy} onDragStart={event => { setSelected(effect.id); event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData(effectDragType, effect.id); }} onClick={() => { setSelected(effect.id); setMessage(''); }} onDoubleClick={() => apply(effect.id)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); apply(effect.id); } }}><Icon size={14} /><span><strong>{effect.name}</strong></span>{applied ? <Check size={13} aria-label="Applied" /> : effect.scope === 'source' && effect.id !== 'captions' ? <small>Source</small> : null}</button>
-          <button className="icon-button effect-apply" aria-label={`Add ${effect.name}`} title="Add to timeline" onClick={() => apply(effect.id)}><Plus size={13} /></button>
+          <button className="icon-button effect-apply" aria-label={`Add ${effect.name}`} title={applied && !effect.repeatable ? "Edit existing effect" : "Add to timeline"} onClick={() => apply(effect.id)}><Plus size={13} /></button>
         </div>; })}</div>
       </details>;
     })}{!filtered.length && <p className="effect-stack-empty">No matching effects. Try another search or category.</p>}</div>
-    <div className="effect-browser-selection"><strong>{chosen?.name ?? 'Choose an effect'}</strong><p>{chosen?.description ?? 'The catalogue stays here when you apply an effect.'}</p>{chosen && <span>{chosen.id === 'captions' ? 'Adds one caption at the playhead' : chosen.scope === 'source' ? 'Applies to the entire source' : editor.selectedClip ? 'Applies to the selected clip' : 'Applies to all clips'}</span>}
+    <div className="effect-browser-selection"><strong>{chosen?.name ?? 'Choose an effect'}</strong><p>{chosen?.description ?? 'The catalogue stays here when you apply an effect.'}</p>{chosen && <span>{chosen.repeatable ? `Adds one timed ${chosen.id === 'captions' ? 'caption' : 'watermark'} at the playhead` : chosen.scope === 'source' ? 'Applies to the entire source' : editor.selectedClip ? 'Applies to the selected clip' : 'Applies to all clips'}</span>}
       {message && <TransientMessage key={messageVersion} className="effect-apply-message" role="status">{message}</TransientMessage>}
     </div>
     {active.some(effect => effect.scope === 'clip') && <button className="effect-clear button subtle small" onClick={() => editor.update(clearClipEffects(edit, asset, editor.selectedClip))}>Remove all clip effects</button>}
