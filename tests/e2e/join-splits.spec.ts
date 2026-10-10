@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { importTestMedia } from '../helpers/import-media';
+import { verifyJoinedPlayback } from '../helpers/joined-playback';
 import { setBoundary } from '../helpers/timeline';
 
 for (const width of [1440, 390]) test(`joins splits without changing effects and supports undo at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'reduce' }); await page.setViewportSize({ width, height: 1000 });
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
   await page.goto('/'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   const join = page.getByRole('button', { name: 'Join splits', exact: true }); await expect(join).toBeDisabled();
@@ -26,7 +27,7 @@ for (const width of [1440, 390]) test(`joins splits without changing effects and
 });
 
 for (const width of [1440, 390]) test(`joins around a deleted middle section and preserves cuts at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'reduce' }); await page.setViewportSize({ width, height: 1000 });
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
   await page.goto('/'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   for (const time of [2, 4]) { await page.getByLabel('Seek playhead').fill(String(time)); await page.getByRole('button', { name: 'Split', exact: true }).click(); }
@@ -38,7 +39,7 @@ for (const width of [1440, 390]) test(`joins around a deleted middle section and
   const bar = page.locator('.timeline-clip .range-body'), bounds = (await bar.boundingBox())!;
   await bar.click({ position: { x: bounds.width * .75, y: bounds.height / 2 } });
   await expect.poll(async () => Number(await page.getByLabel('Seek playhead').inputValue())).toBeCloseTo(5, 0);
-  for (const [label, target] of [['Trim start', .5], ['Trim end', 5.5]] as const) {
+  for (const [label, target] of [['Trim start', .5], ['Trim end', 3.5]] as const) {
     const edge = page.getByRole('slider', { name: label, exact: true }); await edge.scrollIntoViewIfNeeded();
     const box = (await edge.boundingBox())!, lane = await edge.evaluate(node => node.closest('.timeline-lane')!.getBoundingClientRect().width);
     const delta = target - Number(await edge.getAttribute('aria-valuenow'));
@@ -55,4 +56,28 @@ for (const width of [1440, 390]) test(`joins around a deleted middle section and
   await page.getByLabel('Seek playhead').fill('5'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   await expect(page.locator('.timeline-clip')).toHaveCount(2); await expect(page.locator('.timeline-summary')).toContainText('0:04.0');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+for (const width of [1440, 390]) test(`trims freely through joined cuts and restores them at ${width}px`, async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' }); await page.setViewportSize({ width, height: 1000 });
+  await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
+  await page.goto('/'); await importTestMedia(page);
+  for (const time of [2, 4]) { await page.getByLabel('Seek playhead').fill(String(time)); await page.getByRole('button', { name: 'Split', exact: true }).click(); }
+  await page.locator('.timeline-clip .range-body').nth(1).click(); await page.getByRole('button', { name: 'Remove selected section', exact: true }).click();
+  await page.getByRole('button', { name: 'Join splits', exact: true }).click();
+  await setBoundary(page, 'Trim start', 2.5); await expect(page.locator('.cut-boundary')).toHaveCount(0);
+  await expect(page.locator('.timeline-summary')).toContainText('0:01.5');
+  await page.getByRole('slider', { name: 'Trim start', exact: true }).press('Home');
+  await expect(page.locator('.cut-boundary')).toHaveCount(1); await expect(page.locator('.timeline-summary')).toContainText('0:04.0');
+  await setBoundary(page, 'Trim end', 1.5); await expect(page.locator('.cut-boundary')).toHaveCount(0);
+  await page.getByRole('slider', { name: 'Trim end', exact: true }).press('End');
+  await expect(page.locator('.cut-boundary')).toHaveCount(1);
+  await page.getByLabel('Seek playhead').fill('5');
+  const edge = page.getByRole('slider', { name: 'Trim end', exact: true }); await edge.scrollIntoViewIfNeeded();
+  const box = (await edge.boundingBox())!, geometry = await edge.evaluate(node => ({ width: node.closest('.timeline-lane')!.getBoundingClientRect().width, duration: Number(node.closest('.timeline-range')!.getAttribute('data-duration')) }));
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 - geometry.width * 2.05 / geometry.duration, box.y + box.height / 2, { steps: 12 }); await page.mouse.up();
+  expect(Number(await edge.getAttribute('aria-valuenow'))).toBeCloseTo(1.95, 2);
+  await edge.press('End'); await expect(page.locator('.timeline-summary')).toContainText('0:04.0');
+  await verifyJoinedPlayback(page);
 });

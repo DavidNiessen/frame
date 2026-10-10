@@ -9,7 +9,7 @@ import { encodeNative } from './acceleration';
 import type { MediaAsset } from '../src/core/types';
 import type { PreviewProxy } from '../src/core/hardware';
 import type { MediaJobs } from './jobs';
-export function createProxies(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain) {
+export function createProxies(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain, releaseJoined?: (id: string) => Promise<void>) {
   const entries = new Map<string, { source: string; path: string; directory: string; proxy: PreviewProxy }>();
   ipc.handle('media:proxy', (event, id: string) => {
     trusted(event); const source = assets.get(id); if (!source) throw new Error('Import the source again.');
@@ -28,6 +28,6 @@ export function createProxies(assets: Map<string, { path: string; asset: MediaAs
     });
   });
   const release = async (id: string) => { const entry = entries.get(id); if (!entry) return; await rm(entry.directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); entries.delete(id); };
-  ipc.handle('media:release-proxy', (event, id: string) => { trusted(event); return release(id); });
+  ipc.handle('media:release-proxy', async (event, id: string) => { trusted(event); await releaseJoined?.(id); return release(id); });
   return { path: (id: string) => entries.get(id)?.path, releaseAsset: async (source: string) => { for (const [id, entry] of entries) if (entry.source === source) await release(id).catch(() => {}); }, clear: () => { for (const [id, entry] of entries) { try { rmSync(entry.directory, { recursive: true, force: true, maxRetries: 3 }); entries.delete(id); } catch { /* Keep the entry so window-close cleanup can retry a held stream. */ } } } };
 }

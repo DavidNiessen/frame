@@ -98,6 +98,8 @@ export interface MediaEngine {
   desktopCapabilities?(onProgress: (p: ExportProgress) => void): Promise<DesktopCapabilities>;
   previewProxy?(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<PreviewProxy>;
   releaseProxy?(id: string): Promise<void>;
+  joinedPreview?(asset: MediaAsset, ranges: TimeRange[], progress: (p: ExportProgress) => void): Promise<PreviewProxy>;
+  cancelJoinedPreview?(): void;
   importFiles(files?: File[], onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importUrl(url: string, onProgress?: (p: ExportProgress) => void, options?: UrlImportOptions): Promise<ImportReport>;
   importFolder?(onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;

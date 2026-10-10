@@ -11,6 +11,8 @@ export function createDesktopEngine(): MediaEngine {
     async desktopCapabilities(onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.desktopCapabilities(); } finally { remove(); } },
     async previewProxy(asset, onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.previewProxy(asset.id); } finally { remove(); } },
     releaseProxy: id => bridge.releaseProxy(id),
+    async joinedPreview(asset, ranges, progress) { const remove = bridge.onJoinedPreviewProgress(progress); try { return await bridge.joinedPreview(asset.id, ranges); } finally { remove(); } },
+    cancelJoinedPreview: () => bridge.cancelJoinedPreview(),
     async importFiles(files, onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFiles(files); } finally { remove(); } },
     async importFolder(onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFolder(); } finally { remove(); } },
     async importUrl(url, onProgress, options) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importUrl(url, options); } finally { remove(); } },

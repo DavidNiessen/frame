@@ -47,6 +47,9 @@ export interface DesktopBridge extends ExportHistoryBridge {
   desktopCapabilities(): Promise<DesktopCapabilities>;
   previewProxy(id: string): Promise<PreviewProxy>;
   releaseProxy(id: string): Promise<void>;
+  joinedPreview(id: string, ranges: TimeRange[]): Promise<PreviewProxy>;
+  cancelJoinedPreview(): void;
+  onJoinedPreviewProgress(callback: (progress: ExportProgress) => void): () => void;
   importFiles(files?: File[]): Promise<ImportReport>;
   importUrl(url: string, options?: UrlImportOptions): Promise<ImportReport>;
   importFolder(): Promise<ImportReport>;

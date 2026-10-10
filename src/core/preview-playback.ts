@@ -3,9 +3,13 @@ import { nextPlayableTime } from './timeline';
 import type { EditSettings } from './types';
 
 /** Contiguous splits share a decoder: changing clip identity must not seek the source. */
-export function previewPlaybackStep(edit: EditSettings, current: number, activeId: string | null) {
+export function previewPlaybackStep(edit: EditSettings, current: number, activeId: string | null, continuous = false) {
   if (!edit.clips) return { time: nextPlayableTime(edit, current), clipId: null };
   const clips = editClips(edit);
+  if (continuous) {
+    const clip = clips.find(item => current >= item.start && current < item.end);
+    return { time: clip ? current : null, clipId: clip?.id ?? null };
+  }
   let index = clips.findIndex(clip => clip.id === activeId);
   if (index < 0 || current < clips[index].start) index = clips.findIndex(clip => current >= clip.start && current < clip.end);
   if (index < 0) index = 0;

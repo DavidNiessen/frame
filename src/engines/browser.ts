@@ -13,6 +13,7 @@ import { browserResources } from './browser-resources';
 import { buildMergeArgs, compositionAsset, mergedCues } from '../core/composition';
 import { editedDuration } from '../core/timeline';
 import { browserRuntime } from './browser-runtime';
+import { browserJoinedPreview } from './browser-joined-preview';
 import { buildExportArgs, outputName } from '../core/export-plan';
 import { getFormat } from '../core/formats';
 import { conversionName } from '../core/conversion';
@@ -26,11 +27,13 @@ export function createBrowserEngine(): MediaEngine {
   const runtime = browserRuntime(), background = browserRuntime();
   const ready = runtime.ready;
   const files = new Map<string, File>(), sources = new Map<string, MediaAsset>();
+  const joined = browserJoinedPreview(files);
   let cancelled = false;
   let download: AbortController | null = null;
   let batchOptions: BatchOptions = {};
   const engine: MediaEngine = {
     platform: 'web',
+    joinedPreview: joined.generate, cancelJoinedPreview: joined.cancel, releaseProxy: joined.release,
     async importUrl(url, onProgress) {
       if (youtubeVideo(url)) throw new Error('YouTube imports are available in the Frame desktop app. On web, paste a direct audio or video file link.');
       if (files.size >= MAX_IMPORT_FILES) throw new Error('The library is full. Remove some files before importing another URL.');
@@ -149,7 +152,7 @@ export function createBrowserEngine(): MediaEngine {
     beginBatch: async options => { validateBatchOptions(options ?? {}); batchOptions = options ?? {}; return 'web'; },
     endBatch: async () => { batchOptions = {}; },
     cancel() { download?.abort(); cancelled = true; runtime.cancel(); },
-    async release(asset) { files.delete(asset.id); sources.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
+    async release(asset) { await joined.releaseAsset(asset.id); files.delete(asset.id); sources.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
   };
   return Object.assign(engine, browserWorkspace(engine, files, sources));
 }

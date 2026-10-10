@@ -40,6 +40,13 @@ const bridge: DesktopBridge = {
   desktopCapabilities: () => ipcRenderer.invoke('media:capabilities'),
   previewProxy: id => ipcRenderer.invoke('media:proxy', id),
   releaseProxy: id => ipcRenderer.invoke('media:release-proxy', id),
+  joinedPreview: (id, ranges) => ipcRenderer.invoke('media:joined-preview', id, ranges),
+  cancelJoinedPreview: () => { void ipcRenderer.invoke('media:cancel-joined-preview').catch(() => {}); },
+  onJoinedPreviewProgress: callback => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: import('../src/core/types').ExportProgress) => callback(progress);
+    ipcRenderer.on('media:joined-preview-progress', listener);
+    return () => { ipcRenderer.removeListener('media:joined-preview-progress', listener); };
+  },
   importFiles: files => ipcRenderer.invoke('media:import', files?.map(file => webUtils.getPathForFile(file))),
   importFolder: () => ipcRenderer.invoke('media:import-folder'),
   importUrl: (url, options) => ipcRenderer.invoke('media:import-url', url, options),

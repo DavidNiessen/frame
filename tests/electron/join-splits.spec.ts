@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { importTestMedia } from '../helpers/import-media';
+import { verifyJoinedPlayback } from '../helpers/joined-playback';
 import { probeFile } from '../../electron/native';
 
 test('joins retained footage after deletion, saves cuts and exports without restoring the middle', async () => {
@@ -16,6 +17,7 @@ test('joins retained footage after deletion, saves cuts and exports without rest
     await expect(page.locator('.timeline-clip')).toHaveCount(1);
     await expect(page.locator('.timeline-clip .audio-waveform')).toHaveCount(2);
     await expect(page.locator('.timeline-clip .audio-waveform').nth(1)).toHaveAttribute('data-start', '4');
+    await verifyJoinedPlayback(page);
     const project = join(directory, 'joined.frame.json'); await app.evaluate(({ dialog }, path) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: path }); }, project);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect.poll(async () => readFile(project, 'utf8').then(text => JSON.parse(text).sources[0].edit.clips.length).catch(() => 0)).toBe(2);

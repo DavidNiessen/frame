@@ -95,3 +95,6 @@
 .playback-loop-menu strong { padding: 7px; color: var(--muted); font-size: 10px; }
 .playback-loop-menu button { padding: 8px; border-radius: 5px; text-align: left; font-size: 11px; }
 .playback-loop-menu button:hover, .playback-loop-menu button[aria-pressed=true] { background: var(--accent-dim); color: var(--accent-text); }
+
+.continuous-preview-status { display: flex; align-items: center; gap: 12px; padding: 8px 16px; font-size: .75rem; color: var(--muted); }
+.continuous-preview-status progress { width: 100px; height: 4px; accent-color: var(--accent); }

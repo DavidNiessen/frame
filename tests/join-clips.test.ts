@@ -82,3 +82,10 @@ it('partitions restore ranges when splitting a joined bar', () => {
   expect(split.clips!.at(-1)!.joinedRanges).toEqual([{ start: 5, end: 6 }]);
   expect(() => parseEdit(JSON.parse(JSON.stringify(split)), asset)).not.toThrow();
 });
+it('can restore outer source edges without changing the duration of the omitted middle', () => {
+  const edit: EditSettings = { ...defaultSettings(asset), clips: [{ id: 'a', start: 1, end: 2, effects: {} }, { id: 'b', start: 4, end: 5, effects: {} }] };
+  const joined = { ...edit, ...joinSplitClips(edit, 'a') };
+  const expanded = { ...joined, ...resizeClipGroup(joined, joined.clips!, { start: -1, end: 3 }, 6) };
+  expect(expanded.clips!.map(({ start, end }) => [start, end])).toEqual([[0, 2], [4, 6]]);
+  expect(editedDuration(expanded)).toBe(4);
+});
