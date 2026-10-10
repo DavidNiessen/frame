@@ -57,6 +57,7 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
       });
     } else await native.evaluate(window => window.maximize());
     await expect.poll(() => page.evaluate(() => window.frameDesktop!.windowState().then(state => state.maximized))).toBe(true);
+    await expect(page.locator('.desktop-window-frame')).toHaveCSS('border-radius', '0px');
     const dockedSize = await page.evaluate(() => window.frameDesktop!.windowState()), dockedBounds = await native.evaluate(window => window.getBounds());
     await expect(page.locator('.desktop-window-content')).toHaveCSS('height', `${dockedSize.contentHeight - 2}px`);
     await expect(page.locator('.desktop-window-frame')).toHaveCSS('width', `${dockedBounds.width}px`);

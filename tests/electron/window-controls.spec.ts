@@ -73,11 +73,13 @@ test('reveals frameless controls without moving panels, supports keyboard access
     await expect(page.getByRole('button', { name: 'Restore window', exact: true })).toBeVisible();
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await expect(bar).toBeVisible();
+    await expect(page.locator('.desktop-window-frame')).toHaveCSS('border-radius', '0px');
     expect((await page.evaluate(() => window.frameDesktop!.setWindowChrome(false))).chromeExpanded).toBe(true);
     await expect(bar).toBeVisible();
     if (process.platform === 'linux') await app.evaluate(() => { (globalThis as typeof globalThis & { restoreFullscreenTest: () => void }).restoreFullscreenTest(); return true; });
     else await native.evaluate(window => window.setFullScreen(false));
     await expect(bar).toBeHidden();
+    await expect(page.locator('.desktop-window-frame')).toHaveCSS('border-radius', '14px');
     // Xvfb has no window manager; observe native calls there and real window state on other platforms.
     await app.evaluate(({ BrowserWindow }) => {
       const window = BrowserWindow.getAllWindows()[0];
