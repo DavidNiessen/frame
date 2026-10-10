@@ -1,3 +1,5 @@
+import { loadingActivity } from '../core/loading-activity';
+import { useLoadingActivity } from './useLoadingActivity';
 import type { EditSettings } from '../core/types';
 import { serializeProject, MAX_PROJECT_BYTES } from '../core/project-storage';
 import { sameLayerSource } from '../core/audio-layers';
@@ -17,11 +19,12 @@ export function useProjects(editor: Editor) {
   };
   const matched = pending ? matchSources(pending, editor.assets) : [];
   const links = matched.map((id, index) => overrides[index] ?? id);
+  useLoadingActivity(saving, 'Saving project…');
   async function open(file: File) {
     if (editor.busy || saving) return;
     try {
       if (file.size > MAX_PROJECT_BYTES) throw new Error('Project files must be smaller than 16 MB.');
-      const project = parseProject(JSON.parse(await file.text()));
+      const project = parseProject(JSON.parse(await loadingActivity.run('Loading project…', () => file.text())));
       setError(''); setOverrides({}); setPending(project);
     } catch (error) { report(error); }
   }

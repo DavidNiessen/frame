@@ -20,6 +20,7 @@ import './styles/expanded-preview.css';
 import './styles/mini-conversion.css';
 import './styles/border-lighting.css';
 import './styles/desktop-titlebar.css';
+import './styles/loading-beam.css';
 import { DesktopWindow } from './components/DesktopWindow';
 import App from './App';
 import { MiniConversion } from './components/conversion/MiniConversion';

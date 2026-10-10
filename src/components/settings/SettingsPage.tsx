@@ -1,3 +1,4 @@
+import { useLoadingActivity } from '../../hooks/useLoadingActivity';
 import { TransientMessage } from '../TransientMessage';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, AudioLines, FolderOpen, LoaderCircle, Monitor, Palette, RefreshCw } from 'lucide-react';
@@ -15,6 +16,7 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
   const [status, setStatus] = useState<ShellIntegrationStatus | null>(bridge ? null : webStatus);
   const [pending, setPending] = useState<'checking' | 'installing' | 'removing' | 'certificate' | null>(bridge ? 'checking' : null);
   const [error, setError] = useState('');
+  useLoadingActivity(!!pending, 'Updating file-manager actions…');
   useEffect(() => {
     if (!bridge) return;
     let active = true;

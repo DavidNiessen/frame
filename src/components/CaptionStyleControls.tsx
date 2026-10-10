@@ -1,3 +1,4 @@
+import { loadingActivity } from '../core/loading-activity';
 import { TransientMessage } from './TransientMessage';
 import { useEffect, useState } from 'react';
 import { captionFonts, defaultCaptionStyle, systemFontFamily, type CaptionStyle } from '../core/caption-style';
@@ -10,7 +11,7 @@ export function CaptionStyleControls({ value, change, selectable }: { value?: Ca
   useEffect(() => {
     let active = true;
     if (window.frameDesktop) {
-      installed ??= window.frameDesktop.installedFonts().catch(error => { installed = undefined; throw error; });
+      installed ??= loadingActivity.run('Loading installed fonts…', () => window.frameDesktop!.installedFonts()).catch(error => { installed = undefined; throw error; });
       void installed.then(fonts => { if (active) setFonts(fonts.filter(font => !captionFonts.some(bundled => bundled.family === font))); }).catch(() => { if (active) setError('Installed fonts could not be loaded. Bundled fonts are available.'); });
     }
     return () => { active = false; };

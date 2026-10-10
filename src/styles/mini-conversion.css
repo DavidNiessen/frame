@@ -36,8 +36,6 @@ html[data-mini-conversion] #root { height: 100dvh; }
 .mini-converter.collapsed .mini-card { border-radius: 32px; }
 .mini-progress { height: 100%; display: flex; align-items: center; }
 .mini-progress-content { display: flex; gap: 14px; align-items: center; flex: 1; min-width: 0; padding: 0 18px; }
-.mini-progress .progress-track { flex: 1; height: 5px; margin: 0; background: var(--border); border-radius: 8px; }
-.mini-progress .progress-track > span { transition: width .18s ease; }
 .mini-percentage { min-width: 35px; color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
 .mini-expand { width: 56px; height: 100%; display: grid; place-items: center; border-left: 1px solid var(--border); color: var(--muted); flex-shrink: 0; }
 .mini-expand:hover { background: var(--surface-hover); color: var(--text); }

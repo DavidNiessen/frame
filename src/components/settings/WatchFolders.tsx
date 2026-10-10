@@ -1,3 +1,4 @@
+import { useLoadingActivity } from '../../hooks/useLoadingActivity';
 import { TransientMessage } from '../TransientMessage';
 import { useEffect, useRef, useState } from 'react';
 import { FolderSync, FolderOpen, Plus, Trash2, RefreshCw, X } from 'lucide-react';
@@ -12,6 +13,7 @@ import { GifOutputControls } from '../GifOutputControls';
 export function WatchFolders() {
   const mutating = useRef(false);
   const bridge = window.frameDesktop, [status, setStatus] = useState<WatchStatus>({ watches: [], activity: [], error: '' }), [error, setError] = useState(''), [busy, setBusy] = useState(false), [paths, setPaths] = useState<{ input: string; output: string } | null>(null);
+  useLoadingActivity(busy || status.activity.some(item => item.status === 'converting'), 'Processing watch folders…');
   useEffect(() => {
     if (!bridge?.watchFoldersStatus) return; let active = true;
     const refresh = () => { void bridge.watchFoldersStatus().then(value => { if (active && !mutating.current) setStatus(value); }).catch(issue => { if (active) setError((issue as Error).message); }); };
@@ -30,6 +32,7 @@ export function WatchFolders() {
 }
 function WatchFolderDialog({ paths, save, close }: { paths: { input: string; output: string }; save: (draft: WatchFolderDraft) => Promise<void>; close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null), [name, setName] = useState(paths.input.replace(/\\/g, '/').split('/').pop() || 'New watch'), [settings, setSettings] = useState<OutputSettings>(builtInPresets.find(item => item.id === 'builtin:lossless')!.settings), [recursive, setRecursive] = useState(true), [keepFolders, setKeepFolders] = useState(true), [includeExisting, setIncludeExisting] = useState(false), [template, setTemplate] = useState('{name}'), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  useLoadingActivity(busy, 'Saving watch folder…');
   const [presets] = useState(() => { try { return [...builtInPresets, ...readPresets(localStorage.getItem('frame-export-presets'))]; } catch { return builtInPresets; } });
   useEffect(() => { dialog.current?.showModal(); }, []);
   const update = (patch: Partial<OutputSettings>) => setSettings(value => ({ ...value, ...patch }));

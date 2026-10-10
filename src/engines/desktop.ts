@@ -12,6 +12,7 @@ export function createDesktopEngine(): MediaEngine {
     async previewProxy(asset, onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.previewProxy(asset.id); } finally { remove(); } },
     releaseProxy: id => bridge.releaseProxy(id),
     async joinedPreview(asset, ranges, progress) { const remove = bridge.onJoinedPreviewProgress(progress); try { return await bridge.joinedPreview(asset.id, ranges); } finally { remove(); } },
+    async effectPreview(asset, edit, progress) { const remove = bridge.onJoinedPreviewProgress(progress); try { return await bridge.effectPreview(asset.id, edit); } finally { remove(); } },
     cancelJoinedPreview: () => bridge.cancelJoinedPreview(),
     async importFiles(files, onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFiles(files); } finally { remove(); } },
     async importFolder(onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFolder(); } finally { remove(); } },

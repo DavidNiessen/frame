@@ -22,10 +22,6 @@ export function ExportFooter({ editor }: { editor: Editor }) {
       <span>Analyzing your media…</span>
       <button className="button subtle small" onClick={editor.cancel}>Cancel processing</button>
     </div> : editor.progress ? <div className="export-progress">
-      <div className="progress-track" role="progressbar" aria-label="Export progress"
-        aria-valuenow={Math.round(editor.progress.ratio * 100)} aria-valuemin={0} aria-valuemax={100}>
-        <span style={{ width: `${editor.progress.ratio * 100}%` }} />
-      </div>
       <span>{editor.progress.message}</span>
       <button className="button subtle small" onClick={editor.cancel}><X size={14} />Cancel export</button>
     </div> : <button className="button primary export-button" disabled={!!busy} onClick={() => void editor.exportMedia()}>

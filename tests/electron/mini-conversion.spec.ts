@@ -65,7 +65,8 @@ test('collapses real conversion to progress, expands and cancels without closing
     await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, output);
     await page.getByRole('button', { name: 'Convert 1 file', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Expand conversion' })).toBeVisible();
-    await expect(page.getByRole('progressbar', { name: 'Conversion progress' })).toBeVisible();
+    await expect(page.locator('.mini-progress .loading-beam')).toHaveAttribute('data-active', 'true');
+    await expect(page.locator('progress, [role=progressbar]')).toHaveCount(0);
     await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height)).toBe(78);
     await page.screenshot({ path: 'test-results/desktop/mini-collapsed.png' });
     await page.getByRole('button', { name: 'Expand conversion' }).click();

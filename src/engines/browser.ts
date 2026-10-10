@@ -28,7 +28,7 @@ export function createBrowserEngine(): MediaEngine {
   const runtime = browserRuntime(), background = browserRuntime();
   const ready = runtime.ready;
   const files = new Map<string, File>(), sources = new Map<string, MediaAsset>();
-  const joined = browserJoinedPreview(files);
+  const joined = browserJoinedPreview(files, sources);
   const prepared = browserPreparedMedia(files, sources);
   let cancelled = false;
   let download: AbortController | null = null;
@@ -36,7 +36,7 @@ export function createBrowserEngine(): MediaEngine {
   const engine: MediaEngine = {
     platform: 'web',
     appendVideo: prepared.appendVideo, extractAudio: prepared.extractAudio,
-    joinedPreview: joined.generate, cancelJoinedPreview: joined.cancel, releaseProxy: joined.release,
+    joinedPreview: joined.generate, effectPreview: joined.effects, cancelJoinedPreview: joined.cancel, releaseProxy: joined.release,
     async importUrl(url, onProgress) {
       if (youtubeVideo(url)) throw new Error('YouTube imports are available in the Frame desktop app. On web, paste a direct audio or video file link.');
       if (files.size >= MAX_IMPORT_FILES) throw new Error('The library is full. Remove some files before importing another URL.');

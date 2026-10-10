@@ -6,8 +6,13 @@ import type { IpcMainInvokeEvent } from 'electron';
 import type { WindowIpc } from './window-ipc';
 import type { SessionAssets } from './media-session';
 import type { PreviewProxy } from '../src/core/hardware';
-import type { TimeRange } from '../src/core/types';
+import type { EditSettings, TimeRange } from '../src/core/types';
 import { joinedPreviewArgs, validatePreviewRanges } from '../src/core/joined-preview';
+import { effectPreviewArgs, effectPreviewRecipe } from '../src/core/effect-preview';
+import { parseEdit } from '../src/core/project';
+import { resolveAudioLayers } from '../src/core/audio-layers';
+import { editedDuration } from '../src/core/timeline';
+import { withResources } from './resources';
 import { MediaJobs } from './jobs';
 import { runFfmpeg } from './native';
 
@@ -16,17 +21,22 @@ export function createJoinedPreviews(assets: SessionAssets, trusted: (event: Ipc
   const jobs = new MediaJobs(), entries = new Map<string, { source: string; path: string; directory: string }>();
   let active: Promise<PreviewProxy> | null = null, sourceId = '', generation = 0, closed = false;
   const cancel = () => { generation++; jobs.cancel(); };
-  ipc.handle('media:joined-preview', async (event, id: string, ranges: TimeRange[]) => {
+  async function generate(event: IpcMainInvokeEvent, id: string, ranges: TimeRange[], settings?: EditSettings) {
     trusted(event); const source = assets.get(id); if (!source) throw new Error('Import the source again.');
     validatePreviewRanges(source.asset, ranges);
+    const edit = settings ? effectPreviewRecipe(source.asset, parseEdit(settings, source.asset)) : undefined;
+    const layers = edit ? resolveAudioLayers(edit, [...assets.values()]) : [];
+    const message = edit ? 'Preparing effects preview…' : 'Preparing continuous preview…';
     const ticket = ++generation; jobs.cancel(); await active?.catch(() => {});
     if (closed || ticket !== generation) throw new Error('Continuous preview cancelled.');
     sourceId = id;
     const task = jobs.run(async execute => {
       const directory = await mkdtemp(join(tmpdir(), 'frame-joined-')), path = join(directory, source.asset.kind === 'video' ? 'preview.mp4' : 'preview.mp3');
       try {
-        const duration = ranges.reduce((sum, range) => sum + range.end - range.start, 0);
-        await execute(runFfmpeg(joinedPreviewArgs(source.asset, ranges, source.path, path), duration, ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:joined-preview-progress', { ratio, message: 'Preparing continuous preview…' }); }));
+        const duration = edit ? editedDuration(edit) : ranges.reduce((sum, range) => sum + range.end - range.start, 0);
+        const render = (plan: string[]) => execute(runFfmpeg(plan, duration, ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:joined-preview-progress', { ratio, message }); }));
+        if (edit) await withResources([edit], paths => render(effectPreviewArgs(source.asset, edit, source.path, path, paths[0], layers)), [source.asset]);
+        else await render(joinedPreviewArgs(source.asset, ranges, source.path, path));
         if (closed || ticket !== generation || !assets.has(id)) throw new Error('Continuous preview cancelled.');
         const token = randomUUID(), size = (await stat(path)).size;
         entries.set(token, { source: id, directory, path }); return { id: token, url: `media://proxy/${token}`, size };
@@ -34,7 +44,9 @@ export function createJoinedPreviews(assets: SessionAssets, trusted: (event: Ipc
     });
     active = task;
     try { return await task; } finally { if (active === task) { active = null; sourceId = ''; } }
-  });
+  }
+  ipc.handle('media:joined-preview', (event, id: string, ranges: TimeRange[]) => generate(event, id, ranges));
+  ipc.handle('media:effect-preview', (event, id: string, edit: EditSettings) => generate(event, id, [{ start: 0, end: assets.get(id)?.asset.duration ?? 0 }], edit));
   ipc.handle('media:cancel-joined-preview', event => { trusted(event); cancel(); });
   async function release(id: string) {
     const entry = entries.get(id); if (!entry) return;

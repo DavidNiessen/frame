@@ -20,7 +20,8 @@ test('keeps playback and editing available while preparing and replacing a previ
   for (const time of [2, 4]) { await page.getByLabel('Seek playhead').fill(String(time)); await page.getByRole('button', { name: 'Split', exact: true }).click(); }
   await page.locator('.timeline-clip .range-body').nth(1).click(); await page.getByRole('button', { name: 'Remove selected section', exact: true }).click();
   try {
-    await expect(page.getByRole('progressbar', { name: 'Continuous preview preparation' })).toBeVisible();
+    await expect(page.getByRole('contentinfo', { name: 'Workspace status' })).toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('progress, [role=progressbar]')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled();
     await page.getByLabel('Seek playhead').fill('0.5'); await page.getByLabel('Trim end', { exact: true }).press('Space');
     await expect(media).toHaveJSProperty('paused', false);

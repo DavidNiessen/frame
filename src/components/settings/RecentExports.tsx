@@ -1,3 +1,4 @@
+import { useLoadingActivity } from '../../hooks/useLoadingActivity';
 import { TransientMessage } from '../TransientMessage';
 import { useEffect, useState } from 'react';
 import { Clock3, FolderOpen, Trash2 } from 'lucide-react';
@@ -5,6 +6,7 @@ import type { ExportHistoryStatus } from '../../core/export-history';
 import { bytes } from '../../core/format';
 export function RecentExports() {
   const bridge = window.frameDesktop, [status, setStatus] = useState<ExportHistoryStatus>({ entries: [], error: '' }), [query, setQuery] = useState(''), [page, setPage] = useState(0), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  useLoadingActivity(busy, 'Updating recent exports…');
   useEffect(() => { let active = true; const refresh = () => { if (bridge?.exportHistory) void bridge.exportHistory().then(value => { if (active) setStatus(value); }).catch(issue => { if (active) setError((issue as Error).message); }); }; refresh(); const timer = setInterval(refresh, 3000); return () => { active = false; clearInterval(timer); }; }, [bridge]);
   async function action(task: () => Promise<ExportHistoryStatus | void>) { setBusy(true); setError(''); try { const value = await task(); if (value) setStatus(value); } catch (issue) { setError((issue as Error).message); } finally { setBusy(false); } }
   const matches = status.entries.filter(entry => `${entry.name} ${entry.source} ${entry.kind}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())), pages = Math.max(1, Math.ceil(matches.length / 8)), shown = Math.min(page, pages - 1);

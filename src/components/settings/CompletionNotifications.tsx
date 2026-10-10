@@ -1,9 +1,11 @@
+import { useLoadingActivity } from '../../hooks/useLoadingActivity';
 import { TransientMessage } from '../TransientMessage';
 import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
 import type { NotificationPreference } from '../../core/completion-notifications';
 export function CompletionNotifications() {
   const bridge = window.frameDesktop, [status, setStatus] = useState<NotificationPreference | null>(bridge ? null : { supported: false, enabled: false }), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  useLoadingActivity(busy, 'Updating notification settings…');
   useEffect(() => { let active = true; if (bridge?.notificationPreference) void bridge.notificationPreference().then(value => { if (active) setStatus(value); }).catch(issue => { if (active) setError((issue as Error).message); }); return () => { active = false; }; }, [bridge]);
   return <section className="settings-card" aria-labelledby="notification-heading"><div className="settings-section-heading"><Bell size={19} /><div><h2 id="notification-heading">Completion notifications</h2><p>Know when a long export finishes while you work elsewhere.</p></div></div><label className="switch-row settings-preference"><span>Notify when processing finishes<small>{bridge ? status?.supported ? 'Shows a quiet desktop notification for saved exports, merges and batches while Frame is in the background.' : 'Desktop notifications are unavailable on this system.' : 'Available in the desktop app.'}</small></span><input type="checkbox" aria-label="Notify when processing finishes" checked={!!status?.enabled} disabled={!status?.supported || busy} onChange={event => { const enabled = event.target.checked; setBusy(true); setError(''); void bridge!.setCompletionNotifications(enabled).then(setStatus).catch(issue => setError((issue as Error).message)).finally(() => setBusy(false)); }} /></label>{error && <TransientMessage className="settings-error" role="alert">{error}</TransientMessage>}</section>;
 }

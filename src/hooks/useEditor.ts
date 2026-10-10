@@ -8,6 +8,7 @@ import { sampleRates } from '../core/audio-output';
 import type { UrlImportOptions } from '../core/youtube';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createEngine } from '../engines';
+import { trackedEngine } from '../engines/tracked-engine';
 import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type ImportReport, type MediaAsset, type MediaEngine } from '../core/types';
 import { createProject, parseEdit } from '../core/project';
 import { clipEffectKeys, editClips, clipRecipe, patchClip } from '../core/clips';
@@ -34,7 +35,7 @@ export function useEditor() {
   const assetsRef = useRef(assets); assetsRef.current = assets;
   const resultRef = useRef(result); resultRef.current = result;
   const busyRef = useRef(false);
-  const engine = () => engineRef.current ??= createEngine();
+  const engine = () => engineRef.current ??= createEngine().then(trackedEngine);
   const asset = assets.find(a => a.id === selected) ?? null;
   const history = selected ? histories[selected] : undefined;
   const edit = history?.present ?? null;

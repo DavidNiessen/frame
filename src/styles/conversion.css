@@ -102,7 +102,6 @@
 .conversion-results-heading h2 { font-size: 13px; }
 .conversion-results-heading p { color: var(--muted); font-size: 11px; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 42vw; }
 .conversion-results-count { margin-left: auto; color: var(--quiet); font-size: 11px; flex-shrink: 0; }
-.conversion-results .progress-track { margin-top: 16px; }
 .conversion-results-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 .conversion-import-progress { display: flex; gap: 12px; align-items: center; padding: 16px 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 12px; }
 .conversion-import-progress small { display: block; font-size: 10px; color: var(--quiet); margin-top: 5px; }

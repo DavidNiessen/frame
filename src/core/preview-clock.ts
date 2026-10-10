@@ -1,23 +1,24 @@
 import type { TimeRange } from './types';
-const clocks = new WeakMap<HTMLMediaElement, TimeRange[]>();
-export function configurePreviewClock(media: HTMLMediaElement, ranges?: TimeRange[]) {
+export interface PreviewRange extends TimeRange { speed?: number }
+const clocks = new WeakMap<HTMLMediaElement, PreviewRange[]>();
+export function configurePreviewClock(media: HTMLMediaElement, ranges?: PreviewRange[]) {
   if (ranges) clocks.set(media, ranges); else clocks.delete(media);
   media.dataset.previewClock = ranges ? 'sequence' : 'source';
 }
-export function previewSourceTime(ranges: TimeRange[], time: number) {
+export function previewSourceTime(ranges: PreviewRange[], time: number) {
   let elapsed = 0;
   for (const range of ranges) {
-    const length = range.end - range.start;
-    if (time < elapsed + length - 1e-8) return range.start + Math.max(0, time - elapsed);
+    const speed = range.speed ?? 1, length = (range.end - range.start) / speed;
+    if (time < elapsed + length - 1e-8) return range.start + Math.max(0, time - elapsed) * speed;
     elapsed += length;
   }
   return ranges.at(-1)!.end;
 }
-export function previewMediaTime(ranges: TimeRange[], source: number) {
+export function previewMediaTime(ranges: PreviewRange[], source: number) {
   let elapsed = 0;
   for (const range of ranges) {
-    if (source < range.end) return elapsed + Math.max(0, source - range.start);
-    elapsed += range.end - range.start;
+    if (source < range.end) return elapsed + Math.max(0, source - range.start) / (range.speed ?? 1);
+    elapsed += (range.end - range.start) / (range.speed ?? 1);
   }
   return elapsed;
 }

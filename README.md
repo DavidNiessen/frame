@@ -152,7 +152,7 @@ Open **Batch export**, select library files, and choose each file’s recipe, cu
 | Background completion notifications | Yes, OS support permitting | Desktop only |
 | Media preview | Chromium codec support | Browser codec support |
 
-Common input extensions include MP4, MOV, MKV, WebM, AVI, M4V, GIF, MP3, WAV, FLAC, OGG, M4A, AAC, OPUS, and AIFF. A container alone does not guarantee a decodable stream. Unsupported preview codecs can still be converted when FFmpeg can decode them. GIF previews loop the source; trim/split edits are applied on export. Volume above 100% is applied on export and may clip; the media element's preview is capped at 100%.
+Common input extensions include MP4, MOV, MKV, WebM, AVI, M4V, GIF, MP3, WAV, FLAC, OGG, M4A, AAC, OPUS, and AIFF. A container alone does not guarantee a decodable stream. Unsupported preview codecs can still be converted when FFmpeg can decode them. GIF previews loop the source; trim/split edits are applied on export. Volume boosts, EQ, noise reduction, loudness normalization, color/LUTs and mixed audio automatically update a processed playback preview in the background. Boosts can clip.
 
 Browser guards are conservative, not a guarantee that a 500 MB job will fit: decoding, processing, and output buffers consume additional memory. Mobile devices may support considerably smaller jobs. Desktop uses native processes and avoids those WebAssembly limits. Audio layering and hardware encoding are available now; arbitrary third-party plugins remain a future extension.
 
@@ -199,7 +199,7 @@ Text and watermarks: add multiline text or a PNG/JPEG/WebP image, position it, a
 
 Geometry: rotate by 90° increments, flip horizontally/vertically, and resize with letterbox, fill/crop or stretch. Portrait, square, 720p and 1080p presets are available, plus custom dimensions and an aspect-ratio lock. Transforms follow the source crop and also apply to merged clips; crop editing remains in source coordinates.
 
-Color: adjust brightness, contrast, saturation and temperature; import complete 2–33 point 3D `.cube` LUTs. LUT content is validated and travels with projects. Render the playhead frame through FFmpeg to inspect the actual edits at up to 720 pixels, including crop, transforms, captions, overlays and fades.
+Color: adjust brightness, contrast, saturation and temperature; import complete 2–33 point 3D `.cube` LUTs. LUT content is validated and travels with projects. Color and LUT changes automatically update playback. You can also render the playhead frame through FFmpeg to inspect the actual edits at up to 720 pixels, including crop, transforms, captions, overlays and fades.
 
 Silence removal: analyze original audio with a configurable dB threshold, minimum duration and retained padding. Review and select proposed source-time cuts before applying; changes are undoable and exports remove only the selected sections.
 
@@ -271,3 +271,5 @@ Use the header command search or Ctrl/Cmd+K to find import, editing, review, con
 Project files are limited to 16 MB of UTF-8 data so saved workspaces remain reopenable. Frame uses compact JSON near that limit; large embedded image collections may need smaller workspaces. Autosave builds the portable snapshot after the editing pause rather than during every slider movement.
 
 Effects use output time across the full track, with one row per added instance. Their timing and parameters survive splits, undo, project saving, autosave and recipe reuse. Live volume, color and fade previews follow output time; processed previews, exports and merges use the same timing. Singleton effects show a check in place of the add button once applied; clicking it reopens settings.
+
+Playback automatically prepares audio corrections, LUTs and audio-layer mixes using the export filters, in an independent background job with a 720-pixel/30-fps playback limit. Editing remains available during preparation; the last playable stream stays visible until its replacement is ready. Captions, crop, transforms and video fades remain interactive. Export keeps the selected output resolution and quality. The footer island shows a moving beam while loading or processing, with a static highlight when reduced motion is enabled.

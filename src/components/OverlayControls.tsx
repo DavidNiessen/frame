@@ -1,3 +1,4 @@
+import { loadingActivity } from '../core/loading-activity';
 import { TransientMessage } from './TransientMessage';
 import { useRef, useState } from 'react';
 import type { EditSettings } from '../core/types';
@@ -5,13 +6,14 @@ export function OverlayControls({ edit, update, expanded = false }: { expanded?:
   const o = edit.overlays; const fileInput = useRef<HTMLInputElement>(null); const [error, setError] = useState('');
   const change = (patch: Partial<typeof o>) => update({ overlays: { ...o, ...patch } });
   async function importImage(file: File) {
+    const finish = loadingActivity.begin('Loading watermark…');
     try {
       if (file.size > 10_000_000 || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('Choose a PNG, JPEG or WebP image smaller than 10 MB.');
       const bitmap = await createImageBitmap(file); const scale = Math.min(1, 512 / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
       canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
       change({ image: canvas.toDataURL('image/png') }); setError('');
-    } catch (error) { setError(error instanceof Error ? error.message : 'Could not load the image.'); }
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not load the image.'); } finally { finish(); }
   }
   return <details className="advanced" open={expanded || undefined}><summary>Text & watermark</summary><div className="advanced-content">
     <label className="stacked-label">Overlay text<textarea aria-label="Overlay text" maxLength={2000} value={o.text} onChange={e => change({ text: e.target.value })} placeholder="Add a title or credit" /></label>

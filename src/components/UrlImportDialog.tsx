@@ -42,7 +42,7 @@ export function UrlImportDialog({ open, close, editor }: { open: boolean; close:
         <p className="field-note">Downloads the original streams without re-encoding. Choose your output format after import. Individual, publicly accessible videos only; live streams are not supported.</p>
       </div>}
       <p id="url-import-note" className="field-note">{editor.platform === 'desktop' ? 'Direct files and individual YouTube videos are supported. Other page links and playlist-only links are not supported.' : 'Direct files only; page links and streaming playlists are not supported. YouTube imports require the desktop app. The host must allow cross-origin downloads (CORS).'} Export a copy to keep downloaded media after this session.</p>
-      {running && <div className="url-import-progress" role="status"><span><LoaderCircle size={16} className="spinner" />{editor.progress?.message || 'Preparing your download…'}</span><progress aria-label="URL import progress" max={1} value={editor.progress?.ratio || undefined} /></div>}
+      {running && <div className="url-import-progress" role="status"><span><LoaderCircle size={16} className="spinner" />{editor.progress?.message || 'Preparing your download…'}</span></div>}
       {error && <TransientMessage className="project-error" role="alert">{error}</TransientMessage>}
       <div className="project-actions">{running ? <button type="button" className="button subtle" onClick={editor.cancel}>Cancel download</button> : <><button type="button" className="button subtle" onClick={close}>Cancel</button><button type="submit" className="button primary" disabled={!!editor.busy || !url.trim()}><Download size={15} />Load media</button></>}</div>
     </form>
