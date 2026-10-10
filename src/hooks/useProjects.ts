@@ -1,3 +1,4 @@
+import type { EditSettings } from '../core/types';
 import { serializeProject, MAX_PROJECT_BYTES } from '../core/project-storage';
 import { sameLayerSource } from '../core/audio-layers';
 import { sourceIdentity } from '../core/project';
@@ -45,7 +46,13 @@ export function useProjects(editor: Editor) {
   function restore() {
     if (!pending || !canRestore || editor.busy) return;
     try {
-      editor.restoreEdits(pending.sources.map((entry, index) => ({ id: links[index]!, edit: { ...entry.edit, audioLayers: entry.edit.audioLayers?.map(layer => { const sourceIndex = layer.sourceIndex ?? pending.sources.findIndex(item => sameLayerSource(layer.source, item.source)); const asset = editor.assets.find(item => item.id === links[sourceIndex])!; const { sourceIndex: _sourceIndex, ...runtime } = layer; return { ...runtime, sourceId: asset.id, source: sourceIdentity(asset) }; }) } })), links[pending.selectedSource]!);
+      const restoreLayers = (layers: EditSettings['audioLayers']) => layers?.map(layer => {
+        const sourceIndex = layer.sourceIndex ?? pending.sources.findIndex(item => sameLayerSource(layer.source, item.source));
+        const asset = editor.assets.find(item => item.id === links[sourceIndex])!;
+        const { sourceIndex: _sourceIndex, ...runtime } = layer;
+        return { ...runtime, sourceId: asset.id, source: sourceIdentity(asset) };
+      });
+      editor.restoreEdits(pending.sources.map((entry, index) => ({ id: links[index]!, edit: { ...entry.edit, audioLayers: restoreLayers(entry.edit.audioLayers), effectInstances: entry.edit.effectInstances?.map(instance => instance.effect === 'mix' ? { ...instance, settings: { ...instance.settings, audioLayers: restoreLayers(instance.settings.audioLayers) } } : instance) } })), links[pending.selectedSource]!);
       setName(pending.name); setPending(null); editor.setNotice('Project opened. Your saved edits are ready.');
     } catch (error) { report(error); }
   }

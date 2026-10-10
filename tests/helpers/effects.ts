@@ -9,7 +9,7 @@ export async function openEffect(page: Page, name: string) {
   await page.getByLabel('Search effects').fill('');
   await page.getByRole('button', { name: 'All', exact: true }).click();
   const target = await page.getByLabel('Effect target').inputValue();
-  await page.getByRole('button', { name: `Add ${name}`, exact: true }).click();
+  if (!await page.getByRole('button', { name: `Select ${name} effect`, exact: true }).locator('[aria-label="Applied"]').count()) await page.getByRole('button', { name: `Add ${name}`, exact: true }).click();
   await page.locator('.timeline-track-filters').getByRole('button', { name: 'All tracks', exact: true }).click();
   const compact = page.getByRole('button', { name: 'Compact', exact: true });
   if (await compact.getAttribute('aria-pressed') === 'true') await compact.click();

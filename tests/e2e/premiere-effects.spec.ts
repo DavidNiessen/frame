@@ -6,7 +6,7 @@ for (const width of [1440, 390]) test(`edits timeline effects in an overlay alig
   await expect(page.getByRole('tab')).toHaveCount(2);
   await expect(page.getByRole('tab', { name: 'Effect Controls', exact: true })).toHaveCount(0);
   await page.getByLabel('Search effects').fill('Color');
-  const item = page.getByRole('button', { name: 'Select Color & LUTs effect', exact: true }); await item.click();
+  const item = page.getByRole('button', { name: 'Select Color & LUTs effect', exact: true }); await item.click(); await expect(page.getByRole('button', { name: 'Apply effect', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Color & LUTs clip 1', exact: true })).toHaveCount(0);
   await item.press('Enter'); await expect(page.getByRole('tab', { name: 'Effects', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -14,6 +14,7 @@ for (const width of [1440, 390]) test(`edits timeline effects in an overlay alig
   const dialog = page.getByRole('dialog', { name: 'Color & LUTs settings', exact: true }); await expect(dialog).toBeVisible();
   const island = (await page.locator('#media-inspector').boundingBox())!, bounds = (await dialog.boundingBox())!;
   expect(bounds.x).toBeCloseTo(island.x, 0); expect(bounds.width).toBeCloseTo(island.width, 0);
+  expect(bounds.height).toBeCloseTo(Math.min(island.height, 900 - bounds.y - 12), 0);
   expect(bounds.y).toBeGreaterThanOrEqual(12); expect(bounds.y + bounds.height).toBeLessThanOrEqual(900);
   await page.getByLabel('Color brightness').fill('0.2'); await expect(page.locator('video')).toHaveCSS('filter', /brightness/);
   await page.getByRole('button', { name: 'Reset Color & LUTs', exact: true }).click(); await expect(page.getByLabel('Color brightness')).toHaveValue('0');
@@ -48,7 +49,7 @@ test('drops an effect onto one clip and opens only that clip’s settings', asyn
 });
 test('opens source and neutral fade settings without requiring content first', async ({ page }) => {
   await openEffect(page, 'Captions'); await expect(page.getByRole('dialog')).toContainText('Entire source');
-  await page.getByRole('button', { name: 'Add caption', exact: true }).click(); await closeEffect(page);
+   await closeEffect(page);
   await page.getByRole('button', { name: 'Caption 1', exact: true }).click(); await expect(page.getByRole('dialog', { name: 'Captions settings', exact: true })).toBeVisible();
   await openEffect(page, 'Audio fade in'); await page.getByRole('button', { name: 'Reset Audio fade in', exact: true }).click(); await closeEffect(page);
   await page.getByRole('button', { name: 'Audio fade in clip 1', exact: true }).click(); await expect(page.getByLabel('Audio fade in duration')).toHaveValue('0');

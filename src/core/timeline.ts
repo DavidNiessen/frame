@@ -1,3 +1,4 @@
+import { effectiveSpeed } from './effect-instances';
 import type { EditSettings, TimeRange } from './types';
 
 export function keptRanges(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'> & Partial<Pick<EditSettings, 'clips'>>): TimeRange[] {
@@ -13,9 +14,9 @@ export function keptRanges(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'> & 
   if (cursor < edit.end) ranges.push({ start: cursor, end: edit.end });
   return ranges;
 }
-export function editedDuration(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'> & Partial<Pick<EditSettings, 'clips'>> & Partial<Pick<EditSettings, 'speed'>>): number {
-  if (edit.clips) return edit.clips.reduce((total, clip) => total + (clip.end - clip.start) / (clip.effects.speed ?? edit.speed ?? 1), 0);
-  return keptRanges(edit).reduce((total, range) => total + range.end - range.start, 0) / (edit.speed ?? 1);
+export function editedDuration(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'> & Partial<Pick<EditSettings, 'clips'>> & Partial<Pick<EditSettings, 'speed' | 'effectInstances'>>): number {
+  if (edit.clips) return edit.clips.reduce((total, clip) => total + (clip.end - clip.start) / effectiveSpeed({ ...edit, ...clip.effects }), 0);
+  return keptRanges(edit).reduce((total, range) => total + range.end - range.start, 0) / effectiveSpeed(edit);
 }
 export function timelineSections(edit: EditSettings): TimeRange[] {
   if (edit.clips) return edit.clips.map(({ start, end }) => ({ start, end }));

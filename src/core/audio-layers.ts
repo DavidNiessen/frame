@@ -1,3 +1,4 @@
+import { allAudioLayers, extraInstances } from './effect-instances';
 import { duckMusicGraph } from './audio-ducking';
 import type { SourceIdentity } from './project';
 import type { EditSettings, MediaAsset } from './types';
@@ -31,9 +32,9 @@ export function parseAudioLayers(value: unknown): AudioLayer[] {
   });
 }
 export function resolveAudioLayers(edit: EditSettings, sources: { asset: MediaAsset; path: string }[]): AudioLayerInput[] {
-  return parseAudioLayers(edit.audioLayers).map(layer => { const asset = audioLayerSource(layer, sources.map(item => item.asset)), source = asset && sources.find(item => item.asset.id === asset.id); if (!source) throw new Error(`Import “${layer.source.name}” to restore its audio track. If several sources share this name, remove the track and select its source again.`); return { layer, path: source.path }; });
+  return parseAudioLayers(allAudioLayers(edit)).map(layer => { const asset = audioLayerSource(layer, sources.map(item => item.asset)), source = asset && sources.find(item => item.asset.id === asset.id); if (!source) throw new Error(`Import “${layer.source.name}” to restore its audio track. If several sources share this name, remove the track and select its source again.`); return { layer, path: source.path }; });
 }
-export const hasEditedAudio = (asset: MediaAsset, edit: EditSettings) => asset.hasAudio || !!edit.audioLayers?.length;
+export const hasEditedAudio = (asset: MediaAsset, edit: EditSettings) => asset.hasAudio || !!allAudioLayers(edit).length;
 export function audioMixGraph(edit: EditSettings, inputs: AudioLayerInput[], firstInput: number, base: string | null, prefix = 'mix') {
   const graph: string[] = [], labels: string[] = [], music: string[] = [], dialogue: string[] = [], duration = editedDuration(edit);
   if (base) { graph.push(`${base}aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[${prefix}base]`); labels.push(`[${prefix}base]`); dialogue.push(`[${prefix}base]`); }
@@ -55,6 +56,10 @@ export function audioMixGraph(edit: EditSettings, inputs: AudioLayerInput[], fir
   if (edit.audioMixProtectPeaks !== false) filters.push('alimiter=limit=0.95:level=false:latency=true');
   if (edit.audioFadeIn) filters.push(`afade=t=in:d=${edit.audioFadeIn}`);
   if (edit.audioFadeOut) filters.push(`afade=t=out:st=${duration - edit.audioFadeOut}:d=${edit.audioFadeOut}`);
+  for (const instance of extraInstances(edit)) {
+    if (instance.effect === 'audioFadeIn' && instance.settings.audioFadeIn) filters.push(`afade=t=in:d=${instance.settings.audioFadeIn}`);
+    if (instance.effect === 'audioFadeOut' && instance.settings.audioFadeOut) filters.push(`afade=t=out:st=${duration - instance.settings.audioFadeOut}:d=${instance.settings.audioFadeOut}`);
+  }
   graph.push(`${labels.join('')}${filters.join(',')}[${prefix}out]`); return { graph, output: `[${prefix}out]` };
 }
 /** Sample actual source peaks across the track window, including repeats and independent fades. */

@@ -1,3 +1,4 @@
+import { allAudioLayers } from './effect-instances';
 import { mediaTagArgs } from './media-tags';
 import { chapterFormats } from './chapters';
 import { hasEditedAudio, audioMixGraph, type AudioLayerInput } from './audio-layers';
@@ -6,8 +7,8 @@ import { audioOutputArgs, outputAudioCodec } from './audio-output';
 import { clipFilterGraph } from './clip-filters';
 import { resolveSizeTarget } from './size';
 import { frameDimensions } from './geometry';
-import { resourcePaths, type RecipeResources } from './resources';
-import { outputCues, subtitleCodec, type SubtitleCue } from './subtitles';
+import { embeddedCues, resourcePaths, type RecipeResources } from './resources';
+import { subtitleCodec, type SubtitleCue } from './subtitles';
 import { defaultTransition, validateTransition, type TransitionSettings } from './transitions';
 import { getFormat } from './formats';
 import { validateEdit } from './export-plan';
@@ -26,12 +27,13 @@ export function compositionAsset(clips: MediaClip[], transition: TransitionSetti
     duration: clips.reduce((n, c) => n + editedDuration(c.edit), 0) - (blend.type === 'fade' ? blend.duration * (clips.length - 1) : 0), width: width ? Math.floor(width / 2) * 2 : undefined, height: height ? Math.floor(height / 2) * 2 : undefined };
 }
 export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, inputs: string[], destination: string, transition: TransitionSettings = defaultTransition, resources: RecipeResources[] = clips.map((_, i) => resourcePaths(`clip${i}`)), captionPath = 'merge-captions.srt', mixes: AudioLayerInput[][] = [], chapterPath = `${captionPath}-chapters.ffmetadata`): string[] {
+  clips = clips.map(clip => ({ ...clip, edit: { ...clip.edit, audioLayers: allAudioLayers(clip.edit), effectInstances: clip.edit.effectInstances?.filter(instance => instance.effect !== 'mix') } }));
   if (clips.length < 2 || inputs.length !== clips.length) throw new Error('Choose at least two clips to merge.');
   const asset = compositionAsset(clips, transition); const settings = parseOutputSettings(output); const edit = resolveSizeTarget(asset, { ...defaultSettings(asset), ...settings });
   validateEdit(asset, edit); const format = getFormat(edit.format); const video = format.kind === 'video'; const audio = asset.hasAudio && edit.format !== 'gif';
   const args: string[] = ['-y', '-filter_complex_threads', '2']; const graph: string[] = [];
   clips.forEach(({ asset: source, edit: originalRecipe }, index) => {
-    const recipe = originalRecipe.audioLayers?.length ? { ...originalRecipe, audioFadeIn: 0, audioFadeOut: 0 } : originalRecipe;
+    const recipe = originalRecipe.audioLayers?.length ? { ...originalRecipe, audioFadeIn: 0, audioFadeOut: 0, effectInstances: originalRecipe.effectInstances?.filter(instance => !instance.effect.startsWith('audioFade')) } : originalRecipe;
     args.push('-ss', String(recipe.start), '-t', String(recipe.end - recipe.start), '-threads', '2', '-i', inputs[index]);
     const ranges = keptRanges(recipe); const v = video; const a = audio && source.hasAudio;
     if (recipe.clips) {
@@ -104,7 +106,7 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
 export function mergedCues(clips: MediaClip[], transition: TransitionSettings = defaultTransition): SubtitleCue[] {
   let offset = 0; const cues: SubtitleCue[] = [];
   for (const clip of clips) {
-    if (clip.edit.subtitles.mode === 'embed') cues.push(...outputCues(clip.edit).map(c => ({ ...c, start: c.start + offset, end: c.end + offset })));
+    cues.push(...embeddedCues(clip.edit).map(c => ({ ...c, start: c.start + offset, end: c.end + offset })));
     offset += editedDuration(clip.edit) - (transition.type === 'fade' ? transition.duration : 0);
   }
   return cues.sort((a, b) => a.start - b.start);

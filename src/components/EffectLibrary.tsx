@@ -5,7 +5,7 @@ import { effectAction, effectDragType } from '../core/effect-actions';
 import { EffectRecipes } from './EffectRecipes';
 import { clearClipEffects } from '../core/effect-actions';
 import type { Editor } from '../hooks/useEditor';
-export function EffectLibrary({ editor }: { editor: Editor }) {
+export function EffectLibrary({ editor, current }: { editor: Editor; current: number }) {
   const [query, setQuery] = useState(''), [group, setGroup] = useState('All'), [selected, setSelected] = useState<EffectId | null>(null), [message, setMessage] = useState('');
   const asset = editor.asset!, edit = editor.edit!;
   const effects = useMemo(() => availableEffects(asset), [asset]);
@@ -15,7 +15,7 @@ export function EffectLibrary({ editor }: { editor: Editor }) {
   function apply(id: EffectId) {
     const effect = effects.find(item => item.id === id); if (!effect) return;
     setSelected(id);
-    editor.update(effectAction(edit, asset, effect, editor.selectedClip, 'add'));
+    try { editor.update(effectAction(edit, asset, effect, editor.selectedClip, 'add', current)); } catch (error) { setMessage((error as Error).message); return; }
     setMessage(`${effect.name} added. Click its timeline bar to adjust settings.`);
   }
   return <section className="effect-browser" aria-label="Effect browser">
@@ -33,7 +33,6 @@ export function EffectLibrary({ editor }: { editor: Editor }) {
       </details>;
     })}{!filtered.length && <p className="effect-stack-empty">No matching effects. Try another search or category.</p>}</div>
     <div className="effect-browser-selection"><strong>{chosen?.name ?? 'Choose an effect'}</strong><p>{chosen?.description ?? 'The catalogue stays here when you apply an effect.'}</p>{chosen && <span>{chosen.scope === 'source' ? 'Applies to the entire source' : editor.selectedClip ? 'Applies to the selected clip' : 'Applies to all clips'}</span>}
-      <div className="inline-actions">{chosen && <button className="button subtle small" onClick={() => apply(chosen.id)}>Apply effect</button>}</div>
       {message && <p className="effect-apply-message" role="status">{message}</p>}
     </div>
     {active.some(effect => effect.scope === 'clip') && <button className="effect-clear button subtle small" onClick={() => editor.update(clearClipEffects(edit, asset, editor.selectedClip))}>Remove all clip effects</button>}

@@ -11,7 +11,7 @@ async function captions(page: Page) {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openEffect(page, 'Captions');
-  await page.getByRole('button', { name: 'Add caption', exact: true }).click();
+
   await page.getByRole('button', { name: 'Move caption 1', exact: true }).waitFor();
   await page.evaluate(() => document.fonts.ready);
 }
@@ -29,7 +29,7 @@ test('moves captions with one undo per drag, keyboard nudges and saved project p
   await drag(page, 60, -60); await page.mouse.up();
   const moved = (await caption.boundingBox())!;
   expect(moved.x - initial.x).toBeCloseTo(60, 0); expect(moved.y - initial.y).toBeCloseTo(-60, 0);
-  await expect(page.getByRole('button', { name: 'Reset caption 1 position' })).toBeVisible();
+  await openEffect(page, 'Captions'); await expect(page.getByRole('button', { name: 'Reset caption 1 position' })).toBeVisible(); await closeEffect(page);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(caption).not.toHaveClass(/positioned/);
   await page.getByRole('button', { name: 'Redo edit', exact: true }).click();
@@ -45,9 +45,7 @@ test('moves captions with one undo per drag, keyboard nudges and saved project p
   const position = project.sources[0].edit.subtitles.cues[0].position;
   expect(position.x).toBeGreaterThan(50); expect(position.y).toBeLessThan(92);
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
-  await page.reload(); await page.getByRole('button', { name: 'Try a sample' }).click();
-  await page.getByRole('button', { name: 'Recover workspace' }).click();
-  await page.getByRole('button', { name: 'Restore edits' }).click();
+  await page.reload(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await expect(caption).toHaveClass(/positioned/);
   expect(await caption.evaluate(node => Number.parseFloat((node as HTMLElement).style.top))).toBe(position.y);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
@@ -88,7 +86,7 @@ test('burns the moved caption at the selected position with browser FFmpeg', asy
   await page.goto('/'); await page.getByLabel('Choose media files').setInputFiles(input);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openEffect(page, 'Captions');
-  await page.getByRole('button', { name: 'Add caption', exact: true }).click();
+
   await page.getByLabel('Subtitle 1 text').fill('PLACED');
   await page.evaluate(() => document.fonts.ready);
   const frame = (await page.locator('.caption-preview').boundingBox())!;

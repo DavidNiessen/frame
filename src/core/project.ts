@@ -1,3 +1,6 @@
+import { parseEffectInstances } from './effect-instance-validation';
+import { allAudioLayers } from './effect-instances';
+import { parseSilence, defaultSilence } from './silence';
 import { parseAddedEffects } from './effect-ids';
 import { parseCoverArtwork } from './cover-art';
 import { parseTagOverrides } from './media-tags';
@@ -38,6 +41,8 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
     addedEffects: parseAddedEffects(e.addedEffects),
+    effectInstances: parseEffectInstances(e.effectInstances, asset, recipe => validateEdit(asset, recipe)),
+    silenceOptions: parseSilence(e.silenceOptions ?? defaultSilence),
     audioDucking: e.audioDucking === undefined ? false : boolean(e.audioDucking), audioLayers: parseAudioLayers(e.audioLayers), audioMixProtectPeaks: e.audioMixProtectPeaks === undefined ? true : boolean(e.audioMixProtectPeaks),
     markers: parseMarkers(e.markers, asset.duration),
     color: parseColor(e.color),
@@ -72,6 +77,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
       const c = record(value), effects = record(c.effects);
       if (Object.keys(effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) return fail();
       const clip: TimelineClip = { id: text(c.id, 120), start: number(c.start), end: number(c.end), effects: { ...effects } };
+      if (clip.effects.effectInstances !== undefined) clip.effects.effectInstances = parseEffectInstances(clip.effects.effectInstances, asset, recipe => validateEdit(asset, recipe), true);
       if (clip.effects.addedEffects !== undefined) clip.effects.addedEffects = parseAddedEffects(clip.effects.addedEffects);
       if (clip.effects.color) clip.effects.color = parseColor(clip.effects.color);
       if (clip.effects.geometry) clip.effects.geometry = parseGeometry(clip.effects.geometry);
@@ -100,15 +106,16 @@ export function parseProject(value: unknown): ProjectDocument {
     const asset: MediaAsset = { ...source, id: '', previewUrl: '' };
     return { source, edit: parseEdit(entry.edit, asset) };
   });
-  if (sources.some(entry => entry.edit.audioLayers?.some(layer => layer.sourceIndex !== undefined ? !sources[layer.sourceIndex] || !sameLayerSource(layer.source, sources[layer.sourceIndex].source) : !sources.some(item => sameLayerSource(layer.source, item.source))))) throw new Error('This project is missing a music or voiceover source.');
+  if (sources.some(entry => allAudioLayers(entry.edit).some(layer => layer.sourceIndex !== undefined ? !sources[layer.sourceIndex] || !sameLayerSource(layer.source, sources[layer.sourceIndex].source) : !sources.some(item => sameLayerSource(layer.source, item.source))))) throw new Error('This project is missing a music or voiceover source.');
   return { version: 1, name: text(doc.name, 120), selectedSource, sources };
 }
 export function createProject(name: string, assets: MediaAsset[], settingsFor: (id: string) => EditSettings, selected: string): ProjectDocument {
   return parseProject({ version: 1, name, selectedSource: Math.max(0, assets.findIndex(a => a.id === selected)),
-    sources: assets.map(asset => { const edit = settingsFor(asset.id); return { source: sourceIdentity(asset), edit: { ...edit, audioLayers: edit.audioLayers?.map(layer => {
+    sources: assets.map(asset => { const edit = settingsFor(asset.id); return { source: sourceIdentity(asset), edit: { ...edit, effectInstances: edit.effectInstances?.map(instance => instance.effect === 'mix' ? { ...instance, settings: { ...instance.settings, audioLayers: portableLayers(instance.settings.audioLayers) } } : instance), audioLayers: portableLayers(edit.audioLayers) } };
+      function portableLayers(layers: EditSettings['audioLayers']) { return layers?.map(layer => {
       const source = audioLayerSource(layer, assets); if (!source) throw new Error(`Restore the source for “${layer.source.name}” before saving this project.`);
       const { sourceId: _sourceId, ...portable } = layer; return { ...portable, sourceIndex: assets.findIndex(item => item.id === source.id) };
-    }) } }; }) });
+    }); } }) });
 }
 export function matchSources(project: ProjectDocument, assets: MediaAsset[]): (string | null)[] {
   const used = new Set<string>();

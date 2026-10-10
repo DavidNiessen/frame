@@ -4,7 +4,8 @@ import { time } from '../core/format';
 import type { TimeRange } from '../core/types';
 import type { Editor } from '../hooks/useEditor';
 export function SilenceControls({ editor, seek, expanded = false }: { expanded?: boolean; editor: Editor; seek: (time: number) => void }) {
-  const [options, setOptions] = useState(defaultSilence), [ranges, setRanges] = useState<TimeRange[] | null>(null), [selected, setSelected] = useState<number[]>([]), [loading, setLoading] = useState(false), [error, setError] = useState('');
+  const options = editor.edit?.silenceOptions ?? defaultSilence, setOptions = (silenceOptions: typeof defaultSilence) => editor.update({ silenceOptions });
+  const [ranges, setRanges] = useState<TimeRange[] | null>(null), [selected, setSelected] = useState<number[]>([]), [loading, setLoading] = useState(false), [error, setError] = useState('');
   useEffect(() => { setRanges(null); setSelected([]); setError(''); }, [editor.asset?.id, editor.edit, options]);
   async function detect() {
     if (!editor.asset || !editor.edit || editor.busy) return; setLoading(true); setError('');

@@ -1,3 +1,4 @@
+import { allAudioLayers, extraInstances } from '../core/effect-instances';
 import { useEffect, useRef, useState } from 'react';
 import { audioLayerSource, type AudioLayer } from '../core/audio-layers';
 import type { EditSettings, MediaAsset } from '../core/types';
@@ -5,7 +6,7 @@ import { editedDuration } from '../core/timeline';
 import { fadeGain, outputTimeAtSource } from '../core/fades';
 export function AudioMixPreview({ assets, edit, current, playing }: { assets: MediaAsset[]; edit: EditSettings; current: number; playing: boolean }) {
   const position = outputTimeAtSource(edit, current);
-  return <div className="audio-mix-preview" aria-label="Audio track playback">{(edit.audioLayers ?? []).map(layer => { const source = audioLayerSource(layer, assets); return source && <TrackPreview key={layer.id} layer={{ ...layer, end: Math.min(layer.end, editedDuration(edit)) }} source={source} position={position} playing={playing} outputFade={fadeGain(position, editedDuration(edit), edit.audioFadeIn, edit.audioFadeOut)} />; })}</div>;
+  return <div className="audio-mix-preview" aria-label="Audio track playback">{allAudioLayers(edit).map(layer => { const source = audioLayerSource(layer, assets); return source && <TrackPreview key={layer.id} layer={{ ...layer, end: Math.min(layer.end, editedDuration(edit)) }} source={source} position={position} playing={playing} outputFade={extraInstances(edit).filter(instance => instance.effect.startsWith('audioFade')).reduce((gain, instance) => gain * fadeGain(position, editedDuration(edit), instance.settings.audioFadeIn ?? 0, instance.settings.audioFadeOut ?? 0), fadeGain(position, editedDuration(edit), edit.audioFadeIn, edit.audioFadeOut))} />; })}</div>;
 }
 function TrackPreview({ layer, source, position, playing, outputFade }: { layer: AudioLayer; source: MediaAsset; position: number; playing: boolean; outputFade: number }) {
   const ref = useRef<HTMLAudioElement>(null), [error, setError] = useState(false);

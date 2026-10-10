@@ -42,7 +42,7 @@ test('handles shared effects, isolated resets and clearing clip effects without 
   await sample(page); await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click(); await closeEffect(page); await page.getByRole('button', { name: 'Remove Volume from clip 2', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Volume clip 1', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toHaveCount(0);
-  await closeEffect(page); await page.getByLabel('Effect target').selectOption('all'); await openEffect(page, 'Captions'); await page.getByRole('button', { name: 'Add caption', exact: true }).click();
+  await closeEffect(page); await page.getByLabel('Effect target').selectOption('all'); await openEffect(page, 'Captions');
   await closeEffect(page); await page.getByRole('button', { name: 'Remove all clip effects', exact: true }).click();
   await expect(page.locator('.effect-lane')).toHaveCount(1); await expect(page.getByRole('button', { name: 'Captions effect', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume clip 1', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toHaveCount(0);
@@ -71,7 +71,7 @@ test('removes sequence and clip fades and exposes usable effect controls on a ph
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test('deletes focused captions and source watermarks with undo support', async ({ page }) => {
-  await sample(page); await openEffect(page, 'Captions'); await page.getByRole('button', { name: 'Add caption', exact: true }).click();
+  await sample(page); await openEffect(page, 'Captions');
   await page.getByRole('button', { name: 'Caption 1', exact: true }).press('Delete'); await expect(page.locator('.caption-lane')).toHaveCount(0);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Caption 1', exact: true })).toBeVisible();
   await openEffect(page, 'Watermark'); await page.getByLabel('Overlay text', { exact: true }).fill('Frame');

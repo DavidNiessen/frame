@@ -53,7 +53,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await page.getByRole('button', { name: 'Find silent sections' }).click();
     await expect(page.getByLabel('Remove silent section 1')).toBeVisible();
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
-    await page.getByRole('button', { name: 'Add caption', exact: true }).click();
+
     await page.getByLabel('Subtitle 1 text').fill('Portable caption');
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.fonts.check('12px "Frame Captions"'))).toBe(true);

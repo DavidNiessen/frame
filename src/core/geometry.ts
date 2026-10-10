@@ -1,3 +1,4 @@
+import { extraInstances } from './effect-instances';
 import type { EditSettings, MediaAsset } from './types';
 export interface Geometry { rotation: 0 | 90 | 180 | 270; flipHorizontal: boolean; flipVertical: boolean; resize: { width: number; height: number; fit: 'contain' | 'cover' | 'stretch' } | null }
 export const defaultGeometry = (): Geometry => ({ rotation: 0, flipHorizontal: false, flipVertical: false, resize: null });
@@ -12,6 +13,12 @@ export function frameDimensions(asset: MediaAsset, edit: EditSettings): { width:
   let width = edit.crop?.width ?? asset.width ?? 640, height = edit.crop?.height ?? asset.height ?? 360;
   if (edit.geometry.rotation % 180) [width, height] = [height, width];
   if (edit.geometry.resize) ({ width, height } = edit.geometry.resize);
+  for (const instance of extraInstances(edit)) {
+    if (instance.effect === 'crop' && instance.settings.crop) ({ width, height } = instance.settings.crop);
+    const geometry = instance.effect === 'transform' ? instance.settings.geometry : undefined;
+    if (geometry?.rotation && geometry.rotation % 180) [width, height] = [height, width];
+    if (geometry?.resize) ({ width, height } = geometry.resize);
+  }
   return { width, height };
 }
 export function geometryFilters(edit: EditSettings): string[] {

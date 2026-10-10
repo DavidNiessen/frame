@@ -1,3 +1,6 @@
+import { parseEffectInstances } from './effect-instance-validation';
+import { allAudioLayers, effectiveSpeed } from './effect-instances';
+import { parseSilence, defaultSilence } from './silence';
 import { parseAddedEffects } from './effect-ids';
 import { parseCoverArtwork } from './cover-art';
 import { mediaTagArgs, parseTagOverrides } from './media-tags';
@@ -12,10 +15,10 @@ import { clipFilterGraph } from './clip-filters';
 import { parseAcceleration } from './hardware';
 import { validateSizeTarget, resolveSizeTarget } from './size';
 import { parseColor } from './color';
-import { parseGeometry } from './geometry';
+import { frameDimensions, parseGeometry } from './geometry';
 import { parseOverlays } from './overlays';
-import { resourcePaths, type RecipeResources } from './resources';
-import { parseSubtitles, outputCues, subtitleCodec } from './subtitles';
+import { resourcePaths, embeddedCues, embeddedCaptionPath, type RecipeResources } from './resources';
+import { parseSubtitles, subtitleCodec } from './subtitles';
 import { validateAudioEffects } from './audio-effects';
 import { audioFilters, videoFilters as recipeVideoFilters } from './filters';
 import { getFormat } from './formats';
@@ -24,13 +27,15 @@ import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   parseAddedEffects(edit.addedEffects);
+  parseEffectInstances(edit.effectInstances, asset, recipe => validateEdit(asset, recipe));
+  parseSilence(edit.silenceOptions ?? defaultSilence);
   if (edit.audioDucking !== undefined && typeof edit.audioDucking !== 'boolean') throw new Error('Invalid music ducking setting.');
-  parseAudioLayers(edit.audioLayers); if (edit.audioMixProtectPeaks !== undefined && typeof edit.audioMixProtectPeaks !== 'boolean') throw new Error('Invalid audio mix protection setting.');
+  parseAudioLayers(allAudioLayers(edit)); if (edit.audioMixProtectPeaks !== undefined && typeof edit.audioMixProtectPeaks !== 'boolean') throw new Error('Invalid audio mix protection setting.');
   if (edit.includeChapters !== undefined && typeof edit.includeChapters !== 'boolean') throw new Error('Invalid chapter setting.');
   parseTagOverrides(edit.outputTags); parseCoverArtwork(edit.customArtwork);
   parseMarkers(edit.markers, asset.duration);
   validateGifOutput(edit); validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
-  if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
+  if (getFormat(edit.format).kind === 'video' && embeddedCues(edit).length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
   if (edit.clips) {
     if (!Array.isArray(edit.clips) || !edit.clips.length || edit.clips.length > 1000 || new Set(edit.clips.map(clip => clip.id)).size !== edit.clips.length) throw new Error('Invalid ordered clips.');
     for (const clip of edit.clips) {
@@ -53,24 +58,35 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   if (!['high', 'balanced', 'small'].includes(edit.quality)) throw new Error('Choose a valid quality preset.');
   if (format.kind === 'video' && asset.kind !== 'video') throw new Error('Audio cannot be exported as video.');
   if (format.kind === 'audio' && !hasEditedAudio(asset, edit)) throw new Error('This file has no audio to extract.');
+  let dimensions = frameDimensions(asset, { ...edit, effectInstances: undefined });
+  for (const instance of edit.effectInstances ?? []) {
+    const crop = instance.effect === 'crop' ? instance.settings.crop : null;
+    if (crop && (crop.x + crop.width > dimensions.width || crop.y + crop.height > dimensions.height)) throw new Error('Each crop must fit inside the picture produced by the preceding effects.');
+    if (crop) dimensions = { width: crop.width, height: crop.height };
+    const geometry = instance.effect === 'transform' ? instance.settings.geometry : undefined;
+    if (geometry?.rotation && geometry.rotation % 180) dimensions = { width: dimensions.height, height: dimensions.width };
+    if (geometry?.resize) dimensions = geometry.resize;
+  }
+  const speed = effectiveSpeed(edit);
+  if (speed < .0625 || speed > 16) throw new Error('Combined speed must be between 0.0625× and 16×.');
   const c = edit.crop;
   if (c && (!asset.width || !asset.height || ![c.x, c.y, c.width, c.height].every(Number.isInteger) || c.x < 0 || c.y < 0 || c.width < 2 || c.height < 2 || c.x + c.width > asset.width || c.y + c.height > asset.height)) throw new Error('The crop must fit inside the source frame and be at least 2 × 2 pixels.');
 }
 
 /** Pure argument planning shared by native FFmpeg and WebAssembly. Never uses shell strings. */
 export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: string, output: string, resources: RecipeResources = resourcePaths(), layers: AudioLayerInput[] = []): string[] {
-  validateEdit(asset, edit); edit = resolveSizeTarget(asset, edit);
+  validateEdit(asset, edit); edit = resolveSizeTarget(asset, { ...edit, audioLayers: allAudioLayers(edit), effectInstances: edit.effectInstances?.filter(instance => instance.effect !== 'mix') });
   const format = getFormat(edit.format);
   const mixing = !!edit.audioLayers?.length && edit.format !== 'gif';
   if (mixing && (layers.length !== edit.audioLayers!.length || layers.some((item, i) => item.layer.id !== edit.audioLayers![i].id))) throw new Error('Restore all audio track sources before exporting.');
-  const baseEdit = mixing ? { ...edit, audioFadeIn: 0, audioFadeOut: 0 } : edit;
+  const baseEdit = mixing ? { ...edit, audioFadeIn: 0, audioFadeOut: 0, effectInstances: edit.effectInstances?.filter(instance => !instance.effect.startsWith('audioFade')) } : edit;
   const artwork = format.kind === 'audio' && edit.includeArtwork && format.artwork && (!!edit.customArtwork || asset.artworkIndex !== undefined);
   // Limit decoding to the source selection, including palette generation for GIF.
   const args = ['-y', '-ss', String(edit.start), '-t', String(edit.end - edit.start), '-i', input];
   // An unseeked second input keeps the single artwork packet when audio is trimmed.
   if (artwork) args.push('-i', edit.customArtwork ? resources.artwork : input);
-  const captions = format.kind === 'video' && edit.subtitles.mode === 'embed' && outputCues(edit).length > 0;
-  if (captions) args.push('-i', resources.captions);
+  const captions = format.kind === 'video' && embeddedCues(edit).length > 0;
+  if (captions) args.push('-i', embeddedCaptionPath(edit, resources));
   const chapters = edit.includeChapters && chapterFormats.includes(edit.format) && timelineChapters(edit).length > 0;
   const chapterInput = 1 + Number(artwork) + Number(captions);
   if (chapters) args.push('-f', 'ffmetadata', '-i', resources.chapters);

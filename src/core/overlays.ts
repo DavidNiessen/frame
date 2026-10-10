@@ -20,8 +20,8 @@ export function overlayFilters(asset: MediaAsset, edit: EditSettings, paths: Rec
   return filters;
 }
 
-export function textAss(edit: EditSettings, asset?: MediaAsset): string {
-  const o = edit.overlays; const { width, height } = asset ? frameDimensions(asset, edit) : { width: 640, height: 360 };
+export function textAss(edit: EditSettings, asset?: MediaAsset, dimensions?: { width: number; height: number }): string {
+  const o = edit.overlays; const { width, height } = dimensions ?? (asset ? frameDimensions(asset, edit) : { width: 640, height: 360 });
   const color = `&H${Math.round((1 - o.opacity) * 255).toString(16).padStart(2, '0')}${o.color.slice(5, 7)}${o.color.slice(3, 5)}${o.color.slice(1, 3)}`;
   const alignment = (o.y < 50 ? 6 : 0) + (o.x < 50 ? 1 : 3);
   const text = o.text.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}').replace(/\r/g, '').replace(/\n/g, '\\N');

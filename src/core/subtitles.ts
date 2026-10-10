@@ -1,3 +1,4 @@
+import { effectiveSpeed } from './effect-instances';
 import { clipPositions } from './clips';
 import { keptRanges } from './timeline';
 import type { EditSettings } from './types';
@@ -39,7 +40,7 @@ export function importSubtitles(text: string): Subtitles {
 }
 export function outputCues(edit: EditSettings): SubtitleCue[] {
   let elapsed = 0; const result: SubtitleCue[] = [];
-  const positions = edit.clips ? clipPositions(edit).map(({ clip, speed }) => ({ ...clip, speed })) : keptRanges(edit).map(range => ({ ...range, speed: edit.speed }));
+  const positions = edit.clips ? clipPositions(edit).map(({ clip, speed }) => ({ ...clip, speed })) : keptRanges(edit).map(range => ({ ...range, speed: effectiveSpeed(edit) }));
   for (const range of positions) {
     for (const cue of edit.subtitles.cues) {
       const start = Math.max(cue.start, range.start), end = Math.min(cue.end, range.end);

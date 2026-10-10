@@ -1,3 +1,4 @@
+import { effectiveSpeed } from '../core/effect-instances';
 import { availableEffects } from '../core/effect-library';
 import { effectAction, effectDragType } from '../core/effect-actions';
 import type { DragEvent } from 'react';
@@ -28,10 +29,10 @@ export function TimelineClip({ clip, index, edit, asset, position, duration, spe
     if (disabled) return;
     const effect = availableEffects(asset).find(item => item.id === event.dataTransfer.getData(effectDragType));
     if (!effect) return;
-    update(effectAction(edit, asset, effect, clip.id, 'add'));
+    update(effectAction(edit, asset, effect, clip.id, 'add', clip.start));
     select(clip.id);
   }
-  return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(clip.effects.speed ?? edit.speed)} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
+  return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(effectiveSpeed({ ...edit, ...clip.effects }))} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
     text={`${index + 1} · ${asset.name}${effectCount ? ' ✦' : ''}`} label={`Select section ${index + 1}, ${time(clip.start)} to ${time(clip.end)}`} startLabel={index === 0 ? 'Trim start' : `Section ${index + 1} start`} endLabel={index === editClips(edit).length - 1 ? 'Trim end' : `Section ${index + 1} end`}
     className={`timeline-clip ${selected ? 'active' : ''} ${asset.kind} ${waveform ? 'with-waveform' : ''}`} disabled={disabled}
     renderContent={waveform ? range => <div className="clip-waveform"><Waveform points={waveform} duration={asset.duration} range={range} /></div> : undefined}

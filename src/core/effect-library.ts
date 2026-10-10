@@ -1,3 +1,4 @@
+import { extraInstances } from './effect-instances';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 import { clipRecipe, editClips } from './clips';
 import type { EffectId } from './effect-ids';
@@ -19,7 +20,7 @@ export const effectLibrary: EffectDefinition[] = [
   { id: 'transform', name: 'Rotate, flip & resize', description: 'Reframe your picture', group: 'Video', scope: 'clip', keys: ['geometry'] },
   { id: 'captions', name: 'Captions', description: 'Import or write timed captions', group: 'Video', scope: 'source', keys: ['subtitles'] },
   { id: 'watermark', name: 'Watermark', description: 'Place text or artwork', group: 'Video', scope: 'source', keys: ['overlays'] },
-  { id: 'silence', name: 'Remove silence', description: 'Find quiet gaps in the source', group: 'Audio', scope: 'source', keys: [] },
+  { id: 'silence', name: 'Remove silence', description: 'Find quiet gaps in the source', group: 'Audio', scope: 'source', keys: ['silenceOptions'] },
 ];
 export function availableEffects(asset: MediaAsset) { return effectLibrary.filter(effect => effect.group !== 'Video' || asset.kind === 'video').filter(effect => effect.group !== 'Audio' || asset.hasAudio || effect.id === 'mix'); }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
@@ -36,7 +37,7 @@ export function effectActive(effect: EffectDefinition, edit: EditSettings, asset
   if (effect.id === 'color') return !!(edit.color.brightness || edit.color.contrast !== 1 || edit.color.saturation !== 1 || edit.color.temperature || edit.color.lut);
   if (effect.id === 'transform') return !!(edit.geometry.rotation || edit.geometry.flipHorizontal || edit.geometry.flipVertical || edit.geometry.resize);
   const defaults = defaultSettings(asset);
-  return effect.keys.some(key => JSON.stringify(edit[key]) !== JSON.stringify(defaults[key]));
+  return effect.id !== 'silence' && effect.keys.some(key => JSON.stringify(edit[key]) !== JSON.stringify(defaults[key]));
 }
 function equalSetting(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true;
@@ -49,7 +50,7 @@ export function sameEffectSettings(effect: EffectDefinition, left: EditSettings,
 }
 export function appliedEffects(asset: MediaAsset, edit: EditSettings, selectedClip: string | null) {
   const clips = editClips(edit), clip = clips.find(item => item.id === selectedClip);
-  const present = (effect: EffectDefinition, recipe: EditSettings) => recipe.addedEffects?.includes(effect.id) || effectActive(effect, recipe, asset);
+  const present = (effect: EffectDefinition, recipe: EditSettings) => recipe.addedEffects?.includes(effect.id) || extraInstances(recipe, effect.id).length > 0 || effectActive(effect, recipe, asset);
   return availableEffects(asset).filter(effect => effect.scope === 'source' ? present(effect, edit)
     : clip ? present(effect, clipRecipe(edit, clip))
     : present(effect, edit) || clips.some(item => present(effect, clipRecipe(edit, item))));

@@ -1,3 +1,4 @@
+import { allAudioLayers, updateAudioLayers } from '../core/effect-instances';
 import { Waveform } from './Waveform';
 import { layerWaveformPoints, audioLayerSource } from '../core/audio-layers';
 import type { WaveformPoint } from '../core/waveform';
@@ -11,10 +12,10 @@ import { editedDuration } from '../core/timeline';
 import { sourceTimeAtOutput } from '../core/fades';
 import { TimelineRange } from './TimelineRange';
 export function AudioLayerLanes({ axisDuration, edit, assets, waveforms, compact, disabled, update, seek, generateWaveform, generatingId }: { axisDuration: number; generatingId: string | null; generateWaveform: (asset: MediaAsset) => void; assets: MediaAsset[]; waveforms: Record<string, WaveformPoint[]>; edit: EditSettings; compact: boolean; disabled: boolean; update: (patch: Partial<EditSettings>) => void; seek: (source: number) => void }) {
-  const tracks = edit.audioLayers ?? [], duration = editedDuration(edit);
+  const tracks = allAudioLayers(edit), duration = editedDuration(edit);
   if (!tracks.length) return null;
-  function patch(id: string, values: Partial<AudioLayer>) { update({ audioLayers: tracks.map(layer => { if (layer.id !== id) return layer; const next = { ...layer, ...values }, length = next.end - next.start; return { ...next, fadeIn: Math.min(next.fadeIn, length), fadeOut: Math.min(next.fadeOut, length) }; }) }); }
-  return <details className="timeline-lane-group" open={!compact}><summary><AudioLines size={14} />Music & voiceover <span>{tracks.length}</span><ChevronDown size={14} /></summary>{tracks.map((layer, index) => <AudioLayerBar key={layer.id} layer={layer} index={index} duration={duration} axisDuration={axisDuration} source={audioLayerSource(layer, assets)} points={waveforms[audioLayerSource(layer, assets)?.id ?? '']} generatingId={generatingId} generateWaveform={generateWaveform} disabled={disabled} patch={patch} remove={() => update({ audioLayers: tracks.filter(track => track.id !== layer.id) })} seek={output => seek(sourceTimeAtOutput(edit, output))} />)}</details>;
+  function patch(id: string, values: Partial<AudioLayer>) { update(updateAudioLayers(edit, tracks.map(layer => { if (layer.id !== id) return layer; const next = { ...layer, ...values }, length = next.end - next.start; return { ...next, fadeIn: Math.min(next.fadeIn, length), fadeOut: Math.min(next.fadeOut, length) }; }))); }
+  return <details className="timeline-lane-group" open={!compact}><summary><AudioLines size={14} />Music & voiceover <span>{tracks.length}</span><ChevronDown size={14} /></summary>{tracks.map((layer, index) => <AudioLayerBar key={layer.id} layer={layer} index={index} duration={duration} axisDuration={axisDuration} source={audioLayerSource(layer, assets)} points={waveforms[audioLayerSource(layer, assets)?.id ?? '']} generatingId={generatingId} generateWaveform={generateWaveform} disabled={disabled} patch={patch} remove={() => update(updateAudioLayers(edit, tracks.filter(track => track.id !== layer.id)))} seek={output => seek(sourceTimeAtOutput(edit, output))} />)}</details>;
 }
 function AudioLayerBar({ axisDuration, layer, index, duration, points, disabled, patch, seek, source, generateWaveform, generatingId, remove }: { axisDuration: number; remove: () => void; source?: MediaAsset; generatingId: string | null; generateWaveform: (asset: MediaAsset) => void; points?: WaveformPoint[]; layer: AudioLayer; index: number; duration: number; disabled: boolean; patch: (id: string, values: Partial<AudioLayer>) => void; seek: (output: number) => void }) {
   const snap = useContext(TimelineSnapContext);

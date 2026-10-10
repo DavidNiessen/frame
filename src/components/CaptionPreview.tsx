@@ -1,3 +1,4 @@
+import { captionItems, changeCaption } from '../core/caption-items';
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { CaptionPosition, SubtitleCue } from '../core/subtitles';
 import type { EditSettings, MediaAsset } from '../core/types';
@@ -65,11 +66,11 @@ function MovableCaption({ cue, index, disabled, pause, change }: {
 export function CaptionPreview({ asset, edit, current, disabled, pause, update }: {
   asset: MediaAsset; edit: EditSettings; current: number; disabled: boolean; pause: () => void; update: (patch: Partial<EditSettings>) => void;
 }) {
-  const s = edit.subtitles, crop = edit.crop;
-  const active = s.cues.map((cue, index) => ({ cue, index })).filter(({ cue }) => current >= cue.start && current < cue.end);
+  const crop = edit.crop;
+  const active = captionItems(edit).map(item => ({ cue: item.cue, mode: item.mode, index: item.index })).filter(({ cue, mode }) => mode !== 'none' && current >= cue.start && current < cue.end);
   const area = crop && asset.width && asset.height ? { left: `${crop.x / asset.width * 100}%`, top: `${crop.y / asset.height * 100}%`, width: `${crop.width / asset.width * 100}%`, height: `${crop.height / asset.height * 100}%` } : undefined;
-  return <div className="caption-preview" style={area}><div className="caption-defaults">{active.map(({ cue, index }) =>
-    <MovableCaption key={index} cue={s.mode === 'embed' ? { ...cue, position: undefined } : cue} index={index} disabled={disabled || s.mode !== 'burn'} pause={pause}
-      change={position => update({ subtitles: { ...s, cues: s.cues.map((c, i) => i === index ? { ...c, position } : c) } })} />
+  return <div className="caption-preview" style={area}><div className="caption-defaults">{active.map(({ cue, mode, index }) =>
+    <MovableCaption key={index} cue={mode === 'embed' ? { ...cue, position: undefined } : cue} index={index} disabled={disabled || mode !== 'burn'} pause={pause}
+      change={position => update(changeCaption(edit, captionItems(edit)[index], { position }))} />
   )}</div></div>;
 }

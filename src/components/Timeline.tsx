@@ -1,3 +1,4 @@
+import { effectiveSpeed, extraInstances } from '../core/effect-instances';
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { TimelineViewTools } from './layout/TimelineViewTools';
 import { clipPositions, clipRecipe, editClips, splitClip } from '../core/clips';
@@ -20,7 +21,7 @@ import { hasMinimumDuration } from '../core/time-range';
 import { useTimelineScale } from '../hooks/useTimelineScale';
 import type { EditSettings, MediaAsset } from '../core/types';
 export function Timeline({ openEffect, generateTrackWaveform, generatingId, asset, edit, current, seek, update, undo, redo, canUndo, canRedo, disabled, notify, waveform, waveformError, generateWaveform, analysisProgress, waveformLoading, cancelAnalysis, thumbnails, generateThumbnails, thumbnailLoading, thumbnailProgress, autoWaveforms = true, assets, waveforms, selectedClip, selectClip }: {
-  openEffect: (id: EffectId) => void; generatingId: string | null; generateTrackWaveform: (asset: MediaAsset) => void;
+  openEffect: (id: EffectId, instanceId?: string) => void; generatingId: string | null; generateTrackWaveform: (asset: MediaAsset) => void;
   assets: MediaAsset[]; waveforms: Record<string, WaveformPoint[]>; selectedClip: string | null; selectClip: (id: string | null) => void;
   autoWaveforms?: boolean;
   thumbnails?: string; generateThumbnails: () => void; thumbnailLoading: boolean; thumbnailProgress: number;
@@ -39,9 +40,9 @@ export function Timeline({ openEffect, generateTrackWaveform, generatingId, asse
   const clips = useMemo(() => editClips(edit), [edit]), positions = useMemo(() => clipPositions(edit), [edit]);
   const effectCounts = useMemo(() => {
     const effects = availableEffects(asset).filter(effect => effect.scope === 'clip');
-    return clips.map(clip => { const recipe = clipRecipe(edit, clip); return effects.filter(effect => recipe.addedEffects?.includes(effect.id) || effectActive(effect, recipe, asset)).length; });
+    return clips.map(clip => { const recipe = clipRecipe(edit, clip); return effects.filter(effect => recipe.addedEffects?.includes(effect.id) || effectActive(effect, recipe, asset)).length + extraInstances(recipe).filter(instance => availableEffects(asset).some(effect => effect.id === instance.effect && effect.scope === 'clip')).length; });
   }, [clips, edit, asset]);
-  const effectCount = effectCounts.reduce((count, value) => count + value, 0) + appliedEffects(asset, edit, null).filter(effect => effect.scope === 'source').length;
+  const effectCount = effectCounts.reduce((count, value) => count + value, 0) + appliedEffects(asset, edit, null).filter(effect => effect.scope === 'source').length + extraInstances(edit).filter(instance => availableEffects(asset).some(effect => effect.id === instance.effect && effect.scope === 'source') || instance.effect.includes('Fade')).length;
   const previousEffects = useRef(effectCount);
   useEffect(() => {
     if (effectCount > previousEffects.current) { setCompact(false); setFilter('all'); }
@@ -78,7 +79,7 @@ export function Timeline({ openEffect, generateTrackWaveform, generatingId, asse
     onPointerUp: (event: PointerEvent<HTMLDivElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) { scrub(event); event.currentTarget.releasePointerCapture(event.pointerId); } },
   };
   function split() {
-    const speed = clips.find(clip => current >= clip.start && current < clip.end)?.effects.speed ?? edit.speed;
+    const speed = effectiveSpeed({ ...edit, ...clips.find(clip => current >= clip.start && current < clip.end)?.effects });
     if (!active || !hasMinimumDuration({ start: active.start, end: current }, speed) || !hasMinimumDuration({ start: current, end: active.end }, speed)) { notify('Move the playhead inside a section to split it.'); return; }
     const clip = clips.find(clip => current >= clip.start && current < clip.end)!;
     update(splitClip(edit, clip.id, current)); selectClip(clip.id);

@@ -1,3 +1,4 @@
+import { definitionFor, effectiveSpeed } from './effect-instances';
 import { availableEffects, effectLibrary } from './effect-library';
 import { clipEffectKeys, editClips, type ClipEffects } from './clips';
 import { parseEdit } from './project';
@@ -11,6 +12,7 @@ export function parseEffectRecipe(value: unknown): EffectRecipe {
   if (basis && ![basis.width, basis.height].every(value => Number.isInteger(value) && value >= 2 && value <= 65536)) throw new Error('Invalid recipe crop dimensions.');
   const parsed = parseEdit({ ...defaultSettings(reference), ...recipe.settings }, { ...reference, width: basis?.width ?? reference.width, height: basis?.height ?? reference.height });
   const settings = Object.fromEntries(Object.keys(recipe.settings).map(key => [key, parsed[key as typeof clipEffectKeys[number]]])) as ClipEffects;
+  if (settings.effectInstances) settings.effectInstances = settings.effectInstances.filter(instance => definitionFor(instance.effect).scope === 'clip');
   if (settings.addedEffects) settings.addedEffects = settings.addedEffects.filter(id => effectLibrary.some(effect => effect.id === id && effect.scope === 'clip'));
   return { id: recipe.id, name: recipe.name.trim(), settings, ...(basis ? { cropBasis: { ...basis } } : {}) };
 }
@@ -25,7 +27,8 @@ export function recipePatch(recipe: EffectRecipe, asset: MediaAsset, edit: EditS
     settings.crop = { x, y, width: Math.min(asset.width - x, Math.max(2, Math.round(c.width / recipe.cropBasis.width * asset.width))), height: Math.min(asset.height - y, Math.max(2, Math.round(c.height / recipe.cropBasis.height * asset.height))) };
   }
   if (settings.addedEffects) settings.addedEffects = settings.addedEffects.filter(id => availableEffects(asset).some(effect => effect.id === id));
-  const duration = editClips(edit).reduce((total, clip) => total + (clip.end - clip.start) / (settings.speed ?? clip.effects.speed ?? edit.speed), 0);
+  if (settings.effectInstances) settings.effectInstances = settings.effectInstances.filter(instance => availableEffects(asset).some(effect => effect.id === instance.effect));
+  const duration = editClips(edit).reduce((total, clip) => total + (clip.end - clip.start) / effectiveSpeed({ ...edit, ...clip.effects, ...settings }), 0);
   for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) if (settings[key] !== undefined) settings[key] = Math.min(settings[key]!, duration);
   return settings;
 }
