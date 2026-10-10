@@ -1,0 +1,48 @@
+name: Deploy GitHub Pages
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/configure-pages@v5
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Build the browser app with Pages isolation support
+        run: |
+          npx vite build
+          mkdir -p .local
+          cp -a dist .local/pages-dist
+        env:
+          VITE_GITHUB_PAGES: 'true'
+      - run: npx playwright install --with-deps chromium
+      - name: Verify processing on a static Pages host
+        run: npx playwright test --config playwright.pages.config.ts
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy the browser app
+        id: deployment
+        uses: actions/deploy-pages@v4

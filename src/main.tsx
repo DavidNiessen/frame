@@ -26,9 +26,12 @@ import { DesktopWindow } from './components/DesktopWindow';
 import App from './App';
 import { MiniConversion } from './components/conversion/MiniConversion';
 import { useBorderLight } from './hooks/useBorderLight';
+import { prepareBrowserIsolation } from './core/browser-isolation';
 const mini = !!window.frameDesktop?.miniConversion;
 if (mini) document.documentElement.dataset.miniConversion = 'true';
 const desktop = !mini && typeof window.frameDesktop?.windowState === 'function';
 if (desktop) document.documentElement.dataset.desktopWindow = 'true';
 function FrameRoot() { useBorderLight(); return mini ? <MiniConversion /> : desktop ? <DesktopWindow><App /></DesktopWindow> : <App />; }
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><FrameRoot /></React.StrictMode>);
+void prepareBrowserIsolation().then(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><FrameRoot /></React.StrictMode>);
+});
