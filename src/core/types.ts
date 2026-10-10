@@ -1,3 +1,4 @@
+import type { SceneOptions, SceneScan } from './scenes';
 import type { ContactSheetOptions } from './contact-sheet';
 import type { TimelineMarker } from './markers';
 import type { TimelineClip } from './clips';
@@ -86,6 +87,7 @@ export interface MediaEngine {
   detectSilence(asset: MediaAsset, options: SilenceOptions, onProgress: (p: ExportProgress) => void): Promise<TimeRange[]>;
   previewFrame(asset: MediaAsset, edit: EditSettings, time: number, onProgress: (p: ExportProgress) => void): Promise<string>;
   previewAudio(asset: MediaAsset, edit: EditSettings, onProgress: (p: ExportProgress) => void): Promise<string>;
+  detectScenes(asset: MediaAsset, options: SceneOptions, onProgress: (p: ExportProgress) => void): Promise<SceneScan>;
   contactSheet(asset: MediaAsset, edit: EditSettings, options: ContactSheetOptions, onProgress: (p: ExportProgress) => void): Promise<string>;
   thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;
   cancelWaveform?(): void;

@@ -18,5 +18,5 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Desktop watch folders | Convert newly added files automatically | Backlog |
 | Export completion notifications | Know when long jobs finish while working elsewhere | Implemented |
 | Multi-track music and voiceover | Mix additional audio with video | Backlog |
-| Scene-change detection | Find likely cut points automatically | Backlog |
+| Scene-change detection | Find likely cut points automatically | Implemented |
 | Audio loudness meter | Assess clipping and perceived loudness while editing | Backlog |

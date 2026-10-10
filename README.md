@@ -231,3 +231,5 @@ Captions support literal find-and-replace with case-sensitive and Unicode whole-
 Project tools → Video contact sheet exports a PNG overview of the edited clip order and effects. Choose 2–6 rows and columns, frame width, and optional sequence timestamps. Processing stays local on desktop and web.
 
 Desktop completion notifications report saved exports, merges and batches while Frame is in the background. Settings → Completion notifications controls the persisted preference. Partially failed batches report files needing attention; cancelled batches remain quiet. The setting is visible and disabled on web.
+
+Project tools → Find scene changes scans source RGB frames locally on desktop or web. Adjust the change threshold and minimum gap, review or deselect proposed points, then add markers or split the retained clips in one undoable action. Results are capped at 500 changes, and splits inherit local effects.

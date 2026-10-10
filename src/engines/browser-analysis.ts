@@ -1,3 +1,4 @@
+import { sceneArgs, SceneCollector } from '../core/scenes';
 import { contactSheetArgs } from '../core/contact-sheet';
 import { silenceArgs, SilenceCollector } from '../core/silence';
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
@@ -7,7 +8,7 @@ import { previewAudioArgs } from '../core/audio-preview';
 import { thumbnailArgs } from '../core/thumbnails';
 import { waveformArgs, WaveformCollector } from '../core/waveform';
 import type { MediaEngine } from '../core/types';
-export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string, File>): Pick<MediaEngine, 'detectSilence' | 'previewFrame' | 'previewAudio' | 'thumbnails' | 'waveform' | 'contactSheet'> {
+export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string, File>): Pick<MediaEngine, 'detectSilence' | 'previewFrame' | 'previewAudio' | 'thumbnails' | 'waveform' | 'contactSheet' | 'detectScenes'> {
   return {
     async detectSilence(asset, options, onProgress) {
       const file = files.get(asset.id); if (!file) throw new Error('Import the source again.'); const ff = await ready(); const input = `silence-${asset.id}`; const collector = new SilenceCollector();
@@ -37,6 +38,12 @@ export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string,
         const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid preview output.');
         return URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'audio/wav' }));
       } finally { ff.off('log', log); await ff.deleteFile(input).catch(() => {}); await ff.deleteFile(output).catch(() => {}); }
+    },
+    async detectScenes(asset, options, onProgress) {
+      const source = files.get(asset.id); if (!source) throw new Error('Import the source again.'); const ff = await ready(), input = `scenes-${asset.id}`, collector = new SceneCollector(options.minGap);
+      const log = ({ message }: { message: string }) => collector.push(message), progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(1, time / 1e6 / asset.duration), message: 'Finding scene changes…' }); ff.on('log', log); ff.on('progress', progress);
+      try { await ff.writeFile(input, new Uint8Array(await source.arrayBuffer())); if (await ff.exec(sceneArgs(asset, input, options)) !== 0) throw new Error('Could not scan this video for scene changes.'); return collector.finish(asset.duration); }
+      finally { ff.off('log', log); ff.off('progress', progress); await ff.deleteFile(input).catch(() => {}); }
     },
     async contactSheet(asset, edit, options, onProgress) {
       const source = files.get(asset.id); if (!source) throw new Error('Import the source again.'); const ff = await ready();
