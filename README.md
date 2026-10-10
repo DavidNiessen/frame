@@ -139,11 +139,14 @@ Open **Batch export**, select library files, and choose each file’s recipe, cu
 | Native open/save dialogs and filesystem paths | Yes | Browser picker/download |
 | Large-file processing | Reads directly from disk | 500 MB/file, 800 MB library guard |
 | Progress and export cancellation | Yes | Yes |
+| Music/voiceover tracks, scenes, markers and contact sheets | Yes | Yes |
+| Watch-folder conversion | While Frame is open | Desktop only |
+| Background completion notifications | Yes, OS support permitting | Desktop only |
 | Media preview | Chromium codec support | Browser codec support |
 
 Common input extensions include MP4, MOV, MKV, WebM, AVI, M4V, GIF, MP3, WAV, FLAC, OGG, M4A, AAC, OPUS, and AIFF. A container alone does not guarantee a decodable stream. Unsupported preview codecs can still be converted when FFmpeg can decode them. GIF previews loop the source; trim/split edits are applied on export. Volume above 100% is applied on export and may clip; the media element's preview is capped at 100%.
 
-Browser guards are conservative, not a guarantee that a 500 MB job will fit: decoding, processing, and output buffers consume additional memory. Mobile devices may support considerably smaller jobs. Desktop uses native processes and avoids those WebAssembly limits. Multitrack composition, hardware encoding, and arbitrary third-party plugins are future extensions.
+Browser guards are conservative, not a guarantee that a 500 MB job will fit: decoding, processing, and output buffers consume additional memory. Mobile devices may support considerably smaller jobs. Desktop uses native processes and avoids those WebAssembly limits. Audio layering and hardware encoding are available now; arbitrary third-party plugins remain a future extension.
 
 ## Validate
 
@@ -239,3 +242,5 @@ Audio cleanup effects include full edited-audio loudness measurement: integrated
 Desktop Settings includes watch folders: Frame polls up to 10 input folders while it is open, waits for files to stop changing, and converts them with a chosen output preset. Existing files are skipped by default; enable their conversion during setup if desired. Outputs must be outside the input folder. Pause/resume, explicit retries, preserved subfolders, collision-safe filenames and durable completion records keep ongoing imports manageable.
 
 **Music & voiceover** in the Effects library adds up to 16 imported audio tracks to the edited output. Each track has its own volume, mute, fades, source excerpt and repeat option. Its timeline bar moves by dragging or Alt + arrow keys, and its edges trim the window; waveforms follow the source excerpt and repeated audio. Track positions use output time, so rearranging video clips leaves the soundtrack in place. Peak protection is enabled by default. Live playback approximates levels; **Preview exported mix** and the loudness meter use the actual final processing. Audio layers are included in exports and merges and saved in projects; relink their sources when reopening a project. Conversion-only mode continues to process the original source without editor audio layers.
+
+Recent exports in Settings lists the last 100 desktop outputs from editing, conversion, merging and watch folders. Search the list, reveal an output in its folder, or forget entries without deleting saved files. History remains on the device and survives restarts.

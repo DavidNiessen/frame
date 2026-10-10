@@ -29,5 +29,5 @@ export function createBatchFolders(window: () => BrowserWindow, trusted: (event:
   }
   const destination = (token: string, name: string) => safeOutputPath(directory(token), name);
   const publish = (temporary: string, token: string, name: string) => publishOutput(temporary, directory(token), name);
-  return { directory, name, destination, publish };
+  return { directory, name, destination, publish, kind: (token: string) => folders.get(token)?.options.conversion ? 'conversion' as const : 'batch' as const };
 }

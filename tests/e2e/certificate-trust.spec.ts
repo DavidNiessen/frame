@@ -23,9 +23,9 @@ test('guides Windows certificate approval, recovers from cancellation and offers
   await trust.click();
   await expect(page.getByRole('alert')).toContainText('Administrator approval was cancelled');
   await expect(trust).toBeEnabled();
-  await expect(page.locator('.integration-badge')).toHaveText('Needs repair');
+  await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Needs repair');
   await trust.click();
-  await expect(page.locator('.integration-badge')).toHaveText('Installed');
+  await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Installed');
   await expect(page.getByText('Frame certificate trusted on this PC', { exact: true })).toBeVisible();
   const revoke = page.getByRole('button', { name: 'Remove certificate trust…', exact: true });
   await expect(revoke).toBeEnabled();
@@ -33,6 +33,6 @@ test('guides Windows certificate approval, recovers from cancellation and offers
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/certificate-trust-mobile.png', fullPage: true });
   await revoke.click();
-  await expect(page.locator('.integration-badge')).toHaveText('Not installed');
+  await expect(page.locator('section[aria-labelledby="integration-heading"] .integration-badge')).toHaveText('Not installed');
   await expect(trust).toBeEnabled();
 });

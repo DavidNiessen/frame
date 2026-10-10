@@ -1,3 +1,4 @@
+import { recordExport } from './export-history';
 import { resolveAudioLayers } from '../src/core/audio-layers';
 import type { WindowIpc } from './window-ipc';
 import { hardwareBitrate } from '../src/core/hardware';
@@ -38,7 +39,7 @@ export function registerMerge(assets: Map<string, { path: string; asset: MediaAs
           });
         }, clips.map(c => c.asset));
         const { size } = await stat(temporary); await rename(temporary, destination.filePath);
-        return { name: basename(destination.filePath), path: destination.filePath, size };
+        const result = { name: basename(destination.filePath), path: destination.filePath, size }; await recordExport(result, 'merge', 'Merged clips', settings.format); return result;
       } finally { await rm(temporary, { force: true }); }
     });
   });

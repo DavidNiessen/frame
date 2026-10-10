@@ -1,3 +1,4 @@
+import { recordExport } from './export-history';
 import { resolveAudioLayers } from '../src/core/audio-layers';
 import { dialog, type BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
@@ -43,7 +44,7 @@ export function registerExports(window: BrowserWindow, assets: SessionAssets, jo
         if (jobs.cancelled || window.isDestroyed()) throw new Error('Conversion cancelled.');
         const savedPath = batchToken ? await folders.publish(temporary, batchToken, batchName) : destination.filePath;
         if (!batchToken) await rename(temporary, savedPath);
-        return { name: basename(savedPath), path: savedPath, size };
+        const result = { name: basename(savedPath), path: savedPath, size }; await recordExport(result, batchToken ? folders.kind(batchToken) : 'export', item.asset.name, settings.format); return result;
       } finally { if (temporary) await rm(temporary, { force: true }); }
     });
   });

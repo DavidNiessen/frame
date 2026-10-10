@@ -1,3 +1,4 @@
+import type { ExportHistoryBridge } from '../core/export-history';
 import type { LoudnessStats } from '../core/loudness';
 import type { WatchFolderDraft, WatchStatus } from '../core/watch-folders';
 import type { SceneOptions, SceneScan } from '../core/scenes';
@@ -14,7 +15,7 @@ import type { TransitionSettings } from '../core/transitions';
 import type { DesktopLaunchRequest } from '../core/launch';
 import type { ShellIntegrationStatus } from '../core/system-integration';
 import type { WindowAction, WindowState } from '../core/window-controls';
-export interface DesktopBridge {
+export interface DesktopBridge extends ExportHistoryBridge {
   watchFoldersStatus(): Promise<WatchStatus>;
   chooseWatchFolders(): Promise<{ input: string; output: string } | null>;
   addWatchFolder(draft: WatchFolderDraft): Promise<WatchStatus>;

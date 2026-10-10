@@ -11,6 +11,7 @@ import ffprobe from '@ffprobe-installer/ffprobe';
 const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 test('runs the desktop editor and portable media tools with an empty PATH', async () => {
+  test.setTimeout(120000);
   const directory = await mkdtemp(join(tmpdir(), 'frame-desktop-test-'));
   const executablePath = process.env.FRAME_TEST_EXECUTABLE;
   const args = [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])];

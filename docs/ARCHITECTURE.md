@@ -83,7 +83,7 @@ Core 0.12 returns `-1` when FFprobe returns normally without updating its exit s
 - **Editing operations:** add serializable recipe data, validation/planning, and a focused control component. Engines stay unchanged when the operation maps to FFmpeg arguments.
 - **Media kinds:** add the kind and metadata, supported import/probe handling, appropriate preview/control components, and capability-aware format filtering.
 - **Alternative engines:** implement `MediaEngine` and select it in `src/engines/index.ts`. Platform-specific options should be represented by capabilities and only shown when supported.
-- **Future composition:** evolve the recipe into source-referenced clips/tracks before adding multitrack mixing. Keep timeline algebra independent of playback and UI rendering.
+- **Composition:** source-referenced audio layers and ordered clips already support mixing and sequencing. Keep new track types and timeline algebra independent of playback and UI rendering.
 
 Files should remain focused on one responsibility. There is no untrusted plugin loader in this version; extension points are source-level modules.
 
@@ -92,3 +92,27 @@ Recipe resources (caption/text files, PNG overlays and LUTs) use engine-generate
 Direct URL import shares HTTP/HTTPS validation, filename handling, streamed byte limits, progress, and abort logic across engines. Browser imports reuse ordinary file probing. Desktop streams through Electron’s network stack to private temporary directories, probes raw formats with network protocols disabled, and cleans up downloads on cancellation, removal and exit. URL import uses trusted IPC and the existing exclusive operation lock.
 
 Desktop YouTube imports normalize an allowlist of individual video URLs and validate mode/quality in the main process. A pinned standalone yt-dlp includes the EJS solver; Electron's Node runtime runs the solver with yt-dlp's permission flags. No config, plugins, remote components, cookies, or self-update commands are enabled. Arguments are passed directly to spawn, output paths must resolve inside the owned temporary directory, and progress/errors are translated without exposing raw downloader output. Cancellation stops the entire process tree (process groups on POSIX; taskkill on Windows) before partial-download cleanup. Packaging verifies the official binary and notice checksums for the target platform, includes the tools outside ASAR, and rejects unsupported/cross-platform builds. Updating yt-dlp is an explicit source/build change.
+
+## Review and delivery tools
+
+Named source-time markers are bounded, serialized recipe data. Timeline snapping derives both source and output landmarks from clips, captions, markers and audio tracks. View settings such as magnet state and playback loops stay outside recipes. Frame stepping and timecode navigation operate through the same source/output mapping used by preview and export.
+
+Contact sheets and scene detection use pure argument planners; their adapters only manage native processes or WASM files and translate progress/results. Scene results are reviewable before applying a single undoable marker/split patch. Loudness analysis appends EBU R128 measurement to the actual edited audio export graph, so source gain, ordered effects, cuts, speed, fades and audio mixing use the same processing.
+
+Audio output rate, channel override and WAV precision, plus GIF loop/palette/dithering options, are validated output settings shared with projects and presets. Filename templates are expanded from registered asset metadata, never evaluated as shell expressions. Stable batch numbering survives retries, and exclusive publication prevents overwriting originals or completed exports.
+
+## Audio layers
+
+Each recipe can reference up to 16 imported music/voiceover sources. Layers store portable source identity, output-time placement, a source excerpt, independent gain/fades, mute and repeat. Engines resolve identities only against their registered library and generate their own input paths. Projects validate that every layer source is represented and relinking rewrites layer identities to the chosen media.
+
+The planner processes the original track and additional sources separately, aligns layers using delay/padding, then mixes with optional peak limiting after channel conversion. Global output fades apply once to the final mix; local clip and layer fades remain independent. Merge composition embeds the same mixer for each source recipe before concatenation or crossfade. Conversion-only recipes have no audio layers.
+
+Live playback synchronizes hidden audio elements with output time and approximates source levels; processed mix previews and loudness analysis render the exact graph. A single background waveform queue serves main and additional tracks, respects the automatic-analysis preference, caches source peaks, and displays excerpt/repeat/fade/gain changes without rereading files.
+
+## Desktop watch folders and completion notices
+
+Watch-folder configuration uses trusted main-process IPC and native folder selection. The runner polls bounded, link-free directory collections, waits for unchanged size/mtime across scans, interleaves multiple watches, and processes one native conversion at a time independently of renderer operations. Outputs must be outside the source tree. Per-file failures are suppressed until the file changes or the user explicitly retries; successful fingerprints persist atomically across restarts. Shutdown cancels active work and briefly drains pending completion records.
+
+Completion notifications are an independent desktop capability with a durable user preference. Saved exports, merges and batches notify only while their originating window is in the background; partial failures remain explicit and cancellations stay quiet. Notification failure never turns a saved export into an error.
+
+Desktop export history records successfully published outputs centrally, independently of renderer windows. Mutations serialize to an atomic per-user JSON file; trusted IPC exposes bounded history and reveal-by-entry-ID. Shutdown waits briefly for watch jobs and history writes to settle.

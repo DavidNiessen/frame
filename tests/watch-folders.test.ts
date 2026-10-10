@@ -24,3 +24,15 @@ describe('watch folders', () => {
     } finally { await rm(root, { recursive: true, force: true }); }
   });
 });
+it('settles cancellation and persists a conversion that completed as shutdown started', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'frame-watch-shutdown-'));
+  try {
+    const input = join(root, 'input'), output = join(root, 'output'); await mkdir(input); await mkdir(output); await writeFile(join(input, 'song.mp3'), 'complete');
+    const watch = { name: 'Music', input, output, settings: builtInPresets[5].settings, keepFolders: false, recursive: false, includeExisting: true, namingTemplate: '{name}', id: 'music', enabled: true };
+    let release: (() => void) | undefined, saved = false; const runner = new WatchRunner(async () => { await new Promise<void>(resolve => { release = resolve; }); return join(output, 'song.flac'); }, async () => { saved = true; });
+    await runner.initialize(watch); runner.watches.push(watch); await runner.tick(0); const running = runner.tick(2000);
+    // Yield until the deferred encoder starts, then stop and await durable completion.
+    await new Promise<void>(resolve => { const timer = setInterval(() => { if (release) { clearInterval(timer); resolve(); } }, 1); });
+    runner.stop(); const settled = runner.settled(); release!(); await settled; await running; expect(saved).toBe(true); expect(runner.status().activity[0].status).toBe('done'); expect(runner.receipts().music[join(input, 'song.mp3')]).toBeDefined();
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

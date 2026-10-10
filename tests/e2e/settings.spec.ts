@@ -14,6 +14,7 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await expect(page.getByRole('button', { name: 'Remove actions' })).toBeDisabled();
   await expect(page.locator('section[aria-labelledby="integration-heading"]').getByText('Desktop only', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add watch folder', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Show saved exports' })).toBeDisabled();
   await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
   await page.getByRole('radio', { name: 'Light theme', exact: true }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');

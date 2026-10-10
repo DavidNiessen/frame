@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  exportHistory: () => ipcRenderer.invoke('history:status'),
+  clearExportHistory: () => ipcRenderer.invoke('history:clear'),
+  removeExportHistory: id => ipcRenderer.invoke('history:remove', id),
+  revealExport: id => ipcRenderer.invoke('history:reveal', id),
   watchFoldersStatus: () => ipcRenderer.invoke('watch:status'),
   chooseWatchFolders: () => ipcRenderer.invoke('watch:choose'),
   addWatchFolder: draft => ipcRenderer.invoke('watch:add', draft),

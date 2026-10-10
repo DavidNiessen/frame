@@ -1,5 +1,6 @@
+import { recordExport } from './export-history';
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
-import { readFile, writeFile, rename, rm, lstat, realpath } from 'node:fs/promises';
+import { readFile, writeFile, rename, rm, lstat, realpath, stat } from 'node:fs/promises';
 import { join, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseWatchDraft, type WatchFolder } from '../src/core/watch-folders';
@@ -36,7 +37,7 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
         if (jobs.cancelled) throw new Error('Conversion cancelled.');
         const current = await lstat(source);
         if (current.size !== original.size || current.mtimeMs !== original.mtimeMs) throw new Error('The source changed while converting. Frame will retry when it is stable.');
-        return await publishOutput(temporary, work.watch.output, name);
+        const path = await publishOutput(temporary, work.watch.output, name); await recordExport({ name: basename(path), path, size: (await stat(path)).size }, 'watch', asset.name, edit.format); return path;
       } finally { work.signal.removeEventListener('abort', cancel); if (temporary) await rm(temporary, { force: true }); }
     });
   }, persist);
@@ -80,5 +81,5 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
   ipcMain.handle('watch:retry', (event, id: string) => { trusted(event); return mutate(async () => { find(id); runner.retry(id); }); });
   ipcMain.handle('watch:open', async (event, id: string) => { trusted(event); await ready; const result = await shell.openPath(find(id).output); if (result) throw new Error(result); });
   const timer = setInterval(() => { void ready.then(() => runner.tick()).catch(issue => { runner.error = (issue as Error).message; }); }, 2000); timer.unref();
-  return () => { clearInterval(timer); runner.stop(); jobs.cancel(); };
+  return async () => { clearInterval(timer); runner.stop(); jobs.cancel(); await runner.settled(); await mutations; await writes; };
 }

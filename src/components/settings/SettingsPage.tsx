@@ -4,6 +4,7 @@ import type { ShellIntegrationStatus } from '../../core/system-integration';
 import type { Theme } from '../../hooks/useTheme';
 import { ThemeChoices } from './ThemeChoices';
 import { CompletionNotifications } from './CompletionNotifications';
+import { RecentExports } from './RecentExports';
 import { WatchFolders } from './WatchFolders';
 import { CertificateTrust } from './CertificateTrust';
 
@@ -53,6 +54,7 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
     </section>
     <CompletionNotifications />
     <WatchFolders />
+    <RecentExports />
     <section className="settings-card" aria-labelledby="integration-heading">
       <div className="settings-section-heading"><FolderOpen size={19} /><div><h2 id="integration-heading">File-manager actions</h2><p>Start editing or converting directly from your files.</p></div><span className={`integration-badge ${installed ? 'installed' : ''}`}>{pending === 'checking' ? 'Checking…' : !status ? 'Status unavailable' : !status.available ? status.platform === 'web' ? 'Desktop only' : 'Unavailable' : installed ? 'Installed' : partial ? 'Needs repair' : 'Not installed'}</span></div>
       <p className="integration-detail">{status?.detail || 'Refresh to check your file-manager actions.'}</p>

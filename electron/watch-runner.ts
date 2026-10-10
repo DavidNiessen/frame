@@ -15,6 +15,7 @@ export async function validateWatchPaths(input: string, output: string) {
 export class WatchRunner {
   watches: WatchFolder[] = []; error = '';
   private files = new Map<string, StableWatchFiles>(); private activity: WatchActivity[] = []; private running = false; private stopped = false;
+  private idle: (() => void)[] = [];
   private active: { id: string; abort: AbortController } | null = null;
   constructor(private encode: (work: WatchWork) => Promise<string>, private persist: () => Promise<void>) {}
   restore(watches: WatchFolder[], receipts: Record<string, Record<string, string>>) { this.watches = watches; for (const watch of watches) this.files.set(watch.id, new StableWatchFiles(new Map(Object.entries(receipts[watch.id] ?? {})))); }
@@ -27,6 +28,7 @@ export class WatchRunner {
   status(): WatchStatus { return { watches: structuredClone(this.watches), activity: structuredClone(this.activity), error: this.error }; }
   retry(id: string) { this.files.get(id)?.retry(); }
   cancel(id: string) { if (this.active?.id === id) this.active.abort.abort(); }
+  settled(): Promise<void> { return this.running ? new Promise(resolve => this.idle.push(resolve)) : Promise.resolve(); }
   stop() { this.stopped = true; this.active?.abort.abort(); }
   private publish(job: WatchActivity) { this.activity = [...this.activity.filter(item => item.id !== job.id), job].slice(-100); }
   async tick(now = Date.now()) {
@@ -57,6 +59,6 @@ export class WatchRunner {
           this.publish({ ...job, status: abort.signal.aborted ? 'cancelled' : 'failed', error: abort.signal.aborted ? undefined : (issue as Error).message });
         } finally { this.active = null; }
       }
-    } finally { this.running = false; }
+    } finally { this.running = false; for (const resolve of this.idle.splice(0)) resolve(); }
   }
 }
