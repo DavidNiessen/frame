@@ -48,7 +48,7 @@ export function audioMixGraph(edit: EditSettings, inputs: AudioLayerInput[], fir
     filters.push(`adelay=${Math.round(layer.start * 1000)}:all=1`, `apad=whole_dur=${duration}`, `atrim=duration=${duration}`);
     const label = `${prefix}layer${index}`; graph.push(`[${firstInput + index}:a:0]${filters.join(',')}[${label}]`); labels.push(`[${label}]`); (layer.role === 'voiceover' ? dialogue : music).push(`[${label}]`);
   });
-  if (edit.audioDucking && music.length && dialogue.length) { const ducked = duckMusicGraph(music, dialogue, prefix); graph.push(...ducked.graph); labels.splice(0, labels.length, ...ducked.labels); }
+  if (edit.audioDucking && music.length && dialogue.length) { const ducked = duckMusicGraph(music, dialogue, prefix, duration); graph.push(...ducked.graph); labels.splice(0, labels.length, ...ducked.labels); }
   if (!labels.length) { graph.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${duration}[${prefix}silent]`); labels.push(`[${prefix}silent]`); }
   const filters = [`amix=inputs=${labels.length}:duration=longest:dropout_transition=0:normalize=0`, `apad=whole_dur=${duration}`, `atrim=duration=${duration}`];
   if (edit.audioChannels === 1) filters.push('aformat=channel_layouts=mono');
