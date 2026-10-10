@@ -13,7 +13,6 @@ export function createDesktopEngine(): MediaEngine {
     releaseProxy: id => bridge.releaseProxy(id),
     async importFiles(files, onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFiles(files); } finally { remove(); } },
     async importFolder(onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importFolder(); } finally { remove(); } },
-    importSample: () => bridge.importSample(),
     async importUrl(url, onProgress, options) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importUrl(url, options); } finally { remove(); } },
     async export(asset, settings, onProgress, batchToken) {
       const remove = bridge.onProgress(onProgress);

@@ -37,9 +37,8 @@ export function TimelineClip({ clip, index, edit, asset, position, duration, spe
   }
   return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange wideHandles range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(effectiveSpeed({ ...edit, ...clip.effects }))} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
     text={`${index + 1} · ${asset.name}${effectCount ? ' ✦' : ''}`} label={`Select section ${index + 1}, ${time(clip.start)} to ${time(clip.end)}`} startLabel={index === 0 ? 'Trim start' : `Section ${index + 1} start`} endLabel={index === editClips(edit).length - 1 ? 'Trim end' : `Section ${index + 1} end`}
-    startTitle={clip.start === 0 ? 'Start of source · drag right to trim' : 'Drag left to restore the beginning · drag right to trim'}
-    endTitle={clip.end === asset.duration ? 'End of source · restore the beginning with the left handle' : 'Drag right to restore the end · drag left to trim'}
-    onLimit={edge => notify(edge === 'end' ? clip.end === asset.duration ? 'End of source reached. Drag the left handle back to restore the trimmed beginning.' : 'This clip cannot extend into another clip’s source footage.' : clip.start === 0 ? 'Start of source reached. Drag the right handle forward to restore the trimmed end.' : 'This clip cannot extend into another clip’s source footage.')}
+    startTitle="Drag left to restore the beginning · drag right to trim"
+    endTitle="Drag right to restore the end · drag left to trim"
     className={`timeline-clip ${selected ? 'active' : ''} ${asset.kind} ${waveform ? 'with-waveform' : ''}`} disabled={disabled}
     renderContent={waveform ? range => <div className="clip-waveform"><Waveform points={waveform} duration={asset.duration} range={range} /></div> : undefined}
     onSelect={() => { select(clip.id); seek(clip.start); }} onChange={range => update(resizeSection(edit, index, range, asset.duration))}

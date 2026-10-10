@@ -9,7 +9,7 @@ import { defaultSettings } from '../src/core/types';
 import { buildExportArgs } from '../src/core/export-plan';
 import { parseEdit } from '../src/core/project';
 import { outputSettings, parseOutputSettings } from '../src/core/presets';
-const exec = promisify(execFile), source = resolve('public/sample.mp4');
+const exec = promisify(execFile), source = resolve('tests/fixtures/sample.mp4');
 it('encodes GIF dimensions, a restricted palette and repeat behavior', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-gif-options-'));
   const asset = { ...await probeFile(source), id: 'test', name: 'sample.mp4', size: 1, previewUrl: '' };

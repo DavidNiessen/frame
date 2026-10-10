@@ -26,7 +26,7 @@ it('accounts for requested PCM rate, channels and bit depth in size estimates', 
 it('exports actual mono 16kHz WAV/MP3 and stereo float WAV audio', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-audio-output-'));
   try {
-    const source = resolve('public/sample.mp4'), loaded = { ...asset, ...await probeFile(source) };
+    const source = resolve('tests/fixtures/sample.mp4'), loaded = { ...asset, ...await probeFile(source) };
     for (const [format, rate, channels, depth, codec] of [['wav', 16000, 1, 24, 'pcm_s24le'], ['mp3', 16000, 1, 16, 'mp3'], ['wav', 48000, 2, 32, 'pcm_f32le']] as const) {
       const edit = { ...defaultSettings(loaded), end: 1, format, audioSampleRate: rate, audioChannels: channels, wavDepth: depth };
       const output = join(directory, `${rate}-${depth}.${format}`); await exec(ffmpegPath(), buildExportArgs(loaded, edit, source, output));

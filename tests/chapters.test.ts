@@ -16,7 +16,7 @@ const exec = promisify(execFile);
 it('maps chapters through cut order and speed and escapes real embedded metadata', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-chapters-'));
   try {
-    const input = resolve('public/sample.mp4'), asset = { ...await probeFile(input), id: 'source', name: 'source.mp4', previewUrl: '' };
+    const input = resolve('tests/fixtures/sample.mp4'), asset = { ...await probeFile(input), id: 'source', name: 'source.mp4', previewUrl: '' };
     const title = 'Second = scene; #notes\\path\nnew line', edit = { ...defaultSettings(asset), markers: [{ id: 'early', name: 'First', time: 1, color: 'violet' as const }, { id: 'late', name: title, time: 4, color: 'blue' as const }, { id: 'cut', name: 'Removed', time: 2.5, color: 'mint' as const }], clips: [{ id: 'late', start: 3, end: 6, effects: { speed: 2 } }, { id: 'early', start: 0, end: 2, effects: {} }] };
     const chapters = timelineChapters(edit); expect(chapters.map(chapter => chapter.start)).toEqual([0, .5, 2.5]); expect(chapters.at(-1)?.end).toBe(3.5); expect(chapterText(chapters)).toContain('00:00:00.500 Second = scene; #notes\\path new line');
     const metadata = join(directory, 'chapters.ffmetadata'), output = join(directory, 'chapters.mp4'); await writeFile(metadata, serializeChapters(chapters)); await exec(ffmpegPath(), ['-y', '-i', input, '-f', 'ffmetadata', '-i', metadata, '-map', '0', '-map_chapters', '1', '-c', 'copy', output]); const { stdout } = await exec(ffprobePath(), ['-v', 'error', '-show_chapters', '-of', 'json', output]); const loaded = JSON.parse(stdout).chapters; expect(loaded).toHaveLength(3); expect(loaded[1].tags.title).toBe(title); expect(Number(loaded[1].start_time)).toBe(.5);

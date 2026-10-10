@@ -50,7 +50,6 @@ export interface DesktopBridge extends ExportHistoryBridge {
   importFiles(files?: File[]): Promise<ImportReport>;
   importUrl(url: string, options?: UrlImportOptions): Promise<ImportReport>;
   importFolder(): Promise<ImportReport>;
-  importSample(): Promise<ImportReport>;
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
   saveProject(project: ProjectDocument): Promise<boolean>;
   merge(clips: { id: string; edit: EditSettings }[], settings: OutputSettings, transition?: TransitionSettings): Promise<ExportResult | null>;

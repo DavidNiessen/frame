@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { readFile, rm } from 'node:fs/promises';
 import { conversionLibrary, probeConversion } from '../helpers/conversion-library';
@@ -5,7 +6,7 @@ import { closeEffect, openEffect } from '../helpers/effects';
 test('mixes music with video, moves and trims tracks, and restores their sources from a project', async ({ page }, info) => {
   const library = await conversionLibrary();
   try {
-    await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('.asset-list li')).toHaveCount(1); await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
+    await page.goto('/'); await importTestMedia(page); await expect(page.locator('.asset-list li')).toHaveCount(1); await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
     await page.getByLabel('Choose media files', { exact: true }).setInputFiles(library.sources[0]); await expect(page.locator('.asset-list li')).toHaveCount(2); await page.getByRole('button', { name: /^Studio study.mp4/ }).click();
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Music & voiceover'); await page.getByLabel('Audio track source', { exact: true }).selectOption({ label: 'Song.wav' }); await page.getByRole('button', { name: 'Add audio track', exact: true }).click();
     await page.getByLabel('Track 1 volume', { exact: true }).fill('0.3'); await page.getByLabel('Loop track 1', { exact: true }).check(); await page.getByLabel('Track 1 fade in', { exact: true }).fill('0.2');
@@ -28,7 +29,7 @@ test('generates track waveforms on demand and updates their shape while trimming
   const library = await conversionLibrary();
   try {
     await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
-    await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('.asset-list li')).toHaveCount(1); await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
+    await page.goto('/'); await importTestMedia(page); await expect(page.locator('.asset-list li')).toHaveCount(1); await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
     await page.getByLabel('Choose media files', { exact: true }).setInputFiles(library.sources[0]); await expect(page.locator('.asset-list li')).toHaveCount(2); await page.getByRole('button', { name: /^Studio study.mp4/ }).click();
     await openEffect(page, 'Music & voiceover'); await page.getByLabel('Audio track source').selectOption({ label: 'Song.wav' }); await page.getByRole('button', { name: 'Add audio track', exact: true }).click(); await page.getByLabel('Track 1 fade in').fill('0.5'); const group = page.getByRole('group', { name: 'Music & voiceover tracks', exact: true }); if (!await group.evaluate(node => (node as HTMLDetailsElement).open)) await group.locator('summary').click();
     await expect(page.locator('.audio-layer-bar .audio-waveform')).toHaveCount(0); await page.getByRole('button', { name: 'Generate waveform for track 1', exact: true }).click(); const waveform = page.locator('.audio-layer-bar .audio-waveform path'); await expect(waveform).toBeVisible({ timeout: 30000 }); const original = await waveform.getAttribute('d');

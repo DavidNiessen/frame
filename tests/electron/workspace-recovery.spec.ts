@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { expect, test, _electron } from '@playwright/test';
 import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -13,7 +14,7 @@ test('automatically reopens desktop media and recipes, then clears without resur
   const directory = await mkdtemp(join(tmpdir(), 'frame-auto-recovery-'));
   let app = await launch(directory);
   try {
-    let page = await app.firstWindow(); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+    let page = await app.firstWindow(); await importTestMedia(page, app);
     await trim(page, 'start', 1); await trim(page, 'end', 2); await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5');
     await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
     await app.close(); app = await launch(directory); page = await app.firstWindow();
@@ -41,13 +42,13 @@ test('retains a downloaded source through exit and can export it after automatic
 });
 test('reopens available originals when another source is missing and keeps its checkpoint', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-auto-partial-')), original = join(directory, 'original.mp4');
-  await copyFile(resolve('public/sample.mp4'), original);
+  await copyFile(resolve('tests/fixtures/sample.mp4'), original);
   let app = await launch(directory);
   try {
     let page = await app.firstWindow();
     await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); return true; }, original);
     await page.getByRole('button', { name: 'Add media', exact: true }).click(); await expect(page.locator('.asset-list li')).toHaveCount(1);
-    await page.getByRole('button', { name: /Start with a sample/ }).click(); await expect(page.locator('.asset-list li')).toHaveCount(2); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
+    await importTestMedia(page, app); await expect(page.locator('.asset-list li')).toHaveCount(2); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
     await app.close(); await rm(original); app = await launch(directory); page = await app.firstWindow();
     await expect(page.locator('.asset-list li')).toHaveCount(1, { timeout: 30000 }); await expect(page.locator('.toast')).toContainText('moved or deleted'); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     // A settings visit and idle recovery must not replace the partially restored checkpoint.

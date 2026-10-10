@@ -1,3 +1,4 @@
+import { timedFilter } from './timed-adjustments';
 import type { EditSettings, MediaAsset } from './types';
 export function validateAudioEffects(edit: EditSettings) {
   if (typeof edit.normalizeLoudness !== 'boolean' || typeof edit.reduceNoise !== 'boolean') throw new Error('Invalid audio cleanup settings.');
@@ -7,10 +8,10 @@ export function validateAudioEffects(edit: EditSettings) {
 }
 export function cleanupFilters(edit: EditSettings, asset?: MediaAsset): string[] {
   const filters: string[] = [];
-  if (edit.reduceNoise) filters.push(`afftdn=nr=${edit.noiseStrength}:nf=${edit.noiseFloor}`);
-  if (edit.equalizer.bass) filters.push(`bass=g=${edit.equalizer.bass}:f=100`);
-  if (edit.equalizer.mid) filters.push(`equalizer=f=1000:t=q:w=1:g=${edit.equalizer.mid}`);
-  if (edit.equalizer.treble) filters.push(`treble=g=${edit.equalizer.treble}:f=8000`);
+  if (edit.reduceNoise) filters.push(timedFilter(`afftdn=nr=${edit.noiseStrength}:nf=${edit.noiseFloor}`, edit, edit.effectRanges?.noise));
+  if (edit.equalizer.bass) filters.push(timedFilter(`bass=g=${edit.equalizer.bass}:f=100`, edit, edit.effectRanges?.equalizer));
+  if (edit.equalizer.mid) filters.push(timedFilter(`equalizer=f=1000:t=q:w=1:g=${edit.equalizer.mid}`, edit, edit.effectRanges?.equalizer));
+  if (edit.equalizer.treble) filters.push(timedFilter(`treble=g=${edit.equalizer.treble}:f=8000`, edit, edit.effectRanges?.equalizer));
   if (edit.normalizeLoudness) {
     const layout = ({ 1: 'mono', 2: 'stereo', 3: '2.1', 4: 'quad', 5: '5.0', 6: '5.1', 7: '6.1', 8: '7.1' } as Record<number, string>)[asset?.audioChannels ?? 2] ?? 'stereo';
     filters.push(`aformat=channel_layouts=${layout}`, `loudnorm=I=${edit.targetLufs}:TP=-1:LRA=11`, 'aresample=48000', `aformat=channel_layouts=${layout}`);

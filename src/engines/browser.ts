@@ -52,11 +52,6 @@ export function createBrowserEngine(): MediaEngine {
         throw error;
       } finally { chunks.length = 0; download = null; }
     },
-    async importSample() {
-      const response = await fetch(new URL('sample.mp4', document.baseURI));
-      if (!response.ok) throw new Error('Unable to load the sample.');
-      return engine.importFiles([new File([await response.blob()], 'Studio study.mp4', { type: 'video/mp4' })]);
-    },
     async importFiles(selected = [], onProgress) {
       const media = selected.filter(file => isMediaFilename(file.name));
       if (media.length + files.size > MAX_IMPORT_FILES) throw new Error(`The library supports up to ${MAX_IMPORT_FILES} media files. Choose a smaller folder.`);

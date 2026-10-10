@@ -33,8 +33,8 @@ export function Timeline({ openEffect, generateTrackWaveform, generatingId, asse
   const slider = useRef<HTMLInputElement>(null);
   const scroll = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<TrackFilter>('all'), [compact, setCompact] = useState(false), [fraction, setFraction] = useState(0), [scrollLeft, setScrollLeft] = useState(0);
-  const sequence = !!edit.clips, position = sequence ? outputTimeAtSource(edit, current) : current;
-  const scale = useTimelineScale(asset.id, asset.duration, editedDuration(edit), sequence), total = scale.total;
+  const position = outputTimeAtSource(edit, current);
+  const scale = useTimelineScale(asset.id, asset.duration, editedDuration(edit)), total = scale.total;
   const clips = useMemo(() => editClips(edit), [edit]), positions = useMemo(() => clipPositions(edit), [edit]);
   const effectCounts = useMemo(() => {
     const effects = availableEffects(asset).filter(effect => effect.scope === 'clip');
@@ -68,8 +68,8 @@ export function Timeline({ openEffect, generateTrackWaveform, generatingId, asse
     const bounds = track.getBoundingClientRect();
     if (disabled || bounds.width === 0) return;
     const raw = Math.max(0, Math.min(total, (event.clientX - bounds.left) / bounds.width * total));
-    const value = snapping && !event.altKey ? snapTime(raw, scrubTargets[sequence ? 'output' : 'source'], 8 / bounds.width * total, sequence ? undefined : asset.frameRate) : raw;
-    seek(sequence ? sourceTimeAtOutput(edit, value) : value);
+    const value = snapping && !event.altKey ? snapTime(raw, scrubTargets.output, 8 / bounds.width * total, undefined) : raw;
+    seek(sourceTimeAtOutput(edit, value));
   }
   const scrubProps = {
     onPointerDown: (event: PointerEvent<HTMLDivElement>) => { if (disabled || event.button !== 0) return; event.preventDefault(); slider.current?.focus({ preventScroll: true }); event.currentTarget.setPointerCapture(event.pointerId); scrub(event); },
@@ -89,7 +89,7 @@ export function Timeline({ openEffect, generateTrackWaveform, generatingId, asse
   }
   return <TimelineSnapContext value={{ enabled: snapping, targets, frameRate: asset.frameRate }}><section id="media-timeline" className="timeline panel" aria-label="Timeline">
     <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{sections.length} {sections.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="icon-button snapping-toggle" aria-label="Timeline snapping" aria-pressed={snapping} title="Snap to clip edges, captions and frames · hold Alt to bypass" onClick={() => { setSnapping(!snapping); try { localStorage.setItem('frame:timeline-snapping', String(!snapping)); } catch {} }}><Magnet size={15} /></button><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || (!active && !selectedClip) || sections.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
-    <TimelineNavigator extent={total} tools={<TimelineViewTools zoom={zoom} setZoom={setZoom} fit={scale.fit} />} zoom={zoom} edit={edit} position={sequence ? outputTimeAtSource(edit, current) : current} fraction={fraction} pan={value => { if (scroll.current) scroll.current.scrollLeft = value * (scroll.current.scrollWidth - scroll.current.clientWidth); setFraction(value); }} filter={filter} setFilter={setFilter} compact={compact} setCompact={setCompact} locate={locate} />
+    <TimelineNavigator extent={total} tools={<TimelineViewTools zoom={zoom} setZoom={setZoom} fit={scale.fit} />} zoom={zoom} edit={edit} position={position} fraction={fraction} pan={value => { if (scroll.current) scroll.current.scrollLeft = value * (scroll.current.scrollWidth - scroll.current.clientWidth); setFraction(value); }} filter={filter} setFilter={setFilter} compact={compact} setCompact={setCompact} locate={locate} />
     <div className="timeline-analysis">
       {asset.hasAudio && !waveform && <>{asset.kind === 'audio' && autoWaveforms && !waveformError ? <span className="waveform-status" role="status">{waveformLoading ? `Reading waveform ${Math.round(analysisProgress * 100)}%` : 'Preparing waveform…'}</span> : <button className="button small" disabled={disabled} onClick={generateWaveform}>{waveformLoading ? `Reading peaks ${Math.round(analysisProgress * 100)}%` : waveformError ? 'Retry waveform' : 'Generate waveform'}</button>}{waveformLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel waveform</button>}{waveformError && <TransientMessage className="waveform-error" role="alert">{waveformError}</TransientMessage>}</>}
     </div>
@@ -97,8 +97,8 @@ export function Timeline({ openEffect, generateTrackWaveform, generatingId, asse
       {filter !== 'clips' && filter !== 'captions' && <AudioLayerLanes openEffect={openEffect} axisDuration={total} generateWaveform={generateTrackWaveform} generatingId={generatingId} assets={assets} waveforms={waveforms} edit={edit} compact={compact} disabled={disabled} update={update} seek={seek} />}
       <TimedLanes total={total} openEffect={openEffect} compact={compact} filter={filter} selectClip={selectClip} asset={asset} edit={edit} update={update} disabled={disabled} seek={seek} />
     </div></div>
-    <div className="timeline-clip-viewport">      <div className="timeline-track timeline-lane" style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }} {...scrubProps}><div className="track-baseline" />{clips.map((clip, i) => <TimelineClip openEffect={openEffect} key={clip.id} notify={notify} effectCount={effectCounts[i]} clip={clip} index={i} edit={edit} asset={asset} duration={total} position={sequence ? positions[i] : clip} speed={sequence ? positions[i].speed : 1} disabled={disabled} selected={selectedClip === clip.id || !selectedClip && active?.start === clip.start} select={selectClip} seek={seek} update={update} waveform={waveform}
-        dropIndex={x => { const bounds = content.current!.getBoundingClientRect(), value = Math.max(0, Math.min(total, (x - bounds.left) / bounds.width * total)); const index = (sequence ? positions : clips).findIndex(item => value < item.end); return index < 0 ? clips.length - 1 : index; }} />)}
+    <div className="timeline-clip-viewport">      <div className="timeline-track timeline-lane" style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }} {...scrubProps}><div className="track-baseline" />{clips.map((clip, i) => <TimelineClip openEffect={openEffect} key={clip.id} notify={notify} effectCount={effectCounts[i]} clip={clip} index={i} edit={edit} asset={asset} duration={total} position={positions[i]} speed={positions[i].speed} disabled={disabled} selected={selectedClip === clip.id || !selectedClip && active?.start === clip.start} select={selectClip} seek={seek} update={update} waveform={waveform}
+        dropIndex={x => { const bounds = content.current!.getBoundingClientRect(), value = Math.max(0, Math.min(total, (x - bounds.left) / bounds.width * total)); const index = positions.findIndex(item => value < item.end); return index < 0 ? clips.length - 1 : index; }} />)}
         <div className="playhead" style={{ left: `${position / total * 100}%` }}><span /></div>
       <input ref={slider} className="seek-slider" type="range" aria-label="Seek playhead" aria-valuetext={`${current.toFixed(2)} of ${asset.duration.toFixed(2)} seconds`} min={0} max={asset.duration} step={0.01} value={current} disabled={disabled} onChange={event => seek(Number(event.target.value))} /></div>
     </div>

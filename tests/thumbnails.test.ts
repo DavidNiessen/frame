@@ -15,7 +15,7 @@ it('renders a bounded strip of real source frames', async () => {
   try {
     const output = join(directory, 'strip.png');
     const asset: MediaAsset = { id: '', name: 'sample.mp4', size: 1, kind: 'video', hasAudio: true, duration: 6, width: 640, height: 360, previewUrl: '' };
-    await exec(ffmpeg!, thumbnailArgs(asset, 'public/sample.mp4', output));
+    await exec(ffmpeg!, thumbnailArgs(asset, 'tests/fixtures/sample.mp4', output));
     const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', output]);
     const stream = JSON.parse(stdout).streams[0]; expect(stream.width).toBe(thumbnailCount * thumbnailWidth); expect(stream.height).toBe(thumbnailHeight);
   } finally { await rm(directory, { recursive: true, force: true }); }

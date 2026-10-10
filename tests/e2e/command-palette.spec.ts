@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { openMobileMenu } from '../helpers/header';
 test('finds commands with keyboard navigation, respects unavailable actions and opens editor tools', async ({ page }) => {
@@ -5,7 +6,7 @@ test('finds commands with keyboard navigation, respects unavailable actions and 
   await search.fill('save project'); await expect(page.getByRole('option', { name: /Save project/ })).toHaveAttribute('aria-selected', 'true'); await search.press('Enter'); await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
   await search.fill('scene'); await expect(page.getByRole('option', { name: /Find scene changes/ })).toBeDisabled(); await search.press('Enter'); await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
   await search.fill('convert'); await search.press('Enter'); await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).not.toBeVisible(); await expect(page.getByRole('navigation', { name: 'Workflow' }).getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await page.keyboard.press('Control+k'); await search.fill('editor'); await search.press('Enter'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+  await page.keyboard.press('Control+k'); await search.fill('editor'); await search.press('Enter'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await page.getByRole('button', { name: 'Play', exact: true }).click(); await page.keyboard.press('Control+k'); await expect(page.locator('video')).toHaveJSProperty('paused', true); await search.fill('marker'); await expect(page.getByRole('dialog', { name: 'Command palette', exact: true }).getByRole('option')).toHaveCount(0); await search.fill('effects'); await search.press('Enter'); await page.getByRole('button', { name: 'Add Captions', exact: true }).click(); await expect(page.getByRole('button', { name: 'Caption 1', exact: true })).toBeVisible();
   await page.keyboard.press('Control+k'); await search.fill('undo'); await search.press('Enter'); await expect(page.getByRole('button', { name: 'Caption 1', exact: true })).toHaveCount(0);
   await page.keyboard.press('Control+k'); await search.fill('save project'); const projectDownload = page.waitForEvent('download'); await search.press('Enter'); expect((await projectDownload).suggestedFilename()).toMatch(/\.frame\.json$/);

@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { trim, setBoundary } from '../helpers/timeline';
 import { test, expect } from '@playwright/test';
@@ -7,7 +8,7 @@ import { readFile } from 'node:fs/promises';
 import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 test('previews and exports video/audio fades after a speed edit', async ({ page }, testInfo) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
+  await page.goto('/'); await importTestMedia(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 2); await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Video fade in'); await setBoundary(page, 'Video fade in end', 0.4); await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Audio fade in'); await setBoundary(page, 'Audio fade in end', 0.4);
   await page.getByLabel('Seek playhead').fill('0');
@@ -21,7 +22,7 @@ test('previews and exports video/audio fades after a speed edit', async ({ page 
   const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]); expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(1, 1);
 });
 test('crossfades browser clips with audio and video', async ({ page }, testInfo) => {
-  await page.goto('/'); const buffer = await readFile('public/sample.mp4');
+  await page.goto('/'); const buffer = await readFile('tests/fixtures/sample.mp4');
   await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 1); await page.locator('.asset-select').filter({ hasText: 'two.mp4' }).click(); await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 1);
   await page.getByLabel('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Merge clips', exact: true }).click();

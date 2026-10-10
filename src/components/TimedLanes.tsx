@@ -5,11 +5,11 @@ import { effectAction } from '../core/effect-actions';
 import { memo, useMemo, useRef } from 'react';
 import { useElementSize } from '../hooks/useElementSize';
 import { ChevronDown, Captions, AudioLines } from 'lucide-react';
-import { fadeKeys, fadeLabel, fadeRange, resizeFade } from '../core/timed-effects';
+import { fadeKeys, fadeLabel } from '../core/timed-effects';
 import { keptRanges, editedDuration } from '../core/timeline';
-import { clipPositions, clipRecipe, patchClip } from '../core/clips';
+import { clipPositions } from '../core/clips';
 import { clipEffectRows } from '../core/effect-timeline';
-import { appliedEffects, effectLibrary, type EffectId } from '../core/effect-library';
+import { appliedEffects, type EffectId } from '../core/effect-library';
 import { ClipEffectLanes } from './ClipEffectLanes';
 import type { EditSettings, MediaAsset } from '../core/types';
 import type { TrackFilter } from './layout/TimelineNavigator';
@@ -19,13 +19,12 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
   const root = useRef<HTMLDivElement>(null), size = useElementSize(root, { width: innerWidth, height: 0 });
   const minimumWidth = innerWidth <= 700 ? 64 : 48;
   const outputDuration = editedDuration(edit);
-  const positions = clipPositions(edit);
   const captionRows = useMemo(() => {
     const rows: (ReturnType<typeof captionItems>[number] & { shown: { start: number; end: number }; speed: number })[][] = [];
-    const cues = captionItems(edit).flatMap(cue => edit.clips ? clipPositions(edit).flatMap(({ clip, start, speed }) => {
+    const cues = captionItems(edit).flatMap(cue => clipPositions(edit).flatMap(({ clip, start, speed }) => {
       const from = Math.max(clip.start, cue.start), to = Math.min(clip.end, cue.end);
       return to > from ? [{ ...cue, start: from, end: to, speed, shown: { start: start + (from - clip.start) / speed, end: start + (to - clip.start) / speed } }] : [];
-    }) : [{ ...cue, speed: 1, shown: { start: cue.start, end: cue.end } }]);
+    }));
     cues.filter(cue => cue.end > cue.start).sort((a, b) => a.shown.start - b.shown.start).forEach(cue => {
       const visibleRange = (cue: typeof cues[number]) => {
         const duration = Math.max(cue.shown.end - cue.shown.start, minimumWidth / Math.max(1, size.width) * total);
@@ -35,11 +34,10 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
       if (row) row.push(cue); else rows.push([cue]);
     });
     return rows;
-  }, [edit.subtitles, edit.effectInstances, edit.clips, edit.speed, size.width, minimumWidth, total]);
+  }, [edit.subtitles, edit.effectInstances, edit.clips, edit.speed, edit.start, edit.end, edit.cuts, edit.splits, size.width, minimumWidth, total]);
   const fades = fadeKeys(asset).filter(key => edit[key] > 0), retained = keptRanges(edit);
   const effectRows = clipEffectRows(asset, edit);
-  const clipFades = edit.clips ? positions.flatMap(position => fadeKeys(asset).filter(key => (position.clip.effects[key] ?? 0) > 0).map(key => ({ ...position, key }))) : [];
-  const effectCount = fades.length + extraInstances(edit).filter(instance => instance.effect.includes('Fade')).length + clipFades.length + effectRows.reduce((count, row) => count + row.items.length, 0);
+  const effectCount = fades.length + extraInstances(edit).filter(instance => instance.effect.includes('Fade')).length + effectRows.reduce((count, row) => count + row.items.length, 0);
   const sourceEffects = appliedEffects(asset, edit, null).filter(effect => effect.scope === 'source' && effect.id !== 'captions').flatMap(effect => sourceRecipes(edit, effect.id).filter(item => item.id || primaryPresent(edit, asset, effect.id)).map(item => ({ effect, ...item, ordinal: item.id ? extraInstances(edit, effect.id).findIndex(instance => instance.id === item.id) + 2 : 1 })));
   return <div ref={root} className={`timed-lanes ${compact ? 'compact' : ''}`}>
     {filter !== 'clips' && filter !== 'effects' && captionRows.length > 0 && <details data-timeline-kind="captions" className="timeline-lane-group" open={!compact || filter === 'captions'}>
@@ -56,30 +54,22 @@ export const TimedLanes = memo(function TimedLanes({ asset, edit, disabled, upda
       <summary><AudioLines size={14} />Effects <span>{effectCount + sourceEffects.length}</span><ChevronDown size={14} /></summary>
       <ClipEffectLanes asset={asset} edit={edit} total={total} disabled={disabled} update={update} seek={seek} selectClip={selectClip} openEffect={openEffect} />
       <WatermarkLanes asset={asset} edit={edit} total={total} disabled={disabled} update={update} seek={seek} openEffect={openEffect} />
-      {sourceEffects.filter(item => item.effect.id !== 'watermark').map(({ effect, id, ordinal }) => <div className="timeline-lane effect-lane" key={id ?? effect.id}><TimelineRange selectOnPointer range={edit.clips ? { start: 0, end: outputDuration } : edit} limits={{ start: 0, end: total }} duration={total} label={`${effect.name}${id ? ` instance ${ordinal}` : ''} effect`} text={`${effect.name} · Source`} edges={[]} disabled={disabled} onChange={() => {}} onSelect={() => openEffect(effect.id, id)} remove={{ label: `Remove ${effect.name} from source`, run: () => update(id ? changeInstance(edit, id, null, 'remove') : effectAction(edit, asset, effect, null, 'remove')) }} /></div>)}
+      {sourceEffects.filter(item => item.effect.id !== 'watermark').map(({ effect, id, ordinal }) => <div className="timeline-lane effect-lane" key={id ?? effect.id}><TimelineRange selectOnPointer range={{ start: 0, end: outputDuration }} limits={{ start: 0, end: total }} duration={total} label={`${effect.name}${id ? ` instance ${ordinal}` : ''} effect`} text={`${effect.name} · Source`} edges={[]} disabled={disabled} onChange={() => {}} onSelect={() => openEffect(effect.id, id)} remove={{ label: `Remove ${effect.name} from source`, run: () => update(id ? changeInstance(edit, id, null, 'remove') : effectAction(edit, asset, effect, null, 'remove')) }} /></div>)}
       {extraInstances(edit).filter(instance => instance.effect.includes('Fade')).map((instance, index) => {
         const key = instance.effect as typeof fades[number], value = instance.settings[key] ?? 0;
-        const recipe = { ...edit, ...instance.settings, effectInstances: edit.effectInstances?.filter(item => item.id !== instance.id) };
-        const range = edit.clips ? key.endsWith('In') ? { start: 0, end: value || outputDuration } : { start: value ? outputDuration - value : 0, end: outputDuration } : value ? fadeRange(recipe, key) : edit;
-        return <div className="timeline-lane effect-lane" key={instance.id}><TimelineRange selectOnPointer range={range} limits={edit.clips ? { start: 0, end: outputDuration } : edit} duration={total} label={`${fadeLabel(key)} instance ${index + 2}`} text={`${fadeLabel(key)} · ${value.toFixed(2)}s`} edges={value ? [key.endsWith('In') ? 'end' : 'start'] : []} disabled={disabled} onSelect={keepView => { selectClip(null); openEffect(key, instance.id, keepView); }} remove={{ label: `Remove ${fadeLabel(key)} instance ${index + 2}`, run: () => update(changeInstance(edit, instance.id, null, 'remove')) }} onChange={range => update(changeInstance(edit, instance.id, null, edit.clips ? { [key]: key.endsWith('In') ? range.end : outputDuration - range.start } : resizeFade(recipe, key, range)))} /></div>;
+        const range = key.endsWith('In') ? { start: 0, end: value || outputDuration } : { start: value ? outputDuration - value : 0, end: outputDuration };
+        return <div className="timeline-lane effect-lane" key={instance.id}><TimelineRange selectOnPointer range={range} limits={{ start: 0, end: outputDuration }} snapSpace="output" duration={total} label={`${fadeLabel(key)} instance ${index + 2}`} text={`${fadeLabel(key)} · ${value.toFixed(2)}s`} edges={value ? [key.endsWith('In') ? 'end' : 'start'] : []} disabled={disabled} onSelect={keepView => { selectClip(null); openEffect(key, instance.id, keepView); }} remove={{ label: `Remove ${fadeLabel(key)} instance ${index + 2}`, run: () => update(changeInstance(edit, instance.id, null, 'remove')) }} onChange={range => update(changeInstance(edit, instance.id, null, { [key]: key.endsWith('In') ? range.end : outputDuration - range.start }))} /></div>;
       })}
       {fades.map(key => {
-        const sequence = !!edit.clips, range = sequence ? key.endsWith('In') ? { start: 0, end: edit[key] } : { start: outputDuration - edit[key], end: outputDuration } : fadeRange(edit, key);
+        const range = key.endsWith('In') ? { start: 0, end: edit[key] } : { start: outputDuration - edit[key], end: outputDuration };
         return <div className="timeline-lane effect-lane" key={key}>
-          <TimelineRange selectOnPointer range={range} limits={sequence ? { start: 0, end: outputDuration } : { start: retained[0]?.start ?? edit.start, end: retained.at(-1)?.end ?? edit.end }}
-            duration={total} snapSpace={sequence ? 'output' : 'source'} label={fadeLabel(key)} text={`${fadeLabel(key)} · ${edit[key].toFixed(2)}s`} className={`fade-bar ${key.endsWith('In') ? 'fade-in' : 'fade-out'}`} minimum={.01}
+          <TimelineRange selectOnPointer range={range} limits={{ start: 0, end: outputDuration }}
+            duration={total} snapSpace="output" label={fadeLabel(key)} text={`${fadeLabel(key)} · ${edit[key].toFixed(2)}s`} className={`fade-bar ${key.endsWith('In') ? 'fade-in' : 'fade-out'}`} minimum={.01}
             edges={[key.endsWith('In') ? 'end' : 'start']} disabled={disabled} onSelect={keepView => { selectClip(null); seek(retained[0]?.start ?? edit.start); openEffect(key, undefined, keepView); }}
             remove={{ label: `Remove ${fadeLabel(key)} from sequence`, run: () => update({ [key]: 0, addedEffects: edit.addedEffects?.filter(id => id !== key), ...(edit.clips ? { clips: edit.clips.map(clip => ({ ...clip, effects: { ...clip.effects, addedEffects: (clip.effects[key] ?? 0) > 0 ? clip.effects.addedEffects : clip.effects.addedEffects?.filter(id => id !== key) } })) } : {}) }) }}
-            onChange={range => update(sequence ? { [key]: key.endsWith('In') ? range.end : outputDuration - range.start } : resizeFade(edit, key, range))} />
+            onChange={range => update({ [key]: key.endsWith('In') ? range.end : outputDuration - range.start })} />
           <span className="effect-lane-label">{fadeLabel(key)} · {edit[key].toFixed(2)}s</span>
         </div>;
-      })}
-      {clipFades.map(({ clip, start, key }) => {
-        const recipe = clipRecipe(edit, clip), localDuration = editedDuration(recipe), value = recipe[key];
-        const range = key.endsWith('In') ? { start, end: start + value } : { start: start + localDuration - value, end: start + localDuration };
-        return <div className="timeline-lane effect-lane" key={`${clip.id}-${key}`}><TimelineRange selectOnPointer className="clip-fade-bar" range={range} limits={{ start, end: start + localDuration }} duration={total} snapSpace="output" label={`${fadeLabel(key)} clip ${positions.findIndex(p => p.clip.id === clip.id) + 1}`} text={`${fadeLabel(key)} · clip`} edges={[key.endsWith('In') ? 'end' : 'start']} minimum={.01} disabled={disabled} onSelect={keepView => { selectClip(clip.id); seek(clip.start); openEffect(key, undefined, keepView); }}
-          remove={{ label: `Remove ${fadeLabel(key)} from clip ${positions.findIndex(p => p.clip.id === clip.id) + 1}`, run: () => update(effectAction(edit, asset, effectLibrary.find(effect => effect.id === key)!, clip.id, 'remove')) }}
-          onChange={range => update(patchClip(edit, clip.id, { [key]: key.endsWith('In') ? range.end - start : start + localDuration - range.start }))} /></div>;
       })}
     </details>}
   </div>;

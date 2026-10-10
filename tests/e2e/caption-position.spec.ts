@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -8,7 +9,7 @@ const ffmpeg = ffmpegPath();
 const exec = promisify(execFile);
 
 async function captions(page: Page) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
+  await page.goto('/'); await importTestMedia(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openEffect(page, 'Captions');
 

@@ -1,6 +1,7 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 test('snaps dragged trim edges to caption boundaries and allows Alt and the toggle to bypass snapping', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await page.getByRole('button', { name: 'Add Captions', exact: true }).click();
   await page.getByLabel('Seek playhead').fill('3');

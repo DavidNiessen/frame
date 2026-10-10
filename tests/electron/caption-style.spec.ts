@@ -27,7 +27,7 @@ test('lists installed fonts and preserves a styled desktop caption through save 
     const { stdout } = await exec(ffmpegPath()!, ['-v', 'error', '-i', output, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer', maxBuffer: 2_000_000 });
     let red = 0; for (let pixel = 0; pixel < stdout.length; pixel += 3) if (stdout[pixel] > 150 && stdout[pixel + 1] < 60 && stdout[pixel + 2] < 60) red++;
     expect(red).toBeGreaterThan(100);
-    const assets = await page.evaluate(() => window.frameDesktop!.importSample());
+    const assets = await page.evaluate(() => window.frameDesktop!.importFiles());
     const edit = JSON.parse(await readFile(project, 'utf8')).sources[0].edit;
     edit.subtitles.cues[0].style.font = 'system:Frame Test Missing Font';
     await expect(page.evaluate(({ asset, edit }) => window.frameDesktop!.previewFrame(asset.id, edit, 0), { asset: assets.assets[0], edit })).rejects.toThrow('not installed');

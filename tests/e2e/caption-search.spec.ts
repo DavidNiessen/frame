@@ -1,7 +1,8 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { closeEffect, openCaptionTools } from '../helpers/effects';
 test('finds and replaces independent captions with case and word controls and undo', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await openCaptionTools(page);
+  await page.goto('/'); await importTestMedia(page); await openCaptionTools(page);
   const cues = Array.from({ length: 61 }, (_, i) => `${i + 1}\n00:00:00,000 --> 00:00:01,000\n${i === 0 ? 'Frame frame framework' : i === 60 ? 'frame' : `Caption ${i + 1}`}\n`).join('\n').trim();
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'many.srt', mimeType: 'text/plain', buffer: Buffer.from(cues) });
   await expect(page.locator('.caption-bar .range-body')).toHaveCount(61); await page.getByText('Find & replace', { exact: true }).click();

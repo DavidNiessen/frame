@@ -1,8 +1,9 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect, openCaptionTools } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 
 async function sample(page: Page) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 45000 });
   await page.evaluate(() => document.fonts.ready);
 }
@@ -27,7 +28,7 @@ test('fits the empty preview at short desktop heights and contains genuine overf
   await page.evaluate(() => document.fonts.ready);
   const scroller = page.locator('.empty-stage-scroll');
   expect(await scroller.evaluate(node => node.scrollHeight)).toBe(await scroller.evaluate(node => node.clientHeight));
-  await page.getByRole('button', { name: 'Try a sample', exact: true }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: 'Add media', exact: true }).scrollIntoViewIfNeeded();
   expect(await scroller.evaluate(node => node.scrollTop)).toBe(0);
   await expect(page.locator('.empty-stage')).toHaveCSS('overflow', 'hidden');
   const panel = (await page.locator('.empty-stage').boundingBox())!, inner = (await scroller.boundingBox())!;

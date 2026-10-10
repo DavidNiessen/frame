@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { trim } from '../helpers/timeline';
 import { test, expect, _electron } from '@playwright/test';
@@ -19,7 +20,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
   try {
     const page = await app.firstWindow();
     expect(await page.evaluate(() => Boolean(window.frameDesktop))).toBe(true);
-    await page.getByRole('button', { name: /Start with a sample/ }).click();
+    await importTestMedia(page, app);
     await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     const track = (await page.locator('.timeline-track').boundingBox())!;
@@ -101,7 +102,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     expect(Number(info.format.duration)).toBeCloseTo(1, 1);
     expect((await readdir(directory)).some(name => name.startsWith('.frame-'))).toBe(false);
     await app.evaluate(({ dialog }, directory) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] }); }, directory);
-    await page.getByRole('button', { name: 'Start with a sample A short studio study' }).click();
+    await importTestMedia(page, app);
     await closeEffect(page); await page.getByLabel('Output format').selectOption('flac');
     await page.getByLabel('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Batch export', exact: true }).click();
     const batch = page.getByRole('dialog', { name: 'Batch export', exact: true });
@@ -121,7 +122,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     const mergedInfo = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', mergedPath]);
     expect(Number(JSON.parse(mergedInfo.stdout).format.duration)).toBeCloseTo(6.7, 1);
     await merge.getByRole('button', { name: 'Close merge' }).click();
-    const source = await app.evaluate(({ app }) => app.isPackaged ? app.getAppPath().replace(/[/\\]app\.asar$/, '') + '/sample.mp4' : app.getAppPath() + '/public/sample.mp4');
+    const source = resolve('tests/fixtures/sample.mp4');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, source);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect(page.locator('.toast')).toContainText('Choose a different project path');

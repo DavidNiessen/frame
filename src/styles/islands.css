@@ -78,7 +78,7 @@
 .editor-layout[data-layout='medium'] > .inspector-divider { grid-column: 2; grid-row: 2; }
 .editor-layout[data-layout='medium'] > .inspector { grid-column: 3; grid-row: 2; height: max(640px, calc(var(--app-height, 100dvh) - 310px)); }
 .editor-layout:not([data-layout='wide']) .library-content { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
-.editor-layout:not([data-layout='wide']) .library-bottom, .editor-layout:not([data-layout='wide']) .library-empty svg, .editor-layout:not([data-layout='wide']) .library-empty span { display: none; }
+.editor-layout:not([data-layout='wide']) .library-empty svg, .editor-layout:not([data-layout='wide']) .library-empty span { display: none; }
 .editor-layout:not([data-layout='wide']) .library-empty { padding: 0; text-align: left; }
 .editor-layout:not([data-layout='wide']) .library-empty p { margin: 0; }
 .editor-layout:not([data-layout='wide']) .asset-list { flex-direction: row; flex: 1; }

@@ -1,3 +1,4 @@
+import type { EffectRanges } from './timed-adjustments';
 import type { EffectInstance } from './effect-instances';
 import type { EffectId } from './effect-ids';
 import type { MediaTagOverrides } from './media-tags';
@@ -50,6 +51,7 @@ export interface TimeRange { start: number; end: number }
 export interface EditSettings {
   addedEffects?: EffectId[];
   effectInstances?: EffectInstance[];
+  effectRanges?: EffectRanges;
   silenceOptions?: SilenceOptions;
   audioLayers?: AudioLayer[];
   audioMixProtectPeaks?: boolean;
@@ -100,7 +102,6 @@ export interface MediaEngine {
   importUrl(url: string, onProgress?: (p: ExportProgress) => void, options?: UrlImportOptions): Promise<ImportReport>;
   importFolder?(onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   importLaunch?(id: string, onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
-  importSample(): Promise<ImportReport>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
   merge(clips: MediaClip[], output: OutputSettings, onProgress: (p: ExportProgress) => void, transition?: TransitionSettings): Promise<ExportResult | null>;
   detectSilence(asset: MediaAsset, options: SilenceOptions, onProgress: (p: ExportProgress) => void): Promise<TimeRange[]>;

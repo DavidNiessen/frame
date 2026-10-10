@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { test, expect } from '@playwright/test';
 
 test('shows disabled file-manager actions on web and previewed themes that persist', async ({ page }) => {
@@ -34,12 +35,12 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.getByRole('button', { name: 'Back to workspace' }).click();
-  await expect(page.getByRole('button', { name: 'Try a sample' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add media' })).toBeVisible();
 });
 
 test('preserves timeline edits and the conversion selection when navigating through settings', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Try a sample' }).click();
+  await importTestMedia(page);
   const start = page.getByLabel('Trim start', { exact: true });
   await expect(start).toBeVisible({ timeout: 45000 });
   await start.press('ArrowRight');

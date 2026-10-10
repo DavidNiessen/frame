@@ -13,7 +13,7 @@ import { parseEdit } from '../src/core/project';
 import { buildExportArgs } from '../src/core/export-plan';
 import { buildMergeArgs } from '../src/core/composition';
 import { ffmpegPath, ffprobePath, probeFile } from '../electron/native';
-const exec = promisify(execFile), source = resolve('public/sample.mp4');
+const exec = promisify(execFile), source = resolve('tests/fixtures/sample.mp4');
 let asset: MediaAsset, directory: string;
 beforeAll(async () => { directory = await mkdtemp(join(tmpdir(), 'frame-clips-')); asset = { ...await probeFile(source), id: 'test', name: 'sample.mp4', previewUrl: '' }; });
 afterAll(async () => { await rm(directory, { recursive: true, force: true }); });

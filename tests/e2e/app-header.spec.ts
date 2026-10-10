@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { test, expect } from '@playwright/test';
 import { openMobileMenu } from '../helpers/header';
 
@@ -41,7 +42,7 @@ test('keeps project actions in a single responsive header with usable menus', as
 
 test('saves from the compact header and opens projects without losing workflow navigation', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   const header = page.locator('.app-header');
   await openMobileMenu(page);
   await expect(header.getByRole('button', { name: 'Save project', exact: true })).toBeEnabled({ timeout: 45000 });

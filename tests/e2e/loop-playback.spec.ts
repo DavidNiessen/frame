@@ -1,7 +1,8 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { trim } from '../helpers/timeline';
 test('loops the sequence or selected clip without altering export timing', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await trim(page, 'end', .6);
+  await page.goto('/'); await importTestMedia(page); await trim(page, 'end', .6);
   await page.evaluate(() => { (window as unknown as { wraps: number }).wraps = 0; document.querySelector('video')!.addEventListener('seeked', () => { if (document.querySelector('video')!.currentTime < .1) (window as unknown as { wraps: number }).wraps++; }); });
   await page.getByLabel('Playback loop', { exact: true }).click(); await page.getByRole('button', { name: 'Loop sequence', exact: true }).click();
   await page.getByRole('button', { name: 'Play', exact: true }).click();

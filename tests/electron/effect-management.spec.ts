@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { trim } from '../helpers/timeline';
 import { expect, test, _electron } from '@playwright/test';
@@ -8,7 +9,7 @@ test('saves minimum split clips and removes an inherited effect through the nati
   const directory = await mkdtemp(join(tmpdir(), 'frame-effects-')), executablePath = process.env.FRAME_TEST_EXECUTABLE;
   const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {
-    const page = await app.firstWindow(); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    const page = await app.firstWindow(); await importTestMedia(page, app); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await expect(page.getByRole('tab', { name: 'Edit', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add Trim', exact: true })).toHaveCount(0);
     await trim(page, 'start', 2.4); await trim(page, 'end', 2.5);

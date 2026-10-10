@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { trim } from '../helpers/timeline';
 import { test, expect } from '@playwright/test';
@@ -6,7 +7,7 @@ import { promisify } from 'node:util';
 import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 test('previews and exports speed edits with undo support', async ({ page }, testInfo) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
+  await page.goto('/'); await importTestMedia(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
   await expect(page.locator('video')).toHaveJSProperty('playbackRate', 2);
   await expect(page.locator('video')).toHaveJSProperty('preservesPitch', true);

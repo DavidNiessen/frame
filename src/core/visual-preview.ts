@@ -1,3 +1,4 @@
+import { activeAtSource } from './timed-adjustments';
 import { extraInstances, instanceRecipe } from './effect-instances';
 import type { EditSettings, MediaAsset } from './types';
 type Matrix = [number, number, number, number, number, number];
@@ -27,6 +28,6 @@ export function stackedGeometryPreview(asset: MediaAsset, edit: EditSettings) {
   const [a,b,c,d,x,y] = matrix;
   return { position: 'absolute' as const, left: `${x/width*100}%`, top: `${y/height*100}%`, width: `${sw/width*100}%`, height: `${sh/height*100}%`, maxWidth: 'none', maxHeight: 'none', objectFit: 'fill' as const, transformOrigin: '0 0', transform: `matrix(${a},${b},${c},${d},0,0)` };
 }
-export function colorPreview(edit: EditSettings) {
-  return [edit, ...extraInstances(edit, 'color').map(instance => instanceRecipe(edit, instance))].map(recipe => `brightness(${1+recipe.color.brightness}) contrast(${recipe.color.contrast}) saturate(${recipe.color.saturation})`).join(' ');
+export function colorPreview(edit: EditSettings, time?: number) {
+  return [...(activeAtSource(edit.effectRanges?.color, time) ? [edit] : []), ...extraInstances(edit, 'color').filter(instance => activeAtSource(instance.range, time)).map(instance => instanceRecipe(edit, instance))].map(recipe => `brightness(${1+recipe.color.brightness}) contrast(${recipe.color.contrast}) saturate(${recipe.color.saturation})`).join(' ');
 }

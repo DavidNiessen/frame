@@ -1,8 +1,9 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { setBoundary, trim } from '../helpers/timeline';
 async function sample(page: import('@playwright/test').Page) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+  await page.goto('/'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
 }
 for (const width of [1440, 390]) test(`keeps the catalogue stable and opens settings from timeline bars at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 }); await sample(page);

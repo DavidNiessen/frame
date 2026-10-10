@@ -28,6 +28,9 @@ export function recipePatch(recipe: EffectRecipe, asset: MediaAsset, edit: EditS
   }
   if (settings.addedEffects) settings.addedEffects = settings.addedEffects.filter(id => availableEffects(asset).some(effect => effect.id === id));
   if (settings.effectInstances) settings.effectInstances = settings.effectInstances.filter(instance => availableEffects(asset).some(effect => effect.id === instance.effect));
+  const fitRange = (range: { start: number; end: number }) => { const length = Math.min(range.end - range.start, edit.end - edit.start), start = Math.max(edit.start, Math.min(range.start, edit.end - length)); return { start, end: start + length }; };
+  if (settings.effectRanges) settings.effectRanges = Object.fromEntries(Object.entries(settings.effectRanges).map(([id, range]) => [id, fitRange(range)]));
+  if (settings.effectInstances) settings.effectInstances = settings.effectInstances.map(instance => instance.range ? { ...instance, range: fitRange(instance.range) } : instance);
   const duration = editClips(edit).reduce((total, clip) => total + (clip.end - clip.start) / effectiveSpeed({ ...edit, ...clip.effects, ...settings }), 0);
   for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) if (settings[key] !== undefined) settings[key] = Math.min(settings[key]!, duration);
   return settings;

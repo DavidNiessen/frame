@@ -1,9 +1,10 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { closeEffect } from '../helpers/effects';
 for (const width of [1440, 390]) test(`moves and trims independent watermarks while keeping settings open at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await page.getByLabel('Seek playhead').fill('1'); await page.getByRole('button', { name: 'Add Watermark', exact: true }).click();
   await page.getByRole('button', { name: 'Watermark effect', exact: true }).click(); await page.getByLabel('Overlay text', { exact: true }).fill('First overlay'); await closeEffect(page);

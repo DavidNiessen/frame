@@ -87,10 +87,6 @@
     },
     "extraResources": [
       {
-        "from": "public/sample.mp4",
-        "to": "sample.mp4"
-      },
-      {
         "from": "public/notices",
         "to": "notices"
       },

@@ -1,10 +1,11 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { test, expect } from '@playwright/test';
 
 test('keeps desktop editing focused and preserves effects across accessible tabs', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Try a sample' }).click();
+  await importTestMedia(page);
   const effects = page.getByRole('tab', { name: 'Effects', exact: true });
   const output = page.getByRole('tab', { name: 'Export', exact: true });
   await expect(page.getByRole('tab', { name: 'Edit', exact: true })).toHaveCount(0);
@@ -49,7 +50,7 @@ test('supports precise touch seeking and focused tools on narrow screens', async
   const page = await context.newPage();
   try {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Try a sample' }).click();
+    await importTestMedia(page);
     await page.getByLabel('Seek playhead').waitFor();
     await page.locator('.timeline-track').scrollIntoViewIfNeeded();
     const bounds = (await page.locator('.timeline-track').boundingBox())!;

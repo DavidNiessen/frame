@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -23,7 +24,7 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
       }));
     }, top);
     const settle = () => page.locator('.desktop-window-frame').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
-    await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+    await importTestMedia(page, app);
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click();
     await page.locator('.preview-panel').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));

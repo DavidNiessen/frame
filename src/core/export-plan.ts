@@ -1,3 +1,4 @@
+import { parseEffectRanges } from './timed-adjustments';
 import { parseEffectInstances } from './effect-instance-validation';
 import { allAudioLayers, captionLimit, effectiveSpeed, extraInstances } from './effect-instances';
 import { parseSilence, defaultSilence } from './silence';
@@ -26,6 +27,7 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
+  parseEffectRanges(edit.effectRanges);
   parseAddedEffects(edit.addedEffects);
   parseEffectInstances(edit.effectInstances, asset, recipe => validateEdit(asset, recipe));
   parseSubtitles(edit.subtitles);

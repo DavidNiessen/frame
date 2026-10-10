@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect, openCaptionTools } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 import { setBoundary } from '../helpers/timeline';
@@ -16,7 +17,7 @@ async function dragEdge(page: Page, label: string, delta: number) {
   await page.mouse.up();
 }
 async function sample(page: Page) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample' }).click();
+  await page.goto('/'); await importTestMedia(page);
   await page.getByRole('slider', { name: 'Trim start', exact: true }).waitFor();
   await page.evaluate(() => document.fonts.ready);
 }
@@ -117,10 +118,10 @@ test('expands a trimmed end with small pointer movements instead of snapping bac
     expect(Number(await end.getAttribute('aria-valuenow'))).toBeGreaterThan(before);
   }
 });
-test('explains the source end limit after trimming the beginning and restores with the left handle', async ({ page }) => {
+test('quietly clamps source boundaries after trimming and restores with the left handle', async ({ page }) => {
   await sample(page); await dragEdge(page, 'Trim start', 1);
   await dragEdge(page, 'Trim end', 1);
-  await expect(page.getByRole('status').filter({ hasText: 'End of source reached' })).toContainText('left handle');
+  await expect(page.getByRole('status').filter({ hasText: /source reached|source footage/ })).toHaveCount(0);
   await expect(page.getByLabel('Trim end', { exact: true })).toHaveAttribute('aria-valuenow', '6');
   await dragEdge(page, 'Trim start', -1);
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');

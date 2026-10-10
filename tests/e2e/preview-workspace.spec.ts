@@ -1,8 +1,9 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 
 async function sample(page: Page) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 45000 });
 }
 

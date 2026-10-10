@@ -72,13 +72,13 @@ export function useEditor() {
       await Promise.all(previous.map(asset => e.release(asset)));
     } finally { busyRef.current = false; setBusy(null); setProgress(null); }
   }
-  async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' | 'url' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }, url?: string, urlOptions?: UrlImportOptions) {
+  async function performImport(files?: File[], mode: 'files' | 'folder' | 'launch' | 'url' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }, url?: string, urlOptions?: UrlImportOptions) {
     if (busyRef.current) return false;
     busyRef.current = true; setBusy('import'); setImportReport(null); setNotice(''); setProgress({ ratio: 0, message: 'Reading your media…' });
     try {
       launch?.activate();
       const e = await engine();
-      const report = mode === 'url' && url ? await e.importUrl(url, setProgress, urlOptions) : mode === 'launch' && launch && e.importLaunch ? await e.importLaunch(launch.id, setProgress) : mode === 'sample' ? await e.importSample() : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
+      const report = mode === 'url' && url ? await e.importUrl(url, setProgress, urlOptions) : mode === 'launch' && launch && e.importLaunch ? await e.importLaunch(launch.id, setProgress) : mode === 'folder' && e.importFolder ? await e.importFolder(setProgress) : await e.importFiles(files, setProgress);
       setImportReport(report);
       const imported = report.assets;
       if (mode === 'url' && !imported.length) throw new Error('The downloaded file could not be read as video or audio. Try another direct file link.');
@@ -199,7 +199,7 @@ export function useEditor() {
     assets, asset, edit, selected, busy, notice, noticeVersion, setNotice, progress, result, dismissResult, importReport,
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,
     select: (id: string) => { if (!busyRef.current) { setSelected(id); setSelectedClip(null); } },
-    importMedia: (files?: File[], sample = false) => performImport(files, sample ? 'sample' : 'files'),
+    importMedia: (files?: File[]) => performImport(files),
     importUrl: (url: string, options?: UrlImportOptions) => performImport(undefined, 'url', undefined, url, options),
     importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive,
     importLaunch: (id: string, activate: () => void, select: (ids: string[]) => void) => performImport(undefined, 'launch', { id, activate, select }),

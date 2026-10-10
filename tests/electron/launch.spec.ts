@@ -48,7 +48,7 @@ test('groups and queues mini selections while editor launches retain their draft
     });
     await mini.getByRole('button', { name: 'Convert 2 files', exact: true }).click();
     await expect(mini.getByRole('button', { name: 'Cancel conversion' })).toBeVisible();
-    const video = join(library.directory, 'Selected $video.mp4'); await copyFile('public/sample.mp4', video);
+    const video = join(library.directory, 'Selected $video.mp4'); await copyFile('tests/fixtures/sample.mp4', video);
     await launch('convert', [video]);
     await expect.poll(() => mini.evaluate(() => window.frameDesktop!.nextLaunch().then(request => request?.count))).toBe(1);
     await launch('edit', [video]);
@@ -80,7 +80,7 @@ test('invokes installed Windows classic and primary commands on a mixed multi-fi
   test.skip(process.platform !== 'win32' || process.env.FRAME_TEST_SHELL_ACTIONS !== '1', 'Runs against the installed NSIS artifact on Windows CI.');
   const library = await conversionLibrary();
   await copyFile(library.sources[0], join(library.directory, 'Selection song & Björk %10.wav'));
-  await copyFile('public/sample.mp4', join(library.directory, 'Selection video.mp4'));
+  await copyFile('tests/fixtures/sample.mp4', join(library.directory, 'Selection video.mp4'));
   // Explorer launches use the normal app profile, so the primary must use it too.
   const app = await _electron.launch({ executablePath: resolve(process.env.FRAME_TEST_EXECUTABLE!), args: [], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {

@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -5,7 +6,7 @@ import ffprobe from '@ffprobe-installer/ffprobe';
 import { trim } from '../helpers/timeline';
 const exec = promisify(execFile);
 test('exports requested audio precision and keeps the controls in conversion mode', async ({ page }, info) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await trim(page, 'end', 1);
   await page.getByLabel('Output format', { exact: true }).selectOption('wav');
   await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();

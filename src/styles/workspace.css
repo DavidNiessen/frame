@@ -35,11 +35,6 @@
 .workspace-tools-menu { position: absolute; right: 0; top: calc(100% + 6px); width: 200px; z-index: 10; padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); box-shadow: var(--shadow); }
 .workspace-tools-menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 12px; border-radius: 5px; font-size: 12px; }
 .workspace-tools-menu button:hover:not(:disabled) { background: var(--surface-hover); }
-.library-bottom { border-top: 1px solid var(--border-soft); padding: 0 14px; }
-.sample-card { padding: 14px 0; }
-.sample-card strong { font-size: 11px; }
-.sample-card small { font-size: 10px; }
-.sample-art { width: 32px; height: 36px; }
 .timeline-toolbar { padding: 8px 16px; }
 .timeline-toolbar h2 { font-size: 13px; }
 .timeline-analysis { gap: 4px; }

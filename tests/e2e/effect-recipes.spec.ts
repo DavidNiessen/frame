@@ -1,8 +1,9 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 test('copies clip effects, saves recipes, applies them in the selected scope, and supports undo', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.4');

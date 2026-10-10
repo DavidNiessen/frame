@@ -19,7 +19,7 @@ it('writes explicit metadata overrides, removes cleared tags and preserves untou
       expect(tags.title).toBe(outputTags.title); expect(tags.artist).toBeUndefined(); expect(tags.album).toBe(outputTags.album);
       expect(parseOutputSettings(outputSettings(edit)).outputTags).toEqual(outputTags);
     }
-    const videoPath = resolve('public/sample.mp4'), video = { ...await probeFile(videoPath), id: 'video', name: 'video.mp4', previewUrl: '' }, output = join(library.directory, 'tags.mp4'); await exec(ffmpegPath(), buildExportArgs(video, { ...defaultSettings(video), keepMetadata: false, outputTags: { title: 'Explicit title' } }, videoPath, output)); expect((await probeConversion(output)).format.tags.title).toBe('Explicit title');
+    const videoPath = resolve('tests/fixtures/sample.mp4'), video = { ...await probeFile(videoPath), id: 'video', name: 'video.mp4', previewUrl: '' }, output = join(library.directory, 'tags.mp4'); await exec(ffmpegPath(), buildExportArgs(video, { ...defaultSettings(video), keepMetadata: false, outputTags: { title: 'Explicit title' } }, videoPath, output)); expect((await probeConversion(output)).format.tags.title).toBe('Explicit title');
     expect(mediaTagArgs({ title: '-i "bad"\n= literal' })).toEqual(['-metadata', 'title=-i "bad"\n= literal']); expect(parseTagOverrides(undefined)).toEqual({}); expect(() => parseTagOverrides({ file: 'invalid' })).toThrow(); expect(() => parseTagOverrides({ title: 'a\0b' })).toThrow(); expect(() => parseTagOverrides({ title: 'a'.repeat(2001) })).toThrow();
   } finally { await rm(library.directory, { recursive: true, force: true }); }
 });

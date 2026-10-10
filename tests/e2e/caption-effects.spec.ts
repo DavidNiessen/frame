@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { closeEffect, openCaptionTools, openEffect, selectFont } from '../helpers/effects';
 import { execFile } from 'node:child_process';
@@ -6,7 +7,7 @@ import { ffmpegPath } from '../../electron/native';
 const exec = promisify(execFile);
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
 });
 for (const width of [1440, 390]) test(`individual caption settings and styling at ${width}px`, async ({ page }, testInfo) => {

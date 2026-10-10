@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { trim, setBoundary } from '../helpers/timeline';
@@ -5,7 +6,7 @@ import { conversionLibrary } from '../helpers/conversion-library';
 import { rm } from 'node:fs/promises';
 test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false')); });
 for (const width of [1440, 390]) test(`provides crop and volume in timeline overlays with timeline trimming at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 900 }); await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.setViewportSize({ width, height: 900 }); await page.goto('/'); await importTestMedia(page);
   await expect(page.getByRole('tab', { name: 'Edit', exact: true })).toHaveCount(0); await expect(page.getByRole('tab')).toHaveCount(2);
   await expect(page.getByRole('tab', { name: 'Effects', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('button', { name: 'Add Trim', exact: true })).toHaveCount(0);
@@ -25,7 +26,7 @@ for (const width of [1440, 390]) test(`provides crop and volume in timeline over
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await expect(page.getByLabel('Search effects')).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test('scopes trim and volume to split clips and preserves trimming when removing clip effects', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+  await page.goto('/'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 });
   await setBoundary(page, 'Section 2 start', 3.5);
   await expect(page.getByLabel('Section 2 start')).toHaveAttribute('aria-valuenow', '3.5'); await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');

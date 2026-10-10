@@ -85,8 +85,8 @@ describe('catalogue repeat policy', () => {
       expect(effectAction(edit, asset, effect, null, 'add')).toEqual({});
       expect(edit.effectInstances ?? []).toHaveLength(0);
     }
-    const edit = { ...defaultSettings(asset), volume: .4 };
-    expect(effectAction(edit, asset, find('volume'), null, 'add')).toEqual({}); expect(edit.volume).toBe(.4);
+    const edit = { ...defaultSettings(asset), speed: 2 };
+    expect(effectAction(edit, asset, find('speed'), null, 'add')).toEqual({}); expect(edit.speed).toBe(2);
   });
   it('permits the same adjustment on another clip but reopens the selected clip on repeats', () => {
     let edit = split(); const [a, b] = edit.clips!;

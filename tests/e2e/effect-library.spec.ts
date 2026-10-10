@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect, openCaptionTools } from '../helpers/effects';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
@@ -6,7 +7,7 @@ import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 
 test('keeps the opposite caption boundary when resizing a cue that spans split clips', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openCaptionTools(page);
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'spanning.srt', mimeType: 'text/plain', buffer: Buffer.from('1\n00:00:01,000 --> 00:00:05,000\nAcross both clips\n') });
@@ -18,7 +19,7 @@ test('keeps the opposite caption boundary when resizing a cue that spans split c
 });
 
 test('plays reordered clips across the source end and restarts at the sequence beginning', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   const video = page.locator('video'); await expect(video).toHaveJSProperty('readyState', 4);
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 });
@@ -32,7 +33,7 @@ test('plays reordered clips across the source end and restarts at the sequence b
 });
 
 test('applies an effect to one split clip, reorders it and exports the sequence', async ({ page }, testInfo) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 45000 });
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 });
@@ -63,7 +64,7 @@ test('applies an effect to one split clip, reorders it and exports the sequence'
 });
 
 test('keeps waveform generation and cancellation independent of editing and export', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toBeVisible({ timeout: 45000 });
   // Hold the background worker's download so cancellation cannot race a completed waveform.
   let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; });
@@ -80,7 +81,7 @@ test('keeps waveform generation and cancellation independent of editing and expo
 });
 
 test('navigates dense tracks without losing clips and pans zoomed tracks from the mini timeline', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openCaptionTools(page);
   const srt = Array.from({ length: 35 }, (_, index) => `${index + 1}\n00:00:00,000 --> 00:00:05,000\nCaption ${index + 1}\n`).join('\n');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'dense.srt', mimeType: 'text/plain', buffer: Buffer.from(srt) });

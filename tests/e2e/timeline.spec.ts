@@ -1,8 +1,9 @@
+import { importTestMedia } from '../helpers/import-media';
 import { test, expect } from '@playwright/test';
 
 test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard seeking', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Try a sample' }).click();
+  await importTestMedia(page);
   const playhead = page.getByLabel('Seek playhead');
   await playhead.waitFor();
   const track = page.locator('.timeline-ruler');

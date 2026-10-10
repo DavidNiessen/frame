@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test, type Page } from '@playwright/test';
 import { closeEffect, openEffect, selectFont, openCaptionTools } from '../helpers/effects';
 import { execFile } from 'node:child_process';
@@ -6,7 +7,7 @@ import { ffmpegPath } from '../../electron/native';
 const exec = promisify(execFile);
 async function sample(page: Page) {
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
 }
 async function pointerDrag(page: Page, label: string, dx: number, dy = 0) {

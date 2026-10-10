@@ -16,7 +16,7 @@ export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings)
   media.preservesPitch = recipe.preservePitch && extraInstances(recipe, 'speed').every(instance => instance.settings.preservePitch !== false);
   const additionalFade = (kind: 'audio' | 'video') => extraInstances(recipe).filter(instance => instance.effect.startsWith(`${kind}Fade`)).reduce((gain, instance) => gain * fadeGain(local, editedDuration(recipe), instance.settings[`${kind}FadeIn`] ?? 0, instance.settings[`${kind}FadeOut`] ?? 0), 1);
   const sharedFade = (kind: 'audio' | 'video') => clip ? extraInstances(edit).filter(instance => instance.effect.startsWith(`${kind}Fade`)).reduce((gain, instance) => gain * fadeGain(position, duration, instance.settings[`${kind}FadeIn`] ?? 0, instance.settings[`${kind}FadeOut`] ?? 0), 1) : 1;
-  media.volume = Math.min(1, effectiveVolume(recipe) * sharedFade('audio') * additionalFade('audio') * localFade * fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut));
+  media.volume = Math.min(1, effectiveVolume(recipe, media.currentTime) * sharedFade('audio') * additionalFade('audio') * localFade * fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut));
   if (media.tagName === 'VIDEO') media.style.opacity = String(sharedFade('video') * additionalFade('video') * fadeGain(position, duration, edit.videoFadeIn, edit.videoFadeOut) * (clip ? fadeGain(local, editedDuration(recipe), recipe.videoFadeIn, recipe.videoFadeOut) : 1));
 }
 export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit: EditSettings, playing: boolean,

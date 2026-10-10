@@ -1,8 +1,9 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { trim } from '../helpers/timeline';
 test('exports a compact GIF with explicit repeats and exposes the same conversion options', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await trim(page, 'end', .5);
+  await page.goto('/'); await importTestMedia(page); await trim(page, 'end', .5);
   await page.getByLabel('Output format', { exact: true }).selectOption('gif');
   await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();
   await page.getByLabel('GIF frame rate', { exact: true }).fill('4');

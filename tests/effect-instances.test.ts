@@ -92,7 +92,7 @@ async function render(edit: EditSettings, directory: string, name: string) {
   for (const file of recipeFiles(edit, paths, asset)) await writeFile(file.path, file.text);
   for (const image of recipeImages(edit, paths)) await writeFile(image.path, Buffer.from(image.data.split(',')[1], 'base64'));
   const output = join(directory, `${name}.${edit.format}`);
-  await exec(ffmpeg, buildExportArgs(asset, edit, resolve('public/sample.mp4'), output, paths)); return output;
+  await exec(ffmpeg, buildExportArgs(asset, edit, resolve('tests/fixtures/sample.mp4'), output, paths)); return output;
 }
 it('renders stacked gain, cleanup, color and transforms through real FFmpeg', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-stack-'));

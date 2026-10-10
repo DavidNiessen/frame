@@ -1,11 +1,12 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 import { closeEffect } from '../helpers/effects';
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 30000 });
 });
-for (const width of [1440, 390]) test(`reopens singleton effects and keeps per-clip adjustments independent at ${width}px`, async ({ page }, testInfo) => {
+for (const width of [1440, 390]) test(`adds timed instances and keeps per-clip adjustments independent at ${width}px`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width, height: 900 });
   await expect(page.getByRole('button', { name: 'Generate thumbnails', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Select Volume effect', exact: true }).click();
@@ -15,9 +16,10 @@ for (const width of [1440, 390]) test(`reopens singleton effects and keeps per-c
   const first = page.getByRole('button', { name: 'Volume clip 1', exact: true });
   await first.click(); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await closeEffect(page);
   await page.getByRole('button', { name: 'Select Volume effect', exact: true }).dblclick();
-  await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5');
-  await expect(page.getByRole('button', { name: 'Volume instance 2 clip 1', exact: true })).toHaveCount(0);
-  await expect(page.locator('video')).toHaveJSProperty('volume', .5);
+  const second = page.getByRole('button', { name: 'Volume instance 2 clip 1', exact: true }); await expect(second).toBeVisible(); await second.click();
+  await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
+  await page.getByLabel('Volume', { exact: true }).fill('0.4');
+  await expect(page.locator('video')).toHaveJSProperty('volume', .2);
   const overlay = page.getByRole('dialog'), island = page.locator('#media-inspector');
   await page.waitForTimeout(220);
   const panel = (await island.boundingBox())!, bounds = (await overlay.boundingBox())!;
@@ -25,8 +27,8 @@ for (const width of [1440, 390]) test(`reopens singleton effects and keeps per-c
   await page.screenshot({ path: testInfo.outputPath(`effect-overlay-${width}.png`) });
   await page.getByRole('button', { name: 'Reset Volume', exact: true }).click();
   await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
-  await page.getByRole('button', { name: 'Remove Volume', exact: true }).click(); await expect(first).toHaveCount(0);
-  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(first).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Volume', exact: true }).click(); await expect(second).toHaveCount(0); await expect(first).toBeVisible();
+  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(second).toBeVisible();
   await first.click(); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await closeEffect(page);
   await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toBeVisible();
@@ -34,7 +36,7 @@ for (const width of [1440, 390]) test(`reopens singleton effects and keeps per-c
   await page.getByRole('button', { name: 'Volume clip 2', exact: true }).click();
   await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5');
   await page.getByLabel('Volume', { exact: true }).fill('0.8'); await closeEffect(page);
-  await page.getByRole('button', { name: 'Add Volume', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.8'); await closeEffect(page);
+  await page.getByRole('button', { name: 'Volume clip 2', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.8'); await closeEffect(page);
   await page.getByRole('button', { name: 'Volume clip 1', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
@@ -53,19 +55,20 @@ test('adds multiple captions at the playhead and adjusts their own text and posi
 test('reuses corrections and creates independent captions and watermarks from the catalogue', async ({ page }) => {
   const labels = await page.locator('.effect-card .effect-apply').evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-label')!));
   for (const name of labels) {
-    const plus = page.getByRole('button', { name, exact: true }); await plus.click(); await plus.click();
-    if (name === 'Add Captions' || name === 'Add Watermark') await expect(page.getByRole('dialog')).toHaveCount(0);
+    const repeatable = ['Add Captions', 'Add Watermark', 'Add Volume', 'Add Equalizer', 'Add Noise reduction', 'Add Color & LUTs'].includes(name);
+    const plus = page.getByRole('button', { name, exact: true }); await plus.click(); await page.getByRole('button', { name: repeatable ? name : name.replace('Add ', 'Edit '), exact: true }).click();
+    if (repeatable) await expect(page.getByRole('dialog')).toHaveCount(0);
     else { await expect(page.getByRole('dialog')).toBeVisible(); await closeEffect(page); }
   }
   await expect(page.getByRole('button', { name: 'Watermark instance 2 effect', exact: true })).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Remove silence instance 2 effect', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Remove silence effect', exact: true }).click(); await page.getByLabel('Silence threshold', { exact: true }).fill('-40'); await closeEffect(page);
-  await page.getByRole('button', { name: 'Add Remove silence', exact: true }).click(); await expect(page.getByLabel('Silence threshold', { exact: true })).toHaveValue('-40');
+  await page.getByRole('button', { name: 'Edit Remove silence', exact: true }).click(); await expect(page.getByLabel('Silence threshold', { exact: true })).toHaveValue('-40');
 });
 test('reopens crop settings without creating another crop and preserves caption placement', async ({ page }) => {
   await page.getByRole('button', { name: 'Add Crop', exact: true }).click(); await page.getByRole('button', { name: 'Crop clip 1', exact: true }).click();
   await page.getByRole('button', { name: '1:1', exact: true }).click(); await closeEffect(page);
-  await page.getByRole('button', { name: 'Add Crop', exact: true }).click(); await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await page.getByRole('button', { name: 'Edit Crop', exact: true }).click(); await expect(page.getByLabel('Crop width')).toHaveValue('360');
   await expect(page.getByRole('button', { name: 'Crop instance 2 clip 1', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '1:1', exact: true }).click(); await page.getByLabel('Crop width').fill('180'); await page.getByLabel('Crop height').fill('180'); await page.getByLabel('Crop x').fill('0'); await page.getByLabel('Crop y').fill('0'); await closeEffect(page);
   await page.getByRole('button', { name: 'Add Captions', exact: true }).click();

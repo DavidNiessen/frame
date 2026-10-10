@@ -43,7 +43,6 @@ const bridge: DesktopBridge = {
   importFiles: files => ipcRenderer.invoke('media:import', files?.map(file => webUtils.getPathForFile(file))),
   importFolder: () => ipcRenderer.invoke('media:import-folder'),
   importUrl: (url, options) => ipcRenderer.invoke('media:import-url', url, options),
-  importSample: () => ipcRenderer.invoke('media:sample'),
   export: (id, settings, token) => ipcRenderer.invoke('media:export', id, settings, token),
   saveProject: project => ipcRenderer.invoke('project:save', project),
   merge: (clips, settings, transition) => ipcRenderer.invoke('media:merge', clips, settings, transition),

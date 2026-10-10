@@ -1,6 +1,7 @@
+import { importTestMedia } from '../helpers/import-media';
 import { expect, test } from '@playwright/test';
 test('steps frames, pauses playback, and seeks precise sequence positions without editing the trim', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+  await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 30000 });
   await page.getByRole('button', { name: 'Next frame', exact: true }).click();
   const first = await page.locator('video').evaluate((media: HTMLVideoElement) => media.currentTime);

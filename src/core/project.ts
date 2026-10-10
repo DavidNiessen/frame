@@ -1,3 +1,4 @@
+import { parseEffectRanges } from './timed-adjustments';
 import { parseEffectInstances } from './effect-instance-validation';
 import { individualCaptionEffects } from './caption-effects';
 import { allAudioLayers } from './effect-instances';
@@ -42,6 +43,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
     addedEffects: parseAddedEffects(e.addedEffects),
+    effectRanges: parseEffectRanges(e.effectRanges),
     effectInstances: parseEffectInstances(e.effectInstances, asset, recipe => validateEdit(asset, recipe)),
     silenceOptions: parseSilence(e.silenceOptions ?? defaultSilence),
     audioDucking: e.audioDucking === undefined ? false : boolean(e.audioDucking), audioLayers: parseAudioLayers(e.audioLayers), audioMixProtectPeaks: e.audioMixProtectPeaks === undefined ? true : boolean(e.audioMixProtectPeaks),
@@ -80,6 +82,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
       const clip: TimelineClip = { id: text(c.id, 120), start: number(c.start), end: number(c.end), effects: { ...effects } };
       if (clip.effects.effectInstances !== undefined) clip.effects.effectInstances = parseEffectInstances(clip.effects.effectInstances, asset, recipe => validateEdit(asset, recipe), true);
       if (clip.effects.addedEffects !== undefined) clip.effects.addedEffects = parseAddedEffects(clip.effects.addedEffects);
+      if (clip.effects.effectRanges !== undefined) clip.effects.effectRanges = parseEffectRanges(clip.effects.effectRanges);
       if (clip.effects.color) clip.effects.color = parseColor(clip.effects.color);
       if (clip.effects.geometry) clip.effects.geometry = parseGeometry(clip.effects.geometry);
       return clip;

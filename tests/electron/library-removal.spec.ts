@@ -1,3 +1,4 @@
+import { importTestMedia } from '../helpers/import-media';
 import { test, expect, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -20,9 +21,9 @@ test('keeps the desktop process alive when deleting playing local and downloaded
   try {
     const page = await app.firstWindow(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
     for (let cycle = 0; cycle < 4; cycle++) {
-      await page.getByRole('button', { name: 'Start with a sample A short studio study', exact: true }).click();
+      await importTestMedia(page, app);
       if (cycle % 2) {
-        await page.getByRole('button', { name: 'Load from URL', exact: true }).click();
+        await page.locator('#media-library').getByRole('button', { name: 'Load from URL', exact: true }).click();
         await page.getByLabel('Media URL', { exact: true }).fill(`http://127.0.0.1:${address.port}/long.wav`);
         await page.getByRole('button', { name: 'Load media', exact: true }).click();
       } else await page.getByLabel('Choose media files').setInputFiles(source);
@@ -32,7 +33,7 @@ test('keeps the desktop process alive when deleting playing local and downloaded
       await page.locator('.asset-list .asset.selected .asset-remove').click();
       await expect(page.locator('.asset-list li')).toHaveCount(1); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
       await page.getByRole('button', { name: 'Play', exact: true }).click(); await page.locator('.asset-list .asset-remove').click();
-      await expect(page.locator('.asset-list li')).toHaveCount(0); await expect(page.getByRole('button', { name: 'Try a sample', exact: true })).toBeEnabled();
+      await expect(page.locator('.asset-list li')).toHaveCount(0); await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
       expect(app.process().exitCode).toBeNull();
     }
     expect((await readFile(source)).equals(content)).toBe(true);
@@ -47,7 +48,7 @@ test('reports release failures without leaving a stale player or closing the app
   try {
     const page = await app.firstWindow();
     await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
-    await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+    await importTestMedia(page, app);
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await app.evaluate(({ ipcMain }) => {
@@ -57,7 +58,7 @@ test('reports release failures without leaving a stale player or closing the app
     await page.locator('.asset-list .asset-remove').click();
     await expect(page.locator('video')).toHaveCount(0);
     await expect(page.getByRole('status').filter({ hasText: 'Could not finish releasing' })).toContainText('Simulated file cleanup failure');
-    await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
+    await importTestMedia(page, app);
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     expect(app.process().exitCode).toBeNull();
     await page.screenshot({ path: info.outputPath('reimport-after-release-failure.png') });
