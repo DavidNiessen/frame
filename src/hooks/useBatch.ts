@@ -1,3 +1,4 @@
+import { notifyCompletion } from '../core/completion-notifications';
 import { useEffect, useRef, useState } from 'react';
 import { batchSettings, runBatch, type BatchJob, type BatchMode } from '../core/batch';
 import { conversionSettings } from '../core/conversion';
@@ -17,6 +18,7 @@ export function useBatch(editor: Editor) {
     const retained = keepResults ? jobsRef.current.filter(job => !queue.some(next => next.asset.id === job.asset.id)) : [];
     for (const job of jobsRef.current) if (!retained.includes(job) && job.result?.url) URL.revokeObjectURL(job.result.url);
     setJobs([...retained, ...queue]);
+    const outcomes = new Map(queue.map(job => [job.id, job]));
     try {
       await editor.runExclusive('batch', async engine => {
         const token = await engine.beginBatch(options);
@@ -29,9 +31,11 @@ export function useBatch(editor: Editor) {
               URL.revokeObjectURL(result.url); throw new Error('Batch downloads reached 500 MB. Save and clear them, then export the remaining files.');
             }
             retainedBytes += result?.url ? result.size : 0; return result;
-          }, () => cancelled.current, job => setJobs(current => current.map(item => item.id === job.id ? job : item)));
+          }, () => cancelled.current, job => { outcomes.set(job.id, job); setJobs(current => current.map(item => item.id === job.id ? job : item)); });
         } finally { if (token) await engine.endBatch(token); }
       });
+      const completed = [...outcomes.values()].filter(job => job.status === 'done').length, failed = [...outcomes.values()].filter(job => job.status === 'failed').length;
+      if (completed && !cancelled.current) await notifyCompletion({ kind: options?.conversion ? 'conversion' : 'batch', total: queue.length, completed, failed });
       editor.setNotice(cancelled.current ? 'Batch cancelled. Completed exports are still available.' : 'Batch finished. Review the results for each file.');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

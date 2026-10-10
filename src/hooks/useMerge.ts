@@ -1,3 +1,4 @@
+import { notifyCompletion } from '../core/completion-notifications';
 import { useEffect, useRef, useState } from 'react';
 import type { TransitionSettings } from '../core/transitions';
 import type { Editor } from './useEditor';
@@ -13,6 +14,7 @@ export function useMerge(editor: Editor) {
     try {
       const clips = ids.map(id => { const asset = editor.assets.find(a => a.id === id); if (!asset) throw new Error('Import each merge source again.'); return { asset, edit: structuredClone(editor.settingsFor(id)) }; });
       const output = await editor.runExclusive('merge', engine => engine.merge(clips, settings, setProgress, transition));
+      if (output) await notifyCompletion({ kind: 'merge', total: 1, completed: 1, failed: 0 });
       setResult(output); editor.setNotice(output ? 'Merge complete. Source files are unchanged.' : 'Merge cancelled.');
     } catch (error) { const message = error instanceof Error ? error.message : String(error); setError(message); editor.setNotice(message); }
     finally { setProgress(null); }

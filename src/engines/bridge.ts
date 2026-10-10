@@ -1,3 +1,4 @@
+import type { CompletionSummary, NotificationPreference } from '../core/completion-notifications';
 import type { ContactSheetOptions } from '../core/contact-sheet';
 import type { UrlImportOptions } from '../core/youtube';
 import type { DesktopCapabilities, PreviewProxy } from '../core/hardware';
@@ -12,6 +13,9 @@ import type { ShellIntegrationStatus } from '../core/system-integration';
 import type { WindowAction, WindowState } from '../core/window-controls';
 export interface DesktopBridge {
   miniConversion: boolean;
+  notificationPreference(): Promise<NotificationPreference>;
+  setCompletionNotifications(enabled: boolean): Promise<NotificationPreference>;
+  notifyCompletion(summary: CompletionSummary): Promise<void>;
   windowState(): Promise<WindowState>;
   setWindowChrome(expanded: boolean): Promise<WindowState>;
   windowAction(action: WindowAction): Promise<void>;

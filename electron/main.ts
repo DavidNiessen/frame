@@ -1,3 +1,4 @@
+import { configureCompletionNotifications } from './completion-notifications';
 import { app, BrowserWindow, ipcMain, protocol, screen, type IpcMainInvokeEvent, type IpcMainEvent } from 'electron';
 import { join } from 'node:path';
 import { mediaResponse } from './media-response';
@@ -76,6 +77,7 @@ if (ownsInstance && !shellCommand) {
 }
 app.whenReady().then(() => {
   if (!ownsInstance || configureSystemIntegration(shellCommand, trusted)) return;
+  configureCompletionNotifications(trusted);
   protocol.handle('media', request => {
     const url = new URL(request.url), id = url.pathname.slice(1);
     for (const session of sessions.values()) {

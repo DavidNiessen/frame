@@ -1,3 +1,4 @@
+import { notifyCompletion } from '../core/completion-notifications';
 import { sampleRates } from '../core/audio-output';
 import type { UrlImportOptions } from '../core/youtube';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -102,6 +103,7 @@ export function useEditor() {
     setResult(null); setProgress({ ratio: 0, message: 'Preparing your export…' });
     try {
       const output = await (await engine()).export(asset, edit, setProgress);
+      if (output) await notifyCompletion({ kind: 'export', total: 1, completed: 1, failed: 0 });
       setResult(output); setNotice(output ? 'Export complete. Your original file is unchanged.' : 'Export cancelled.');
     } catch (error) { setNotice(messageOf(error)); }
     finally { busyRef.current = false; setBusy(null); setProgress(null); }

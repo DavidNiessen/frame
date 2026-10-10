@@ -16,7 +16,7 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Source media information | Inspect codecs, frame rate and audio properties | Implemented |
 | Contact-sheet export | Share a quick visual overview of a video | Implemented |
 | Desktop watch folders | Convert newly added files automatically | Backlog |
-| Export completion notifications | Know when long jobs finish while working elsewhere | Backlog |
+| Export completion notifications | Know when long jobs finish while working elsewhere | Implemented |
 | Multi-track music and voiceover | Mix additional audio with video | Backlog |
 | Scene-change detection | Find likely cut points automatically | Backlog |
 | Audio loudness meter | Assess clipping and perceived loudness while editing | Backlog |

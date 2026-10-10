@@ -229,3 +229,5 @@ In Effects → Recipes & copy / paste, copy clip effects to another clip or sour
 Captions support literal find-and-replace with case-sensitive and Unicode whole-word matching. Next match navigates across paged caption lists, and Replace all preserves timing and placement in one undoable edit.
 
 Project tools → Video contact sheet exports a PNG overview of the edited clip order and effects. Choose 2–6 rows and columns, frame width, and optional sequence timestamps. Processing stays local on desktop and web.
+
+Desktop completion notifications report saved exports, merges and batches while Frame is in the background. Settings → Completion notifications controls the persisted preference. Partially failed batches report files needing attention; cancelled batches remain quiet. The setting is visible and disabled on web.

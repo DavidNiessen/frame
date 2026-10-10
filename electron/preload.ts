@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  notificationPreference: () => ipcRenderer.invoke('desktop:notification-preference'),
+  setCompletionNotifications: enabled => ipcRenderer.invoke('desktop:set-notifications', enabled),
+  notifyCompletion: summary => ipcRenderer.invoke('desktop:notify-completion', summary),
   miniConversion: process.argv.includes('--frame-mini-conversion'),
   windowState: () => ipcRenderer.invoke('desktop:window-state'),
   setWindowChrome: expanded => ipcRenderer.invoke('desktop:window-chrome', expanded),
