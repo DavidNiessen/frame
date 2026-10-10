@@ -13,7 +13,7 @@
 .editor-layout > .inspector { grid-column: 5; grid-row: 1; max-height: none; }
 .editor-layout .library-content { min-width: 0; min-height: 0; overflow: auto; }
 .editor-layout .asset-list { max-height: none; }
-.editor-layout .editor-center.has-media { display: grid; grid-template-rows: minmax(360px, 1fr) 12px var(--timeline-height); }
+.editor-layout .editor-center.has-media { display: grid; grid-template-rows: minmax(240px, 1fr) 12px var(--timeline-height); }
 .editor-layout .empty-stage { min-height: 0; height: 100%; overflow: hidden; padding: 0; }
 .empty-stage-scroll { display: flex; flex-direction: column; justify-content: safe center; align-items: center; flex: 1; min-height: 0; margin: 8px; width: calc(100% - 16px); padding: 28px 12px; overflow: auto; overscroll-behavior: contain; }
 .empty-stage-content { display: flex; flex-direction: column; align-items: center; width: 100%; flex-shrink: 0; }
@@ -88,7 +88,7 @@
 .editor-layout:not([data-layout='wide']) .library-url { flex: 1; white-space: nowrap; }
 .editor-layout[data-layout='stacked'] { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 .editor-layout[data-layout='stacked'] > .editor-center { height: auto; }
-.editor-layout[data-layout='stacked'] .editor-center.has-media { grid-template-rows: clamp(340px, calc(var(--app-height, 100dvh) * .5), 480px) 18px var(--timeline-height); }
+.editor-layout[data-layout='stacked'] .editor-center.has-media { grid-template-rows: clamp(240px, calc(var(--app-height, 100dvh) * .5), 480px) 18px var(--timeline-height); }
 .editor-layout[data-layout='stacked'] .empty-stage { height: auto; min-height: 590px; }
 .editor-layout[data-layout='stacked'] > .inspector { max-height: 680px; }
 .editor-layout[data-layout='stacked'] > .inspector:has(.inspector-empty) { display: none; }

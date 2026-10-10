@@ -9,7 +9,10 @@ async function sample(page: Page) {
 
 test('expands the existing playing preview into the workspace and restores panel sizes with Escape', async ({ page }) => {
   await sample(page);
+  const initialPreview = (await page.locator('#media-preview').boundingBox())!, initialTimeline = (await page.locator('#media-timeline').boundingBox())!;
+  expect(Math.abs(initialPreview.height - initialTimeline.height)).toBeLessThanOrEqual(1);
   await page.getByRole('separator', { name: 'Resize timeline', exact: true }).press('Shift+ArrowUp');
+  const resizedTimeline = await page.getByRole('separator', { name: 'Resize timeline', exact: true }).getAttribute('aria-valuenow');
   const preview = page.getByRole('region', { name: 'Media preview', exact: true });
   const original = (await preview.boundingBox())!;
   await page.evaluate(() => { (window as unknown as { originalVideo: Element | null }).originalVideo = document.querySelector('video'); });
@@ -42,7 +45,7 @@ test('expands the existing playing preview into the workspace and restores panel
   await expect(page.getByRole('button', { name: 'Fullscreen preview', exact: true })).toBeFocused();
   await preview.evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
   expect((await preview.boundingBox())!.height).toBeCloseTo(original.height, 0);
-  await expect(page.getByRole('separator', { name: 'Resize timeline', exact: true })).toHaveAttribute('aria-valuenow', '288');
+  await expect(page.getByRole('separator', { name: 'Resize timeline', exact: true })).toHaveAttribute('aria-valuenow', resizedTimeline!);
   await expect(page.locator('.timeline')).toBeVisible();
 });
 
