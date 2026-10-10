@@ -1,3 +1,4 @@
+import { windowsPowerShellEnv } from '../../scripts/windows-powershell-env.mjs';
 import { expect, test, _electron } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -86,7 +87,7 @@ test('invokes installed Windows classic and primary commands on a mixed multi-fi
   try {
     const page = await app.firstWindow(), workflow = page.getByRole('navigation', { name: 'Workflow' });
     const powershell = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-    const invoke = (mode: string, primary = false) => exec(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', resolve(`tests/helpers/invoke-windows-${primary ? 'primary' : 'action'}.ps1`), '-Directory', library.directory, '-Workflow', mode], { timeout: 30000 });
+    const invoke = (mode: string, primary = false) => exec(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', resolve(`tests/helpers/invoke-windows-${primary ? 'primary' : 'action'}.ps1`), '-Directory', library.directory, '-Workflow', mode], { timeout: 30000, env: windowsPowerShellEnv() });
     for (const primary of [false, ...(process.env.FRAME_TEST_PRIMARY_MENU === '1' ? [true] : [])]) {
       await invoke('Convert', primary);
       await expect.poll(() => app.windows().length).toBe(2);

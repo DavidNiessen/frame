@@ -1,3 +1,4 @@
+import { windowsPowerShellEnv } from '../scripts/windows-powershell-env.mjs';
 import { execFile } from 'node:child_process';
 import { join } from 'node:path';
 import { windowsLaunchPrefix } from './shell-command';
@@ -10,7 +11,7 @@ export async function windowsPrimaryMenu(location: ShellActionLocation, operatio
   const powershell = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
   return new Promise((resolve, reject) => {
     const child = execFile(powershell, ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'manage-menu.ps1'), '-JsonFromStdin'],
-      { windowsHide: true, timeout: operation === 'trust' || operation === 'revoke' ? 300000 : 60000, maxBuffer: 1024 * 1024 }, (error, stdout) => {
+      { windowsHide: true, env: windowsPowerShellEnv(), timeout: operation === 'trust' || operation === 'revoke' ? 300000 : 60000, maxBuffer: 1024 * 1024 }, (error, stdout) => {
         try {
           const result = JSON.parse(stdout.trim().split(/\r?\n/).at(-1) || '') as PrimaryMenuStatus;
           if (typeof result.supported !== 'boolean' || typeof result.owned !== 'boolean' || !['installed', 'partial', 'not-installed'].includes(result.state) || typeof result.detail !== 'string') throw new Error('Invalid Windows shell status.');

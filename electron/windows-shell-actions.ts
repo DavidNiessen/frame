@@ -1,3 +1,4 @@
+import { windowsPowerShellEnv } from '../scripts/windows-powershell-env.mjs';
 import { execFile } from 'node:child_process';
 import { join } from 'node:path';
 import { extensions, shellActions } from './shell-action-definitions';
@@ -49,7 +50,7 @@ if ($data.operation -ne 'status') {
   const stdout = await new Promise<string>((resolve, reject) => {
     const child = execFile(join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
       ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
-      { windowsHide: true, timeout: 30000, maxBuffer: 1024 * 1024 }, (error, output) => error ? reject(error) : resolve(output));
+      { windowsHide: true, env: windowsPowerShellEnv(), timeout: 30000, maxBuffer: 1024 * 1024 }, (error, output) => error ? reject(error) : resolve(output));
     child.stdin!.on('error', reject);
     child.stdin!.end(JSON.stringify({ entries, operation }), 'utf8');
   });

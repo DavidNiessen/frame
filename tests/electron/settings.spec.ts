@@ -1,3 +1,4 @@
+import { windowsPowerShellEnv } from '../../scripts/windows-powershell-env.mjs';
 import { test, expect, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -8,7 +9,7 @@ import type { BaseWindow, MessageBoxOptions } from 'electron';
 
 const execute = promisify(execFile);
 async function windowsRegistry(script: string) {
-  const { stdout } = await execute(join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'), ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')]);
+  const { stdout } = await execute(join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'), ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { env: windowsPowerShellEnv() });
   return stdout.trim();
 }
 

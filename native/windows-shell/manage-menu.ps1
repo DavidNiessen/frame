@@ -3,6 +3,8 @@ param(
   [string]$Executable,
   [switch]$JsonFromStdin
 )
+# Installer processes may inherit PowerShell 7's module search path.
+Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Utility') -ErrorAction Stop
 $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)

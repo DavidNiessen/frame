@@ -1,3 +1,5 @@
+import { windowsPowerShellEnv } from '../../scripts/windows-powershell-env.mjs';
+import { authenticodeContent } from '../helpers/authenticode-content.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -123,11 +125,17 @@ test('the bundled package has a valid Authenticode signature and matches its pub
     assert.equal(signature.subarray(0, 4).toString(), 'PKCX');
     const certificate = new X509Certificate(await readFile(join(nativeRoot, 'package/Frame.cer')));
     await writeFile(join(directory, 'signature.der'), signature.subarray(4));
+    const content = authenticodeContent(signature.subarray(4));
+    await writeFile(join(directory, 'signed-content.bin'), content);
     await writeFile(join(directory, 'certificate.pem'), certificate.toString());
-    const args = ['smime', '-verify', '-binary', '-inform', 'DER', '-in', join(directory, 'signature.der'), '-CAfile', join(directory, 'certificate.pem'), '-purpose', 'any', '-out', join(directory, 'content.der')];
+    const args = ['smime', '-verify', '-binary', '-content', join(directory, 'signed-content.bin'), '-inform', 'DER', '-in', join(directory, 'signature.der'), '-CAfile', join(directory, 'certificate.pem'), '-purpose', 'any', '-out', join(directory, 'content.der')];
     execFileSync('openssl', args, { stdio: 'pipe' });
     assert.ok((await readFile(join(directory, 'content.der'))).length > 100);
     assert.ok(signature.includes(certificate.raw));
+    const damaged = Buffer.from(content); damaged[0] ^= 1;
+    await writeFile(join(directory, 'signed-content.bin'), damaged);
+    assert.throws(() => execFileSync('openssl', args, { stdio: 'pipe' }));
+    await writeFile(join(directory, 'signed-content.bin'), content);
     signature[signature.length - 1] ^= 1;
     await writeFile(join(directory, 'signature.der'), signature.subarray(4));
     assert.throws(() => execFileSync('openssl', args, { stdio: 'pipe' }));
@@ -135,12 +143,12 @@ test('the bundled package has a valid Authenticode signature and matches its pub
 });
 test('Windows can read the signed package manifest and identity through its native Appx reader', { skip: process.platform !== 'win32' }, async () => {
   const powershell = join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
-  const output = execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/validate-windows-shell.ps1'], { encoding: 'utf8' });
+  const output = execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/validate-windows-shell.ps1'], { encoding: 'utf8', env: windowsPowerShellEnv() });
   assert.match(output, /Windows package reader accepted: Frame\.MediaEditor\.Shell_/);
   const directory = await mkdtemp(join(tmpdir(), 'frame-invalid-msix-'));
   try {
     const path = join(directory, 'invalid.msix'); await writeFile(path, 'Invalid ZIP package');
-    assert.throws(() => execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/validate-windows-shell.ps1', '-Package', path], { stdio: 'pipe' }), error => {
+    assert.throws(() => execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/validate-windows-shell.ps1', '-Package', path], { stdio: 'pipe', env: windowsPowerShellEnv() }), error => {
       assert.match(error.stdout.toString(), /Windows CreatePackageReader.*HRESULT 0x/);
       return true;
     });
@@ -148,11 +156,11 @@ test('Windows can read the signed package manifest and identity through its nati
 });
 test('uses signed deployment or existing Developer Mode and repairs persistent registration files', async t => {
   const powershell = process.env.FRAME_TEST_POWERSHELL || (process.platform === 'win32' ? join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe') : 'pwsh');
-  try { execFileSync(powershell, ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()']); }
+  try { execFileSync(powershell, ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()'], { env: process.platform === 'win32' ? windowsPowerShellEnv() : process.env }); }
   catch (error) { if (process.platform !== 'win32' && error.code === 'ENOENT') { t.skip('PowerShell is not installed on this host.'); return; } throw error; }
   const directory = await mkdtemp(join(tmpdir(), 'frame-package-policy-'));
   try {
-    const output = execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'tests/helpers/windows-package-registration.ps1', '-Helper', join(nativeRoot, 'package-registration.ps1'), '-Directory', directory], { encoding: 'utf8' });
+    const output = execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'tests/helpers/windows-package-registration.ps1', '-Helper', join(nativeRoot, 'package-registration.ps1'), '-Directory', directory], { encoding: 'utf8', env: windowsPowerShellEnv() });
     assert.match(output, /policy and lifecycle checks passed/);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
