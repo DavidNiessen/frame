@@ -27,3 +27,4 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Custom cover artwork | Add or replace artwork on individual audio exports or a conversion batch | Implemented |
 | Downloadable conversion reports | Review output names, sizes and errors across a converted collection | Implemented |
 | Optional workspace autosave | Choose whether edits are retained automatically while keeping manual projects available | Implemented |
+| Searchable command palette | Discover editing, review, export and settings tools with Ctrl/Cmd+K | Implemented |

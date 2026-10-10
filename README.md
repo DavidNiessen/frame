@@ -211,7 +211,7 @@ The main clip track stays visible below scrollable caption and effect tracks. **
 
 Waveform analysis runs separately from editing: a native background FFmpeg job on desktop and a dedicated WASM worker on web. You can trim, change effects and export while it runs. Cancelling waveform analysis leaves an export running. Source peaks are cached during the session and follow each trimmed or moved clip; the browser releases the extra worker after analysis finishes.
 
-Audio delivery: Advanced export/conversion settings let you choose a sample rate, keep source channels or convert to mono/stereo, and select 16-bit, 24-bit, or 32-bit float WAV output. These choices travel with projects and output presets, apply to merges, and update WAV size estimates. Automatic sample rate retains the encoder/processing defaults; increasing rate or bit depth does not restore missing source detail. Switching to a format that cannot use the selected rate resets it to Automatic.
+Audio delivery: Advanced export/conversion settings let you choose a sample rate, keep the automatic channel layout or convert to mono/stereo, and select 16-bit, 24-bit, or 32-bit float WAV output. These choices travel with projects and output presets, apply to merges, and update WAV size estimates. Automatic sample rate retains the encoder/processing defaults; increasing rate or bit depth does not restore missing source detail. Switching to a format that cannot use the selected rate resets it to Automatic.
 
 GIF delivery: Advanced export/conversion options include play once, infinite looping, or 1–100 extra repeats; a smaller output width; 32–256 color presets; and smooth, ordered, or disabled dithering. Settings persist in projects and output presets and apply to merged GIF exports. Width preserves the edited aspect ratio. Player behavior may override the encoded repeat count.
 
@@ -256,3 +256,5 @@ Music tracks can duck automatically under original dialogue or tracks marked as 
 Add custom cover artwork in advanced audio export or conversion options for MP3, FLAC and M4A. PNG, JPEG and WebP images are prepared locally and large covers are resized. Individual projects store their cover; bulk covers apply to the current conversion session. Removing a custom cover restores the source artwork behavior.
 
 After bulk conversion, save a CSV report with source/output names, format, status, sizes, duration and any errors. Reports are prepared locally and include failed or cancelled items as well as successful outputs.
+
+Use the header command search or Ctrl/Cmd+K to find import, editing, review, conversion, export and settings actions. Arrow keys move through available commands; Enter runs one and Escape closes search. Unavailable actions explain what they need. Inspector tabs retain their selection while moving between workspaces.

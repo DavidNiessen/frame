@@ -15,7 +15,7 @@ scripts        Asset preparation, development startup, bundling, package verific
 
 ## Edit model
 
-A source asset has metadata and an opaque ID. Its recipe records source trim boundaries, split markers, removed ranges, crop geometry, gain, output format, and encoder options. `keptRanges` merges overlapping removals and finds the retained source ranges. Splits change selection boundaries; they only change the output after a section is removed.
+A source asset has metadata and an opaque ID. Its recipe records source trim boundaries, removals, an optional ordered clip sequence, clip effect overrides, source-wide overlays/captions, output-time audio tracks and delivery settings. `editClips` translates legacy retained sections into the ordered model; `keptRanges` still supports legacy recipes. Splitting preserves each part’s effects. Reordering changes the output sequence while source-anchored elements follow the corresponding footage.
 
 `buildExportArgs` validates the recipe and returns an argument array. Single-range output uses accurate FFmpeg seeking/re-encoding. Multiple retained sections use trim/atrim, timestamp resets, and concat. Both engines execute exactly this plan. Embedded artwork uses a separate unseeked input so trimming audio does not discard the single image packet.
 
@@ -67,7 +67,7 @@ The window uses context isolation, renderer sandboxing, disabled Node integratio
 
 ## Audio analysis
 
-Waveform generation uses FFmpeg `astats` and bounded peak windows across all channels. Both engines use the same arguments and peak-log collector, returning source-time peak data for an SVG timeline. Analysis is serialized with exports and can be cancelled. Native FFmpeg processes report progress through the narrow bridge; the renderer never chooses input paths. Web analysis explicitly sets the information log level because a preceding FFprobe call changes shared logging state.
+Waveform generation uses FFmpeg `astats` and bounded peak windows across all channels. Both engines use the same arguments and peak-log collector, returning source-time peak data for an SVG timeline. Source waveform analysis uses its own cancellable background job coordinator, so it does not block editing or exports. Native FFmpeg processes report progress through the narrow bridge; the renderer never chooses input paths. Web analysis explicitly sets the information log level because a preceding FFprobe call changes shared logging state.
 
 Video thumbnail analysis renders a fixed twelve-frame PNG strip. Each engine uses the same sampling plan; native temporary directories and browser virtual files are cleaned up. Renderer Blob URLs are scoped to imported assets and released on removal. A shared native job coordinator serializes and cancels processing.
 
@@ -87,7 +87,7 @@ Core 0.12 returns `-1` when FFprobe returns normally without updating its exit s
 
 Files should remain focused on one responsibility. There is no untrusted plugin loader in this version; extension points are source-level modules.
 
-Recipe resources (caption/text files, PNG overlays and LUTs) use engine-generated temporary paths, with a bundled font, and are cleaned up after each operation. Browser analysis is a separate adapter. Native jobs latch cancellation across hardware detection and retries; only encoders that complete a real short encode are offered. Proxy files are served through opaque media URLs and never replace source paths in export planning. Recovery stores validated portable recipes in IndexedDB and waits for explicit relinking before replacing a pending draft.
+Recipe resources (caption/text files, PNG overlays, cover artwork, chapter metadata and LUTs) use engine-generated temporary paths, with a bundled font, and are cleaned up after each operation. Browser analysis is a separate adapter. Native jobs latch cancellation across hardware detection and retries; only encoders that complete a real short encode are offered. Proxy files are served through opaque media URLs and never replace source paths in export planning. Recovery stores validated portable recipes in IndexedDB and waits for explicit relinking before replacing a pending draft.
 
 Direct URL import shares HTTP/HTTPS validation, filename handling, streamed byte limits, progress, and abort logic across engines. Browser imports reuse ordinary file probing. Desktop streams through Electron’s network stack to private temporary directories, probes raw formats with network protocols disabled, and cleans up downloads on cancellation, removal and exit. URL import uses trusted IPC and the existing exclusive operation lock.
 
@@ -111,10 +111,18 @@ Live playback synchronizes hidden audio elements with output time and approximat
 
 ## Desktop watch folders and completion notices
 
-Watch-folder configuration uses trusted main-process IPC and native folder selection. The runner polls bounded, link-free directory collections, waits for unchanged size/mtime across scans, interleaves multiple watches, and processes one native conversion at a time independently of renderer operations. Outputs must be outside the source tree. Per-file failures are suppressed until the file changes or the user explicitly retries; successful fingerprints persist atomically across restarts. Shutdown cancels active work and briefly drains pending completion records.
+Watch-folder configuration uses trusted main-process IPC and native folder selection. The runner polls bounded, link-free directory collections, waits for unchanged size/mtime across scans, interleaves multiple watches, and processes one native conversion at a time independently of renderer operations. Native folder selections are approved for the originating window and consumed when a watch is added. Source/output paths may not overlap across any watches, including paused watches, which prevents conversion loops. Per-file failures are suppressed until the file changes or the user explicitly retries; successful fingerprints persist atomically across restarts. Shutdown cancels active work and briefly drains pending completion records.
 
 Completion notifications are an independent desktop capability with a durable user preference. Saved exports, merges and batches notify only while their originating window is in the background; partial failures remain explicit and cancellations stay quiet. Notification failure never turns a saved export into an error.
 
 Desktop export history records successfully published outputs centrally, independently of renderer windows. Mutations serialize to an atomic per-user JSON file; trusted IPC exposes bounded history and reveal-by-entry-ID. Shutdown waits briefly for watch jobs and history writes to settle.
 
 Imported sources have a SHA-256 fingerprint sampled from their first and last 64 KiB plus size, with the same algorithm on web and desktop. This is an identity aid, not a full-file integrity guarantee. Projects retain it for same-name relinking; audio layers use runtime IDs in memory and source indices in portable projects. Legacy projects still match using their available metadata.
+
+Automatic music ducking separates foreground source audio and voiceover tracks from music. The sidechain detector uses aligned 1,024-sample blocks with padded tail audio to preserve the complete music output. Live HTML playback approximates levels; processed preview and export render ducking exactly.
+
+Chapter metadata is generated from output-mapped markers and written as a temporary FFmetadata input. Merge chapters share the composition transition mapping. Explicit output metadata uses validated fields and argument arrays; custom covers are bounded PNG resources stored in individual projects, excluded from reusable format presets.
+
+Batch CSV reports use the actual retained job results, with quoted cells and spreadsheet formula protection for user text. Disabling autosave stops new snapshots and page-hide writes while leaving earlier recovery documents available for explicit recovery or discard.
+
+Command search uses a core text-ranking function and a focused modal component. Action labels outrank incidental matches in help text; disabled results explain their prerequisites and never execute on Enter. The command controller uses the existing editor/project actions, coordinates with other dialogs and desktop launch delivery, and opens controlled inspector tabs without changing recipe scope.

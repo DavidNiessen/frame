@@ -13,6 +13,7 @@ import './styles/timeline.css';
 import './styles/captions.css';
 import './styles/conversion.css';
 import './styles/settings.css';
+import './styles/command-palette.css';
 import './styles/islands.css';
 import './styles/expanded-preview.css';
 import './styles/mini-conversion.css';
