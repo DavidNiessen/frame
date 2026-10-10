@@ -9,7 +9,7 @@ import { WatchFolders } from './WatchFolders';
 import { CertificateTrust } from './CertificateTrust';
 
 const webStatus: ShellIntegrationStatus = { platform: 'web', available: false, state: 'not-installed', detail: 'Available in the desktop app. Browsers cannot add actions to your file manager.' };
-export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms, back }: { theme: Theme; setTheme: (theme: Theme) => void; autoWaveforms: boolean; setAutoWaveforms: (enabled: boolean) => void; back: () => void }) {
+export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms, workspaceAutosave, setWorkspaceAutosave, back }: { theme: Theme; setTheme: (theme: Theme) => void; autoWaveforms: boolean; setAutoWaveforms: (enabled: boolean) => void; workspaceAutosave: boolean; setWorkspaceAutosave: (enabled: boolean) => void; back: () => void }) {
   const bridge = window.frameDesktop;
   const [status, setStatus] = useState<ShellIntegrationStatus | null>(bridge ? null : webStatus);
   const [pending, setPending] = useState<'checking' | 'installing' | 'removing' | 'certificate' | null>(bridge ? 'checking' : null);
@@ -49,8 +49,9 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
       <ThemeChoices theme={theme} setTheme={setTheme} />
     </section>
     <section className="settings-card" aria-labelledby="editing-heading">
-      <div className="settings-section-heading"><AudioLines size={19} /><div><h2 id="editing-heading">Editing</h2><p>Choose how Frame prepares your timeline.</p></div></div>
+      <div className="settings-section-heading"><AudioLines size={19} /><div><h2 id="editing-heading">Editing</h2><p>Choose how Frame prepares and saves your workspace.</p></div></div>
       <label className="switch-row settings-preference"><span>Generate audio waveforms automatically<small id="waveform-preference-description">Show audio peaks when you select a track. Turn off to skip automatic analysis; you can still generate a waveform from the timeline.</small></span><input type="checkbox" checked={autoWaveforms} onChange={event => setAutoWaveforms(event.target.checked)} aria-label="Generate audio waveforms automatically" aria-describedby="waveform-preference-description" /></label>
+      <label className="switch-row settings-preference"><span>Autosave workspace<small id="autosave-preference-description">Keep edits on this device for recovery. Turning off keeps any previous recovery; you can still save project files manually.</small></span><input type="checkbox" checked={workspaceAutosave} onChange={event => setWorkspaceAutosave(event.target.checked)} aria-label="Autosave workspace" aria-describedby="autosave-preference-description" /></label>
     </section>
     <CompletionNotifications />
     <WatchFolders />
