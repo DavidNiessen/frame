@@ -1,7 +1,6 @@
 /* Independent surfaces: content scrolls inside its panel instead of sizing its neighbours. */
 .app-shell { padding: 12px 16px; gap: 12px; }
 .app-header { border: 1px solid var(--border); border-radius: 14px; padding: 0 18px; min-height: 60px; }
-.workspace-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; min-height: 44px; max-width: none; margin: 0; }
 .app-shell > .recovery-banner { margin: 0; border-radius: 14px; flex-shrink: 0; }
 .app-footer { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; margin-top: auto; }
 .app-shell .panel, .preview-panel, .empty-stage { border-radius: 14px; box-shadow: 0 4px 20px color-mix(in srgb, var(--text) 3%, transparent); }
@@ -101,4 +100,4 @@
 .conversion-layout.resizable-conversion[data-layout='stacked'] { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .resizable-conversion[data-layout='stacked'] .conversion-divider { display: none; }
 .resizable-conversion[data-layout='stacked'] .conversion-settings { position: static; }
-@media (max-width: 700px) { .app-shell { padding: 10px 12px; } .app-header { padding: 12px 14px; } .workspace-bar { padding: 8px 12px; } .conversion-intro { padding: 20px; } .app-footer { justify-content: center; } }
+@media (max-width: 700px) { .app-shell { padding: 10px 12px; } .app-header { padding: 12px 14px; } .conversion-intro { padding: 20px; } .app-footer { justify-content: center; } }

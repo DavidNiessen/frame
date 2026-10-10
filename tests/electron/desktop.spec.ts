@@ -103,7 +103,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await app.evaluate(({ dialog }, directory) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] }); }, directory);
     await page.getByRole('button', { name: 'Start with a sample A short studio study' }).click();
     await page.getByLabel('Output format').selectOption('flac');
-    await page.getByText('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Batch export', exact: true }).click();
+    await page.getByLabel('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Batch export', exact: true }).click();
     const batch = page.getByRole('dialog', { name: 'Batch export', exact: true });
     await batch.getByLabel('Batch settings').selectOption('output');
     await batch.getByRole('button', { name: 'Start batch export' }).click();
@@ -112,7 +112,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await batch.getByRole('button', { name: 'Close batch export' }).click();
     const mergedPath = join(directory, 'native-merged.flac');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, mergedPath);
-    await page.getByText('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
+    await page.getByLabel('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
     const merge = page.getByRole('dialog', { name: 'Merge clips', exact: true });
     await merge.getByLabel('Merge format').selectOption('flac');
     await merge.getByLabel('Merge transition').selectOption('fade');

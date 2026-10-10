@@ -13,8 +13,12 @@ test('expands the existing playing preview into the workspace and restores panel
   const original = (await preview.boundingBox())!;
   await page.evaluate(() => { (window as unknown as { originalVideo: Element | null }).originalVideo = document.querySelector('video'); });
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click();
-  expect(await preview.evaluate(node => node.getAnimations().some(animation => animation.playState === 'running'))).toBe(true);
+  // Sample the animation during its first frame rather than after a test-driver round trip.
+  const animating = await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).evaluate(node => {
+    (node as HTMLButtonElement).click();
+    return new Promise<boolean>(resolve => requestAnimationFrame(() => resolve(document.querySelector('.preview-panel')!.getAnimations().some(animation => animation.playState === 'running'))));
+  });
+  expect(animating).toBe(true);
   await expect.poll(async () => (await preview.boundingBox())!.width).toBeGreaterThan(original.width + 400);
   await preview.evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
   const workspace = (await page.locator('.editor-layout').boundingBox())!, expanded = (await preview.boundingBox())!;
@@ -28,6 +32,8 @@ test('expands the existing playing preview into the workspace and restores panel
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).focus(); await page.mouse.move(40, 40);
   await expect.poll(() => page.locator('.transport').evaluate(node => getComputedStyle(node).opacity)).toBe('0');
+  await expect(page.locator('.preview-panel .workspace-heading')).toHaveCSS('opacity', '1');
+  await expect(page.getByRole('button', { name: 'Exit fullscreen preview', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Exit fullscreen preview', exact: true }).focus();
   await expect.poll(() => page.locator('.transport').evaluate(node => getComputedStyle(node).opacity)).toBe('1');
   await page.keyboard.press('Escape');

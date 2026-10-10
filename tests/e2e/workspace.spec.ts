@@ -33,12 +33,12 @@ test('keeps desktop editing focused and preserves effects across accessible tabs
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await edit.click();
   await expect(page.getByRole('button', { name: /View applied effects/ })).toHaveCount(0);
-  await page.getByText('Project tools', { exact: true }).click();
+  await page.getByLabel('Project tools', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Merge clips', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Merge clips', exact: true }).focus();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Merge clips', exact: true })).toBeHidden();
-  await expect(page.getByText('Project tools', { exact: true })).toBeFocused();
+  await expect(page.getByLabel('Project tools', { exact: true })).toBeFocused();
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: 'Open project', exact: true })).toBeVisible();
   await expect(page.locator('video')).toHaveJSProperty('paused', true);

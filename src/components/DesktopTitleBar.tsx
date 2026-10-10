@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Copy, Minus, Square, X } from 'lucide-react';
 import { desktopChromeSpace, type WindowAction, type WindowState } from '../core/window-controls';
 
-export function DesktopTitleBar({ state }: { state: WindowState }) {
+export function DesktopTitleBar({ state, pinned }: { state: WindowState; pinned: boolean }) {
   const bridge = window.frameDesktop!;
   const [visible, setVisible] = useState(false);
   const [error, setError] = useState('');
   const bar = useRef<HTMLDivElement>(null), first = useRef<HTMLButtonElement>(null), previousFocus = useRef<HTMLElement | null>(null);
   const keyboardFocus = useRef(false);
   const pendingFocus = useRef(false);
+  const expanded = visible || pinned;
   useEffect(() => {
     let hideTimer: ReturnType<typeof setTimeout> | undefined;
     let nearTop = false;
@@ -55,11 +56,11 @@ export function DesktopTitleBar({ state }: { state: WindowState }) {
     };
   }, [bridge, state.chromeInset, state.chromeExpanded]);
   useEffect(() => {
-    void bridge.setWindowChrome(visible).catch(() => setError('Could not update window controls. Please try again.'));
-  }, [bridge, visible]);
+    void bridge.setWindowChrome(expanded).catch(() => setError('Could not update window controls. Please try again.'));
+  }, [bridge, expanded]);
   const act = (action: WindowAction) => { setError(''); void bridge.windowAction(action).catch(() => { setError('Window action failed. Please try again.'); setVisible(true); }); };
   const restore = state.maximized || state.fullscreen;
-  const revealed = visible && state.chromeExpanded;
+  const revealed = expanded && state.chromeExpanded;
   useEffect(() => {
     if (!revealed || !pendingFocus.current) return;
     pendingFocus.current = false;

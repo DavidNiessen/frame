@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openMobileMenu } from '../helpers/header';
 test('finds commands with keyboard navigation, respects unavailable actions and opens editor tools', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Search commands', exact: true }).click(); const search = page.getByRole('combobox', { name: 'Search commands', exact: true }); await expect(search).toBeFocused();
   await search.fill('save project'); await expect(page.getByRole('option', { name: /Save project/ })).toHaveAttribute('aria-selected', 'true'); await search.press('Enter'); await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
@@ -14,7 +15,7 @@ test('finds commands with keyboard navigation, respects unavailable actions and 
   await page.getByRole('button', { name: 'Search commands', exact: true }).click(); await search.fill('does-not-exist'); await expect(page.getByRole('status').filter({ hasText: 'No matching commands' })).toBeVisible(); await search.press('Escape'); await expect(page.getByRole('button', { name: 'Search commands', exact: true })).toBeFocused();
 });
 test('opens search from settings inputs, navigates with arrows and fits a phone', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/'); await page.getByRole('button', { name: 'Settings', exact: true }).click(); await page.getByLabel('Autosave workspace', { exact: true }).focus(); await page.keyboard.press('Control+k');
+  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/'); await openMobileMenu(page); await page.getByRole('button', { name: 'Settings', exact: true }).click(); await page.getByLabel('Autosave workspace', { exact: true }).focus(); await page.keyboard.press('Control+k');
   const search = page.getByRole('combobox', { name: 'Search commands', exact: true }); await expect(search).toBeFocused(); await search.fill('import'); const before = await search.getAttribute('aria-activedescendant'); await search.press('ArrowDown'); expect(await search.getAttribute('aria-activedescendant')).not.toBe(before); await search.press('ArrowUp'); await expect(search).toHaveAttribute('aria-activedescendant', before!);
   const dialog = page.getByRole('dialog', { name: 'Command palette', exact: true }); const box = (await dialog.boundingBox())!; expect(box.width).toBeLessThanOrEqual(390); expect(box.x).toBeGreaterThanOrEqual(0);
   await search.fill('url'); await search.press('Enter'); await expect(page.getByRole('dialog', { name: 'Load from URL', exact: true })).toBeVisible();

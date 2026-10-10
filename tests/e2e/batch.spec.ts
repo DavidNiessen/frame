@@ -4,7 +4,7 @@ test('exports a batch with shared output settings and individual downloads', asy
   await page.goto('/'); const buffer = await readFile('public/sample.mp4');
   await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
   await page.getByLabel('Output format').selectOption('flac');
-  await page.getByText('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Batch export', exact: true }).click();
+  await page.getByLabel('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Batch export', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Batch export', exact: true });
   await dialog.getByLabel('Batch settings').selectOption('output');
   await dialog.getByRole('button', { name: 'Start batch export' }).click();

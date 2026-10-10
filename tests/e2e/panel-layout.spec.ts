@@ -88,7 +88,7 @@ test('resizes panels with pointer and keyboard, cancels gestures, remembers size
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('frame:panel-layout:v1')!).library)).toBe(290);
   await page.reload();
   await expect(page.getByRole('separator', { name: 'Resize media library' })).toHaveAttribute('aria-valuenow', '290');
-  await page.getByText('Project tools', { exact: true }).click();
+  await page.getByLabel('Project tools', { exact: true }).click();
   await page.getByRole('button', { name: 'Reset panel layout' }).click();
   await expect(page.getByRole('separator', { name: 'Resize media library' })).toHaveAttribute('aria-valuenow', '220');
   await expect(page.getByRole('separator', { name: 'Resize edit and export panel' })).toHaveAttribute('aria-valuenow', '320');

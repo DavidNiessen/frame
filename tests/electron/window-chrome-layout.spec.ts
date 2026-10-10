@@ -27,6 +27,15 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click();
     await page.locator('.preview-panel').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
+    const fullscreenVideo = await videoBounds();
+    await page.mouse.move(100, 400);
+    await expect(page.getByRole('toolbar', { name: 'Window controls' })).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await expect(page.getByRole('toolbar', { name: 'Window controls' })).toBeVisible();
+    expect(await videoBounds()).toEqual(fullscreenVideo);
+    await page.getByRole('button', { name: 'Exit fullscreen preview', exact: true }).click();
+    await page.locator('.preview-panel').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
+    await hide();
     const video = await videoBounds(); await show(); expect(await videoBounds()).toEqual(video); await hide(); expect(await videoBounds()).toEqual(video);
     await settle(); expect(await corners(desktopChromeSpace)).toEqual([0, 0, 0, 0, 255]);
     await native.evaluate((window, height) => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: 1200, height }); }, 840 + desktopChromeSpace);

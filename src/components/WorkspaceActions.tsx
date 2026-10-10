@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ChevronDown, Combine, FolderOpen, Layers, Save, PanelsTopLeft, Grid2X2, ScanLine } from 'lucide-react';
-export function WorkspaceActions({ hasMedia, busy, saving, merge, batch, open, save, resetLayout, contactSheet, hasVideo, scenes }: {
+export function WorkspaceActions({ projectName, hasMedia, busy, saving, merge, batch, open, save, resetLayout, contactSheet, hasVideo, scenes }: {
+  projectName: string;
   scenes: () => void;
   contactSheet: () => void; hasVideo: boolean;
   hasMedia: boolean; busy: boolean; saving: boolean;
@@ -18,10 +19,11 @@ export function WorkspaceActions({ hasMedia, busy, saving, merge, batch, open, s
   function run(action: () => void) { if (menu.current) menu.current.open = false; action(); }
   return <div className="workspace-actions">
     <details className="workspace-tools" ref={menu} onKeyDown={event => {
-      if (event.key === 'Escape') { event.preventDefault(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); }
+      if (event.key === 'Escape' && event.currentTarget.open) { event.preventDefault(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); }
     }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}>
-      <summary className="button small">Project tools<ChevronDown size={14} /></summary>
+      <summary className="button small" aria-label="Project tools" title="Project tools"><FolderOpen className="project-tools-icon" size={16} /><span className="project-tools-label">Project tools</span><ChevronDown className="project-tools-chevron" size={14} /></summary>
       <div className="workspace-tools-menu">
+        {projectName && <p className="project-menu-name" title={projectName}>{projectName}</p>}
         <button disabled={busy || saving} onClick={() => run(open)}><FolderOpen size={16} />Open project</button>
         <button disabled={!hasMedia || busy} onClick={() => run(merge)}><Combine size={16} />Merge clips</button>
         <button disabled={!hasVideo || busy} onClick={() => run(scenes)}><ScanLine size={16} />Find scene changes</button>
@@ -30,6 +32,6 @@ export function WorkspaceActions({ hasMedia, busy, saving, merge, batch, open, s
         <button onClick={() => run(resetLayout)}><PanelsTopLeft size={16} />Reset panel layout</button>
       </div>
     </details>
-    <button className="button subtle small" disabled={!hasMedia || busy || saving} onClick={save}><Save size={14} />Save project</button>
+    <button className="button subtle small project-save" aria-label="Save project" title={projectName ? `Save project — ${projectName}` : 'Save project'} disabled={!hasMedia || busy || saving} onClick={save}><Save size={16} /><span className="project-save-label">Save project</span></button>
   </div>;
 }
