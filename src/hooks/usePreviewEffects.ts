@@ -7,6 +7,7 @@ import { editedDuration, keptRanges } from '../core/timeline';
 import { previewPlaybackStep } from '../core/preview-playback';
 import type { EditSettings } from '../core/types';
 import { hasPreviewClock, readPreviewTime, seekPreviewTime } from '../core/preview-clock';
+import { previewFrameLoop } from './preview-frame-loop';
 export function pauseOtherMedia(active: HTMLMediaElement) {
   for (const element of document.querySelectorAll('video, audio')) if (element !== active && !element.hasAttribute('data-frame-mix-layer')) (element as HTMLMediaElement).pause();
 }
@@ -29,15 +30,14 @@ export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit:
     if (!playing && ref.current) applyPreviewEffects(ref.current, effects);
   }, [ref, effects, playing, current, assetId]);
   useEffect(() => {
-    if (!playing) return;
-    let frame = 0, playingClip: string | null = null;
+    let playingClip: string | null = null;
     const media = ref.current;
+    if (!media) return;
     const seeking = () => { playingClip = null; };
     media?.addEventListener('seeking', seeking);
     function tick() {
       const media = ref.current;
-      if (!media || media.paused) return;
-      if (!media.readyState || media.dataset.previewSwitching) { frame = requestAnimationFrame(tick); return; }
+      if (!media || !media.readyState || media.dataset.previewSwitching) return;
       const { edit: recipe, publish: updateClock } = latest.current;
       const sourceTime = readPreviewTime(media);
       const step = previewPlaybackStep(recipe, sourceTime, playingClip, hasPreviewClock(media) && !media.dataset.previewStale);
@@ -46,9 +46,8 @@ export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit:
       else if (next !== sourceTime) seekPreviewTime(media, next);
       applyPreviewEffects(media, latest.current.effects);
       updateClock(readPreviewTime(media));
-      if (!media.paused) frame = requestAnimationFrame(tick);
     }
-    frame = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(frame); media?.removeEventListener('seeking', seeking); };
-  }, [ref, playing, assetId]);
+    const stop = previewFrameLoop(media, tick);
+    return () => { stop(); media.removeEventListener('seeking', seeking); };
+  }, [ref, assetId]);
 }

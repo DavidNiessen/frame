@@ -34,6 +34,8 @@ test('keeps playback and editing available while preparing and replacing a previ
     await expect(media).toHaveAttribute('data-preview-clock', 'sequence', { timeout: 60000 });
     await expect(media).not.toHaveAttribute('data-preview-switching', 'true');
     await expect(media).toHaveJSProperty('paused', false);
+    const handoffCursor = Number(await page.getByLabel('Seek playhead').inputValue());
+    await expect.poll(async () => Number(await page.getByLabel('Seek playhead').inputValue())).toBeGreaterThan(handoffCursor + .3);
     await page.getByRole('button', { name: 'Pause', exact: true }).click();
     expect(Number(await page.getByLabel('Seek playhead').inputValue())).toBeGreaterThan(.5);
     const previous = (await media.getAttribute('src'))!;
