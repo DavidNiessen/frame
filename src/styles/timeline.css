@@ -46,6 +46,9 @@
 .waveform-status, .waveform-error { font-size: 11px; color: var(--muted); }
 .waveform-error { flex-basis: 100%; overflow-wrap: anywhere; }
 .clip-waveform { position: absolute; inset: 20px 0 3px; border-radius: 3px; overflow: hidden; pointer-events: none; }
+.joined-waveform { display: flex; }
+.joined-piece { position: relative; flex-basis: 0; min-width: 0; }
+.joined-piece.cut-boundary { border-left: 1px dashed currentColor; }
 .with-waveform > .range-body { display: flex; align-items: flex-start; }
 .with-waveform > .range-body > span { padding-top: 3px; }
 .clip-waveform .audio-waveform { opacity: .8; fill: currentColor; z-index: auto; }

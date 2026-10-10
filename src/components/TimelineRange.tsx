@@ -11,13 +11,14 @@ interface Props {
   onPreview?: (range: TimeRange, edge: Boundary | 'body') => void;
   startTitle?: string; endTitle?: string;
   wideHandles?: boolean;
+  edgeLimits?: Partial<Record<Boundary, TimeRange>>;
   startLabel?: string; endLabel?: string; edges?: Boundary[]; minimum?: number;
   displayRange?: TimeRange; displaySpeed?: number; bodyProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   renderContent?: (range: TimeRange) => ReactNode;
   remove?: { label: string; run: () => void };
 }
 export function TimelineRange({ range, limits, duration, label, text, selectOnPointer = false, className = '', disabled, onChange, onSelect,
-  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', remove, onMove, moveLimits, onPreview, startTitle, endTitle, wideHandles = false }: Props) {
+  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', remove, onMove, moveLimits, onPreview, startTitle, endTitle, wideHandles = false, edgeLimits }: Props) {
   const snap = useContext(TimelineSnapContext);
   const [snapped, setSnapped] = useState(false);
   const [draft, setDraft] = useState<TimeRange | null>(null);
@@ -30,8 +31,9 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
   const left = `${positioned.start / duration * 100}%`;
   function constrain(edge: Boundary, value: number, base: TimeRange): TimeRange {
     const next = value;
-    return edge === 'start' ? { ...base, start: Math.max(limits.start, Math.min(base.end - minimum, next)) }
-      : { ...base, end: Math.min(limits.end, Math.max(base.start + minimum, next)) };
+    const bounds = edgeLimits?.[edge];
+    return edge === 'start' ? { ...base, start: Math.max(bounds?.start ?? limits.start, Math.min(bounds?.end ?? base.end - minimum, next)) }
+      : { ...base, end: Math.min(bounds?.end ?? limits.end, Math.max(bounds?.start ?? base.start + minimum, next)) };
   }
   function move(event: PointerEvent<HTMLButtonElement>) {
     const g = gesture.current;
@@ -41,7 +43,8 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     if (g.edge === 'body' && !g.moved) return;
     const raw = g.range[g.edge === 'body' ? 'start' : g.edge] + offset;
     // The boundary being dragged must not attract itself after every small move.
-    const targets = snap.targets[snapSpace].filter(value => value !== g.range.start && value !== g.range.end);
+    const ownEdges = [g.range.start, g.range.end, pending.current.start, pending.current.end];
+    const targets = snap.targets[snapSpace].filter(value => ownEdges.every(edge => Math.abs(value - edge) > .000001));
     const value = snap.enabled && !event.altKey ? snapTime(raw, targets, 8 / g.width * duration * displaySpeed, snapSpace === 'source' ? snap.frameRate : undefined) : Math.round(raw * 100) / 100;
     setSnapped(Math.abs(value - raw) > .000001 && snap.enabled && !event.altKey);
     if (g.edge === 'body') {
@@ -85,8 +88,8 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     {renderContent?.(shown)}
     {edges.map(edge => <button key={edge} className={`range-handle ${edge}`} role="slider" aria-label={edge === 'start' ? startLabel : endLabel}
       title={edge === 'start' ? startTitle : endTitle}
-      aria-orientation="horizontal" aria-valuemin={edge === 'start' ? limits.start : shown.start + minimum}
-      aria-valuemax={edge === 'start' ? shown.end - minimum : limits.end} aria-valuenow={shown[edge]}
+      aria-orientation="horizontal" aria-valuemin={edgeLimits?.[edge]?.start ?? (edge === 'start' ? limits.start : shown.start + minimum)}
+      aria-valuemax={edgeLimits?.[edge]?.end ?? (edge === 'start' ? shown.end - minimum : limits.end)} aria-valuenow={shown[edge]}
       aria-valuetext={`${shown[edge].toFixed(2)} seconds`} disabled={disabled}
       onPointerDown={event => {
         event.stopPropagation(); if (disabled || event.button !== 0) return;

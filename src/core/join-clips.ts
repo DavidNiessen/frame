@@ -1,4 +1,5 @@
 import { editClips, type TimelineClip } from './clips';
+import { clipGroups } from './clip-groups';
 import type { EditSettings } from './types';
 
 function sameValues(a: unknown, b: unknown): boolean {
@@ -12,19 +13,23 @@ function boundaryEffects(clip: TimelineClip) {
     || clip.effects.normalizeLoudness === true
     || clip.effects.effectInstances?.some(instance => instance.effect.includes('Fade') || instance.effect === 'normalize');
 }
-function canJoin(left: TimelineClip, right?: TimelineClip) {
-  return !!right && Math.abs(left.end - right.start) < .000001 && sameValues(left.effects, right.effects) && !boundaryEffects(left) && !boundaryEffects(right);
+function canJoin(left: TimelineClip[], right?: TimelineClip[]) {
+  const pieces = [...left, ...(right ?? [])];
+  return !!right && pieces.every((clip, index) => sameValues(left[0].effects, clip.effects) && !boundaryEffects(clip) && (!index || clip.start >= pieces[index - 1].end - .000001));
 }
-/** Join only consecutive source footage; a deleted gap or distinct legacy treatment stays intact. */
+/** Adjacent retained footage may join even when a deleted source gap separates it. */
 export function adjacentSplitJoin(edit: EditSettings, selectedId: string | null) {
-  const clips = editClips(edit), index = clips.findIndex(clip => clip.id === selectedId);
+  const groups = clipGroups(edit), index = groups.findIndex(group => group.clips.some(clip => clip.id === selectedId));
   if (index < 0) return null;
-  if (canJoin(clips[index], clips[index + 1])) return { left: clips[index], right: clips[index + 1] };
-  if (index > 0 && canJoin(clips[index - 1], clips[index])) return { left: clips[index - 1], right: clips[index] };
-  return null;
+  const left = canJoin(groups[index].clips, groups[index + 1]?.clips) ? index : index > 0 && canJoin(groups[index - 1].clips, groups[index].clips) ? index - 1 : -1;
+  if (left < 0) return null;
+  return { left: groups[left].clips[0], right: groups[left + 1].clips[0], pieces: [...groups[left].clips, ...groups[left + 1].clips] };
 }
 export function joinSplitClips(edit: EditSettings, selectedId: string | null): Partial<EditSettings> {
   const pair = adjacentSplitJoin(edit, selectedId);
   if (!pair) return {};
-  return { clips: editClips(edit).filter(clip => clip.id !== pair.right.id).map(clip => clip.id === pair.left.id ? { ...clip, end: pair.right.end } : clip) };
+  const continuous = pair.pieces.every((clip, index) => !index || Math.abs(pair.pieces[index - 1].end - clip.start) < .000001);
+  if (continuous) return { clips: editClips(edit).flatMap(clip => clip.id === pair.left.id ? [{ ...clip, groupId: undefined, end: pair.pieces.at(-1)!.end }] : pair.pieces.some(piece => piece.id === clip.id) ? [] : [clip]) };
+  const groupId = pair.left.groupId ?? crypto.randomUUID();
+  return { clips: editClips(edit).map(clip => pair.pieces.some(piece => piece.id === clip.id) ? { ...clip, groupId } : clip) };
 }

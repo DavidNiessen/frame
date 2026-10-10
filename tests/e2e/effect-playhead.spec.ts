@@ -4,6 +4,7 @@ import { closeEffect } from '../helpers/effects';
 
 for (const width of [1440, 390]) test(`follows effects during a drag and cancels in one gesture at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
   await page.goto('/'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();

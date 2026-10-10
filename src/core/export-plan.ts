@@ -47,6 +47,16 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
       if (clip.start < edit.start || clip.end > edit.end) throw new Error('Clip lies outside the source selection.');
       validateEdit({ ...asset, hasAudio: hasEditedAudio(asset, edit) }, clipRecipe(edit, clip));
     }
+    const completed = new Set<string>();
+    edit.clips.forEach((clip, index) => {
+      if (clip.groupId === undefined) return;
+      if (typeof clip.groupId !== 'string' || !clip.groupId.trim() || clip.groupId.length > 120) throw new Error('Invalid joined section.');
+      const previous = edit.clips![index - 1];
+      if (previous?.groupId !== clip.groupId) {
+        if (completed.has(clip.groupId)) throw new Error('Joined pieces must stay together.');
+        completed.add(clip.groupId);
+      } else if (clip.start < previous.end - timeEpsilon || effectiveSpeed(clipRecipe(edit, clip)) !== effectiveSpeed(clipRecipe(edit, previous))) throw new Error('Invalid joined section timing.');
+    });
   }
   const format = getFormat(edit.format);
   if (![edit.start, edit.end, edit.volume, edit.audioBitrate, edit.fps].every(Number.isFinite)) throw new Error('Enter valid numeric settings.');

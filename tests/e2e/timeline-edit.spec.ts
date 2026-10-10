@@ -45,6 +45,7 @@ test('drags, restores, and independently resizes split clips with one undo per g
   await expect(page.getByLabel('Section 1 end')).toHaveAttribute('aria-valuenow', '3');
 });
 test('resizes overlapping captions and fades above the clip and preserves exported cue timing', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await sample(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openCaptionTools(page);
@@ -61,10 +62,10 @@ test('resizes overlapping captions and fades above the clip and preserves export
   await expect(page.getByLabel('Caption 1 start')).toBeHidden();
   await page.locator('.timeline-lane-group > summary').filter({ hasText: 'Captions' }).click();
   await openEffect(page, 'Audio fade in');
-  await dragEdge(page, 'Audio fade in end', 0.5);
-  await expect(page.getByLabel('Audio fade in end')).toHaveAttribute('aria-valuenow', '1');
+  await dragEdge(page, 'Audio fade in effect end', 0.5);
+  await expect.poll(async () => Number(await page.getByLabel('Audio fade in effect end').getAttribute('aria-valuenow'))).toBeCloseTo(1, 6);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
-  await expect(page.getByLabel('Audio fade in end')).toHaveAttribute('aria-valuenow', '0.5');
+  await expect(page.getByLabel('Audio fade in effect end')).toHaveAttribute('aria-valuenow', '0.5');
   const downloadPromise = page.waitForEvent('download');
   await openCaptionTools(page); await page.getByRole('button', { name: 'Save output SRT' }).click();
   const download = await downloadPromise;

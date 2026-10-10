@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { TimelineViewTools } from './layout/TimelineViewTools';
 import { clipPositions, clipRecipe, editClips, splitClip } from '../core/clips';
 import { adjacentSplitJoin, joinSplitClips } from '../core/join-clips';
+import { clipGroups } from '../core/clip-groups';
 import { appliedEffects, availableEffects, effectActive } from '../core/effect-library';
 import { outputTimeAtSource, sourceTimeAtOutput } from '../core/fades';
 import { TimelineSnapContext } from './TimelineSnapContext';
@@ -37,6 +38,7 @@ export function Timeline({ openEffect, generatingId, asset, edit, current, seek,
   const position = outputTimeAtSource(edit, current);
   const scale = useTimelineScale(asset.id, asset.duration, editedDuration(edit)), total = scale.total;
   const clips = useMemo(() => editClips(edit), [edit]), positions = useMemo(() => clipPositions(edit), [edit]);
+  const groups = useMemo(() => clipGroups(edit), [edit]);
   const effectCounts = useMemo(() => {
     const effects = availableEffects(asset).filter(effect => effect.scope === 'clip');
     return clips.map(clip => { const recipe = clipRecipe(edit, clip); return effects.filter(effect => recipe.addedEffects?.includes(effect.id) || effectActive(effect, recipe, asset)).length + extraInstances(recipe).filter(instance => availableEffects(asset).some(effect => effect.id === instance.effect && effect.scope === 'clip')).length; });
@@ -78,10 +80,12 @@ export function Timeline({ openEffect, generatingId, asset, edit, current, seek,
     onPointerUp: (event: PointerEvent<HTMLDivElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) { scrub(event); event.currentTarget.releasePointerCapture(event.pointerId); } },
   };
   function split() {
+    const clip = clips.find(clip => current >= clip.start && current < clip.end);
+    const index = clips.findIndex(item => item.id === clip?.id);
+    if (clip?.groupId && current === clip.start && clips[index - 1]?.groupId === clip.groupId) { update(splitClip(edit, clip.id, current)); selectClip(clip.id); return; }
     const speed = effectiveSpeed({ ...edit, ...clips.find(clip => current >= clip.start && current < clip.end)?.effects });
     if (!active || !hasMinimumDuration({ start: active.start, end: current }, speed) || !hasMinimumDuration({ start: current, end: active.end }, speed)) { notify('Move the playhead inside a section to split it.'); return; }
-    const clip = clips.find(clip => current >= clip.start && current < clip.end)!;
-    update(splitClip(edit, clip.id, current)); selectClip(clip.id);
+    update(splitClip(edit, clip!.id, current)); selectClip(clip!.id);
   }
   const joinId = selectedClip ?? clips.find(clip => clip.start === active?.start && clip.end === active?.end)?.id ?? null;
   const joinPair = adjacentSplitJoin(edit, joinId);
@@ -90,12 +94,12 @@ export function Timeline({ openEffect, generatingId, asset, edit, current, seek,
     update(joinSplitClips(edit, joinId)); selectClip(joinPair.left.id);
   }
   function remove() {
-    if (clips.length < 2) { notify('Keep at least one section in the timeline.'); return; }
+    if (groups.length < 2) { notify('Keep at least one section in the timeline.'); return; }
     const clip = selectedClip ? clips.find(c => c.id === selectedClip) : clips.find(c => c.start === active?.start && c.end === active?.end);
-    if (clip) { update({ clips: clips.filter(c => c.id !== clip.id) }); seek(clips.find(c => c.id !== clip.id)!.start); }
+    if (clip) { const retained = clips.filter(c => clip.groupId ? c.groupId !== clip.groupId : c.id !== clip.id); update({ clips: retained }); selectClip(null); seek(retained[0].start); }
   }
   return <TimelineSnapContext value={{ enabled: snapping, targets, frameRate: asset.frameRate }}><section id="media-timeline" className="timeline panel" aria-label="Timeline">
-    <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{sections.length} {sections.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="icon-button snapping-toggle" aria-label="Timeline snapping" aria-pressed={snapping} title="Snap to clip edges, captions and frames · hold Alt to bypass" onClick={() => { setSnapping(!snapping); try { localStorage.setItem('frame:timeline-snapping', String(!snapping)); } catch {} }}><Magnet size={15} /></button><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Join splits" title={joinPair ? "Join this section with its contiguous neighbour" : "Join adjacent footage with matching clip settings"} disabled={disabled || !joinPair} onClick={join}><Combine size={16} /></button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || (!active && !selectedClip) || sections.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
+    <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{groups.length} {groups.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="icon-button snapping-toggle" aria-label="Timeline snapping" aria-pressed={snapping} title="Snap to clip edges, captions and frames · hold Alt to bypass" onClick={() => { setSnapping(!snapping); try { localStorage.setItem('frame:timeline-snapping', String(!snapping)); } catch {} }}><Magnet size={15} /></button><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Join splits" title={joinPair ? "Join this section with its neighbour, preserving cuts" : "Join adjacent sections with matching clip settings"} disabled={disabled || !joinPair} onClick={join}><Combine size={16} /></button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || (!active && !selectedClip) || groups.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
     <TimelineNavigator extent={total} tools={<TimelineViewTools zoom={zoom} setZoom={setZoom} fit={scale.fit} />} zoom={zoom} edit={edit} position={position} fraction={fraction} pan={value => { if (scroll.current) scroll.current.scrollLeft = value * (scroll.current.scrollWidth - scroll.current.clientWidth); setFraction(value); }} filter={filter} setFilter={setFilter} compact={compact} setCompact={setCompact} locate={locate} />
     <div className="timeline-analysis">
       {autoWaveforms && asset.hasAudio && !waveform && <>{waveformError ? <button className="button small" disabled={disabled} onClick={retryWaveform}>Retry waveform</button> : <span className="waveform-status" role="status">{waveformLoading ? `Reading waveform ${Math.round(analysisProgress * 100)}%` : 'Preparing waveform…'}</span>}{waveformLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel waveform</button>}{waveformError && <TransientMessage className="waveform-error" role="alert">{waveformError}</TransientMessage>}</>}
@@ -104,8 +108,8 @@ export function Timeline({ openEffect, generatingId, asset, edit, current, seek,
       {filter !== 'clips' && filter !== 'captions' && <AudioLayerLanes openEffect={openEffect} axisDuration={total} generatingId={generatingId} assets={assets} waveforms={waveforms} edit={edit} compact={compact} disabled={disabled} update={update} seek={seek} />}
       <TimedLanes total={total} openEffect={openEffect} compact={compact} filter={filter} selectClip={selectClip} asset={asset} edit={edit} update={update} disabled={disabled} seek={seek} />
     </div></div>
-    <div className="timeline-clip-viewport">      <div className="timeline-track timeline-lane" style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }} {...scrubProps}><div className="track-baseline" />{clips.map((clip, i) => <TimelineClip openEffect={openEffect} key={clip.id} notify={notify} effectCount={effectCounts[i]} clip={clip} index={i} edit={edit} asset={asset} duration={total} position={positions[i]} speed={positions[i].speed} disabled={disabled} selected={selectedClip === clip.id || !selectedClip && active?.start === clip.start} select={selectClip} seek={seek} update={update} waveform={waveform}
-        dropIndex={x => { const bounds = content.current!.getBoundingClientRect(), value = Math.max(0, Math.min(total, (x - bounds.left) / bounds.width * total)); const index = positions.findIndex(item => value < item.end); return index < 0 ? clips.length - 1 : index; }} />)}
+    <div className="timeline-clip-viewport">      <div className="timeline-track timeline-lane" style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }} {...scrubProps}><div className="track-baseline" />{groups.map(group => { const clip = group.clips[0], i = group.index; return <TimelineClip pieces={group.clips} openEffect={openEffect} key={clip.id} notify={notify} effectCount={effectCounts[i]} clip={clip} index={i} edit={edit} asset={asset} duration={total} position={group} speed={group.speed} disabled={disabled} selected={group.clips.some(piece => selectedClip === piece.id || !selectedClip && active?.start === piece.start)} select={selectClip} seek={seek} update={update} waveform={waveform}
+        dropIndex={x => { const bounds = content.current!.getBoundingClientRect(), value = Math.max(0, Math.min(total, (x - bounds.left) / bounds.width * total)); const index = positions.findIndex(item => value < item.end); return index < 0 ? clips.length - 1 : index; }} />; })}
         <div className="playhead" style={{ left: `${position / total * 100}%` }}><span /></div>
       <input data-preview-playback ref={slider} className="seek-slider" type="range" aria-label="Seek playhead" aria-valuetext={`${current.toFixed(2)} of ${asset.duration.toFixed(2)} seconds`} min={0} max={asset.duration} step={0.01} value={current} disabled={disabled} onChange={event => seek(Number(event.target.value))} /></div>
     </div>

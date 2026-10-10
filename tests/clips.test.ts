@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { editClips, patchClip, reorderClip, splitClip } from '../src/core/clips';
+import { joinSplitClips } from '../src/core/join-clips';
 import { editedDuration } from '../src/core/timeline';
 import { outputTimeAtSource, sourceTimeAtOutput } from '../src/core/fades';
 import { outputCues } from '../src/core/subtitles';
@@ -52,6 +53,16 @@ describe('ordered clips with scoped effects', () => {
     const second = await exec(ffmpegPath(), ['-ss', '1.3', '-i', output, '-t', '0.7', '-map', '0:a', '-af', 'volumedetect', '-f', 'null', '-']);
     expect(first.stderr).toMatch(/mean_volume: -91/);
     expect(Number(/mean_volume: (-?[\d.]+)/.exec(second.stderr)![1])).toBeGreaterThan(-60);
+  });
+  it('exports joined retained sections without bringing back deleted footage', async () => {
+    const base = { ...defaultSettings(asset), clips: [{ id: 'a', start: 0, end: 2, effects: {} }, { id: 'b', start: 4, end: 6, effects: {} }] };
+    const edit = { ...base, ...joinSplitClips(base, 'a') }, output = join(directory, 'joined-with-cut.mp4');
+    const args = buildExportArgs(asset, edit, source, output);
+    expect(args.join(' ')).toContain('trim=start=0:end=2'); expect(args.join(' ')).toContain('trim=start=4:end=6');
+    await exec(ffmpegPath(), args);
+    const { stdout } = await exec(ffprobePath(), ['-v', 'error', '-show_format', '-of', 'json', output]);
+    expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(4, 1);
+    expect(sourceTimeAtOutput(edit, 2.5)).toBe(4.5);
   });
   it('merges ordered sources without discarding scoped effects', async () => {
     const edit = recipe(), output = join(directory, 'merged.mp4');
