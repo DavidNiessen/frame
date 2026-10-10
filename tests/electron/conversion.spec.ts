@@ -71,7 +71,8 @@ test('bulk converts native folders, numbers collisions, and retries only unfinis
 test('keeps custom numbering on retries and applies native audio delivery settings', async () => {
   const library = await conversionLibrary(), output = join(library.directory, 'Named');
   const original = await readFile(library.sources[0]); await mkdir(output);
-  const app = await _electron.launch({ args: [`--user-data-dir=${join(library.directory, 'number-profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), '.'], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  const executablePath = process.env.FRAME_TEST_EXECUTABLE;
+  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(library.directory, 'number-profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {
     const page = await app.firstWindow();
     await page.getByRole('navigation', { name: 'Workflow' }).getByRole('button', { name: 'Convert', exact: true }).click();

@@ -1,10 +1,11 @@
 import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 test('persists native notification preference and sends completion notices only in the background', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-notification-test-'));
-  const app = await _electron.launch({ args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), '.'], env: { ...process.env, FRAME_DEV_URL: '' } });
+  const executablePath = process.env.FRAME_TEST_EXECUTABLE;
+  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, FRAME_DEV_URL: '' } });
   try {
     await app.evaluate(({ Notification, BrowserWindow }) => {
       const state = globalThis as typeof globalThis & { notices: string[]; focused: boolean }; state.notices = []; state.focused = true;
