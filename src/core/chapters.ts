@@ -1,4 +1,4 @@
-import { orderedMarkers } from './markers';
+import { orderedLegacyChapterPoints } from './legacy-chapters';
 import { outputTimeAtSource } from './fades';
 import { editedDuration } from './timeline';
 import type { EditSettings } from './types';
@@ -12,7 +12,7 @@ function intervals(points: { title: string; start: number }[], duration: number)
   return distinct.map((point, index) => ({ ...point, end: distinct[index + 1]?.start ?? duration }));
 }
 export function timelineChapters(edit: EditSettings): Chapter[] {
-  const points = orderedMarkers(edit).map(marker => ({ title: marker.name, start: outputTimeAtSource(edit, marker.time) }));
+  const points = orderedLegacyChapterPoints(edit).map(marker => ({ title: marker.name, start: outputTimeAtSource(edit, marker.time) }));
   if (!points.length) return [];
   if (points[0].start > .001) points.unshift({ title: 'Opening', start: 0 });
   return intervals(points, editedDuration(edit));

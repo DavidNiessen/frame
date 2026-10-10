@@ -1,3 +1,4 @@
+import { TransientMessage } from './TransientMessage';
 import { useRef, useState } from 'react';
 import { captionItems } from '../core/caption-items';
 import { importCaptionEffects } from '../core/caption-effects';
@@ -29,6 +30,6 @@ export function CaptionTools({ editor, seek, openCaption }: { editor: Editor; se
         effectInstances: extraInstances(edit).map(instance => instance.effect === 'captions' && instance.settings.subtitles ? { ...instance, settings: { subtitles: { ...instance.settings.subtitles, cues: instance.settings.subtitles.cues.map((cue, index) => ({ ...cue, text: text(instance.id, index) })) } } } : instance),
       });
     }} jump={index => { seek(items[index].start); openCaption(items[index].instanceId); }} /><button className="button subtle small" onClick={save}>Save output SRT</button></>}
-    {error && <p role="alert">{error}</p>}
+    {error && <TransientMessage role="alert">{error}</TransientMessage>}
   </div></details>;
 }

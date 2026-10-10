@@ -1,3 +1,4 @@
+import { TransientMessage } from '../TransientMessage';
 import { CoverArtworkControls } from '../CoverArtworkControls';
 import { MetadataControls } from '../MetadataControls';
 import { ConversionNaming } from './ConversionNaming';
@@ -43,7 +44,7 @@ export function ConversionSettings({ conversion: c, editor }: { conversion: Conv
     <div className="conversion-action">
       <div className="conversion-output-summary"><span>{s.keepMetadata ? 'Metadata retained' : 'Metadata removed'}</span>{format.artwork && <span>{s.includeArtwork ? 'Artwork retained' : 'Artwork removed'}</span>}</div>
       <p className="conversion-destination">{editor.platform === 'desktop' ? 'Choose an output folder when you start. Existing files get numbered names.' : 'Download the converted files together as a ZIP, or save them individually.'}</p>
-      {c.error && <p className="conversion-error" role="alert">{c.error}{c.incompatible.length > 0 && <button onClick={() => c.setIds(c.ids.filter(id => !c.incompatible.some(asset => asset.id === id)))}>Deselect incompatible files</button>}</p>}
+      {c.error && <TransientMessage className="conversion-error" role="alert">{c.error}{c.incompatible.length > 0 && <button onClick={() => c.setIds(c.ids.filter(id => !c.incompatible.some(asset => asset.id === id)))}>Deselect incompatible files</button>}</TransientMessage>}
       {c.batch.running ? <button className="button subtle conversion-start" onClick={c.batch.cancel}>Cancel conversion</button> : <button className="button primary conversion-start" disabled={c.busy || !c.selected.length || !!c.error} onClick={c.start}>{allDone ? <><Check size={17} />Conversion complete</> : <><ArrowRight size={17} />Convert {c.selected.length || ''} {c.selected.length === 1 ? 'file' : 'files'}</>}</button>}
       {retryable.length > 0 && !c.batch.running && <button className="conversion-retry" disabled={c.busy || !!c.error} onClick={c.retry}>Retry unfinished files</button>}
       <span className="conversion-originals">{allDone ? 'Clear results to convert these files again.' : 'Full-length files. Originals untouched.'}</span>

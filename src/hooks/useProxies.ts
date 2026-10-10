@@ -5,7 +5,7 @@ export function useProxies(editor: Editor) {
   const [cache, setCache] = useState<Record<string, PreviewProxy>>({}), [loading, setLoading] = useState(false), [error, setError] = useState(''); const ref = useRef(cache); ref.current = cache;
   useEffect(() => { setCache(old => Object.fromEntries(Object.entries(old).filter(([id]) => editor.assets.some(a => a.id === id)))); }, [editor.assets]);
   useEffect(() => { setError(''); }, [editor.asset?.id]);
-  useEffect(() => () => { for (const proxy of Object.values(ref.current)) void window.frameDesktop?.releaseProxy(proxy.id); }, []);
+  useEffect(() => () => { for (const proxy of Object.values(ref.current)) void window.frameDesktop?.releaseProxy(proxy.id).catch(() => {}); }, []);
   async function generate() {
     if (!editor.asset || editor.busy || editor.platform !== 'desktop') return; setLoading(true); setError('');
     try { const source = editor.asset; const proxy = await editor.runExclusive('analysis', e => { if (!e.previewProxy) throw new Error('Preview proxies require desktop.'); return e.previewProxy(source, () => {}); }); setCache(old => ({ ...old, [source.id]: proxy })); }

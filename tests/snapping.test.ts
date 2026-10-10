@@ -12,5 +12,6 @@ it('maps source landmarks onto reordered output and keeps playhead optional for 
   const edit = { ...defaultSettings(asset), markers: [{ id: 'm', name: 'Moment', time: 5, color: 'violet' as const }], clips: [{ id: 'late', start: 4, end: 8, effects: { speed: 2 } }, { id: 'early', start: 0, end: 2, effects: {} }] };
   expect(snapTargets(edit, asset.duration, 1.3).source).toContain(1.3);
   expect(snapTargets(edit, asset.duration).source).not.toContain(1.3);
-  expect(snapTargets(edit, asset.duration).output).toEqual(expect.arrayContaining([0, .5, 2, 4]));
+  expect(snapTargets(edit, asset.duration).source).not.toContain(5);
+  expect(snapTargets(edit, asset.duration).output).toEqual(expect.arrayContaining([0, 2, 4]));
 });

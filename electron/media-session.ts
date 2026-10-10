@@ -30,7 +30,7 @@ export function createMediaSession(window: BrowserWindow, launches: LaunchInbox,
   registerProjectSaving(() => window, trusted, () => Array.from(assets.values(), item => item.path), ipc);
   registerExports(window, assets, jobs, folders, ipc);
   ipc.handle('media:release', async (_event, id: string) => {
-    if (!jobs.busy) { await proxies.releaseAsset(id); await downloads.release(id); assets.delete(id); }
+    if (!jobs.busy) { await analysis.release(id); await proxies.releaseAsset(id); await downloads.release(id); assets.delete(id); }
   });
   const clear = () => { analysis.cancel(); jobs.cancel(); proxies.clear(); downloads.clear(); assets.clear(); };
   window.once('closed', clear);

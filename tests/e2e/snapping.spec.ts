@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-test('snaps dragged trim edges to markers and allows Alt and the toggle to bypass snapping', async ({ page }) => {
+test('snaps dragged trim edges to caption boundaries and allows Alt and the toggle to bypass snapping', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
-  await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('heading', { name: 'Timeline', exact: true }).click(); await page.keyboard.press('m');
+  await page.getByRole('button', { name: 'Add Captions', exact: true }).click();
   await page.getByLabel('Seek playhead').fill('3');
   const handle = page.getByRole('slider', { name: 'Trim end', exact: true });
   async function drag(alt = false) {
@@ -17,5 +17,5 @@ test('snaps dragged trim edges to markers and allows Alt and the toggle to bypas
   await handle.press('End'); await drag(true); expect(Number(await handle.getAttribute('aria-valuenow'))).toBeGreaterThan(2.01);
   await handle.press('End'); await page.getByRole('button', { name: 'Timeline snapping', exact: true }).click(); await drag();
   expect(Number(await handle.getAttribute('aria-valuenow'))).toBeGreaterThan(2.01);
-  await page.reload(); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.getByRole('button', { name: 'Timeline snapping', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved'); await page.reload(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4); await expect(page.getByRole('button', { name: 'Timeline snapping', exact: true })).toHaveAttribute('aria-pressed', 'false');
 });

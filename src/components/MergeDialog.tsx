@@ -1,3 +1,4 @@
+import { TransientMessage } from './TransientMessage';
 import { MetadataControls } from './MetadataControls';
 import { chapterFormats } from '../core/chapters';
 import { useEffect, useRef, useState } from 'react';
@@ -31,7 +32,7 @@ export function MergeDialog({ open, close, editor, merge }: { open: boolean; clo
       {settings && format !== 'gif' && <MetadataControls tags={settings.outputTags} update={outputTags => setSettings(current => current ? { ...current, outputTags } : current)} />}
       <p className="field-note">{(ids.reduce((total, id) => total + editedDuration(editor.settingsFor(id)), 0) - (transition.type === 'fade' ? transition.duration * Math.max(0, ids.length - 1) : 0)).toFixed(2)} seconds • output quality and bitrate use your current settings.</p>
     </fieldset>
-    {merge.error && <p className="project-error" role="alert">{merge.error}</p>}
+    {merge.error && <TransientMessage className="project-error" role="alert">{merge.error}</TransientMessage>}
     {merge.progress && <p role="status">{merge.progress.message} {Math.round(merge.progress.ratio * 100)}%</p>}
     {merge.result?.url && <a className="button subtle small" href={merge.result.url} download={merge.result.name}>Save merged file</a>}{merge.result?.path && <p className="saved-path">Saved to {merge.result.path}</p>}
     <div className="project-actions">{running ? <button className="button subtle small" onClick={editor.cancel}>Cancel merge</button> : <button className="button primary small" disabled={!!editor.busy || ids.length < 2 || !format} onClick={() => { if (settings && format) void merge.start(ids, { ...settings, format }, transition); }}>Export merged file</button>}</div>

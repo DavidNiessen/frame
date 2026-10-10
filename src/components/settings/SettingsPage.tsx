@@ -1,3 +1,4 @@
+import { TransientMessage } from '../TransientMessage';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, AudioLines, FolderOpen, LoaderCircle, Monitor, Palette, RefreshCw } from 'lucide-react';
 import type { ShellIntegrationStatus } from '../../core/system-integration';
@@ -64,7 +65,7 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
         <button className="button subtle" disabled={!status?.available || !!pending || (!installed && !partial)} onClick={() => void update(false)}>{pending === 'removing' ? 'Removing…' : 'Remove actions'}</button>
         {bridge && <button className="icon-button" disabled={!!pending} aria-label="Refresh integration status" title="Refresh integration status" onClick={() => void update()}><RefreshCw size={16} /></button>}
       </div>
-      {error && <p className="settings-error" role="alert">{error}</p>}
+      {error && <TransientMessage className="settings-error" role="alert">{error}</TransientMessage>}
       <p className="settings-note"><Monitor size={13} />Applies to your user account. Your default media apps stay the same.</p>
       {status?.certificate && <CertificateTrust certificate={status.certificate} pending={!!pending} change={action => void certificate(action)} />}
     </section>

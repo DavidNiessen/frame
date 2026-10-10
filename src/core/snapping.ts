@@ -6,7 +6,7 @@ import type { EditSettings } from './types';
 export type SnapSpace = 'source' | 'output';
 export function snapTargets(edit: EditSettings, duration: number, current?: number): Record<SnapSpace, number[]> {
   const positions = clipPositions(edit);
-  const source = [...new Set([0, duration, current ?? NaN, ...positions.flatMap(({ clip }) => [clip.start, clip.end]), ...captionItems(edit).flatMap(cue => [cue.start, cue.end]), ...(edit.markers ?? []).map(marker => marker.time)].filter(Number.isFinite))];
+  const source = [...new Set([0, duration, current ?? NaN, ...positions.flatMap(({ clip }) => [clip.start, clip.end]), ...captionItems(edit).flatMap(cue => [cue.start, cue.end])].filter(Number.isFinite))];
   const output = [...new Set([...allAudioLayers(edit).flatMap(layer => [layer.start, layer.end]), ...positions.flatMap(item => [item.start, item.end]), ...source.filter(time => positions.some(({ clip }) => time >= clip.start && time <= clip.end)).map(time => outputTimeAtSource(edit, time))])];
   return { source, output };
 }

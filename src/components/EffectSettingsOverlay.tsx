@@ -12,8 +12,8 @@ import { EffectControls } from './EffectControls';
 import { AudioEffectsPreview } from './AudioEffectsPreview';
 
 /** A modeless overlay keeps the live preview and timeline available while adjusting. */
-export function EffectSettingsOverlay({ id, instanceId, editor, current, seek, close }: {
-  id: EffectId; instanceId?: string; editor: Editor; current: number; seek: (time: number) => void; close: () => void;
+export function EffectSettingsOverlay({ id, instanceId, editor, current, seek, close, keepView = false }: {
+  id: EffectId; instanceId?: string; keepView?: boolean; editor: Editor; current: number; seek: (time: number) => void; close: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null), heading = useId(), latestClose = useRef(close);
   const islandWidth = useRef(320);
@@ -47,7 +47,6 @@ export function EffectSettingsOverlay({ id, instanceId, editor, current, seek, c
     const stacked = () => island.closest('[data-layout="stacked"]:not([data-expanded="true"])') !== null;
     // On phones, follow the inspector as the page scrolls instead of covering
     // the preview when users scroll back to position a caption.
-    if (stacked()) island.scrollIntoView({ block: 'start', behavior: 'instant' });
     function position() {
       const original = island!.getBoundingClientRect();
       if (original.width) islandWidth.current = original.width;
@@ -62,14 +61,18 @@ export function EffectSettingsOverlay({ id, instanceId, editor, current, seek, c
     return () => { observer.disconnect(); window.removeEventListener('resize', position); window.removeEventListener('scroll', position, true); };
   }, []);
   useLayoutEffect(() => {
+    const island = document.getElementById('media-inspector');
+    if (!keepView && island?.closest('[data-layout="stacked"]:not([data-expanded="true"])')) island.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }, [keepView]);
+  useLayoutEffect(() => {
     const dialog = ref.current!, opener = document.activeElement as HTMLElement | null;
-    dialog.querySelector<HTMLButtonElement>('[data-close]')?.focus({ preventScroll: true });
+    if (!keepView) dialog.querySelector<HTMLButtonElement>('[data-close]')?.focus({ preventScroll: true });
     function outside(event: PointerEvent) {
-      if ((event.target as HTMLElement)?.closest('[data-preview-playback]')) return;
+      if ((event.target as HTMLElement)?.closest('[data-preview-playback], [data-frame-object], [data-effect-timeline]')) return;
       if (!dialog.contains(event.target as Node)) latestClose.current();
     }
     function focusOutside(event: FocusEvent) {
-      if ((event.target as HTMLElement)?.closest('[data-preview-playback]')) return;
+      if ((event.target as HTMLElement)?.closest('[data-preview-playback], [data-frame-object], [data-effect-timeline]')) return;
       if (event.target !== document.body && !dialog.contains(event.target as Node)) latestClose.current();
     }
     function escape(event: KeyboardEvent) {

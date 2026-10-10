@@ -79,7 +79,7 @@ test('keeps waveform generation and cancellation independent of editing and expo
   await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({ timeout: 45000 });
 });
 
-test('navigates dense tracks without losing clips and pans the overview independently', async ({ page }) => {
+test('navigates dense tracks without losing clips and pans zoomed tracks from the mini timeline', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openCaptionTools(page);
   const srt = Array.from({ length: 35 }, (_, index) => `${index + 1}\n00:00:00,000 --> 00:00:05,000\nCaption ${index + 1}\n`).join('\n');

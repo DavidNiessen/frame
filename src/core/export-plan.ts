@@ -6,7 +6,7 @@ import { parseCoverArtwork } from './cover-art';
 import { mediaTagArgs, parseTagOverrides } from './media-tags';
 import { chapterFormats, timelineChapters } from './chapters';
 import { parseAudioLayers, audioMixGraph, hasEditedAudio, type AudioLayerInput } from './audio-layers';
-import { parseMarkers } from './markers';
+import { parseLegacyChapterPoints } from './legacy-chapters';
 import { gifPaletteFilters, validateGifOutput } from './gif-output';
 import { audioOutputArgs, outputAudioCodec, validateAudioOutput } from './audio-output';
 import { clipEffectKeys, clipRecipe } from './clips';
@@ -35,7 +35,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   parseAudioLayers(allAudioLayers(edit)); if (edit.audioMixProtectPeaks !== undefined && typeof edit.audioMixProtectPeaks !== 'boolean') throw new Error('Invalid audio mix protection setting.');
   if (edit.includeChapters !== undefined && typeof edit.includeChapters !== 'boolean') throw new Error('Invalid chapter setting.');
   parseTagOverrides(edit.outputTags); parseCoverArtwork(edit.customArtwork);
-  parseMarkers(edit.markers, asset.duration);
+  parseLegacyChapterPoints(edit.markers, asset.duration);
   validateGifOutput(edit); validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && embeddedCues(edit).length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
   if (edit.clips) {

@@ -6,7 +6,7 @@ import { parseAddedEffects } from './effect-ids';
 import { parseCoverArtwork } from './cover-art';
 import { parseTagOverrides } from './media-tags';
 import { audioLayerSource, parseAudioLayers, sameLayerSource } from './audio-layers';
-import { parseMarkers } from './markers';
+import { parseLegacyChapterPoints } from './legacy-chapters';
 import { clipEffectKeys, type TimelineClip } from './clips';
 import { parseAcceleration } from './hardware';
 import { parseColor } from './color';
@@ -45,7 +45,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     effectInstances: parseEffectInstances(e.effectInstances, asset, recipe => validateEdit(asset, recipe)),
     silenceOptions: parseSilence(e.silenceOptions ?? defaultSilence),
     audioDucking: e.audioDucking === undefined ? false : boolean(e.audioDucking), audioLayers: parseAudioLayers(e.audioLayers), audioMixProtectPeaks: e.audioMixProtectPeaks === undefined ? true : boolean(e.audioMixProtectPeaks),
-    markers: parseMarkers(e.markers, asset.duration),
+    markers: parseLegacyChapterPoints(e.markers, asset.duration),
     color: parseColor(e.color),
     geometry: parseGeometry(e.geometry),
     overlays: parseOverlays(e.overlays),

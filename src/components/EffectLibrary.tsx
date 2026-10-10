@@ -1,3 +1,4 @@
+import { TransientMessage } from './TransientMessage';
 import { useMemo, useState } from 'react';
 import { AudioLines, Check, ChevronRight, Film, Folder, Gauge, Plus, Search } from 'lucide-react';
 import { appliedEffects, availableEffects, type EffectId } from '../core/effect-library';
@@ -7,7 +8,7 @@ import { clearClipEffects } from '../core/effect-actions';
 import type { Editor } from '../hooks/useEditor';
 import { CaptionTools } from './CaptionTools';
 export function EffectLibrary({ editor, current, seek, openCaption }: { editor: Editor; current: number; seek: (time: number) => void; openCaption: (instanceId?: string) => void }) {
-  const [query, setQuery] = useState(''), [group, setGroup] = useState('All'), [selected, setSelected] = useState<EffectId | null>(null), [message, setMessage] = useState('');
+  const [query, setQuery] = useState(''), [group, setGroup] = useState('All'), [selected, setSelected] = useState<EffectId | null>(null), [message, setMessage] = useState(''), [messageVersion, setMessageVersion] = useState(0);
   const asset = editor.asset!, edit = editor.edit!;
   const effects = useMemo(() => availableEffects(asset), [asset]);
   const active = appliedEffects(asset, edit, editor.selectedClip);
@@ -15,7 +16,7 @@ export function EffectLibrary({ editor, current, seek, openCaption }: { editor: 
   const filtered = effects.filter(effect => (group === 'All' || effect.group === group) && `${effect.name} ${effect.description}`.toLowerCase().includes(query.toLowerCase()));
   function apply(id: EffectId) {
     const effect = effects.find(item => item.id === id); if (!effect) return;
-    setSelected(id);
+    setSelected(id); setMessageVersion(version => version + 1);
     try { editor.update(effectAction(edit, asset, effect, editor.selectedClip, 'add', current)); } catch (error) { setMessage((error as Error).message); return; }
     setMessage(`${effect.name} added. Click its timeline bar to adjust settings.`);
   }
@@ -34,7 +35,7 @@ export function EffectLibrary({ editor, current, seek, openCaption }: { editor: 
       </details>;
     })}{!filtered.length && <p className="effect-stack-empty">No matching effects. Try another search or category.</p>}</div>
     <div className="effect-browser-selection"><strong>{chosen?.name ?? 'Choose an effect'}</strong><p>{chosen?.description ?? 'The catalogue stays here when you apply an effect.'}</p>{chosen && <span>{chosen.id === 'captions' ? 'Adds one caption at the playhead' : chosen.scope === 'source' ? 'Applies to the entire source' : editor.selectedClip ? 'Applies to the selected clip' : 'Applies to all clips'}</span>}
-      {message && <p className="effect-apply-message" role="status">{message}</p>}
+      {message && <TransientMessage key={messageVersion} className="effect-apply-message" role="status">{message}</TransientMessage>}
     </div>
     {active.some(effect => effect.scope === 'clip') && <button className="effect-clear button subtle small" onClick={() => editor.update(clearClipEffects(edit, asset, editor.selectedClip))}>Remove all clip effects</button>}
     {asset.kind === 'video' && <CaptionTools editor={editor} seek={seek} openCaption={openCaption} />}

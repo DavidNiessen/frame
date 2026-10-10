@@ -27,3 +27,8 @@ export async function openEffect(page: Page, name: string) {
   }
   await bar.first().click();
 }
+
+export async function selectFont(page: Page, name: string) {
+  await page.getByRole('combobox', { name: 'Font', exact: true }).fill(name);
+  await page.getByRole('option', { name, exact: true }).click();
+}

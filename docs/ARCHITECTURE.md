@@ -1,5 +1,7 @@
 # Architecture
 
+Library removal pauses and detaches media elements before synchronously removing their source and edit state, then releases desktop proxies and owned downloads. A source's active waveform subprocess is cancelled and awaited before deleting its file. Cleanup errors become transient notices; they do not leave a selected player pointing at removed media. A regression repeatedly removes playing local and URL sources in real Electron and checks that the process stays alive; another injects an IPC cleanup failure and checks reimport. This is lifecycle hardening, not a confirmed diagnosis of the intermittent Windows process exit, which still needs its terminal log.
+
 The renderer is shared by Electron and the web. Core logic has no dependency on React, Electron, the filesystem, or WebAssembly.
 
 ```text
@@ -95,9 +97,9 @@ Desktop YouTube imports normalize an allowlist of individual video URLs and vali
 
 ## Review and delivery tools
 
-Named source-time markers are bounded, serialized recipe data. Timeline snapping derives both source and output landmarks from clips, captions, markers and audio tracks. View settings such as magnet state and playback loops stay outside recipes. Frame stepping and timecode navigation operate through the same source/output mapping used by preview and export.
+Marker editing has been removed. `legacy-chapters` validates read-only points from old projects for chapter-export compatibility. Timeline snapping derives both source and output landmarks from clips, captions and audio tracks. View settings such as magnet state and playback loops stay outside recipes. Frame stepping and timecode navigation operate through the same source/output mapping used by preview and export.
 
-Contact sheets and scene detection use pure argument planners; their adapters only manage native processes or WASM files and translate progress/results. Scene results are reviewable before applying a single undoable marker/split patch. Loudness analysis appends EBU R128 measurement to the actual edited audio export graph, so source gain, ordered effects, cuts, speed, fades and audio mixing use the same processing.
+Contact sheets and scene detection use pure argument planners; their adapters only manage native processes or WASM files and translate progress/results. Scene results are reviewable before applying a single undoable split patch. Loudness analysis appends EBU R128 measurement to the actual edited audio export graph, so source gain, ordered effects, cuts, speed, fades and audio mixing use the same processing.
 
 Audio output rate, channel override and WAV precision, plus GIF loop/palette/dithering options, are validated output settings shared with projects and presets. Filename templates are expanded from registered asset metadata, never evaluated as shell expressions. Stable batch numbering survives retries, and exclusive publication prevents overwriting originals or completed exports.
 
@@ -130,3 +132,5 @@ Command search uses a core text-ranking function and a focused modal component. 
 Project serialization checks UTF-8 bytes per source before joining embedded resources, rejects documents above the importer’s 16 MB limit, and falls back to compact JSON when indentation alone would exceed it. Autosave captures recipe references while editing and serializes after its debounce or page-hide event.
 
 Caption effects keep a single cue per instance; `individualCaptionEffects` upgrades legacy arrays during project parsing, while imports append effects in one undoable edit. The first cue retains the legacy fields for compatibility. Captions have a separate 1,000-cue budget so a subtitle import leaves room for other effects. `caption-style` validates portable styling and installed family names. `font-names` reads SFNT/TTC name tables, `installed-fonts` scans standard OS/user font directories with bounded reads, and a trusted IPC returns family names only. The native resource writer resolves selected names from this inventory and copies font files to its temporary directory. Browser resources fetch only needed bundled variants and report desktop fonts before processing. ASS styling uses safe generated fields; font paths never come from project data.
+
+`FrameObject` shares preview selection, inline text editing, proportional corner resizing and one-commit pointer gestures between captions and watermark objects. Cancellation restores the original value; adapters translate frame geometry into each recipe type. `FontPicker` provides an editable accessible combobox backed by bundled and installed-font options. `TransientMessage` owns the five-second visibility timer and background countdown; a stable text key prevents playback rerenders from restarting it, while explicit message versions restart identical repeated notices. Completed browser downloads remain separate from transient notices.

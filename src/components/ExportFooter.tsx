@@ -1,3 +1,4 @@
+import { TransientMessage } from './TransientMessage';
 import { hasEditedAudio } from '../core/audio-layers';
 import { ArrowUpRight, Check, Download, X } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
@@ -30,14 +31,17 @@ export function ExportFooter({ editor }: { editor: Editor }) {
     </div> : <button className="button primary export-button" disabled={!!busy} onClick={() => void editor.exportMedia()}>
       <Download size={17} />Export {edit.format.toUpperCase()}<ArrowUpRight size={16} />
     </button>}
-    {result && <div className="export-result" role="status">
+    {result && <>
+      <TransientMessage className="export-result" key={result.url ?? result.path} expire={result.url ? undefined : editor.dismissResult}>
       <div><Check size={15} /><strong>Export ready</strong>
         <button className="icon-button" aria-label="Dismiss export result" onClick={editor.dismissResult}><X size={13} /></button>
       </div>
       <p>{result.name} <span>· {bytes(result.size)}</span></p>
-      {result.url ? <a className="button small subtle" href={result.url} download={result.name}>
+      {!result.url && <p className="saved-path" title={result.path}>Saved to {result.path}</p>}
+      </TransientMessage>
+      {result.url && <a className="button small subtle export-download" href={result.url} download={result.name}>
         <Download size={14} />Save file
-      </a> : <p className="saved-path" title={result.path}>Saved to {result.path}</p>}
-    </div>}
+      </a>}
+    </>}
   </div>;
 }

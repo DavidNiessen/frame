@@ -5,7 +5,7 @@ import type { AudioLayer } from './audio-layers';
 import type { LoudnessStats } from './loudness';
 import type { SceneOptions, SceneScan } from './scenes';
 import type { ContactSheetOptions } from './contact-sheet';
-import type { TimelineMarker } from './markers';
+import type { LegacyChapterPoint } from './legacy-chapters';
 import type { TimelineClip } from './clips';
 import type { UrlImportOptions } from './youtube';
 import { parseAcceleration, type Acceleration, type DesktopCapabilities, type PreviewProxy } from './hardware';
@@ -55,7 +55,8 @@ export interface EditSettings {
   audioMixProtectPeaks?: boolean;
   audioDucking?: boolean;
   clips?: TimelineClip[];
-  markers?: TimelineMarker[];
+  /** Read-only chapter points imported from older Frame projects. */
+  markers?: LegacyChapterPoint[];
   color: ColorSettings;
   geometry: Geometry;
   overlays: Overlays;

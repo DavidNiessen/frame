@@ -1,3 +1,5 @@
+import { flushSync } from 'react-dom';
+import { detachSourceMedia } from './media-elements';
 import { allAudioLayers, effectiveSpeed, extraInstances } from '../core/effect-instances';
 import { recoveredEdits } from '../core/workspace-recovery';
 import { audioLayerSource } from '../core/audio-layers';
@@ -21,8 +23,9 @@ export function useEditor() {
   const [selectedClip, setSelectedClip] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [histories, setHistories] = useState<Record<string, History>>({});
-  const [busy, setBusy] = useState<'import' | 'export' | 'batch' | 'analysis' | 'merge' | null>(null);
-  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState<'import' | 'export' | 'batch' | 'analysis' | 'merge' | 'remove' | null>(null);
+  const [notice, setNoticeValue] = useState(''), [noticeVersion, setNoticeVersion] = useState(0);
+  const setNotice = useCallback((value: string) => { setNoticeValue(value); setNoticeVersion(version => version + 1); }, []);
   const [progress, setProgress] = useState<ExportProgress | null>(null);
   const [result, setResult] = useState<ExportResult | null>(null);
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
@@ -36,7 +39,7 @@ export function useEditor() {
   const edit = history?.present ?? null;
   useEffect(() => () => {
     if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
-    if (engineRef.current) void engineRef.current.then(e => { e.cancelWaveform?.(); e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); });
+    if (engineRef.current) void engineRef.current.then(e => { e.cancelWaveform?.(); e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); }).catch(() => {});
   }, []);
   async function recoverWorkspace() {
     if (busyRef.current) throw new Error('Wait for processing to finish.');
@@ -59,7 +62,8 @@ export function useEditor() {
     if (busyRef.current) throw new Error('Wait for processing to finish.');
     busyRef.current = true; setBusy('import'); setProgress({ ratio: 0, message: 'Clearing your library…' });
     const previous = assetsRef.current; assetsRef.current = [];
-    setAssets([]); setHistories({}); setSelected(null); setSelectedClip(null); setImportReport(null);
+    for (const source of previous) detachSourceMedia(source.id);
+    flushSync(() => { setAssets([]); setHistories({}); setSelected(null); setSelectedClip(null); setImportReport(null); });
     if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
     resultRef.current = null; setResult(null);
     try {
@@ -70,7 +74,7 @@ export function useEditor() {
   }
   async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' | 'url' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }, url?: string, urlOptions?: UrlImportOptions) {
     if (busyRef.current) return false;
-    busyRef.current = true; setBusy('import'); setNotice(''); setProgress({ ratio: 0, message: 'Reading your media…' });
+    busyRef.current = true; setBusy('import'); setImportReport(null); setNotice(''); setProgress({ ratio: 0, message: 'Reading your media…' });
     try {
       launch?.activate();
       const e = await engine();
@@ -124,12 +128,23 @@ export function useEditor() {
     });
   }
   async function remove(item: MediaAsset) {
-    if (busyRef.current) return;
-    if (assets.some(source => source.id !== item.id && histories[source.id] && allAudioLayers(histories[source.id].present).some(layer => audioLayerSource(layer, assets)?.id === item.id))) { setNotice('Remove this source’s music or voiceover tracks before removing it from the library.'); return; }
-    await (await engine()).release(item);
-    setAssets(current => current.filter(a => a.id !== item.id));
-    setHistories(current => { const next = { ...current }; delete next[item.id]; return next; });
-    if (selected === item.id) setSelected(assets.find(a => a.id !== item.id)?.id ?? null);
+    if (busyRef.current || !assetsRef.current.some(asset => asset.id === item.id)) return;
+    if (assetsRef.current.some(source => source.id !== item.id && histories[source.id] && allAudioLayers(histories[source.id].present).some(layer => audioLayerSource(layer, assetsRef.current)?.id === item.id))) { setNotice('Remove this source’s music or voiceover tracks before removing it from the library.'); return; }
+    busyRef.current = true;
+    try {
+      // Stop Chromium's file streams and detach the UI before deleting downloaded
+      // media or proxy files. Windows can otherwise keep those files open.
+      detachSourceMedia(item.id);
+      flushSync(() => {
+        const remaining = assetsRef.current.filter(asset => asset.id !== item.id);
+        assetsRef.current = remaining; setAssets(remaining); setBusy('remove');
+        setHistories(current => { const next = { ...current }; delete next[item.id]; return next; });
+        setSelected(current => current === item.id ? remaining[0]?.id ?? null : current);
+        if (selected === item.id) setSelectedClip(null);
+      });
+      await (await engine()).release(item);
+    } catch (error) { setNotice(`Could not finish releasing ${item.name}: ${messageOf(error)}`); }
+    finally { busyRef.current = false; setBusy(null); }
   }
   async function exportMedia() {
     if (!asset || !edit || busyRef.current) return;
@@ -181,7 +196,7 @@ export function useEditor() {
         update({ ...patch, ...(edit?.clips ? { clips: edit.clips.map(item => ({ ...item, effects: Object.fromEntries(Object.entries(item.effects).filter(([key]) => !keys.includes(key))) })) } : {}) });
       }
     },
-    assets, asset, edit, selected, busy, notice, setNotice, progress, result, dismissResult, importReport,
+    assets, asset, edit, selected, busy, notice, noticeVersion, setNotice, progress, result, dismissResult, importReport,
     platform: window.frameDesktop ? 'desktop' as const : 'web' as const,
     select: (id: string) => { if (!busyRef.current) { setSelected(id); setSelectedClip(null); } },
     importMedia: (files?: File[], sample = false) => performImport(files, sample ? 'sample' : 'files'),

@@ -1,3 +1,4 @@
+import { TransientMessage } from './TransientMessage';
 import { useRef, useState } from 'react';
 import { defaultColor, parseCube } from '../core/color';
 import { useFramePreview } from '../hooks/useFramePreview';
@@ -11,6 +12,6 @@ export function ColorControls({ editor, current, expanded = false }: { expanded?
     <button className="button subtle small" onClick={() => editor.update({ color: defaultColor() })}>Reset color</button>
     <button className="button subtle small" onClick={() => void preview.generate()} disabled={preview.loading || !!editor.busy}>{preview.loading ? 'Rendering…' : 'Render edited frame'}</button>
     {preview.url && <a href={preview.url} download="edited-frame.png"><img className="processed-frame" src={preview.url} alt="Rendered edited frame" /></a>}
-    <p className="field-note">Render the playhead frame to inspect color, LUTs, cropping, transforms, captions and overlays. Preview is limited to 720 pixels; exports keep your selected resolution. Click the rendered frame to save it.</p>{(error || preview.error) && <p role="alert">{error || preview.error}</p>}
+    <p className="field-note">Render the playhead frame to inspect color, LUTs, cropping, transforms, captions and overlays. Preview is limited to 720 pixels; exports keep your selected resolution. Click the rendered frame to save it.</p>{(error || preview.error) && <TransientMessage role="alert">{error || preview.error}</TransientMessage>}
   </div></details>;
 }

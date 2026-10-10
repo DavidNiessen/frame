@@ -1,3 +1,4 @@
+import { TransientMessage } from './TransientMessage';
 import { allAudioLayers, extraInstances } from '../core/effect-instances';
 import { useEffect, useRef, useState } from 'react';
 import { audioLayerSource, type AudioLayer } from '../core/audio-layers';
@@ -20,5 +21,5 @@ function TrackPreview({ layer, source, position, playing, outputFade }: { layer:
     if (active && playing && media.paused) void media.play().catch(() => setError(true));
   }, [playing, position, layer, source, error]);
   useEffect(() => () => { ref.current?.pause(); }, []);
-  return <><audio ref={ref} data-frame-mix-layer src={source.previewUrl} preload="metadata" onError={() => setError(true)} aria-label={`Preview track ${source.name}`} />{error && <span role="status">{source.name} cannot play live here; it still mixes on export.</span>}</>;
+  return <><audio ref={ref} data-frame-source={source.id} data-frame-mix-layer src={source.previewUrl} preload="metadata" onError={() => setError(true)} aria-label={`Preview track ${source.name}`} />{error && <TransientMessage role="status">{source.name} cannot play live here; it still mixes on export.</TransientMessage>}</>;
 }

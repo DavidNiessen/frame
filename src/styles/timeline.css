@@ -1,5 +1,10 @@
 .timeline-range { position: absolute; top: 0; height: 100%; min-width: 2px; border-radius: 5px; background: var(--accent-dim); color: var(--accent-text); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); }
 .timeline-range.timeline-clip { overflow: visible; }
+.timeline-range[data-effect-timeline] { min-width: var(--effect-hit-width, 48px); }
+.timeline-range[data-effect-timeline] .range-handle { width: 16px; }
+.movable-range .range-body { cursor: grab; touch-action: none; }
+.movable-range.trimming .range-body { cursor: grabbing; }
+@media (max-width: 700px) { .timeline-range[data-effect-timeline] { --effect-hit-width: 64px; } .timeline-range[data-effect-timeline] .range-handle { width: 18px; } }
 .range-body { width: 100%; height: 100%; text-align: left; padding: 0; overflow: hidden; font-size: 11px; border-radius: inherit; }
 .range-body span { display: block; padding: 0 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .range-handle { position: absolute; top: 0; height: 100%; width: min(12px, 25%); z-index: 4; cursor: ew-resize; touch-action: none; color: inherit; border-radius: 3px; padding: 0; background: color-mix(in srgb, currentColor 12%, transparent); }
@@ -57,22 +62,11 @@
 .timeline-track-filters button { color: var(--muted); font-size: 10px; text-transform: capitalize; border-radius: 4px; padding: 4px 6px; }
 .timeline-track-filters button[aria-pressed='true'] { background: var(--accent-dim); color: var(--accent-text); }
 .timeline-track-filters .compact-tracks { margin-left: auto; }
-.timeline-overview { position: relative; height: 13px; margin-top: 5px; background: var(--stage); border-radius: 3px; overflow: hidden; }
-.timeline-overview span { position: absolute; inset-block: 1px; background: var(--accent-dim); border-inline: 1px solid var(--border); color: var(--muted); font-size: 8px; text-align: center; }
-.timeline-overview i { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
-.timeline-pan { display: flex; align-items: center; gap: 12px; font-size: 9px; color: var(--quiet); }
-.timeline-pan input { min-width: 0; margin: 5px 0; min-height: 12px; flex: 1; }
 .timeline-clip-viewport { flex-shrink: 0; padding: 4px 20px 8px; overflow: hidden; background: var(--surface); }
 .timeline-ruler { position: sticky; top: 0; z-index: 7; background: var(--surface); padding-block: 4px; }
-@media (max-width: 700px) { .timeline-track-filters button { min-height: 28px; } .timeline-pan input { min-height: 24px; } }
 .timeline-view-tools { min-height: 32px; }
 .timeline-zoom input { margin-block: 0; }
 .timeline-navigation { padding-block: 3px; }
-.timeline-overview { height: 16px; }
-.timeline-overview b { position: absolute; inset-block: 0; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 3px; pointer-events: none; }
-.timeline-pan { position: absolute; inset: 0; }
-.timeline-pan input { width: 100%; height: 100%; margin: 0; opacity: 0; cursor: grab; }
-.timeline-overview:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 .timeline-navigation-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
 .timeline-navigation-top .timeline-view-tools { padding: 0; border: 0; min-height: 26px; }
 .timeline-navigation-top .timeline-view-tools > span { display: none; }
@@ -88,28 +82,6 @@
 .timeline .timeline-summary { padding-block: 4px; }
 .timeline .timeline-ruler { position: relative; padding-block: 2px; }
 
-.timeline-markers { position: relative; min-width: 0; margin: 0 0 5px; }
-.marker-tools { position: sticky; left: 0; display: flex; align-items: center; gap: 4px; width: fit-content; font-size: 10px; color: var(--muted); }
-.marker-tools .icon-button { width: 24px; height: 24px; }
-.marker-manager-button { border: 0; background: transparent; display: flex; align-items: center; gap: 5px; color: inherit; font-size: inherit; padding: 4px; cursor: pointer; }
-.marker-track-viewport { overflow: visible; }
-.marker-track { position: relative; height: 24px; min-width: 100%; border-bottom: 1px solid var(--border-soft); }
-.marker-track:empty { height: 0; border: 0; }
-.timeline-marker { position: absolute; top: 0; display: flex; align-items: center; gap: 4px; border: 0; background: transparent; font-size: 10px; max-width: 110px; padding: 3px 0; cursor: ew-resize; touch-action: none; transform: translateX(-6px); }
-.timeline-marker span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.timeline-marker svg { flex-shrink: 0; }
-.marker-violet { color: var(--accent); } .marker-blue { color: #67a5f5; } .marker-amber { color: #d4a039; } .marker-rose { color: #e57794; } .marker-mint { color: #50b9a1; }
-.marker-dialog { width: 520px; max-height: 85dvh; overflow: auto; }
-.marker-dialog > p { color: var(--muted); font-size: 12px; line-height: 1.6; }
-.marker-list { max-height: 300px; overflow: auto; }
-.marker-list > div { display: flex; align-items: center; gap: 4px; padding: 5px; border-bottom: 1px solid var(--border-soft); border-radius: 5px; }
-.marker-list > div.selected { background: var(--surface-hover); }
-.marker-list > div > button:first-child { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: transparent; border: 0; padding: 5px; text-align: left; cursor: pointer; }
-.marker-list small { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
-.marker-list span { overflow-wrap: anywhere; }
-.marker-edit-form { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 12px; margin-top: 18px; }
-.marker-edit-form label { display: grid; gap: 7px; font-size: 12px; }
-.marker-edit-form button { justify-self: start; }
 
 .snapping-toggle[aria-pressed=true] { color: var(--accent); background: var(--accent-dim); }
 .audio-layer-bar { background: var(--audio-dim); border-color: var(--audio); color: var(--audio); }
@@ -145,3 +117,11 @@
 @container (max-width: 80px) { .fade-bar > .range-remove, .clip-fade-bar > .range-remove { display: none; } }
 .timeline-body:focus { outline: none; }
 .timeline-body:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--accent); border-radius: 6px; }
+
+.timeline-overview { position: relative; height: 16px; margin-top: 5px; background: var(--stage); border-radius: 3px; overflow: hidden; }
+.timeline-overview span { position: absolute; inset-block: 1px; background: var(--accent-dim); border-inline: 1px solid var(--border); color: var(--muted); font-size: 8px; text-align: center; }
+.timeline-overview i { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+.timeline-overview b { position: absolute; inset-block: 0; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 3px; pointer-events: none; }
+.timeline-pan { position: absolute; inset: 0; display: flex; }
+.timeline-pan input { width: 100%; height: 100%; min-height: 0; margin: 0; opacity: 0; cursor: grab; }
+.timeline-overview:focus-within { outline: 1px solid var(--accent); outline-offset: 1px; }

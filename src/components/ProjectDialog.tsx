@@ -1,3 +1,4 @@
+import { TransientMessage } from './TransientMessage';
 import { useEffect, useRef } from 'react';
 import { FolderOpen, Upload, X } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
@@ -10,7 +11,7 @@ export function ProjectDialog({ projects, editor, onImport }: { projects: Projec
     {projects.pending && <><p className="project-intro"><strong>{projects.pending.name}</strong><br />Project files store edits. Link the original media to continue.</p>
       <div className="project-sources">{projects.pending.sources.map(({ source }, index) => <label className="stacked-label" key={index}><span>{source.name}</span><select aria-label={`Source for ${source.name}`} value={projects.links[index] ?? ''} onChange={event => projects.link(index, event.target.value)} disabled={!!editor.busy}><option value="">Choose imported media…</option>{editor.assets.filter(a => a.kind === source.kind).map(a => <option key={a.id} value={a.id}>{a.relativePath ?? a.name}</option>)}</select><small className="field-note">{projects.links[index] ? 'Linked • confirm this is the correct source' : 'Missing • import the source file, then select it here'}</small></label>)}</div>
       {!projects.canRestore && <p className="field-note">Link a different imported file to each source.</p>}
-      {projects.error && <p className="project-error" role="alert">{projects.error}</p>}
+      {projects.error && <TransientMessage className="project-error" role="alert">{projects.error}</TransientMessage>}
       <div className="project-actions"><button className="button subtle small" disabled={!!editor.busy} onClick={onImport}><Upload size={14} />Choose source files</button><button className="button primary small" disabled={!projects.canRestore || !!editor.busy} onClick={projects.restore}>Restore edits</button></div>
     </>}
   </dialog>;

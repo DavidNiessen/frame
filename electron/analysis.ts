@@ -9,6 +9,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { MediaAsset } from '../src/core/types';
+import type { WaveformPoint } from '../src/core/waveform';
 import { parseEdit } from '../src/core/project';
 import { previewAudioArgs } from '../src/core/audio-preview';
 import { waveformArgs, WaveformCollector } from '../src/core/waveform';
@@ -31,14 +32,18 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
     });
   });
   const waveformJobs = new MediaJobs();
+  let waveformSource: string | null = null, waveformTask: Promise<WaveformPoint[]> | null = null;
   ipc.handle('media:cancel-waveform', event => { trusted(event); waveformJobs.cancel(); });
-  ipc.handle('media:waveform', (event, id: string) => {
+  ipc.handle('media:waveform', async (event, id: string) => {
     const item = source(event, id);
-    return waveformJobs.run(async execute => {
+    if (waveformJobs.busy) throw new Error('Wait for waveform generation to finish.');
+    waveformSource = id;
+    const task = waveformTask = waveformJobs.run(async execute => {
       const collector = new WaveformCollector();
       await execute(runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration, ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:waveform-progress', { ratio, message: 'Reading audio peaks…' }); }, line => collector.push(line)));
       if (!collector.points.length) throw new Error('No audio peaks could be read.'); return collector.points;
     });
+    try { return await task; } finally { if (waveformTask === task) { waveformTask = null; waveformSource = null; } }
   });
   ipc.handle('media:frame-preview', (event, id: string, value: unknown, time: number) => {
     const item = source(event, id); const edit = parseEdit(value, item.asset);
@@ -76,5 +81,8 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
       } finally { await rm(directory, { recursive: true, force: true }); }
     });
   });
-  return { cancel: () => waveformJobs.cancel() };
+  return { cancel: () => waveformJobs.cancel(), release: async (id: string) => {
+    if (waveformSource !== id) return;
+    waveformJobs.cancel(); await waveformTask?.catch(() => {});
+  } };
 }

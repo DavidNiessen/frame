@@ -1,3 +1,4 @@
+import { TransientMessage } from '../TransientMessage';
 import { conversionReport } from '../../core/conversion-report';
 import { downloadText } from '../../storage/download-text';
 import { CheckCircle2, Download, FolderOpen, LoaderCircle, TriangleAlert, X } from 'lucide-react';
@@ -16,6 +17,6 @@ export function ConversionResults({ conversion: c, editor }: { conversion: Conve
       <button className="button small" disabled={c.busy} onClick={() => downloadText(`frame-conversion-report-${new Date().toISOString().slice(0, 10)}.csv`, conversionReport(c.batch.jobs), 'text/csv;charset=utf-8')}><Download size={13} />Save conversion report</button>
       {c.archive.busy ? <button className="button small" onClick={c.archive.cancel}><X size={13} />Cancel download preparation</button> : <button className="button small" disabled={c.busy} onClick={c.clear}>Clear results</button>}
     </div>
-    {c.archive.error && <p className="conversion-error" role="alert">{c.archive.error}</p>}
+    {c.archive.error && <TransientMessage className="conversion-error" role="alert">{c.archive.error}</TransientMessage>}
   </section>;
 }

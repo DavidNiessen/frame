@@ -25,5 +25,7 @@ export function configureCompletionNotifications(trusted: (event: IpcMainInvokeE
     const notification = new Notification({ ...completionMessage(summary), silent: true });
     notification.on('click', () => { if (window && !window.isDestroyed()) { if (window.isMinimized()) window.restore(); window.show(); window.focus(); } });
     notification.show();
+    const timer = setTimeout(() => notification.close(), 5000); timer.unref();
+    notification.once('close', () => clearTimeout(timer));
   });
 }

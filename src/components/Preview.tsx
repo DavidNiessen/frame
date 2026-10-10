@@ -1,3 +1,4 @@
+import type { EffectId } from '../core/effect-library';
 import { captionItems } from '../core/caption-items';
 import { effectiveVolume, extraInstances } from '../core/effect-instances';
 import { stackedGeometryPreview, colorPreview } from '../core/visual-preview';
@@ -19,7 +20,8 @@ import { PlaybackLoop, type LoopMode } from './PlaybackLoop';
 import { editClips } from '../core/clips';
 import { GoToTime } from './GoToTime';
 import { preciseTimecode, skipSeconds, stepFrame } from '../core/playhead';
-export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent, update, disabled, expanded, toggleExpanded, panelRef, selectedClip, assets }: {
+export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent, update, disabled, expanded, toggleExpanded, panelRef, selectedClip, assets, openEffect, selectedEffect }: {
+  openEffect: (id: EffectId, instanceId?: string) => void; selectedEffect: { id: EffectId; instanceId?: string } | null;
   assets: MediaAsset[]; selectedClip: string | null;
   expanded: boolean; toggleExpanded: () => void; panelRef: RefObject<HTMLElement | null>;
   previewUrl?: string; asset: MediaAsset; edit: EditSettings; mediaRef: RefObject<HTMLMediaElement | null>;
@@ -77,13 +79,13 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
     <div className="workspace-heading"><div><h2 title={asset.name}>{asset.name}</h2></div><div className="preview-source-info"><span className="badge">{asset.kind === 'video' ? `${asset.width} × ${asset.height}` : 'Audio'} <span>·</span> {time(asset.duration)}</span><MediaInfo asset={asset} /></div></div>
     <div className={`preview-stage ${asset.kind === 'audio' ? 'audio-stage' : ''}`}>
       {asset.kind === 'video' ? <div className="media-frame" style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}`, '--frame-ratio': dimensions.width / dimensions.height } as CSSProperties}>
-        {gif ? <img style={{ ...geometry, filter: colorPreview(visual) }} src={sourceUrl} alt="Animated source preview" /> : <video style={{ ...geometry, filter: colorPreview(visual) }} ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} playsInline preload="metadata" />}
-        <OverlayPreview edit={edit} asset={asset} />
-        {captionItems(edit).some(cue => cue.mode !== 'none') && <CaptionPreview asset={asset} edit={{ ...edit, crop: stackedVisual ? null : visual.crop }} current={current} disabled={disabled} pause={() => mediaRef.current?.pause()} update={update} />}
+        {gif ? <img style={{ ...geometry, filter: colorPreview(visual) }} src={sourceUrl} alt="Animated source preview" /> : <video data-frame-source={asset.id} style={{ ...geometry, filter: colorPreview(visual) }} ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} playsInline preload="metadata" />}
+        <OverlayPreview edit={edit} asset={asset} disabled={disabled} update={update} pause={() => mediaRef.current?.pause()} openEffect={openEffect} selectedEffect={selectedEffect} />
+        {captionItems(edit).some(cue => cue.mode !== 'none') && <CaptionPreview openEffect={openEffect} selectedEffect={selectedEffect} asset={asset} edit={{ ...edit, crop: stackedVisual ? null : visual.crop }} current={current} disabled={disabled} pause={() => mediaRef.current?.pause()} update={update} />}
         {!stackedVisual && visual.crop && asset.width && asset.height && <CropOverlay crop={visual.crop!} width={asset.width} height={asset.height} disabled={disabled} onChange={crop => update(clip ? { clips: edit.clips!.map(item => item.id === clip.id ? { ...item, effects: { ...item.effects, crop } } : item) } : { crop })} />}
-      </div> : <div className="audio-preview"><span className="audio-orbit" /><span className="audio-orbit second" /><div className="audio-art"><AudioLines size={54} strokeWidth={1.25} /></div><h3>{asset.name.replace(/\.[^.]+$/, '')}</h3><p>{asset.audioChannels ? `${asset.audioChannels === 1 ? 'Mono' : asset.audioChannels === 2 ? 'Stereo' : `${asset.audioChannels} channels`}${asset.audioSampleRate ? ` · ${asset.audioSampleRate / 1000} kHz` : ''}` : 'Audio source'}</p><audio ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} preload="metadata" /></div>}
+      </div> : <div className="audio-preview"><span className="audio-orbit" /><span className="audio-orbit second" /><div className="audio-art"><AudioLines size={54} strokeWidth={1.25} /></div><h3>{asset.name.replace(/\.[^.]+$/, '')}</h3><p>{asset.audioChannels ? `${asset.audioChannels === 1 ? 'Mono' : asset.audioChannels === 2 ? 'Stereo' : `${asset.audioChannels} channels`}${asset.audioSampleRate ? ` · ${asset.audioSampleRate / 1000} kHz` : ''}` : 'Audio source'}</p><audio data-frame-source={asset.id} ref={node => { mediaRef.current = node; }} src={sourceUrl} {...mediaEvents} preload="metadata" /></div>}
       {failed && <div className="preview-error"><p>This format cannot be previewed here.</p><span>You can still edit and convert it to MP4 or MP3.</span></div>}
-      <span className="preview-label">{edit.crop ? 'Drag the crop or its corners' : edit.subtitles.mode === 'burn' && edit.subtitles.cues.some(c => current >= c.start && current < c.end) ? 'Drag captions to position · arrow keys to nudge' : gif ? 'GIF source loops · edits apply on export' : edit.videoFadeIn || edit.videoFadeOut ? 'Fade preview • source frame' : previewUrl ? 'Lightweight proxy preview' : 'Original preview'}</span>
+      <span className="preview-label">{edit.crop ? 'Drag the crop or its corners' : edit.subtitles.mode === 'burn' && edit.subtitles.cues.some(c => current >= c.start && current < c.end) ? 'Click for settings · double-click text to edit · drag corners to resize' : gif ? 'GIF source loops · edits apply on export' : edit.videoFadeIn || edit.videoFadeOut ? 'Fade preview • source frame' : previewUrl ? 'Lightweight proxy preview' : 'Original preview'}</span>
     </div>
     <AudioMixPreview assets={assets} edit={edit} current={current} playing={playing && !disabled} />
     {expanded && <div className="fullscreen-scrubber" data-preview-playback><input type="range" aria-label="Fullscreen playback position" aria-valuetext={`${outputTimeAtSource(edit, current).toFixed(2)} of ${editedDuration(edit).toFixed(2)} seconds`} min={0} max={editedDuration(edit)} step={.01} value={outputTimeAtSource(edit, current)} disabled={disabled || gif || failed} onChange={event => { const source = sourceTimeAtOutput(edit, Number(event.target.value)); if (mediaRef.current) mediaRef.current.currentTime = source; setCurrent(source); }} /></div>}

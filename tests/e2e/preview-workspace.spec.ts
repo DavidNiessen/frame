@@ -12,6 +12,7 @@ test('expands the existing playing preview into the workspace and restores panel
   const preview = page.getByRole('region', { name: 'Media preview', exact: true });
   const original = (await preview.boundingBox())!;
   await page.evaluate(() => { (window as unknown as { originalVideo: Element | null }).originalVideo = document.querySelector('video'); });
+  await page.getByLabel('Playback loop', { exact: true }).click(); await page.getByRole('button', { name: 'Loop sequence', exact: true }).click();
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   // Sample the animation during its first frame rather than after a test-driver round trip.
   const animating = await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).evaluate(node => {
@@ -57,8 +58,10 @@ test('Space toggles playback on timeline ranges and clips without activating the
   }
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
   await expect(page.getByLabel('Trim end', { exact: true })).toHaveAttribute('aria-valuenow', '6');
-  // Ordinary timeline buttons keep their native Space activation.
+  // Timeline buttons reserve Space for playback; Enter still activates them.
+  await page.getByRole('button', { name: 'Split', exact: true }).press('Space'); await expect(page.locator('video')).toHaveJSProperty('paused', false);
   await page.getByRole('button', { name: 'Split', exact: true }).press('Space');
+  await page.getByRole('button', { name: 'Split', exact: true }).press('Enter');
   await expect(page.locator('.timeline-clip')).toHaveCount(2);
   await expect(page.locator('video')).toHaveJSProperty('paused', true);
   // Typing in caption text must never invoke playback shortcuts.
@@ -68,8 +71,8 @@ test('Space toggles playback on timeline ranges and clips without activating the
   await expect(page.getByLabel('Caption text', { exact: true })).toHaveValue('Hello ');
   await expect(page.locator('video')).toHaveJSProperty('paused', true);
   const captions = page.locator('.timeline-lane-group').filter({ has: page.locator('.caption-lane') });
-  await captions.locator('summary').press('Space'); await expect(captions).not.toHaveAttribute('open');
-  await expect(page.locator('video')).toHaveJSProperty('paused', true);
+  await captions.locator('summary').press('Space'); await expect(captions).toHaveAttribute('open', '');
+  await expect(page.locator('video')).toHaveJSProperty('paused', false); await captions.locator('summary').press('Space');
 });
 
 test('fills phone and short desktop screens, respects reduced motion and restores on navigation', async ({ page }) => {
