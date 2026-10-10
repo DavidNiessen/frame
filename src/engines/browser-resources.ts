@@ -11,6 +11,7 @@ export async function browserResources(ff: FFmpeg, edits: EditSettings[], assets
     }
     for (let i = 0; i < edits.length; i++) for (const file of recipeFiles(edits[i], paths[i], assets?.[i])) { await ff.writeFile(file.path, file.text); names.push(file.path); }
     for (let i = 0; i < edits.length; i++) if (edits[i].overlays.image) { await ff.writeFile(paths[i].image, Uint8Array.from(atob(edits[i].overlays.image!.split(',')[1]), c => c.charCodeAt(0))); names.push(paths[i].image); }
+    for (let i = 0; i < edits.length; i++) if (edits[i].customArtwork) { await ff.writeFile(paths[i].artwork, Uint8Array.from(atob(edits[i].customArtwork!.split(',')[1]), c => c.charCodeAt(0))); names.push(paths[i].artwork); }
     return { paths, cleanup: async () => { for (const name of names) await ff.deleteFile(name).catch(() => {}); } };
   } catch (error) { for (const name of names) await ff.deleteFile(name).catch(() => {}); throw error; }
 }

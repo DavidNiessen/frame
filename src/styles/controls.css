@@ -165,3 +165,9 @@ input[type='color'] { width: 100%; height: 34px; background: var(--surface-raise
 .metadata-field-input { display: flex; align-items: center; gap: 4px; }
 .metadata-field-input input { flex: 1; min-width: 0; }
 .metadata-field-input .icon-button { flex-shrink: 0; }
+
+.cover-artwork-controls { border-top: 1px solid var(--border); padding-top: 12px; }
+.cover-artwork-preview { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.cover-artwork-preview img { width: 64px; height: 64px; border-radius: 6px; object-fit: contain; background: var(--stage); border: 1px solid var(--border); }
+.cover-artwork-preview > span { flex: 1; font-size: 11px; min-width: 0; }
+.cover-artwork-preview small { display: block; color: var(--muted); margin-top: 5px; }

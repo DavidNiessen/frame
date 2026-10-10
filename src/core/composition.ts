@@ -53,8 +53,8 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
     if (a) graph.push(`[${stream('a')}]${[...audioFilters(recipe, source), 'aresample=48000', 'aformat=sample_fmts=fltp:channel_layouts=stereo'].join(',')}[a${index}]`);
     else if (audio) graph.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${editedDuration(recipe)},asetpts=PTS-STARTPTS[a${index}]`);
   });
-  const artwork = format.kind === 'audio' && format.artwork && settings.includeArtwork && clips[0].asset.artworkIndex !== undefined;
-  if (artwork) args.push('-i', inputs[0]);
+  const artwork = format.kind === 'audio' && format.artwork && settings.includeArtwork && (!!clips[0].edit.customArtwork || clips[0].asset.artworkIndex !== undefined);
+  if (artwork) args.push('-i', clips[0].edit.customArtwork ? resources[0].artwork : inputs[0]);
   const captions = video && subtitleCodec(settings.format) && mergedCues(clips, transition).length > 0;
   if (captions) args.push('-i', captionPath);
   const chapters = settings.includeChapters && chapterFormats.includes(settings.format), chapterInput = clips.length + Number(artwork) + Number(captions);
@@ -92,7 +92,7 @@ export function buildMergeArgs(clips: MediaClip[], output: OutputSettings, input
     }
     if (audio) { args.push('-map', '[mergeda]', '-c:a', outputAudioCodec(edit)); if (!['wav', 'flac'].includes(edit.format)) args.push('-b:a', `${edit.audioBitrate}k`); }
   }
-  if (artwork) { args.push('-map', `${clips.length}:${clips[0].asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic'); if (settings.format === 'mp3') args.push('-id3v2_version', '3'); }
+  if (artwork) { args.push('-map', clips[0].edit.customArtwork ? `${clips.length}:v:0` : `${clips.length}:${clips[0].asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic'); if (settings.format === 'mp3') args.push('-id3v2_version', '3'); }
   if (captions) args.push('-map', `${clips.length + (artwork ? 1 : 0)}:s:0`, '-c:s', subtitleCodec(settings.format)!);
   if (audio) args.push(...audioOutputArgs(edit));
   args.push('-filter_complex', graph.join(';'), '-map_metadata', edit.keepMetadata ? '0' : '-1', '-map_chapters', chapters ? String(chapterInput) : '-1');

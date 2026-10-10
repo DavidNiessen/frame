@@ -252,3 +252,5 @@ Project relinking also compares a small sampled content fingerprint, helping dis
 Advanced output settings include an optional metadata editor for titles, artists, albums, track numbers, dates, genres, comments and copyright. Explicit changes apply even when source metadata is removed; clearing a field removes that tag. Bulk conversion and watch folders can apply shared tag changes. Filename patterns also support `{title}`, `{artist}`, `{album}` and `{track}`, using any edited values.
 
 Music tracks can duck automatically under original dialogue or tracks marked as voiceover. Enable **Duck music under dialogue** in Music & voiceover, and use the exported mix preview to hear the final result. Export applies dialogue-driven compression with a smooth attack and recovery; live playback retains the original levels.
+
+Add custom cover artwork in advanced audio export or conversion options for MP3, FLAC and M4A. PNG, JPEG and WebP images are prepared locally and large covers are resized. Individual projects store their cover; bulk covers apply to the current conversion session. Removing a custom cover restores the source artwork behavior.

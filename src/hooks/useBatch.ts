@@ -50,10 +50,10 @@ export function useBatch(editor: Editor) {
     await execute(queue);
   }
   const orderFor = (ids: string[]) => [...new Set([...namingOrder.current, ...editor.assets.filter(asset => ids.includes(asset.id)).map(asset => asset.id)])];
-  async function convert(ids: string[], output: OutputSettings, keepFolders: boolean, namingTemplate = '{name}') {
+  async function convert(ids: string[], output: OutputSettings, keepFolders: boolean, namingTemplate = '{name}', customArtwork: string | null = null) {
     if (runningRef.current || editor.busy) return;
     const queue: BatchJob[] = editor.assets.filter(asset => ids.includes(asset.id)).map(asset => ({ id: crypto.randomUUID(), asset,
-      edit: conversionSettings(asset, output), status: 'waiting', progress: 0 }));
+      edit: { ...conversionSettings(asset, output), customArtwork }, status: 'waiting', progress: 0 }));
     namingOrder.current = orderFor(ids);
     await execute(queue, { conversion: true, keepFolders, namingTemplate, order: namingOrder.current }, true);
   }

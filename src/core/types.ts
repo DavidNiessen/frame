@@ -76,6 +76,7 @@ export interface EditSettings {
   gifLoop: number; gifColors: number; gifDither: 'sierra2_4a' | 'bayer' | 'none'; gifWidth: number | null;
   outputTags?: MediaTagOverrides;
   includeChapters?: boolean;
+  customArtwork?: string | null;
   includeArtwork: boolean;
   keepMetadata: boolean;
 }
@@ -113,5 +114,5 @@ export const acceptMedia = supportedExtensions.map(ext => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return { audioLayers: [], audioMixProtectPeaks: true, audioDucking: false, markers: [], clips: undefined, color: defaultColor(), geometry: defaultGeometry(), overlays: defaultOverlays(), subtitles: { mode: 'none', cues: [] }, start: 0, end: asset.duration, volume: 1, speed: 1, preservePitch: true, normalizeLoudness: false, targetLufs: -16, reduceNoise: false, noiseStrength: 12, noiseFloor: -50, equalizer: { bass: 0, mid: 0, treble: 0 }, audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, cuts: [], splits: [], crop: null,
     format: asset.kind === 'audio' ? 'mp3' : 'mp4', quality: 'balanced',
-    acceleration: parseAcceleration(undefined), targetSizeMb: null, videoBitrate: null, audioBitrate: 192, audioSampleRate: null, audioChannels: null, wavDepth: 16, fps: 15, gifLoop: 0, gifColors: 256, gifDither: 'sierra2_4a', gifWidth: null, outputTags: {}, includeChapters: false, includeArtwork: true, keepMetadata: true };
+    acceleration: parseAcceleration(undefined), targetSizeMb: null, videoBitrate: null, audioBitrate: 192, audioSampleRate: null, audioChannels: null, wavDepth: 16, fps: 15, gifLoop: 0, gifColors: 256, gifDither: 'sierra2_4a', gifWidth: null, outputTags: {}, includeChapters: false, customArtwork: null, includeArtwork: true, keepMetadata: true };
 }

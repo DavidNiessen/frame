@@ -1,3 +1,4 @@
+import { parseCoverArtwork } from './cover-art';
 import { mediaTagArgs, parseTagOverrides } from './media-tags';
 import { chapterFormats, timelineChapters } from './chapters';
 import { parseAudioLayers, audioMixGraph, hasEditedAudio, type AudioLayerInput } from './audio-layers';
@@ -23,7 +24,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   if (edit.audioDucking !== undefined && typeof edit.audioDucking !== 'boolean') throw new Error('Invalid music ducking setting.');
   parseAudioLayers(edit.audioLayers); if (edit.audioMixProtectPeaks !== undefined && typeof edit.audioMixProtectPeaks !== 'boolean') throw new Error('Invalid audio mix protection setting.');
   if (edit.includeChapters !== undefined && typeof edit.includeChapters !== 'boolean') throw new Error('Invalid chapter setting.');
-  parseTagOverrides(edit.outputTags);
+  parseTagOverrides(edit.outputTags); parseCoverArtwork(edit.customArtwork);
   parseMarkers(edit.markers, asset.duration);
   validateGifOutput(edit); validateAudioOutput(edit); parseAcceleration(edit.acceleration); validateSizeTarget(edit.targetSizeMb); parseColor(edit.color); parseGeometry(edit.geometry); parseOverlays(edit.overlays); validateAudioEffects(edit); parseSubtitles(edit.subtitles);
   if (getFormat(edit.format).kind === 'video' && edit.subtitles.mode === 'embed' && edit.subtitles.cues.length && !subtitleCodec(edit.format)) throw new Error('This format cannot embed subtitles. Choose burn-in or another video format.');
@@ -60,11 +61,11 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
   const mixing = !!edit.audioLayers?.length && edit.format !== 'gif';
   if (mixing && (layers.length !== edit.audioLayers!.length || layers.some((item, i) => item.layer.id !== edit.audioLayers![i].id))) throw new Error('Restore all audio track sources before exporting.');
   const baseEdit = mixing ? { ...edit, audioFadeIn: 0, audioFadeOut: 0 } : edit;
-  const artwork = format.kind === 'audio' && edit.includeArtwork && format.artwork && asset.artworkIndex !== undefined;
+  const artwork = format.kind === 'audio' && edit.includeArtwork && format.artwork && (!!edit.customArtwork || asset.artworkIndex !== undefined);
   // Limit decoding to the source selection, including palette generation for GIF.
   const args = ['-y', '-ss', String(edit.start), '-t', String(edit.end - edit.start), '-i', input];
   // An unseeked second input keeps the single artwork packet when audio is trimmed.
-  if (artwork) args.push('-i', input);
+  if (artwork) args.push('-i', edit.customArtwork ? resources.artwork : input);
   const captions = format.kind === 'video' && edit.subtitles.mode === 'embed' && outputCues(edit).length > 0;
   if (captions) args.push('-i', resources.captions);
   const chapters = edit.includeChapters && chapterFormats.includes(edit.format) && timelineChapters(edit).length > 0;
@@ -129,7 +130,7 @@ export function buildExportArgs(asset: MediaAsset, edit: EditSettings, input: st
     args.push('-map', audioInput, '-c:a', outputAudioCodec(edit));
     if (!['wav', 'flac'].includes(edit.format)) args.push('-b:a', `${edit.audioBitrate}k`);
     if (artwork) {
-      args.push('-map', `1:${asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
+      args.push('-map', edit.customArtwork ? '1:v:0' : `1:${asset.artworkIndex}`, '-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
       if (edit.format === 'mp3') args.push('-id3v2_version', '3');
     } else args.push('-vn');
   }

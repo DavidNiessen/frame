@@ -17,6 +17,7 @@ function readOutput() { try { const saved = localStorage.getItem(key); return sa
 export function useConversion(editor: Editor) {
   const [saved] = useState(readOutput);
   const [output, setOutput] = useState<OutputSettings>(() => saved || outputSettings(defaultSettings(sample)));
+  const [artwork, setArtwork] = useState<string | null>(null);
   const [ids, setIds] = useState<string[]>([]), [keepFolders, setKeepFolders] = useState(true);
   const [namingTemplate, setNamingTemplate] = useState(() => { try { return localStorage.getItem('frame:conversion-naming') || '{name}'; } catch { return '{name}'; } });
   useEffect(() => { try { localStorage.setItem('frame:conversion-naming', namingTemplate); } catch {} }, [namingTemplate]);
@@ -47,10 +48,10 @@ export function useConversion(editor: Editor) {
       return next;
     });
   }
-  return { output, update, namingTemplate, setNamingTemplate, ids, setIds, keepFolders, setKeepFolders, selected, incompatible, error, busy, batch, archive, latestJobs, done, unfinished,
+  return { artwork, setArtwork, output, update, namingTemplate, setNamingTemplate, ids, setIds, keepFolders, setKeepFolders, selected, incompatible, error, busy, batch, archive, latestJobs, done, unfinished,
     filenameFor: (asset: MediaAsset) => { try { return conversionName(taggedNamingAsset(asset, output.outputTags), output.format, keepFolders, namingTemplate, batch.orderFor(ids).indexOf(asset.id) + 1); } catch { return conversionName(taggedNamingAsset(asset, output.outputTags), output.format, keepFolders); } },
-    start: () => { if (!error && !busy) void batch.convert(selected.map(asset => asset.id), output, keepFolders, namingTemplate); },
-    retry: () => { if (!error && !busy) void batch.convert(unfinished.filter(job => selected.some(asset => asset.id === job.asset.id)).map(job => job.asset.id), output, keepFolders, namingTemplate); },
+    start: () => { if (!error && !busy) void batch.convert(selected.map(asset => asset.id), output, keepFolders, namingTemplate, artwork); },
+    retry: () => { if (!error && !busy) void batch.convert(unfinished.filter(job => selected.some(asset => asset.id === job.asset.id)).map(job => job.asset.id), output, keepFolders, namingTemplate, artwork); },
     clear: () => { if (!busy) { archive.cancel(); batch.clear(); } },
     toggle: (id: string) => setIds(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]),
   };

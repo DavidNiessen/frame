@@ -1,3 +1,4 @@
+import { CoverArtworkControls } from './CoverArtworkControls';
 import { MetadataControls } from './MetadataControls';
 import { chapterFormats, timelineChapters } from '../core/chapters';
 import { hasEditedAudio } from '../core/audio-layers';
@@ -23,7 +24,8 @@ export function ExportControls({ asset, edit, update }: { asset: MediaAsset; edi
       {edit.format === 'gif' && <label className="stacked-label">GIF frame rate <span className="unit">fps</span><input type="number" aria-label="GIF frame rate" min={1} max={60} value={edit.fps} onChange={event => update({ fps: Number(event.target.value) })} /></label>}
       {edit.format === 'gif' && <GifOutputControls settings={edit} update={update} />}
       {hasEditedAudio(asset, edit) && edit.format !== 'gif' && <AudioOutputControls settings={edit} update={update} />}
-      <label className="switch-row"><span>Include artwork<small>{format.artwork ? asset.artworkIndex === undefined ? 'No embedded artwork in this file' : 'Keep the embedded cover image' : 'Not supported by this output format'}</small></span><input type="checkbox" role="switch" aria-label="Include artwork" checked={edit.includeArtwork} disabled={!format.artwork} onChange={event => update({ includeArtwork: event.target.checked })} /></label>
+      <label className="switch-row"><span>Include artwork<small>{format.artwork ? edit.customArtwork ? 'Use the custom cover image' : asset.artworkIndex === undefined ? 'No embedded artwork in this file' : 'Keep the embedded cover image' : 'Not supported by this output format'}</small></span><input type="checkbox" role="switch" aria-label="Include artwork" checked={edit.includeArtwork} disabled={!format.artwork} onChange={event => update({ includeArtwork: event.target.checked })} /></label>
+      {format.artwork && <CoverArtworkControls artwork={edit.customArtwork} update={customArtwork => update({ customArtwork, includeArtwork: customArtwork ? true : edit.includeArtwork })} />}
       <label className="switch-row"><span>Chapters from markers<small>{!chapterFormats.includes(edit.format) ? 'Available in MP4, MOV, MKV and M4A' : !timelineChapters(edit).length ? 'Add timeline markers to create chapters' : `${timelineChapters(edit).length} chapters follow your edited timeline`}</small></span><input type="checkbox" role="switch" aria-label="Include chapters from markers" checked={edit.includeChapters ?? false} disabled={!chapterFormats.includes(edit.format) || !timelineChapters(edit).length} onChange={event => update({ includeChapters: event.target.checked })} /></label>
       <label className="switch-row"><span>Keep metadata<small>Titles, artists, and source tags</small></span><input type="checkbox" role="switch" aria-label="Keep metadata" checked={edit.keepMetadata} onChange={event => update({ keepMetadata: event.target.checked })} /></label>
       {edit.format !== 'gif' && <MetadataControls tags={edit.outputTags} source={asset} update={outputTags => update({ outputTags })} />}
