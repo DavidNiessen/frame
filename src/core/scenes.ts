@@ -11,7 +11,7 @@ export function parseSceneOptions(value: unknown): SceneOptions {
 export function sceneArgs(asset: MediaAsset, input: string, value: SceneOptions): string[] {
   const options = parseSceneOptions(value);
   if (asset.kind !== 'video') throw new Error('Scene detection requires video.');
-  return ['-hide_banner', '-i', input, '-map', '0:V:0', '-an', '-vf', `setpts=PTS-STARTPTS,scale=320:180:force_original_aspect_ratio=decrease,format=rgb24,select='gt(scene,${options.threshold})',showinfo`, '-fps_mode', 'passthrough', '-f', 'null', '-'];
+  return ['-hide_banner', '-loglevel', 'info', '-i', input, '-map', '0:V:0', '-an', '-vf', `setpts=PTS-STARTPTS,scale=320:180:force_original_aspect_ratio=decrease,format=rgb24,select='gt(scene,${options.threshold})',showinfo`, '-fps_mode', 'passthrough', '-f', 'null', '-'];
 }
 export class SceneCollector {
   private times: number[] = []; private truncated = false;
