@@ -258,3 +258,5 @@ Add custom cover artwork in advanced audio export or conversion options for MP3,
 After bulk conversion, save a CSV report with source/output names, format, status, sizes, duration and any errors. Reports are prepared locally and include failed or cancelled items as well as successful outputs.
 
 Use the header command search or Ctrl/Cmd+K to find import, editing, review, conversion, export and settings actions. Arrow keys move through available commands; Enter runs one and Escape closes search. Unavailable actions explain what they need. Inspector tabs retain their selection while moving between workspaces.
+
+Project files are limited to 16 MB of UTF-8 data so saved workspaces remain reopenable. Frame uses compact JSON near that limit; large embedded image collections may need smaller workspaces. Autosave builds the portable snapshot after the editing pause rather than during every slider movement.

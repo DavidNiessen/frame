@@ -126,3 +126,5 @@ Chapter metadata is generated from output-mapped markers and written as a tempor
 Batch CSV reports use the actual retained job results, with quoted cells and spreadsheet formula protection for user text. Disabling autosave stops new snapshots and page-hide writes while leaving earlier recovery documents available for explicit recovery or discard.
 
 Command search uses a core text-ranking function and a focused modal component. Action labels outrank incidental matches in help text; disabled results explain their prerequisites and never execute on Enter. The command controller uses the existing editor/project actions, coordinates with other dialogs and desktop launch delivery, and opens controlled inspector tabs without changing recipe scope.
+
+Project serialization checks UTF-8 bytes per source before joining embedded resources, rejects documents above the importer’s 16 MB limit, and falls back to compact JSON when indentation alone would exceed it. Autosave captures recipe references while editing and serializes after its debounce or page-hide event.

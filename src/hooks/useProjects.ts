@@ -1,3 +1,4 @@
+import { serializeProject, MAX_PROJECT_BYTES } from '../core/project-storage';
 import { sameLayerSource } from '../core/audio-layers';
 import { sourceIdentity } from '../core/project';
 import { useState } from 'react';
@@ -19,7 +20,7 @@ export function useProjects(editor: Editor) {
   async function open(file: File) {
     if (editor.busy || saving) return;
     try {
-      if (file.size > 16 * 1024 * 1024) throw new Error('Project files must be smaller than 16 MB.');
+      if (file.size > MAX_PROJECT_BYTES) throw new Error('Project files must be smaller than 16 MB.');
       const project = parseProject(JSON.parse(await file.text()));
       setError(''); setOverrides({}); setPending(project);
     } catch (error) { report(error); }
@@ -30,10 +31,11 @@ export function useProjects(editor: Editor) {
     try {
       const title = name || editor.asset.name.replace(/\.[^.]+$/, '').slice(0, 120);
       const project = createProject(title, editor.assets, editor.settingsFor, editor.asset.id);
+      const serialized = serializeProject(project);
       if (window.frameDesktop) {
         if (!await window.frameDesktop.saveProject(project)) return;
       } else {
-        const url = URL.createObjectURL(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' }));
+        const url = URL.createObjectURL(new Blob([serialized], { type: 'application/json' }));
         const anchor = document.createElement('a'); anchor.href = url; anchor.download = projectFilename(title);
         anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 10000);
       }
