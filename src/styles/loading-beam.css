@@ -31,7 +31,7 @@
 [aria-busy='true'] .footer-task-label { font-weight: 600; }
 [aria-busy='true'] .footer-task-percent { font-size: 13px; font-weight: 700; }
 [aria-busy='true'] .footer-task-detail { font-size: 11px; }
-[aria-busy='true'] .footer-task .status-dot { width: 6px; height: 6px; box-shadow: 0 0 10px var(--accent); }
+[aria-busy='true'] .footer-task .status-dot { width: 6px; height: 6px; }
 .footer-task .footer-cancel { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); padding: 5px 7px; border-radius: 6px; color: var(--accent-text); background: color-mix(in srgb, var(--surface) 80%, transparent); }
 .footer-task .footer-cancel:hover { background: var(--accent-dim); }
 @keyframes footer-task-enter { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
