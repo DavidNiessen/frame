@@ -18,7 +18,7 @@ import { browserJoinedPreview } from './browser-joined-preview';
 import { buildExportArgs, outputName } from '../core/export-plan';
 import { getFormat } from '../core/formats';
 import { conversionName } from '../core/conversion';
-import { browserRelativePath, isMediaFilename, MAX_IMPORT_FILES } from '../core/imports';
+import { browserRelativePath, isMediaFilename, orderBrowserFiles, MAX_IMPORT_FILES } from '../core/imports';
 import { MAX_WEB_FILE_SIZE, MAX_WEB_LIBRARY_SIZE } from '../core/imports';
 import { downloadRemoteMedia } from './remote-download';
 import { parseProbe } from '../core/probe';
@@ -59,6 +59,7 @@ export function createBrowserEngine(): MediaEngine {
       } finally { chunks.length = 0; download = null; }
     },
     async importFiles(selected = [], onProgress) {
+      selected = orderBrowserFiles(selected);
       const media = selected.filter(file => isMediaFilename(file.name));
       if (media.length + files.size > MAX_IMPORT_FILES) throw new Error(`The library supports up to ${MAX_IMPORT_FILES} media files. Choose a smaller folder.`);
       const report: ImportReport = { assets: [], issues: [], skipped: selected.length - media.length,

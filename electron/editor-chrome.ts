@@ -26,7 +26,10 @@ export function configureEditorChrome(window: BrowserWindow) {
     if (typeof value !== 'boolean') throw new Error('Invalid title-bar state.');
     expanded = value; notify(); return state();
   };
-  window.on('resize', notify); window.on('focus', notify); window.on('blur', notify);
+  // macOS can finish updating zoom geometry after its resize notification.
+  // Refresh once more after the native callback completes, including setBounds.
+  window.on('resize', () => { notify(); setImmediate(notify); });
+  window.on('focus', notify); window.on('blur', notify);
   window.on('maximize', notify);
   // Transparent Windows windows emit fullscreen events but isFullScreen() remains false.
   window.on('enter-full-screen', () => { fullscreen = true; notify(); });

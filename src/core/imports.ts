@@ -9,3 +9,12 @@ export const isMediaFilename = (name: string) => supportedExtensions.includes(na
 export function browserRelativePath(path: string): string | undefined {
   return path ? path.split('/').slice(1).join('/') : undefined;
 }
+
+/** Directory enumeration order differs across systems; keep album numbering stable. */
+export function orderBrowserFiles(files: File[]): File[] {
+  const folders = files.filter(file => file.webkitRelativePath).sort((a, b) =>
+    a.webkitRelativePath.localeCompare(b.webkitRelativePath, 'en', { numeric: true }));
+  let index = 0;
+  // Preserve the chosen order of individual files, including mixed folder drops.
+  return files.map(file => file.webkitRelativePath ? folders[index++] : file);
+}

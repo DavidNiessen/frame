@@ -26,10 +26,21 @@ test('plays reordered clips across the source end and restarts at the sequence b
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed');
   await page.getByLabel('Playback speed').selectOption('4');
   await page.locator('.timeline-clip .range-body').nth(1).press('Alt+ArrowLeft');
-  await page.getByRole('button', { name: 'Back to trim start', exact: true }).click(); await expect(video).toHaveJSProperty('currentTime', 2);
+  // Reordered footage is prepared as one continuous stream. Its native clock
+  // starts at zero; the timeline still shows the corresponding source time.
+  await expect(video).toHaveAttribute('data-preview-clock', 'sequence', { timeout: 45000 });
+  await expect(video).not.toHaveAttribute('data-preview-preparing', 'true');
+  await expect(video).not.toHaveAttribute('data-preview-switching', 'true');
+  const playhead = page.getByLabel('Seek playhead');
+  await page.getByRole('button', { name: 'Back to trim start', exact: true }).click();
+  await expect(video).toHaveJSProperty('currentTime', 0); await expect(playhead).toHaveValue('2');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect.poll(() => video.evaluate(node => { const media = node as HTMLVideoElement; return !media.paused && media.currentTime < 2 && media.playbackRate === 4; }), { timeout: 8000 }).toBe(true);
-  await expect(video).toHaveJSProperty('paused', true, { timeout: 8000 }); await expect(video).toHaveJSProperty('currentTime', 2);
+  await expect.poll(() => page.evaluate(() => {
+    const media = document.querySelector('video')!, source = Number((document.querySelector('[aria-label="Seek playhead"]') as HTMLInputElement).value);
+    return !media.paused && source < 2 && media.currentTime > 4 && media.playbackRate === 4;
+  }), { timeout: 8000, intervals: [50] }).toBe(true);
+  await expect(video).toHaveJSProperty('paused', true, { timeout: 8000 });
+  await expect(video).toHaveJSProperty('currentTime', 0); await expect(playhead).toHaveValue('2');
 });
 
 test('applies a track effect, reorders split clips and exports the sequence', async ({ page }, testInfo) => {

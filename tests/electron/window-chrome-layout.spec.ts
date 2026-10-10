@@ -40,7 +40,7 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
     const video = await videoBounds(); await show(); expect(await videoBounds()).toEqual(video); await hide(); expect(await videoBounds()).toEqual(video);
     await settle(); expect(await corners(desktopChromeSpace)).toEqual([0, 0, 0, 0, 255]);
     const work = await app.evaluate(({ screen, BrowserWindow }) => screen.getDisplayMatching(BrowserWindow.getAllWindows()[0].getBounds()).workArea);
-    const resizeHeight = Math.min(840, work.height - desktopChromeSpace), firstWidth = Math.min(1200, work.width), secondWidth = Math.min(1300, work.width);
+    const resizeHeight = Math.min(840, work.height - desktopChromeSpace - 32), firstWidth = Math.min(1200, work.width - 64), secondWidth = Math.min(1300, work.width - 32);
     await native.evaluate((window, size) => { const bounds = window.getBounds(); window.setBounds({ ...bounds, width: size.width, height: size.height }); }, { width: firstWidth, height: resizeHeight + desktopChromeSpace });
     await expect(page.locator('.desktop-window-content')).toHaveCSS('height', `${resizeHeight - 2}px`);
     await show();

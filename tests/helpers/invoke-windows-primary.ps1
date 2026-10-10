@@ -22,7 +22,7 @@ public static class FramePrimaryTest {
   [DllImport("ole32.dll")] static extern int CoCreateInstance(ref Guid id, IntPtr outer, uint context, ref Guid iid, out IntPtr result);
   [DllImport("shell32.dll", CharSet=CharSet.Unicode)] static extern int SHParseDisplayName(string path, IntPtr bind, out IntPtr pidl, uint requested, out uint attributes);
   [DllImport("shell32.dll")] static extern int SHCreateShellItemArrayFromIDLists(uint count, [In] IntPtr[] pidls, out IntPtr items);
-  public static FrameExplorerCommand Create(string clsid) {
+  static FrameExplorerCommand Create(string clsid) {
     Guid id = new Guid(clsid), iid = typeof(FrameExplorerCommand).GUID; IntPtr result;
     Marshal.ThrowExceptionForHR(CoCreateInstance(ref id, IntPtr.Zero, 5, ref iid, out result));
     try { return (FrameExplorerCommand)Marshal.GetObjectForIUnknown(result); }
@@ -35,12 +35,12 @@ public static class FramePrimaryTest {
       IntPtr items; Marshal.ThrowExceptionForHR(SHCreateShellItemArrayFromIDLists((uint)paths.Length, pidls, out items)); return items;
     } finally { foreach (IntPtr pidl in pidls) if (pidl != IntPtr.Zero) Marshal.FreeCoTaskMem(pidl); }
   }
-  public static uint State(FrameExplorerCommand command, string[] paths) {
+  static uint State(FrameExplorerCommand command, string[] paths) {
     IntPtr items = Selection(paths);
     try { uint state; Marshal.ThrowExceptionForHR(command.GetState(items, true, out state)); return state; }
     finally { Marshal.Release(items); }
   }
-  public static void Invoke(FrameExplorerCommand command, string[] paths, string title) {
+  static void Invoke(FrameExplorerCommand command, string[] paths, string title) {
     IntPtr items = Selection(paths), text = IntPtr.Zero;
     try {
       Marshal.ThrowExceptionForHR(command.GetTitle(items, out text));
@@ -50,16 +50,21 @@ public static class FramePrimaryTest {
       Marshal.ThrowExceptionForHR(command.Invoke(items, IntPtr.Zero));
     } finally { if (text != IntPtr.Zero) Marshal.FreeCoTaskMem(text); Marshal.Release(items); }
   }
+  // Keep the typed COM interface in managed code. PowerShell's COM adapter
+  // otherwise unwraps it to System.__ComObject when binding method arguments.
+  public static void VerifyAndInvoke(string clsid, string[] paths, string directory, string unsupported, string title) {
+    FrameExplorerCommand command = Create(clsid);
+    try {
+      if (State(command, new string[] { directory }) != 2) throw new Exception("Native actions must be hidden for folders.");
+      if (State(command, new string[] { paths[0], unsupported }) != 2) throw new Exception("Native actions must be hidden for unsupported mixed selections.");
+      Invoke(command, paths, title);
+    } finally { Marshal.FinalReleaseComObject(command); }
+  }
 }
 '@
 $paths = @(Get-ChildItem -LiteralPath $Directory -Filter 'Selection *.*' -File | ForEach-Object { $_.FullName })
 if ($paths.Count -ne 2) { throw 'Expected exactly two selected test files.' }
 $clsid = if ($Workflow -eq 'Edit') { $identity.editClsid } else { $identity.convertClsid }
-$command = [FramePrimaryTest]::Create($clsid)
-try {
-  if ([FramePrimaryTest]::State($command, @($Directory)) -ne 2) { throw 'Native actions must be hidden for folders.' }
-  $unsupported = Join-Path $Directory 'booklet.txt'
-  Set-Content -LiteralPath $unsupported -Value 'Unsupported media'
-  if ([FramePrimaryTest]::State($command, @($paths[0], $unsupported)) -ne 2) { throw 'Native actions must be hidden for unsupported mixed selections.' }
-  [FramePrimaryTest]::Invoke($command, $paths, "$Workflow in Frame")
-} finally { [Runtime.InteropServices.Marshal]::FinalReleaseComObject($command) | Out-Null }
+$unsupported = Join-Path $Directory 'booklet.txt'
+Set-Content -LiteralPath $unsupported -Value 'Unsupported media'
+[FramePrimaryTest]::VerifyAndInvoke($clsid, $paths, $Directory, $unsupported, "$Workflow in Frame")
