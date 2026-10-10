@@ -4,6 +4,7 @@ import { readFile, writeFile, rename, rm, lstat, realpath, stat } from 'node:fs/
 import { join, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseWatchDraft, type WatchFolder } from '../src/core/watch-folders';
+import { taggedNamingAsset } from '../src/core/media-tags';
 import { conversionName, conversionSettings, canConvert } from '../src/core/conversion';
 import { buildExportArgs } from '../src/core/export-plan';
 import { editedDuration } from '../src/core/timeline';
@@ -31,7 +32,7 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
         const asset = { ...await probeFile(source, { rawOnly: true, signal: jobs.signal }), id: randomUUID(), name: basename(source), relativePath: work.relativePath, previewUrl: '' };
         if (!canConvert(asset, work.watch.settings)) throw new Error(`This source cannot be converted to ${work.watch.settings.format.toUpperCase()}.`);
         const edit = conversionSettings(asset, { ...work.watch.settings, acceleration: 'software' });
-        const name = conversionName(asset, edit.format, work.watch.keepFolders, work.watch.namingTemplate);
+        const name = conversionName(taggedNamingAsset(asset, edit.outputTags), edit.format, work.watch.keepFolders, work.watch.namingTemplate);
         const destination = await safeOutputPath(work.watch.output, name); temporary = join(dirname(destination), `.frame-watch-${randomUUID()}.${edit.format}`);
         await withResources([edit], async paths => execute(runFfmpeg(buildExportArgs(asset, edit, source, temporary!, paths[0]), editedDuration(edit), work.progress)), [asset]);
         if (jobs.cancelled) throw new Error('Conversion cancelled.');
@@ -48,7 +49,7 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
   }
   const ready = (async () => {
     try {
-      const text = await readFile(config, 'utf8'); if (text.length > 200000) throw new Error('Watch configuration is too large.');
+      const text = await readFile(config, 'utf8'); if (text.length > 1000000) throw new Error('Watch configuration is too large.');
       const data = JSON.parse(text); if (data.version !== 1 || !Array.isArray(data.watches) || data.watches.length > 10) throw new Error('Invalid watch configuration.');
       const ids = new Set<string>(); const watches: WatchFolder[] = data.watches.map((value: WatchFolder) => {
         if (typeof value.id !== 'string' || value.id.length > 100 || ids.has(value.id) || typeof value.enabled !== 'boolean') throw new Error('Invalid saved watch.'); ids.add(value.id);

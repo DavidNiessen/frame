@@ -1,3 +1,4 @@
+import { parseTagOverrides } from './media-tags';
 import { audioLayerSource, parseAudioLayers, sameLayerSource } from './audio-layers';
 import { parseMarkers } from './markers';
 import { clipEffectKeys, type TimelineClip } from './clips';
@@ -60,7 +61,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     audioChannels: e.audioChannels === undefined || e.audioChannels === null ? null : number(e.audioChannels),
     wavDepth: e.wavDepth === undefined ? 16 : number(e.wavDepth) as EditSettings['wavDepth'],
     videoBitrate: e.videoBitrate === null ? null : number(e.videoBitrate), audioBitrate: number(e.audioBitrate), fps: number(e.fps),
-    includeChapters: e.includeChapters === undefined ? false : boolean(e.includeChapters), includeArtwork: boolean(e.includeArtwork), keepMetadata: boolean(e.keepMetadata),
+    outputTags: parseTagOverrides(e.outputTags), includeChapters: e.includeChapters === undefined ? false : boolean(e.includeChapters), includeArtwork: boolean(e.includeArtwork), keepMetadata: boolean(e.keepMetadata),
   };
   if (e.clips !== undefined) {
     if (!Array.isArray(e.clips) || !e.clips.length || e.clips.length > 1000) return fail();

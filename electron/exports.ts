@@ -1,3 +1,4 @@
+import { taggedNamingAsset } from '../src/core/media-tags';
 import { recordExport } from './export-history';
 import { resolveAudioLayers } from '../src/core/audio-layers';
 import { dialog, type BrowserWindow } from 'electron';
@@ -26,7 +27,7 @@ export function registerExports(window: BrowserWindow, assets: SessionAssets, jo
     return jobs.run(async execute => {
       let temporary: string | undefined;
       try {
-        const batchName = batchToken ? folders.name(batchToken, item.asset, settings.format) : outputName(item.asset.name, settings.format);
+        const batchName = batchToken ? folders.name(batchToken, taggedNamingAsset(item.asset, settings.outputTags), settings.format) : outputName(item.asset.name, settings.format);
         const destination = batchToken ? { canceled: false, filePath: await folders.destination(batchToken, batchName) } : await dialog.showSaveDialog(window, { defaultPath: outputName(item.asset.name, settings.format), filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }] });
         if (destination.canceled || !destination.filePath) return null;
         const sourcePath = await realpath(item.path);

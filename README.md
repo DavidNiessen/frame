@@ -248,3 +248,5 @@ Recent exports in Settings lists the last 100 desktop outputs from editing, conv
 Timeline markers can become chapters in MP4, MOV, MKV and M4A exports. Enable **Chapters from markers** in advanced export settings, or download a timestamp list from the marker manager. Chapters follow retained clip order and speed. Merged exports can also add chapters using clip names and markers.
 
 Project relinking also compares a small sampled content fingerprint, helping distinguish equally named files from different albums without hashing entire large videos. Audio tracks preserve their specific source references in saved projects.
+
+Advanced output settings include an optional metadata editor for titles, artists, albums, track numbers, dates, genres, comments and copyright. Explicit changes apply even when source metadata is removed; clearing a field removes that tag. Bulk conversion and watch folders can apply shared tag changes. Filename patterns also support `{title}`, `{artist}`, `{album}` and `{track}`, using any edited values.

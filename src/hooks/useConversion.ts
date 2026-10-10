@@ -1,3 +1,4 @@
+import { taggedNamingAsset } from '../core/media-tags';
 import { validateNamingTemplate } from '../core/output-naming';
 import { sampleRates } from '../core/audio-output';
 import { useEffect, useRef, useState } from 'react';
@@ -47,7 +48,7 @@ export function useConversion(editor: Editor) {
     });
   }
   return { output, update, namingTemplate, setNamingTemplate, ids, setIds, keepFolders, setKeepFolders, selected, incompatible, error, busy, batch, archive, latestJobs, done, unfinished,
-    filenameFor: (asset: MediaAsset) => { try { return conversionName(asset, output.format, keepFolders, namingTemplate, batch.orderFor(ids).indexOf(asset.id) + 1); } catch { return conversionName(asset, output.format, keepFolders); } },
+    filenameFor: (asset: MediaAsset) => { try { return conversionName(taggedNamingAsset(asset, output.outputTags), output.format, keepFolders, namingTemplate, batch.orderFor(ids).indexOf(asset.id) + 1); } catch { return conversionName(taggedNamingAsset(asset, output.outputTags), output.format, keepFolders); } },
     start: () => { if (!error && !busy) void batch.convert(selected.map(asset => asset.id), output, keepFolders, namingTemplate); },
     retry: () => { if (!error && !busy) void batch.convert(unfinished.filter(job => selected.some(asset => asset.id === job.asset.id)).map(job => job.asset.id), output, keepFolders, namingTemplate); },
     clear: () => { if (!busy) { archive.cancel(); batch.clear(); } },

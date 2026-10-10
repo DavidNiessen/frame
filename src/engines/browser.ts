@@ -1,5 +1,6 @@
 import { resolveAudioLayers } from '../core/audio-layers';
 import type { MediaAsset } from '../core/types';
+import { taggedNamingAsset } from '../core/media-tags';
 import { sourceFingerprint } from '../core/source-fingerprint';
 import { mergedChapters, serializeChapters } from '../core/chapters';
 import { writeBrowserLayers } from './browser-audio-layers';
@@ -112,8 +113,8 @@ export function createBrowserEngine(): MediaEngine {
         if (typeof data === 'string') throw new Error('Invalid export output.');
         const blob = new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime });
         onProgress({ ratio: 1, message: 'Your export is ready.' });
-        return { name: batchToken && batchOptions.conversion ? conversionName(asset, settings.format, false, batchOptions.namingTemplate, conversionIndex(batchOptions, asset.id)) : outputName(asset.name, settings.format),
-          relativePath: batchToken && batchOptions.conversion ? conversionName(asset, settings.format, batchOptions.keepFolders, batchOptions.namingTemplate, conversionIndex(batchOptions, asset.id)) : undefined,
+        return { name: batchToken && batchOptions.conversion ? conversionName(taggedNamingAsset(asset, settings.outputTags), settings.format, false, batchOptions.namingTemplate, conversionIndex(batchOptions, asset.id)) : outputName(asset.name, settings.format),
+          relativePath: batchToken && batchOptions.conversion ? conversionName(taggedNamingAsset(asset, settings.outputTags), settings.format, batchOptions.keepFolders, batchOptions.namingTemplate, conversionIndex(batchOptions, asset.id)) : undefined,
           url: URL.createObjectURL(blob), size: blob.size };
       } catch (error) {
         if (cancelled) throw new Error('Export cancelled.');
