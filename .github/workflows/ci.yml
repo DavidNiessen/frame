@@ -140,12 +140,6 @@ jobs:
       - name: Test Electron (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:desktop
-      - name: Save desktop failure diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-test-diagnostics-${{ matrix.os }}
-          path: test-results/desktop/
       - run: npm run package
       - name: Disable Developer Mode on the disposable Windows test runner
         if: runner.os == 'Windows'
@@ -158,6 +152,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/test-windows-shell.ps1
+      - name: Save desktop failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-test-diagnostics-${{ matrix.os }}
+          path: test-results/desktop/
       - uses: actions/upload-artifact@v4
         with:
           name: frame-desktop-${{ matrix.os }}

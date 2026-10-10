@@ -54,17 +54,20 @@ export function Preview({ asset, edit, previewUrl, previewRanges, previewProcess
   const handoff = useRef({ assetId: asset.id, url: sourceUrl, resume: false });
   if (handoff.current.url !== sourceUrl) {
     if (mediaRef.current && hasPreviewClock(mediaRef.current)) mediaRef.current.dataset.previewSeekOutput = String(position);
-    handoff.current = { assetId: asset.id, url: sourceUrl, resume: handoff.current.assetId === asset.id && !disabled && !!mediaRef.current && (!mediaRef.current.paused || playing) };
+    const pending = loadedSource.current !== handoff.current.url;
+    handoff.current = { assetId: asset.id, url: sourceUrl, resume: handoff.current.assetId === asset.id && !disabled && !!mediaRef.current && (!mediaRef.current.paused || pending && handoff.current.resume) };
   }
   useEffect(() => { setCurrent(sequenceStart); }, [asset.id]);
   useEffect(() => { setFailed(false); }, [sourceUrl]);
   usePreviewEffects(mediaRef, playbackEdit, playing, current, asset.id, setCurrent, loop !== 'off', edit);
   useEffect(() => { if (disabled) { handoff.current.resume = false; mediaRef.current?.pause(); } }, [disabled, mediaRef]);
-  function pauseSeek(source: number, output?: number) { handoff.current.resume = false; mediaRef.current?.pause(); if (mediaRef.current) seekPreviewTime(mediaRef.current, source, output); setCurrent(source); }
+  function pauseSeek(source: number, output?: number) { handoff.current.resume = false; mediaRef.current?.pause(); setPlaying(false); if (mediaRef.current) seekPreviewTime(mediaRef.current, source, output); setCurrent(source); }
   function step(direction: -1 | 1) { pauseSeek(asset.kind === 'video' ? stepFrame(edit, current, asset.frameRate ?? 30, direction) : skipSeconds(edit, current, direction)); }
   function toggle() {
     const media = mediaRef.current; if (!media || failed) return;
-    if (!media.paused) { handoff.current.resume = false; media.pause(); }
+    // A source swap temporarily pauses the decoder. The visible Pause action
+    // must cancel its pending resume rather than starting playback again.
+    if (playing || handoff.current.resume || !media.paused) { handoff.current.resume = false; media.pause(); setPlaying(false); }
     else {
       const next = nextPlayableTime(playbackEdit, readPreviewTime(media));
       const start = next ?? playbackEdit.clips?.[0]?.start ?? playbackEdit.start;
@@ -73,7 +76,7 @@ export function Preview({ asset, edit, previewUrl, previewRanges, previewProcess
     }
   }
   const mediaEvents = {
-    onPlay: () => { if (mediaRef.current) pauseOtherMedia(mediaRef.current); setPlaying(true); }, onPause: () => { setPlaying(false); if (mediaRef.current && loadedSource.current === sourceUrl) setCurrent(readPreviewTime(mediaRef.current)); },
+    onPlay: () => { if (mediaRef.current) pauseOtherMedia(mediaRef.current); setPlaying(true); }, onPause: () => { if (!handoff.current.resume) setPlaying(false); if (mediaRef.current && loadedSource.current === sourceUrl) setCurrent(readPreviewTime(mediaRef.current)); },
     onEnded: () => {
       const media = mediaRef.current; if (!media || loadedSource.current !== sourceUrl) return;
       // The source may end before the animation frame can advance a reordered clip.
@@ -84,7 +87,7 @@ export function Preview({ asset, edit, previewUrl, previewRanges, previewProcess
       else setPlaying(false);
     },
     onError: () => setFailed(true),
-    onLoadedMetadata: () => { if (mediaRef.current) { loadedSource.current = sourceUrl; delete mediaRef.current.dataset.previewSwitching; const source = nextPlayableTime(edit, desired.current) ?? sequenceStart; seekPreviewTime(mediaRef.current, source, mediaRef.current.dataset.previewSeekOutput !== undefined ? Number(mediaRef.current.dataset.previewSeekOutput) : undefined); delete mediaRef.current.dataset.previewSeekOutput; setCurrent(source); applyPreviewEffects(mediaRef.current, edit); const resume = handoff.current.resume; handoff.current.resume = false; if (resume && !disabled) void mediaRef.current.play().catch(() => setFailed(true)); } },
+    onLoadedMetadata: () => { if (mediaRef.current) { loadedSource.current = sourceUrl; delete mediaRef.current.dataset.previewSwitching; const source = nextPlayableTime(edit, desired.current) ?? sequenceStart; seekPreviewTime(mediaRef.current, source, mediaRef.current.dataset.previewSeekOutput !== undefined ? Number(mediaRef.current.dataset.previewSeekOutput) : undefined); delete mediaRef.current.dataset.previewSeekOutput; setCurrent(source); applyPreviewEffects(mediaRef.current, edit); const resume = handoff.current.resume; handoff.current.resume = false; if (resume && !disabled) void mediaRef.current.play().catch(() => setFailed(true)); else setPlaying(!mediaRef.current.paused && !disabled); } },
     onTimeUpdate: () => {
       const media = mediaRef.current; if (!media) return;
       if (media.paused && loadedSource.current === sourceUrl) setCurrent(readPreviewTime(media));

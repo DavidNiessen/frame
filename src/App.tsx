@@ -13,7 +13,7 @@ import type { InspectorTab } from './components/InspectorTabs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDownUp, Clapperboard, Monitor, Globe, Keyboard, Scissors, Upload, X, Settings, Command } from 'lucide-react';
 import { acceptMedia } from './core/types';
-import { readPreviewTime, seekPreviewTime, hasPreviewClock } from './core/preview-clock';
+import { seekPreviewTime, hasPreviewClock } from './core/preview-clock';
 import { useJoinedPreview } from './hooks/useJoinedPreview';
 import { useProxies } from './hooks/useProxies';
 import { useAutosave } from './hooks/useAutosave';
@@ -47,7 +47,6 @@ import { EditorWorkspace, type WorkspaceLayout } from './components/layout/Edito
 import { useExpandedPreview } from './hooks/useExpandedPreview';
 import { useDesktopChrome } from './hooks/useDesktopChrome';
 import { outputTimeAtSource } from './core/fades';
-import { nextPlayableTime } from './core/timeline';
 import { skipSeconds, stepFrame } from './core/playhead';
 export default function App() {
   const editor = useEditor(); const { theme, setTheme } = useTheme();
@@ -127,8 +126,8 @@ export default function App() {
       const textEntry = target?.matches('textarea, select, input:not([type="range"]):not([type="checkbox"]):not([type="radio"])') || target?.isContentEditable;
       if (event.code === 'Space' && !event.defaultPrevented && !textEntry && !event.metaKey && !event.ctrlKey && !event.altKey && workflow === 'edit' && !settingsOpen && editor.edit && mediaRef.current) {
         event.preventDefault(); if (event.repeat || editor.busy) return;
-        const media = mediaRef.current;
-        if (media.paused) { seekPreviewTime(media, nextPlayableTime(editor.edit, readPreviewTime(media)) ?? editor.edit.start); void media.play().catch(() => {}); } else media.pause();
+        // Share the transport's pending-preview handling and selected-clip loop.
+        document.querySelector<HTMLButtonElement>('[data-preview-playback] .play-button')?.click();
         return;
       }
       if (event.defaultPrevented || ['INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY'].includes(tag) || target?.isContentEditable || target?.closest('dialog[open]') || settingsOpen || shortcuts || projects.pending || batchOpen || mergeOpen || urlOpen || openEffect || openLayer) return;

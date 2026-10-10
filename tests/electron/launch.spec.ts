@@ -86,6 +86,10 @@ test('invokes installed Windows classic and primary commands on a mixed multi-fi
   const app = await _electron.launch({ executablePath: resolve(process.env.FRAME_TEST_EXECUTABLE!), args: [], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {
     const page = await app.firstWindow(), workflow = page.getByRole('navigation', { name: 'Workflow' });
+    await page.evaluate(() => {
+      const state = window as unknown as { shellLaunches: number }; state.shellLaunches = 0;
+      window.frameDesktop!.onLaunchAvailable(() => { state.shellLaunches++; });
+    });
     const powershell = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
     const invoke = (mode: string, primary = false) => exec(powershell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', resolve(`tests/helpers/invoke-windows-${primary ? 'primary' : 'action'}.ps1`), '-Directory', library.directory, '-Workflow', mode], { timeout: 30000, env: windowsPowerShellEnv() });
     for (const primary of [false, ...(process.env.FRAME_TEST_PRIMARY_MENU === '1' ? [true] : [])]) {
@@ -96,8 +100,14 @@ test('invokes installed Windows classic and primary commands on a mixed multi-fi
       await expect(mini.locator('.conversion-table tbody tr')).toHaveCount(2);
       await mini.locator('.mini-files > summary').click();
       await expect(mini.getByText('Selection song & Björk %10.wav', { exact: true })).toBeVisible();
+      const received = await page.evaluate(() => (window as unknown as { shellLaunches: number }).shellLaunches);
       await invoke('Edit', primary);
+      await expect.poll(() => page.evaluate(() => (window as unknown as { shellLaunches: number }).shellLaunches)).toBeGreaterThan(received);
+      await expect.poll(() => page.evaluate(() => window.frameDesktop!.nextLaunch())).toBeNull();
       await expect(workflow.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 });
+      // Edit activates the window before its queued files finish importing.
+      await expect(page.locator('.asset-list li')).toHaveCount(2);
+      await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
       expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(2);
       const dismissed = mini.waitForEvent('close');
       await mini.getByRole('button', { name: 'Close conversion', exact: true }).click().catch(error => { if (!mini.isClosed()) throw error; });
