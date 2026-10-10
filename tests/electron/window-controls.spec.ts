@@ -67,7 +67,10 @@ test('reveals frameless controls without moving panels, supports keyboard access
         (globalThis as typeof globalThis & { restoreFullscreenTest: () => void }).restoreFullscreenTest = () => { window.isFullScreen = original; window.emit('leave-full-screen'); };
         return true;
       });
-    } else await native.evaluate(window => window.setFullScreen(true));
+    } else {
+      await native.evaluate(window => window.setFullScreen(true));
+      await expect.poll(() => native.evaluate(window => window.isFullScreen())).toBe(true);
+    }
     await expect(bar).toBeVisible();
     await page.mouse.move(100, 400);
     await expect(page.getByRole('button', { name: 'Restore window', exact: true })).toBeVisible();

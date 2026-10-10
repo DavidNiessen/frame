@@ -60,6 +60,7 @@ test('converts nested song folders and downloads a ZIP with complete media and m
 
 test('remembers the conversion workflow and leaves editor drafts unchanged', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
   await page.getByLabel('Choose media files').setInputFiles({ name: 'study.mp4', mimeType: 'video/mp4', buffer: await readFile('tests/fixtures/sample.mp4') });
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
   await page.getByLabel('Trim start', { exact: true }).press('ArrowRight');
@@ -69,8 +70,11 @@ test('remembers the conversion workflow and leaves editor drafts unchanged', asy
   await expect(page.locator('.timeline-track')).toHaveCount(0);
   await workflow.getByRole('button', { name: 'Editor', exact: true }).click();
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', start!);
+  await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
   await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
   await page.reload();
   await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('heading', { name: 'Bring your media together.' })).toBeVisible();
+  await expect(page.locator('.conversion-table tbody tr')).toHaveCount(1, { timeout: 30000 });
+  await workflow.getByRole('button', { name: 'Editor', exact: true }).click();
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', start!);
 });

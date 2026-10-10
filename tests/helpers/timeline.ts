@@ -2,6 +2,10 @@ import { expect, type Page } from '@playwright/test';
 export async function trim(page: Page, edge: 'start' | 'end', seconds: number) {
   // Native imports can expose controls before media metadata resets the initial playhead.
   await expect(page.locator('video, audio').first()).toHaveJSProperty('readyState', 4);
+  const start = Number(await page.getByRole('slider', { name: 'Trim start', exact: true }).getAttribute('aria-valuenow'));
+  const end = Number(await page.getByRole('slider', { name: 'Trim end', exact: true }).getAttribute('aria-valuenow'));
+  // Restoring source outside the retained footage uses an edge, not the playback cursor.
+  if (seconds < start || seconds > end) { await setBoundary(page, `Trim ${edge}`, seconds); return; }
   const playhead = page.getByLabel('Seek playhead');
   const previous = await playhead.inputValue();
   await playhead.fill(String(seconds));

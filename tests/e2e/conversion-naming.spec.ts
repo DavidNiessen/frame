@@ -9,7 +9,7 @@ test('previews filename templates and saves named songs inside preserved album f
     await page.getByLabel('Choose media folder').setInputFiles(library.root);
     await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2, { timeout: 45000 });
     await page.getByLabel('Conversion format', { exact: true }).selectOption('flac'); await page.getByText('Advanced options', { exact: true }).click();
-    await page.getByLabel('Conversion filename pattern', { exact: true }).fill('{bad}'); await expect(page.getByRole('alert')).toContainText('Available filename tokens');
+    await page.getByLabel('Conversion filename pattern', { exact: true }).fill('{bad}'); await expect(page.getByRole('complementary', { name: 'Format & quality' }).getByRole('alert')).toContainText('Available filename tokens');
     await page.getByLabel('Conversion filename pattern', { exact: true }).fill('{folder}-{index}-{name}');
     await expect(page.getByLabel('Output filename preview')).toContainText('Album One/Album One-001-Song.flac');
     await page.getByRole('button', { name: 'Convert 2 files', exact: true }).click();

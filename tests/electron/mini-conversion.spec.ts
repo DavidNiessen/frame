@@ -60,7 +60,10 @@ test('collapses real conversion to progress, expands and cancels without closing
   const app = await _electron.launch(options(library.directory, [input]));
   try {
     const page = await app.firstWindow(); await page.emulateMedia({ reducedMotion: 'reduce' });
+    const initialHeight = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height);
     await expect(page.getByRole('button', { name: 'Convert 1 file', exact: true })).toBeEnabled();
+    // VP9 encoding stays active long enough to exercise expansion and cancellation on fast runners.
+    await page.getByLabel('Conversion format').selectOption('webm');
     await page.getByRole('button', { name: 'High', exact: true }).click();
     await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, output);
     await page.getByRole('button', { name: 'Convert 1 file', exact: true }).click();
@@ -70,7 +73,7 @@ test('collapses real conversion to progress, expands and cancels without closing
     await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height)).toBe(78);
     await page.screenshot({ path: 'test-results/desktop/mini-collapsed.png' });
     await page.getByRole('button', { name: 'Expand conversion' }).click();
-    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height)).toBe(740);
+    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height)).toBe(initialHeight);
     await expect(page.locator('.mini-footer .footer-activity')).toContainText('Converting files');
     await expect(page.locator('.mini-footer .footer-task-percent')).toHaveText(/\d+%/);
     await expect(page.locator('.mini-footer').getByRole('button', { name: 'Add files' })).toBeHidden();

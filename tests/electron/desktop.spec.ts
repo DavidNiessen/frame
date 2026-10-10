@@ -94,7 +94,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     const output = join(directory, 'output.flac');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
     await closeEffect(page); await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({ timeout: 45000 });
+    await expect(page.getByRole('button', { name: 'Export FLAC', exact: true })).toBeEnabled({ timeout: 45000 });
     const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', output], { env: { ...process.env, PATH: '' } });
     const info = JSON.parse(stdout);
     expect(info.streams[0].codec_name).toBe('flac');

@@ -47,7 +47,9 @@ export function audioMixGraph(edit: EditSettings, inputs: AudioLayerInput[], fir
     filters.push(`atrim=duration=${length}`, `volume=${layer.volume}`);
     if (layer.fadeIn) filters.push(`afade=t=in:d=${layer.fadeIn}`);
     if (layer.fadeOut) filters.push(`afade=t=out:st=${Math.max(0, length - layer.fadeOut)}:d=${layer.fadeOut}`);
-    filters.push(`adelay=${Math.round(layer.start * 1000)}:all=1`, `apad=whole_dur=${duration}`, `atrim=duration=${duration}`);
+    // The selected segment plus its delay is already bounded by duration. FFmpeg
+    // 6.1 drops the leading silence when atrim follows adelay, shifting the layer.
+    filters.push(`adelay=${Math.round(layer.start * 1000)}:all=1`, `apad=whole_dur=${duration}`);
     const label = `${prefix}layer${index}`; graph.push(`[${firstInput + index}:a:0]${filters.join(',')}[${label}]`); labels.push(`[${label}]`); (layer.role === 'voiceover' ? dialogue : music).push(`[${label}]`);
   });
   if (edit.audioDucking && music.length && dialogue.length) { const ducked = duckMusicGraph(music, dialogue, prefix, duration); graph.push(...ducked.graph); labels.splice(0, labels.length, ...ducked.labels); }

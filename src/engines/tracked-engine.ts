@@ -30,14 +30,18 @@ export function trackedEngine(engine: MediaEngine): MediaEngine {
     if (!label || typeof value !== 'function') return value;
     if (!functions.has(key)) functions.set(key, async (...args: unknown[]) => {
       const method = key as keyof MediaEngine, index = progressIndex[method], cancelLabel = cancelLabels[method];
-      const cancel = !cancelLabel ? undefined : method === 'waveform' ? () => target.cancelWaveform?.()
+      let cancelled = false;
+      const interrupt = !cancelLabel ? undefined : method === 'waveform' ? () => target.cancelWaveform?.()
         : method === 'joinedPreview' || method === 'effectPreview' ? () => target.cancelJoinedPreview?.() : () => target.cancel();
+      const cancel = interrupt && (() => { cancelled = true; interrupt(); });
       const owner = loadingActivity.start(label, { priority: background.has(method) ? 5 : index === undefined ? 0 : 20, cancel, cancelLabel });
       if (index !== undefined) {
         const original = args[index] as ((progress: ExportProgress) => void) | undefined;
         args[index] = (progress: ExportProgress) => { owner.update({ ratio: progress.ratio, message: progress.message }); original?.(progress); };
       }
-      try { return await value.apply(target, args); } finally { owner.finish(); }
+      try { return await value.apply(target, args); }
+      catch (error) { if (cancelled && method === 'waveform') throw new Error('Waveform generation cancelled.'); throw error; }
+      finally { owner.finish(); }
     });
     return functions.get(key);
   } });

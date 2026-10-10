@@ -37,6 +37,7 @@ export function Preview({ asset, edit, previewUrl, previewRanges, previewProcess
   useEffect(() => { if (loop === 'clip' && !targetClip) { setLoop('off'); setLoopClip(null); } }, [edit, loop, loopClip]);
   useEffect(() => { if (loop === 'clip' && selectedClip) setLoopClip(selectedClip); }, [selectedClip, loop]);
   const [playing, setPlaying] = useState(false);
+  useEffect(() => { setPlaying(false); }, [asset.id]);
   const [failed, setFailed] = useState(false);
   const position = outputTimeAtSource(edit, current, mediaRef.current && hasPreviewClock(mediaRef.current) ? mediaRef.current.currentTime : undefined);
   const clip = edit.clips ? clipPositions(edit).find(item => position >= item.start && position < item.end)?.clip ?? clipAtSource(edit, current) : undefined;

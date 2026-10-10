@@ -68,6 +68,7 @@ test('touch devices retain static borders and normal taps', async ({ browser, ba
   const context = await browser.newContext({ baseURL, isMobile: true, hasTouch: true, viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage(); await open(page);
+    await page.getByRole('button', { name: 'App menu', exact: true }).tap();
     await page.getByRole('button', { name: 'Settings', exact: true }).tap();
     await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
     expect(await position(page)).toEqual({ x: 25, y: 15 });

@@ -15,8 +15,9 @@ test('lists installed fonts and preserves a styled desktop caption through save 
   try {
     const page = await app.firstWindow(); await page.evaluate(() => localStorage.setItem('frame:auto-waveforms', 'false')); await page.reload();
     const fonts = await page.evaluate(() => window.frameDesktop!.installedFonts());
-    const font = fonts.includes('Open Sans') ? 'Open Sans' : fonts.find(name => !['DejaVu Sans', 'DejaVu Serif', 'DejaVu Sans Mono'].includes(name)); expect(font).toBeTruthy();
-    await page.getByLabel('Choose media files').setInputFiles(source); await page.getByRole('button', { name: 'Add Captions', exact: true }).click(); await page.getByRole('button', { name: 'Caption 1', exact: true }).click();
+    // Exercise an installed text font; the first sorted family can be a symbol or emoji font.
+    const font = ['Open Sans', 'Liberation Sans', 'Arial', 'Helvetica', 'DejaVu Sans'].find(name => fonts.includes(name)); expect(font).toBeTruthy();
+    await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled(); await page.getByLabel('Choose media files').setInputFiles(source); await page.getByRole('button', { name: 'Add Captions', exact: true }).click(); await page.getByRole('button', { name: 'Caption 1', exact: true }).click();
     await page.getByLabel('Caption text', { exact: true }).fill('SYSTEM'); await selectFont(page, font!);
     await page.getByLabel('Caption text color').fill('#ff0000'); await page.getByLabel('Caption font size').fill('8'); await page.getByLabel('Caption background opacity').fill('0'); await page.getByLabel('Bold', { exact: true }).check(); await page.getByLabel('Italic', { exact: true }).check();
     await page.getByRole('button', { name: 'Play', exact: true }).click(); await expect(page.locator('.effect-settings-overlay')).toBeVisible(); await page.getByRole('button', { name: 'Pause', exact: true }).click(); await closeEffect(page);

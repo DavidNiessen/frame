@@ -15,6 +15,7 @@ test('uses bundled YouTube tools, shows video/audio choices, and cancels native 
   const proxy = createServer();
   proxy.on('connect', (request, socket) => {
     if (request.url !== 'www.youtube.com:443') { socket.destroy(); return; }
+    socket.on('error', error => { if ((error as NodeJS.ErrnoException).code !== 'ECONNRESET') throw error; });
     connections.push(request.url); sockets.add(socket as Socket); socket.on('close', () => sockets.delete(socket as Socket)); socket.on('end', () => socket.end()); socket.resume();
   });
   await new Promise<void>(accept => proxy.listen(0, '127.0.0.1', accept));

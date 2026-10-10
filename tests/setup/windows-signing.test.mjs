@@ -1,6 +1,6 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateKeyPairSync } from 'node:crypto';
+import { generateKeyPairSync, X509Certificate } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, readFile, writeFile, stat, rm, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -17,10 +17,15 @@ before(async () => {
   keyPem = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } }).privateKey;
   await writeFile(join(directory, 'key.pem'), keyPem, { mode: 0o600 });
   for (const [name, ca] of [['cert.pem', false], ['ca.pem', true]]) {
-    execFileSync('openssl', ['req', '-new', '-x509', '-key', join(directory, 'key.pem'), '-out', join(directory, name), '-days', '1', '-subj', '/CN=Frame', '-addext', `basicConstraints=critical,CA:${ca ? 'TRUE' : 'FALSE'}`, '-addext', 'extendedKeyUsage=codeSigning'], { stdio: 'ignore' });
+    // Use one explicit extension section; host OpenSSL configs can add conflicting CA extensions.
+    const config = join(directory, `${name}.cnf`);
+    await writeFile(config, `[req]\ndistinguished_name = subject\nx509_extensions = extensions\n[subject]\nCN = Frame\n[extensions]\nbasicConstraints = critical,CA:${ca ? 'TRUE' : 'FALSE'}\nkeyUsage = critical,digitalSignature${ca ? ',keyCertSign' : ''}\nextendedKeyUsage = codeSigning\n`);
+    execFileSync('openssl', ['req', '-new', '-x509', '-config', config, '-key', join(directory, 'key.pem'), '-out', join(directory, name), '-days', '1', '-subj', '/CN=Frame'], { stdio: 'ignore' });
   }
   certificatePem = await readFile(join(directory, 'cert.pem'), 'utf8');
   caPem = await readFile(join(directory, 'ca.pem'), 'utf8');
+  assert.equal(new X509Certificate(certificatePem).ca, false);
+  assert.equal(new X509Certificate(caPem).ca, true);
 });
 after(async () => { if (directory) await rm(directory, { recursive: true, force: true }); });
 

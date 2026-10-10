@@ -28,3 +28,18 @@ it('forwards real engine progress and selects the correct cancellation owner dur
   } finally { finishExport(); finishPreview(); await Promise.all([output, preview]); }
   expect(loadingActivity.snapshot()).toBe('');
 });
+it('reports footer waveform cancellation and preserves unrelated analysis errors', async () => {
+  let reject!: (error: Error) => void;
+  const engine = trackedEngine({
+    platform: 'web', cancelWaveform: () => reject(new Error('called FFmpeg.terminate()')),
+    waveform: () => new Promise((_resolve, failure) => { reject = failure; }),
+  } as unknown as MediaEngine);
+  const cancelled = engine.waveform!({} as never, () => {});
+  loadingActivity.taskSnapshot()!.cancel!();
+  await expect(cancelled).rejects.toThrow('Waveform generation cancelled.');
+  expect(loadingActivity.snapshot()).toBe('');
+  const failed = engine.waveform!({} as never, () => {});
+  reject(new Error('No audio stream.'));
+  await expect(failed).rejects.toThrow('No audio stream.');
+  expect(loadingActivity.snapshot()).toBe('');
+});

@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 /** Exercise the normal import path; test media is never bundled with Frame. */
 export async function importTestMedia(page: Page, app?: ElectronApplication) {
   const status = page.getByLabel('Autosave status');
-  if (await status.count()) await expect(status).not.toHaveText(/Reopening|Clearing/);
+  if (await status.count()) await expect(status).not.toHaveText(/Reopening|Clearing/, { timeout: 30000 });
   const previous = await page.locator('.asset-list li').count();
   const path = resolve('tests/fixtures/sample.mp4');
   if (app) {

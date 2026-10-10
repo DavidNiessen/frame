@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { StableWatchFiles, parseWatchDraft } from '../src/core/watch-folders';
@@ -13,7 +13,7 @@ describe('watch folders', () => {
     restored.reconcile(new Set()); expect(restored.receipts()).toEqual({});
   });
   it('skips initial files, handles new files with old timestamps, and rejects recursive output', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'frame-watch-unit-')); const input = join(root, 'input'), output = join(root, 'output');
+    const root = await realpath(await mkdtemp(join(tmpdir(), 'frame-watch-unit-'))); const input = join(root, 'input'), output = join(root, 'output');
     try {
       await mkdir(input); await mkdir(output); await writeFile(join(input, 'old.mp3'), 'old'); await mkdir(join(input, 'converted'));
       await expect(validateWatchPaths(input, join(input, 'converted'))).rejects.toThrow('outside'); await expect(validateWatchPaths(input, input)).rejects.toThrow('outside'); await expect(validateWatchPaths(input, root)).rejects.toThrow('contain');
@@ -25,7 +25,7 @@ describe('watch folders', () => {
   });
 });
 it('settles cancellation and persists a conversion that completed as shutdown started', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'frame-watch-shutdown-'));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'frame-watch-shutdown-')));
   try {
     const input = join(root, 'input'), output = join(root, 'output'); await mkdir(input); await mkdir(output); await writeFile(join(input, 'song.mp3'), 'complete');
     const watch = { name: 'Music', input, output, settings: builtInPresets[5].settings, keepFolders: false, recursive: false, includeExisting: true, namingTemplate: '{name}', id: 'music', enabled: true };

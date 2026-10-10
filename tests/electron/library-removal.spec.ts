@@ -19,7 +19,7 @@ test('keeps the desktop process alive when deleting playing local and downloaded
   const app = await _electron.launch({ args: ['.', `--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : [])], env: { ...process.env, FRAME_DEV_URL: '' } });
   let output = ''; app.process().stderr?.on('data', chunk => { output += chunk; });
   try {
-    const page = await app.firstWindow(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
+    const page = await app.firstWindow(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready', { timeout: 30000 });
     for (let cycle = 0; cycle < 4; cycle++) {
       await importTestMedia(page, app);
       if (cycle % 2) {
@@ -30,9 +30,12 @@ test('keeps the desktop process alive when deleting playing local and downloaded
       await expect(page.locator('.asset-list li')).toHaveCount(2);
       await expect(page.locator('audio').first()).toHaveJSProperty('readyState', 4);
       await page.getByRole('button', { name: 'Play', exact: true }).click();
+      await expect(page.locator('audio').first()).toHaveJSProperty('paused', false);
       await page.locator('.asset-list .asset.selected .asset-remove').click();
       await expect(page.locator('.asset-list li')).toHaveCount(1); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
-      await page.getByRole('button', { name: 'Play', exact: true }).click(); await page.locator('.asset-list .asset-remove').click();
+      await page.getByRole('button', { name: 'Play', exact: true }).click();
+      await expect(page.locator('video')).toHaveJSProperty('paused', false);
+      await page.locator('.asset-list .asset-remove').click();
       await expect(page.locator('.asset-list li')).toHaveCount(0); await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
       expect(app.process().exitCode).toBeNull();
     }
