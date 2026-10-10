@@ -7,7 +7,7 @@ import type { ContactSheetOptions } from '../core/contact-sheet';
 import type { UrlImportOptions } from '../core/youtube';
 import type { DesktopCapabilities, PreviewProxy } from '../core/hardware';
 import type { SilenceOptions } from '../core/silence';
-import type { BatchOptions, EditSettings, ExportProgress, ExportResult, ImportReport, TimeRange } from '../core/types';
+import type { BatchOptions, EditSettings, ExportProgress, ExportResult, ImportReport, MediaAsset, TimeRange } from '../core/types';
 import type { ProjectDocument } from '../core/project';
 import type { WaveformPoint } from '../core/waveform';
 import type { OutputSettings } from '../core/presets';
@@ -56,6 +56,8 @@ export interface DesktopBridge extends ExportHistoryBridge {
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
   saveProject(project: ProjectDocument): Promise<boolean>;
   merge(clips: { id: string; edit: EditSettings }[], settings: OutputSettings, transition?: TransitionSettings): Promise<ExportResult | null>;
+  appendVideo(id: string, addedId: string): Promise<MediaAsset>;
+  extractAudio(id: string): Promise<MediaAsset>;
   detectSilence(id: string, options: SilenceOptions): Promise<TimeRange[]>;
   previewFrame(id: string, edit: EditSettings, time: number): Promise<Uint8Array>;
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;

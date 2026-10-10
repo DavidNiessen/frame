@@ -1,4 +1,5 @@
 import { browserWorkspace } from './browser-workspace';
+import { browserPreparedMedia } from './browser-prepared-media';
 import { resolveAudioLayers } from '../core/audio-layers';
 import type { MediaAsset } from '../core/types';
 import { taggedNamingAsset } from '../core/media-tags';
@@ -28,11 +29,13 @@ export function createBrowserEngine(): MediaEngine {
   const ready = runtime.ready;
   const files = new Map<string, File>(), sources = new Map<string, MediaAsset>();
   const joined = browserJoinedPreview(files);
+  const prepared = browserPreparedMedia(files, sources);
   let cancelled = false;
   let download: AbortController | null = null;
   let batchOptions: BatchOptions = {};
   const engine: MediaEngine = {
     platform: 'web',
+    appendVideo: prepared.appendVideo, extractAudio: prepared.extractAudio,
     joinedPreview: joined.generate, cancelJoinedPreview: joined.cancel, releaseProxy: joined.release,
     async importUrl(url, onProgress) {
       if (youtubeVideo(url)) throw new Error('YouTube imports are available in the Frame desktop app. On web, paste a direct audio or video file link.');
@@ -151,7 +154,7 @@ export function createBrowserEngine(): MediaEngine {
     cancelWaveform: background.cancel,
     beginBatch: async options => { validateBatchOptions(options ?? {}); batchOptions = options ?? {}; return 'web'; },
     endBatch: async () => { batchOptions = {}; },
-    cancel() { download?.abort(); cancelled = true; runtime.cancel(); },
+    cancel() { download?.abort(); cancelled = true; runtime.cancel(); prepared.cancel(); },
     async release(asset) { await joined.releaseAsset(asset.id); files.delete(asset.id); sources.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
   };
   return Object.assign(engine, browserWorkspace(engine, files, sources));

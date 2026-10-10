@@ -1,4 +1,5 @@
 import { registerWorkspace } from './workspace';
+import { registerPreparedMedia } from './prepared-media';
 import type { BrowserWindow } from 'electron';
 import type { MediaAsset } from '../src/core/types';
 import { MediaJobs } from './jobs';
@@ -24,6 +25,7 @@ export function createMediaSession(window: BrowserWindow, launches: LaunchInbox,
   const proxies = createProxies(assets, jobs, trusted, ipc, joined.release);
   const folders = createBatchFolders(() => window, trusted, ipc);
   const downloads = registerImports(assets, jobs, () => window, trusted, launches, ipc);
+  registerPreparedMedia(assets, jobs, trusted, ipc, downloads);
   if (workspaceEnabled) registerWorkspace(assets, jobs, trusted, ipc, downloads);
   registerLoudnessAnalysis(assets, jobs, trusted, ipc);
   registerSceneAnalysis(assets, jobs, trusted, ipc);

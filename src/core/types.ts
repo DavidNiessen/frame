@@ -106,6 +106,8 @@ export interface MediaEngine {
   importLaunch?(id: string, onProgress?: (p: ExportProgress) => void): Promise<ImportReport>;
   export(asset: MediaAsset, settings: EditSettings, onProgress: (p: ExportProgress) => void, batchToken?: string): Promise<ExportResult | null>;
   merge(clips: MediaClip[], output: OutputSettings, onProgress: (p: ExportProgress) => void, transition?: TransitionSettings): Promise<ExportResult | null>;
+  appendVideo(base: MediaAsset, source: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<MediaAsset>;
+  extractAudio(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<MediaAsset>;
   detectSilence(asset: MediaAsset, options: SilenceOptions, onProgress: (p: ExportProgress) => void): Promise<TimeRange[]>;
   previewFrame(asset: MediaAsset, edit: EditSettings, time: number, onProgress: (p: ExportProgress) => void): Promise<string>;
   previewAudio(asset: MediaAsset, edit: EditSettings, onProgress: (p: ExportProgress) => void): Promise<string>;
