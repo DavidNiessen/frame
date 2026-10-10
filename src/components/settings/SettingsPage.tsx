@@ -10,7 +10,7 @@ import { WatchFolders } from './WatchFolders';
 import { CertificateTrust } from './CertificateTrust';
 
 const webStatus: ShellIntegrationStatus = { platform: 'web', available: false, state: 'not-installed', detail: 'Available in the desktop app. Browsers cannot add actions to your file manager.' };
-export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms, workspaceAutosave, setWorkspaceAutosave, back }: { theme: Theme; setTheme: (theme: Theme) => void; autoWaveforms: boolean; setAutoWaveforms: (enabled: boolean) => void; workspaceAutosave: boolean; setWorkspaceAutosave: (enabled: boolean) => void; back: () => void }) {
+export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms, workspaceAutosave, setWorkspaceAutosave, timelinePreview, setTimelinePreview, back }: { theme: Theme; setTheme: (theme: Theme) => void; autoWaveforms: boolean; setAutoWaveforms: (enabled: boolean) => void; workspaceAutosave: boolean; setWorkspaceAutosave: (enabled: boolean) => void; timelinePreview: boolean; setTimelinePreview: (enabled: boolean) => void; back: () => void }) {
   const bridge = window.frameDesktop;
   const [status, setStatus] = useState<ShellIntegrationStatus | null>(bridge ? null : webStatus);
   const [pending, setPending] = useState<'checking' | 'installing' | 'removing' | 'certificate' | null>(bridge ? 'checking' : null);
@@ -51,6 +51,7 @@ export function SettingsPage({ theme, setTheme, autoWaveforms, setAutoWaveforms,
     </section>
     <section className="settings-card" aria-labelledby="editing-heading">
       <div className="settings-section-heading"><AudioLines size={19} /><div><h2 id="editing-heading">Editing</h2><p>Choose how Frame prepares and saves your workspace.</p></div></div>
+      <label className="switch-row settings-preference"><span>Show timeline preview<small id="timeline-preview-description">Show the miniature sequence overview above the timeline. Hide it for more room to edit.</small></span><input type="checkbox" checked={timelinePreview} onChange={event => setTimelinePreview(event.target.checked)} aria-label="Show timeline preview" aria-describedby="timeline-preview-description" /></label>
       <label className="switch-row settings-preference"><span>Generate audio waveforms automatically<small id="waveform-preference-description">Show waveforms for audio files, videos with audio, and music or voiceover tracks. Turn off to skip waveform analysis.</small></span><input type="checkbox" checked={autoWaveforms} onChange={event => setAutoWaveforms(event.target.checked)} aria-label="Generate audio waveforms automatically" aria-describedby="waveform-preference-description" /></label>
       <label className="switch-row settings-preference"><span>Autosave workspace<small id="autosave-preference-description">Keep media and edits on this device to reopen your workspace automatically. Turning off keeps the last saved workspace. Clear library removes it.</small></span><input type="checkbox" checked={workspaceAutosave} onChange={event => setWorkspaceAutosave(event.target.checked)} aria-label="Autosave workspace" aria-describedby="autosave-preference-description" /></label>
     </section>
