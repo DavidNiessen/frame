@@ -130,7 +130,7 @@ export function useEditor() {
   }
   async function remove(item: MediaAsset) {
     if (busyRef.current || !assetsRef.current.some(asset => asset.id === item.id)) return;
-    if (assetsRef.current.some(source => source.id !== item.id && histories[source.id] && allAudioLayers(histories[source.id].present).some(layer => audioLayerSource(layer, assetsRef.current)?.id === item.id))) { setNotice('Remove this source’s music or voiceover tracks before removing it from the library.'); return; }
+    if (assetsRef.current.some(source => source.id !== item.id && histories[source.id] && allAudioLayers(histories[source.id].present).some(layer => audioLayerSource(layer, assetsRef.current)?.id === item.id))) { setNotice('Remove this source’s audio layers before removing it from the library.'); return; }
     busyRef.current = true;
     try {
       // Stop Chromium's file streams and detach the UI before deleting downloaded
@@ -176,6 +176,13 @@ export function useEditor() {
     });
     setSelected(selectedId); setSelectedClip(null);
   }
+  function adoptPrepared(item: MediaAsset, settings = defaultSettings(item), options: { select?: boolean; before?: EditSettings } = {}) {
+    if (busyRef.current) throw new Error('Wait for processing to finish.');
+    const present = parseEdit(settings, item), before = options.before ? parseEdit(options.before, item) : undefined;
+    assetsRef.current = [...assetsRef.current, item]; setAssets(assetsRef.current);
+    setHistories(current => ({ ...current, [item.id]: { past: before ? [before] : [], present, future: [] } }));
+    if (options.select !== false) { setSelected(item.id); setSelectedClip(null); }
+  }
   async function runExclusive<T>(kind: 'batch' | 'analysis' | 'merge', task: (engine: MediaEngine) => Promise<T>): Promise<T> {
     if (busyRef.current) throw new Error('Wait for processing to finish.');
     busyRef.current = true; setBusy(kind);
@@ -202,7 +209,7 @@ export function useEditor() {
     select: (id: string) => { if (!busyRef.current) { setSelected(id); setSelectedClip(null); } },
     importMedia: (files?: File[]) => performImport(files),
     importUrl: (url: string, options?: UrlImportOptions) => performImport(undefined, 'url', undefined, url, options),
-    importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive,
+    importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive, adoptPrepared,
     importLaunch: (id: string, activate: () => void, select: (ids: string[]) => void) => performImport(undefined, 'launch', { id, activate, select }),
     backgroundEngine: engine, recoverWorkspace, clearLibrary,
     settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),

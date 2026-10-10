@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 export async function closeEffect(page: Page) {
-  const close = page.getByRole('button', { name: 'Close effect settings', exact: true });
+  const close = page.getByRole('button', { name: /^Close (effect|audio layer) settings$/ });
   if (await close.count()) await close.click();
 }
 export async function openCaptionTools(page: Page) {

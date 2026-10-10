@@ -7,7 +7,7 @@ import type { Editor } from '../src/hooks/useEditor';
 import type { Projects } from '../src/hooks/useProjects';
 const video = { kind: 'video', hasAudio: true, duration: 6, width: 640, height: 360 } as MediaAsset;
 function commands(asset: MediaAsset | null, edit = asset ? defaultSettings(asset) : null, busy = false) {
-  const run = vi.fn(), editor = { asset, edit, busy: busy ? 'export' : null } as Editor;
+  const run = vi.fn(), editor = { assets: [], asset, edit, busy: busy ? 'export' : null } as unknown as Editor;
   const noop = vi.fn(), actions: Parameters<typeof frameCommands>[2] = {
     applyEffect: run, workspaceBusy: false, importFiles: noop, importFolder: noop, folderSupported: true, url: noop,
     edit: noop, convert: noop, settings: noop, openProject: noop, effects: noop, exportSettings: noop,

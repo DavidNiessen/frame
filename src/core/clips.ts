@@ -3,10 +3,11 @@ import { timelineSections } from './timeline';
 import type { EditSettings, TimeRange } from './types';
 import { hasMinimumDuration } from './time-range';
 import { preserveSplitFades } from './split-effects';
+import type { ClipSource } from './clip-source';
 
 export const clipEffectKeys = ['effectRanges', 'effectInstances', 'addedEffects', 'volume', 'speed', 'preservePitch', 'normalizeLoudness', 'targetLufs', 'reduceNoise', 'noiseStrength', 'noiseFloor', 'equalizer', 'audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut', 'color', 'geometry', 'crop'] as const;
 export type ClipEffects = Partial<Pick<EditSettings, typeof clipEffectKeys[number]>>;
-export interface TimelineClip extends TimeRange { id: string; effects: ClipEffects; groupId?: string; joinedRanges?: TimeRange[] }
+export interface TimelineClip extends TimeRange { id: string; effects: ClipEffects; groupId?: string; joinedRanges?: TimeRange[]; source?: ClipSource }
 export function editClips(edit: EditSettings): TimelineClip[] {
   return edit.clips ?? timelineSections(edit).map(range => ({ ...range, id: `source-${range.start}-${range.end}`, effects: {} }));
 }

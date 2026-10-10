@@ -8,6 +8,7 @@ interface Actions {
   edit: () => void; convert: () => void; settings: () => void; openProject: () => void;
   effects: () => void; exportSettings: () => void;
   applyEffect: (id: EffectId) => void;
+  extractAudio?: () => void; insertMedia?: (id: string) => void;
   contactSheet: () => void; scenes: () => void; merge: () => void; batch: () => void;
   timelineAvailable: boolean; resetLayout: () => void; shortcuts: () => void;
 }
@@ -29,6 +30,8 @@ export function frameCommands(editor: Editor, projects: Projects, actions: Actio
     { id: 'undo', label: 'Undo editor change', description: 'Undo the last change for the selected source', group: 'Editing', shortcut: 'Ctrl / ⌘ Z', disabled: busy || (!editor.canUndo ? 'No change to undo' : undefined), run: editing(editor.undo) },
     { id: 'redo', label: 'Redo editor change', description: 'Restore the last undone change', group: 'Editing', shortcut: 'Ctrl / ⌘ Shift Z', disabled: busy || (!editor.canRedo ? 'No change to redo' : undefined), run: editing(editor.redo) },
     { id: 'effects', label: 'Show effects', description: 'Browse and apply audio, video and timing effects', group: 'Editing', keywords: 'editing controls crop volume speed voiceover ducking audio filters subtitles recipes', disabled: media, run: actions.effects },
+    { id: 'extract-audio', label: 'Extract audio to library', description: 'Create a separate FLAC source from the selected video', group: 'Editing', keywords: 'detach separate sound strip', disabled: video || (!editor.asset?.hasAudio ? 'This video has no audio stream' : undefined), run: editing(() => actions.extractAudio?.()) },
+    ...editor.assets.filter(asset => asset.id !== editor.selected).map(asset => ({ id: `insert-${asset.id}`, label: `${asset.kind === 'video' ? 'Insert' : 'Layer'} ${asset.name}`, description: asset.kind === 'video' ? 'Add to the end of the current video sequence' : 'Add an audio layer at the playhead', group: 'Library', keywords: 'insert media append combine audio soundtrack', disabled: media || (asset.kind === 'video' && editor.asset?.kind !== 'video' ? 'Select a video sequence first' : undefined), run: editing(() => actions.insertMedia?.(asset.id)) })),
     ...effectLibrary.map(effect => {
       const supported = !editor.asset || availableEffects(editor.asset).includes(effect);
       const existing = editor.asset && editor.edit ? existingEffectTarget(editor.edit, editor.asset, effect, null) : null;

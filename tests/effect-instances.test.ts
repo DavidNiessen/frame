@@ -5,8 +5,8 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { effectAction, clearClipEffects, existingEffectTarget } from '../src/core/effect-actions';
-import { effectLibrary } from '../src/core/effect-library';
-import { changeInstance, extraInstances, instanceRecipe, allAudioLayers, newInstance } from '../src/core/effect-instances';
+import { effectLibrary, type EffectId } from '../src/core/effect-library';
+import { definitionFor, changeInstance, extraInstances, instanceRecipe, allAudioLayers, newInstance } from '../src/core/effect-instances';
 import { defaultSettings, type EditSettings, type MediaAsset } from '../src/core/types';
 import { createProject, parseEdit, sourceIdentity } from '../src/core/project';
 import { clipRecipe, editClips, splitClip, patchClip } from '../src/core/clips';
@@ -23,7 +23,7 @@ const exec = promisify(execFile), ffmpeg = ffmpegPath()!;
 const asset: MediaAsset = { id: 'sample', name: 'sample.mp4', size: 1, duration: 6, kind: 'video', hasAudio: true, width: 640, height: 360, previewUrl: '' };
 // Older saved projects may contain stacks that the current catalogue no longer creates.
 const legacyAdd = (edit: EditSettings, id: string, selectedClip: string | null = null, current?: number): EditSettings => {
-  const effect = effectLibrary.find(effect => effect.id === id)!;
+  const effect = definitionFor(id as EffectId);
   if (!existingEffectTarget(edit, asset, effect, selectedClip)) return { ...edit, ...effectAction(edit, asset, effect, selectedClip, 'add', current) };
   const clip = effect.scope === 'clip' ? edit.clips?.find(clip => clip.id === selectedClip) : undefined, recipe = clip ? clipRecipe(edit, clip) : edit;
   const effectInstances = [...extraInstances(recipe), newInstance(recipe, asset, effect.id, undefined, current)];

@@ -15,7 +15,7 @@ export function audioLayerSource(layer: AudioLayer, assets: MediaAsset[]): Media
 }
 export function parseAudioLayers(value: unknown): AudioLayer[] {
   if (value === undefined) return [];
-  if (!Array.isArray(value) || value.length > 16) throw new Error('Use up to 16 music or voiceover tracks.');
+  if (!Array.isArray(value) || value.length > 16) throw new Error('Use up to 16 audio layers.');
   const ids = new Set<string>();
   return value.map(item => {
     if (!item || typeof item !== 'object') throw new Error('Invalid audio track.'); const layer = item as AudioLayer, source = layer.source;

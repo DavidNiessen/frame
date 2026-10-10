@@ -97,3 +97,12 @@
 .scene-results > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px; border: 1px solid var(--border-soft); border-radius: 6px; font-size: 11px; }
 .scene-results button { color: var(--accent-text); font-variant-numeric: tabular-nums; }
 @media (max-width: 500px) { .scene-results { grid-template-columns: 1fr; } }
+
+.asset:has(.asset-insert) .asset-select { padding-right: 53px; }
+.asset-insert { position: absolute; right: 27px; top: 23px; width: 23px; height: 23px; color: var(--accent-text); }
+.asset-insert:hover { background: var(--accent-dim); }
+.asset-select[draggable=true] { cursor: grab; }
+.media-preparation-status { z-index: 80; }
+.media-preparation-status > span { display: grid; gap: 8px; min-width: 0; }
+.media-preparation-status progress { width: 100%; height: 4px; accent-color: var(--accent); }
+.audio-layer-controls > .control-section + .control-section { margin-top: 20px; }

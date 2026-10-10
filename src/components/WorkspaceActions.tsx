@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { ChevronDown, Combine, FolderOpen, Layers, Save, PanelsTopLeft, Grid2X2, ScanLine } from 'lucide-react';
-export function WorkspaceActions({ projectName, hasMedia, busy, saving, merge, batch, open, save, resetLayout, contactSheet, hasVideo, scenes }: {
+import { ChevronDown, Combine, FolderOpen, Layers, Save, PanelsTopLeft, Grid2X2, ScanLine, AudioLines } from 'lucide-react';
+export function WorkspaceActions({ projectName, hasMedia, busy, saving, merge, batch, open, save, resetLayout, contactSheet, hasVideo, scenes, extractAudio, canExtractAudio }: {
+  extractAudio: () => void; canExtractAudio: boolean;
   projectName: string;
   scenes: () => void;
   contactSheet: () => void; hasVideo: boolean;
@@ -26,6 +27,7 @@ export function WorkspaceActions({ projectName, hasMedia, busy, saving, merge, b
         {projectName && <p className="project-menu-name" title={projectName}>{projectName}</p>}
         <button disabled={busy || saving} onClick={() => run(open)}><FolderOpen size={16} />Open project</button>
         <button disabled={!hasMedia || busy} onClick={() => run(merge)}><Combine size={16} />Merge clips</button>
+        <button disabled={!canExtractAudio || busy} onClick={() => run(extractAudio)}><AudioLines size={16} />Extract audio</button>
         <button disabled={!hasVideo || busy} onClick={() => run(scenes)}><ScanLine size={16} />Find scene changes</button>
         <button disabled={!hasVideo || busy} onClick={() => run(contactSheet)}><Grid2X2 size={16} />Video contact sheet</button>
         <button disabled={!hasMedia || busy} onClick={() => run(batch)}><Layers size={16} />Batch export</button>

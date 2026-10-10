@@ -29,8 +29,9 @@ export function joinSplitClips(edit: EditSettings, selectedId: string | null): P
   const pair = adjacentSplitJoin(edit, selectedId);
   if (!pair) return {};
   const continuous = pair.pieces.every((clip, index) => !index || Math.abs(pair.pieces[index - 1].end - clip.start) < .000001);
-  if (continuous) return { clips: editClips(edit).flatMap(clip => clip.id === pair.left.id ? [{ ...clip, groupId: undefined, joinedRanges: undefined, end: pair.pieces.at(-1)!.end }] : pair.pieces.some(piece => piece.id === clip.id) ? [] : [clip]) };
+  const source = pair.pieces.every(clip => sameValues(clip.source, pair.left.source)) ? pair.left.source : undefined;
+  if (continuous) return { clips: editClips(edit).flatMap(clip => clip.id === pair.left.id ? [{ ...clip, source, groupId: undefined, joinedRanges: undefined, end: pair.pieces.at(-1)!.end }] : pair.pieces.some(piece => piece.id === clip.id) ? [] : [clip]) };
   const groupId = pair.left.groupId ?? crypto.randomUUID();
   const joinedRanges = pair.pieces.map(({ start, end }) => ({ start, end }));
-  return { clips: editClips(edit).map(clip => pair.pieces.some(piece => piece.id === clip.id) ? { ...clip, groupId, joinedRanges } : clip) };
+  return { clips: editClips(edit).map(clip => pair.pieces.some(piece => piece.id === clip.id) ? { ...clip, source, groupId, joinedRanges } : clip) };
 }

@@ -1,7 +1,6 @@
 import { VolumeControls } from './VolumeControls';
 import type { EffectDefinition } from '../core/effect-library';
 import type { Editor } from '../hooks/useEditor';
-import { AudioMixControls } from './AudioMixControls';
 import { AudioCleanupControls } from './AudioCleanupControls';
 import { ColorControls } from './ColorControls';
 import { CropControls } from './CropControls';
@@ -15,7 +14,6 @@ export function EffectControls({ effect, editor, current, seek }: { effect: Effe
   const scoped: Editor = { ...editor, edit: editor.scopedEdit, update: editor.updateClip }, edit = scoped.edit!, asset = editor.asset!;
   return <div className="effect-editor">
     {effect.scope === 'source' && effect.id !== 'captions' && <p className="effect-target-note">{effect.id === 'mix' ? 'Output timeline · tracks stay in place when clips move.' : effect.id === 'watermark' ? 'Timeline track · drag its bar to set timing.' : 'Source-wide analysis.'}</p>}
-    {effect.id === 'mix' && <AudioMixControls editor={editor} current={current} />}
     {effect.id === 'volume' && <VolumeControls asset={asset} edit={edit} update={scoped.update} />}
     {effect.id === 'speed' && <SpeedControls edit={edit} update={scoped.update} />}
     {(['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as string[]).includes(effect.id) && <section className="control-section"><label className="stacked-label">Duration · {Number(edit[effect.id as 'audioFadeIn']).toFixed(2)}s<input type="range" aria-label={`${effect.name} duration`} min={0} max={editedDuration(edit)} step={.01} value={Number(edit[effect.id as 'audioFadeIn'])} onChange={event => scoped.update({ [effect.id]: Number(event.target.value) })} /></label><p className="field-note">Drag the bar to move this fade. Drag either edge to adjust its timing, including across splits.</p></section>}

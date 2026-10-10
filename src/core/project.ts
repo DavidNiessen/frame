@@ -17,6 +17,7 @@ import { parseSubtitles } from './subtitles';
 import { validateEdit } from './export-plan';
 import { type EditSettings, type MediaAsset } from './types';
 import { MAX_IMPORT_FILES } from './imports';
+import { parseClipSource } from './clip-source';
 export type SourceIdentity = Pick<MediaAsset, 'name' | 'size' | 'kind' | 'duration' | 'width' | 'height' | 'hasAudio' | 'fingerprint'>;
 export interface ProjectDocument {
   version: 1;
@@ -80,6 +81,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
       const c = record(value), effects = record(c.effects);
       if (Object.keys(effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) return fail();
       const clip: TimelineClip = { id: text(c.id, 120), start: number(c.start), end: number(c.end), effects: { ...effects } };
+      if (c.source !== undefined) clip.source = parseClipSource(c.source, asset.duration, clip);
       if (c.groupId !== undefined) clip.groupId = text(c.groupId, 120);
       if (c.joinedRanges !== undefined) {
         if (!Array.isArray(c.joinedRanges) || !c.joinedRanges.length || c.joinedRanges.length > 1000) return fail();
@@ -115,7 +117,7 @@ export function parseProject(value: unknown): ProjectDocument {
     const asset: MediaAsset = { ...source, id: '', previewUrl: '' };
     return { source, edit: parseEdit(entry.edit, asset) };
   });
-  if (sources.some(entry => allAudioLayers(entry.edit).some(layer => layer.sourceIndex !== undefined ? !sources[layer.sourceIndex] || !sameLayerSource(layer.source, sources[layer.sourceIndex].source) : !sources.some(item => sameLayerSource(layer.source, item.source))))) throw new Error('This project is missing a music or voiceover source.');
+  if (sources.some(entry => allAudioLayers(entry.edit).some(layer => layer.sourceIndex !== undefined ? !sources[layer.sourceIndex] || !sameLayerSource(layer.source, sources[layer.sourceIndex].source) : !sources.some(item => sameLayerSource(layer.source, item.source))))) throw new Error('This project is missing an audio layer source.');
   return { version: 1, name: text(doc.name, 120), selectedSource, sources };
 }
 export function createProject(name: string, assets: MediaAsset[], settingsFor: (id: string) => EditSettings, selected: string): ProjectDocument {

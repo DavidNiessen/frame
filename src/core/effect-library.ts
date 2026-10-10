@@ -4,8 +4,9 @@ import { clipRecipe, editClips } from './clips';
 import type { EffectId } from './effect-ids';
 export type { EffectId } from './effect-ids';
 export interface EffectDefinition { id: EffectId; name: string; description: string; group: 'Audio' | 'Video' | 'Timing'; scope: 'clip' | 'source'; repeatable?: boolean; keys: (keyof EditSettings)[] }
+/** Read older projects without exposing audio insertion as an effect. */
+export const legacyMixEffect: EffectDefinition = { id: 'mix', name: 'Audio layers', description: 'Imported audio layers', group: 'Audio', scope: 'source', keys: ['audioLayers'] };
 export const effectLibrary: EffectDefinition[] = [
-  { id: 'mix', name: 'Music & voiceover', description: 'Layer music and narration over the edit', group: 'Audio', scope: 'source', keys: ['audioLayers'] },
   { id: 'volume', repeatable: true, name: 'Volume', description: 'Mute, balance or boost the sound', group: 'Audio', scope: 'clip', keys: ['volume'] },
   { id: 'speed', name: 'Speed', description: 'Slow down or speed up', group: 'Timing', scope: 'clip', keys: ['speed', 'preservePitch'] },
   { id: 'audioFadeIn', repeatable: true, name: 'Audio fade in', description: 'Ease into the sound', group: 'Audio', scope: 'clip', keys: ['audioFadeIn'] },

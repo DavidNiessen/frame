@@ -20,8 +20,8 @@ export function joinedRanges(pieces: TimelineClip[]): TimeRange[] {
 export function groupTrimState(edit: EditSettings, pieces: TimelineClip[], duration: number) {
   const all = editClips(edit), first = pieces[0], last = pieces.at(-1)!, ranges = joinedRanges(pieces).map(range => ({ ...range }));
   const others = all.filter(clip => !pieces.includes(clip));
-  const start = Math.max(0, ...others.filter(clip => clip.end <= ranges[0].start).map(clip => clip.end));
-  const end = Math.min(duration, ...others.filter(clip => clip.start >= ranges.at(-1)!.end).map(clip => clip.start));
+  const start = Math.max(first.source?.start ?? 0, ...others.filter(clip => clip.end <= ranges[0].start).map(clip => clip.end));
+  const end = Math.min(last.source?.end ?? duration, ...others.filter(clip => clip.start >= ranges.at(-1)!.end).map(clip => clip.start));
   ranges[0].start = Math.max(start, Math.min(ranges[0].start, first.start));
   ranges.at(-1)!.end = Math.min(end, Math.max(ranges.at(-1)!.end, last.end));
   let offset = 0, visibleStart = 0, visibleEnd = 0;

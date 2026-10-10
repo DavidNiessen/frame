@@ -1,3 +1,4 @@
+import { insertAudioLayer } from '../helpers/audio-layers';
 import { importTestMedia } from '../helpers/import-media';
 import { trim } from '../helpers/timeline';
 import { test, expect, type Page } from '@playwright/test';
@@ -51,8 +52,7 @@ test('restores linked audio and bulk clears sources that cannot be removed indiv
   try {
     await page.goto('/'); await importTestMedia(page); await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
     await page.getByLabel('Choose media files', { exact: true }).setInputFiles(library.sources[0]); await expect(page.locator('.asset-list li')).toHaveCount(2);
-    await page.getByRole('button', { name: /^Studio study.mp4/ }).click(); await openEffect(page, 'Music & voiceover');
-    await page.getByLabel('Audio track source').selectOption({ label: 'Song.wav' }); await page.getByRole('button', { name: 'Add audio track', exact: true }).click(); await page.getByLabel('Track 1 volume', { exact: true }).fill('0.3');
+    await page.getByRole('button', { name: /^Studio study.mp4/ }).click(); await insertAudioLayer(page, 'Song.wav'); await page.getByLabel('Track 1 volume', { exact: true }).fill('0.3');
     await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
     await page.reload(); await expect(page.locator('.asset-list li')).toHaveCount(2, { timeout: 45000 }); await expect(page.locator('audio[data-frame-mix-layer]')).toHaveCount(1);
     await page.getByRole('button', { name: 'Play', exact: true }).click(); await expect(page.locator('audio[data-frame-mix-layer]')).toHaveJSProperty('paused', false);

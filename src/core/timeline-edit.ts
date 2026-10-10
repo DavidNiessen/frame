@@ -10,7 +10,7 @@ export function sectionLimits(edit: EditSettings, index: number, duration: numbe
     const clip = edit.clips[index];
     if (!clip) return { start: 0, end: duration };
     const other = edit.clips.filter((_, i) => i !== index);
-    return { start: Math.max(0, ...other.filter(c => c.end <= clip.start + timeEpsilon).map(c => c.end)), end: Math.min(duration, ...other.filter(c => c.start >= clip.end - timeEpsilon).map(c => c.start)) };
+    return { start: Math.max(clip.source?.start ?? 0, ...other.filter(c => c.end <= clip.start + timeEpsilon).map(c => c.end)), end: Math.min(clip.source?.end ?? duration, ...other.filter(c => c.start >= clip.end - timeEpsilon).map(c => c.start)) };
   }
   const sections = timelineSections(edit);
   return { start: sections[index - 1]?.end ?? 0, end: sections[index + 1]?.start ?? duration };

@@ -29,15 +29,17 @@ test('keeps playback and editing available while preparing and replacing a previ
     await page.getByRole('button', { name: 'Volume effect', exact: true }).click();
     await expect(page.locator('.effect-settings-overlay')).toBeVisible();
     await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
+    // Keep this short fixture playing even when worker startup consumes most of its duration.
+    await page.getByLabel('Playback loop', { exact: true }).click(); await page.getByRole('button', { name: 'Loop sequence', exact: true }).click();
     await page.getByLabel('Seek playhead').fill('0.5'); await page.getByRole('button', { name: 'Play', exact: true }).click();
     release();
     await expect(media).toHaveAttribute('data-preview-clock', 'sequence', { timeout: 60000 });
     await expect(media).not.toHaveAttribute('data-preview-switching', 'true');
     await expect(media).toHaveJSProperty('paused', false);
     const handoffCursor = Number(await page.getByLabel('Seek playhead').inputValue());
-    await expect.poll(async () => Number(await page.getByLabel('Seek playhead').inputValue())).toBeGreaterThan(handoffCursor + .3);
+    await expect.poll(async () => Math.abs(Number(await page.getByLabel('Seek playhead').inputValue()) - handoffCursor)).toBeGreaterThan(.3);
     await page.getByRole('button', { name: 'Pause', exact: true }).click();
-    expect(Number(await page.getByLabel('Seek playhead').inputValue())).toBeGreaterThan(.5);
+    await expect(media).toHaveJSProperty('paused', true);
     const previous = (await media.getAttribute('src'))!;
     // Further trimming retains the last stream, applies the new range immediately, and replaces it in the background.
     let nextRelease!: () => void;

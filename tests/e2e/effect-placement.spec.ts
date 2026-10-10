@@ -12,10 +12,9 @@ test('only source-wide analysis carries Source and labels remain accurate after 
     }
   }
   await check();
-  for (const name of ['Captions', 'Watermark', 'Music & voiceover', 'Remove silence']) await page.getByRole('button', { name: `Add ${name}`, exact: true }).click();
+  for (const name of ['Captions', 'Watermark', 'Remove silence']) await page.getByRole('button', { name: `Add ${name}`, exact: true }).click();
   await check();
-  await page.getByRole('button', { name: 'Select Music & voiceover effect', exact: true }).click();
-  await expect(page.locator('.effect-browser-selection')).toContainText('Adds audio layers to the output timeline');
+  await expect(page.getByRole('button', { name: 'Select Music & voiceover effect', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Select Remove silence effect', exact: true }).click();
   await expect(page.locator('.effect-browser-selection')).toContainText('Analyzes the original source');
 });

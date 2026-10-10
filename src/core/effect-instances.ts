@@ -1,4 +1,4 @@
-import { effectLibrary, effectActive, enableEffect } from './effect-library';
+import { effectLibrary, legacyMixEffect, effectActive, enableEffect } from './effect-library';
 import { clipRecipe, editClips, patchClip } from './clips';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 import { activeAtSource, isTimedAdjustment } from './timed-adjustments';
@@ -10,7 +10,7 @@ import { editedDuration } from './timeline';
 export interface EffectInstance { id: string; effect: EffectId; settings: Partial<EditSettings>; range?: TimeRange; timeSpace?: 'output' }
 export const instanceLimit = 128;
 export const captionLimit = 1000;
-export const definitionFor = (id: EffectId) => effectLibrary.find(effect => effect.id === id)!;
+export const definitionFor = (id: EffectId) => effectLibrary.find(effect => effect.id === id) ?? (id === 'mix' ? legacyMixEffect : (() => { throw new Error(`Unknown effect: ${id}`); })());
 export const extraInstances = (edit: Pick<EditSettings, 'effectInstances'>, id?: EffectId) => (edit.effectInstances ?? []).filter(instance => !id || instance.effect === id);
 export const primaryPresent = (edit: EditSettings, asset: MediaAsset, id: EffectId) => !!edit.addedEffects?.includes(id) || effectActive(definitionFor(id), edit, asset);
 export function instanceRecipe(edit: EditSettings, instance: EffectInstance): EditSettings {

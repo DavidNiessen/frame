@@ -1,4 +1,5 @@
 import { parseEffectRanges } from './timed-adjustments';
+import { parseClipSource } from './clip-source';
 import { parseEffectInstances } from './effect-instance-validation';
 import { allAudioLayers, captionLimit, effectiveSpeed, extraInstances } from './effect-instances';
 import { parseSilence, defaultSilence } from './silence';
@@ -45,6 +46,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragme
     for (const clip of edit.clips) {
       if (!clip || typeof clip.id !== 'string' || !clip.id || clip.id.length > 120 || !clip.effects || Object.keys(clip.effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) throw new Error('Invalid clip effects.');
       if (clip.start < edit.start || clip.end > edit.end) throw new Error('Clip lies outside the source selection.');
+      parseClipSource(clip.source, asset.duration, clip);
       validateEdit({ ...asset, hasAudio: hasEditedAudio(asset, edit) }, clipRecipe(edit, clip), !!clip.groupId);
     }
     const completed = new Set<string>();
