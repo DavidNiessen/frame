@@ -73,9 +73,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     const captionPath = join(directory, 'caption.mp4');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, captionPath);
     await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
-    await expect(page.getByText('Export ready', { exact: true })).toBeVisible({ timeout: 45000 });
-    await expect(page.locator('.export-result .message-countdown')).toHaveCount(1);
-    await expect(page.getByText('Export ready', { exact: true })).toHaveCount(0, { timeout: 6500 });
+    await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({ timeout: 45000 });
     await expect(page.locator('.export-result')).toHaveCount(0);
     await openEffect(page, 'Captions'); await page.getByLabel('Caption export').selectOption('none');
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
@@ -96,7 +94,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     const output = join(directory, 'output.flac');
     await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
     await closeEffect(page); await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
-    await expect(page.getByText('Export ready', { exact: true })).toBeVisible({ timeout: 45000 });
+    await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({ timeout: 45000 });
     const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', output], { env: { ...process.env, PATH: '' } });
     const info = JSON.parse(stdout);
     expect(info.streams[0].codec_name).toBe('flac');
@@ -144,7 +142,7 @@ test('previews an unsupported source through a temporary proxy and exports from 
     const page = await app.firstWindow(); await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, input);
     await page.getByRole('button', { name: 'Add media', exact: true }).click(); await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '1');
     await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Desktop performance', { exact: true }).click(); await page.getByRole('button', { name: 'Create lightweight preview' }).click(); await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/proxy\//); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
-    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output); await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByText('Export ready', { exact: true })).toBeVisible({ timeout: 45000 });
+    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output); await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({ timeout: 45000 });
     const probe = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', output]); const video = JSON.parse(probe.stdout).streams[0]; expect([video.width, video.height]).toEqual([320, 180]); expect((await readFile(input)).equals(original)).toBe(true);
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
   expect((await readdir(tmpdir())).filter(name => name.startsWith('frame-proxy-') && !previous.has(name))).toEqual([]);

@@ -23,7 +23,8 @@ test('lists installed fonts and preserves a styled desktop caption through save 
     const project = join(directory, 'caption.frame.json'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, project); await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect.poll(() => readFile(project, 'utf8').then(text => JSON.parse(text).sources[0].edit.effectInstances.find((instance: { effect: string }) => instance.effect === 'captions').settings.subtitles.cues[0].style.font)).toBe(`system:${font}`);
     const output = join(directory, 'caption.mp4'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
-    await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByText('Export ready', { exact: true })).toBeVisible({ timeout: 45000 });
+    await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({ timeout: 45000 });
+    await expect(page.locator('.export-result')).toHaveCount(0);
     const { stdout } = await exec(ffmpegPath()!, ['-v', 'error', '-i', output, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer', maxBuffer: 2_000_000 });
     let red = 0; for (let pixel = 0; pixel < stdout.length; pixel += 3) if (stdout[pixel] > 150 && stdout[pixel + 1] < 60 && stdout[pixel + 2] < 60) red++;
     expect(red).toBeGreaterThan(100);

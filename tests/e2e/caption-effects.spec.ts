@@ -59,7 +59,7 @@ test('burns caption colors and a bundled bold italic font with browser FFmpeg', 
   await page.getByLabel('Caption text color').fill('#ff0000'); await page.getByLabel('Caption background opacity').fill('0'); await page.getByLabel('Caption font size').fill('8'); await page.getByLabel('Alignment', { exact: true }).selectOption('left');
   await page.evaluate(() => document.fonts.ready); await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 45000 });
-  await expect(page.locator('.export-result .message-countdown')).toHaveCount(1);
+  await expect(page.locator('.export-result')).toHaveCount(0);
   const download = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file' }).click();
   const output = testInfo.outputPath('styled.mp4'); await (await download).saveAs(output);
   const { stdout } = await exec(ffmpegPath()!, ['-v', 'error', '-i', output, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer', maxBuffer: 2_000_000 });

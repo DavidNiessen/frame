@@ -31,7 +31,7 @@ test('edits, saves and exports independent effects with the portable desktop eng
     expect(edit.effectInstances.every((instance: { timeSpace: string }) => instance.timeSpace === 'output')).toBe(true);
     expect(edit.clips.every((clip: { effects: object }) => Object.keys(clip.effects).length === 0)).toBe(true);
     const output = join(directory, 'instances.mp4'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
-    await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByText('Export ready', { exact: true })).toBeVisible({ timeout: 45000 });
+    await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({ timeout: 45000 });
     expect((await probeConversion(output)).streams.some((stream: { codec_type: string }) => stream.codec_type === 'audio')).toBe(true);
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
 });
