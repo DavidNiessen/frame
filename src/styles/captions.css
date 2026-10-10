@@ -39,7 +39,7 @@
 .caption-position.positioned.align-right { transform: translate(-100%, -100%); }
 .caption-settings textarea { width: 100%; min-height: 100px; resize: vertical; }
 .caption-settings .cue-timing { display: block; margin-top: 8px; }
-.caption-appearance { margin-top: 20px; display: grid; gap: 12px; }
+.caption-settings .caption-appearance { margin-top: 20px; display: grid; gap: 12px; }
 .caption-appearance legend { color: var(--text); font-size: 12px; font-weight: 600; margin-bottom: 12px; }
 .caption-appearance .stacked-label { margin: 0; }
 .caption-style-toggles { display: flex; gap: 20px; }

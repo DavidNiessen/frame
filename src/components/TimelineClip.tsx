@@ -11,7 +11,8 @@ import type { EditSettings, MediaAsset } from '../core/types';
 import type { WaveformPoint } from '../core/waveform';
 import { time } from '../core/format';
 import { minimumSourceDuration } from '../core/time-range';
-export function TimelineClip({ clip, index, edit, asset, position, duration, speed, disabled, waveform, selected, select, seek, update, dropIndex, effectCount }: {
+export function TimelineClip({ clip, index, edit, asset, position, duration, speed, disabled, waveform, selected, select, seek, update, dropIndex, effectCount, notify }: {
+  notify: (message: string) => void;
   effectCount: number; clip: Clip; index: number; edit: EditSettings; asset: MediaAsset; position: { start: number; end: number }; duration: number; speed: number; disabled: boolean;
   waveform?: WaveformPoint[]; selected: boolean; select: (id: string) => void; seek: (time: number) => void; update: (patch: Partial<EditSettings>) => void; dropIndex: (x: number) => number;
 }) {
@@ -32,8 +33,11 @@ export function TimelineClip({ clip, index, edit, asset, position, duration, spe
     update(effectAction(edit, asset, effect, clip.id, 'add', clip.start));
     select(clip.id);
   }
-  return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(effectiveSpeed({ ...edit, ...clip.effects }))} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
+  return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange wideHandles range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(effectiveSpeed({ ...edit, ...clip.effects }))} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
     text={`${index + 1} · ${asset.name}${effectCount ? ' ✦' : ''}`} label={`Select section ${index + 1}, ${time(clip.start)} to ${time(clip.end)}`} startLabel={index === 0 ? 'Trim start' : `Section ${index + 1} start`} endLabel={index === editClips(edit).length - 1 ? 'Trim end' : `Section ${index + 1} end`}
+    startTitle={clip.start === 0 ? 'Start of source · drag right to trim' : 'Drag left to restore the beginning · drag right to trim'}
+    endTitle={clip.end === asset.duration ? 'End of source · restore the beginning with the left handle' : 'Drag right to restore the end · drag left to trim'}
+    onLimit={edge => notify(edge === 'end' ? clip.end === asset.duration ? 'End of source reached. Drag the left handle back to restore the trimmed beginning.' : 'This clip cannot extend into another clip’s source footage.' : clip.start === 0 ? 'Start of source reached. Drag the right handle forward to restore the trimmed end.' : 'This clip cannot extend into another clip’s source footage.')}
     className={`timeline-clip ${selected ? 'active' : ''} ${asset.kind} ${waveform ? 'with-waveform' : ''}`} disabled={disabled}
     renderContent={waveform ? range => <div className="clip-waveform"><Waveform points={waveform} duration={asset.duration} range={range} /></div> : undefined}
     onSelect={() => { select(clip.id); seek(clip.start); }} onChange={range => update(resizeSection(edit, index, range, asset.duration))}

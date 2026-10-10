@@ -9,17 +9,19 @@ interface Props {
   snapSpace?: SnapSpace; selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
   disabled: boolean; onChange: (range: TimeRange) => void; onSelect: (keepView?: boolean) => void;
   onMove?: (delta: number) => void; moveLimits?: TimeRange;
+  onLimit?: (edge: Boundary) => void; startTitle?: string; endTitle?: string;
+  wideHandles?: boolean;
   startLabel?: string; endLabel?: string; edges?: Boundary[]; minimum?: number;
   displayRange?: TimeRange; displaySpeed?: number; bodyProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   renderContent?: (range: TimeRange) => ReactNode;
   remove?: { label: string; run: () => void };
 }
 export function TimelineRange({ range, limits, duration, label, text, selectOnPointer = false, className = '', disabled, onChange, onSelect,
-  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', remove, onMove, moveLimits }: Props) {
+  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', remove, onMove, moveLimits, onLimit, startTitle, endTitle, wideHandles = false }: Props) {
   const snap = useContext(TimelineSnapContext);
   const [snapped, setSnapped] = useState(false);
   const [draft, setDraft] = useState<TimeRange | null>(null);
-  const gesture = useRef<{ pointer: number; edge: Boundary | 'body'; range: TimeRange; origin: number; width: number; moved: boolean } | null>(null);
+  const gesture = useRef<{ pointer: number; edge: Boundary | 'body'; range: TimeRange; origin: number; width: number; moved: boolean; limit?: Boundary } | null>(null);
   const suppressClick = useRef(false);
   const pending = useRef(range);
   const shown = draft ?? range;
@@ -38,7 +40,10 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     g.moved ||= Math.abs(event.clientX - g.origin) > 3;
     if (g.edge === 'body' && !g.moved) return;
     const raw = g.range[g.edge === 'body' ? 'start' : g.edge] + offset;
-    const value = snap.enabled && !event.altKey ? snapTime(raw, snap.targets[snapSpace], 8 / g.width * duration * displaySpeed, snapSpace === 'source' ? snap.frameRate : undefined) : Math.round(raw * 100) / 100;
+    // The boundary being dragged must not attract itself after every small move.
+    const targets = snap.targets[snapSpace].filter(value => g.edge === 'body' ? value !== g.range.start && value !== g.range.end : value !== g.range[g.edge]);
+    const value = snap.enabled && !event.altKey ? snapTime(raw, targets, 8 / g.width * duration * displaySpeed, snapSpace === 'source' ? snap.frameRate : undefined) : Math.round(raw * 100) / 100;
+    g.limit = g.edge === 'start' && raw < limits.start ? 'start' : g.edge === 'end' && raw > limits.end ? 'end' : undefined;
     setSnapped(Math.abs(value - raw) > .000001 && snap.enabled && !event.altKey);
     if (g.edge === 'body') {
       const bounds = moveLimits ?? { start: limits.start - range.start, end: limits.end - range.end };
@@ -53,10 +58,10 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     move(event); gesture.current = null; suppressClick.current = g.edge === 'body' && g.moved;
     if (pending.current.start !== range.start || pending.current.end !== range.end) {
       if (g.edge === 'body') onMove?.(pending.current.start - g.range.start); else onChange(pending.current);
-    }
+    } else if (g.moved && g.limit) onLimit?.(g.limit);
     setDraft(null); event.currentTarget.releasePointerCapture(event.pointerId);
   }
-  return <div data-effect-timeline={selectOnPointer || undefined} data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className} ${draft ? 'trimming' : ''} ${remove ? 'removable' : ''} ${onMove ? 'movable-range' : ''}`} style={{ left: selectOnPointer ? `max(0px, min(${left}, calc(100% - max(var(--effect-hit-width, 48px), ${width}))))` : left, width }}>
+  return <div data-wide-handles={wideHandles || undefined} data-effect-timeline={selectOnPointer || undefined} data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className} ${draft ? 'trimming' : ''} ${remove ? 'removable' : ''} ${onMove ? 'movable-range' : ''}`} style={{ left: selectOnPointer || wideHandles ? `max(0px, min(${left}, calc(100% - max(var(--effect-hit-width, 48px), ${width}))))` : left, width }}>
     <button className="range-body" disabled={disabled} {...bodyProps} onClick={event => { if (!suppressClick.current && (event.detail === 0 || selectOnPointer)) onSelect(); }}
       onPointerDown={onMove ? event => {
         event.stopPropagation(); if (disabled || event.button !== 0) return;
@@ -79,6 +84,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     {renderContent?.(shown)}
     {remove && <button className="range-remove" aria-label={remove.label} title={remove.label} disabled={disabled} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); remove.run(); }}><X size={12} /></button>}
     {edges.map(edge => <button key={edge} className={`range-handle ${edge}`} role="slider" aria-label={edge === 'start' ? startLabel : endLabel}
+      title={edge === 'start' ? startTitle : endTitle}
       aria-orientation="horizontal" aria-valuemin={edge === 'start' ? limits.start : shown.start + minimum}
       aria-valuemax={edge === 'start' ? shown.end - minimum : limits.end} aria-valuenow={shown[edge]}
       aria-valuetext={`${shown[edge].toFixed(2)} seconds`} disabled={disabled}
