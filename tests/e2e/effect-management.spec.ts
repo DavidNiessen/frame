@@ -4,6 +4,30 @@ import { setBoundary, trim } from '../helpers/timeline';
 async function sample(page: import('@playwright/test').Page) {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
 }
+for (const width of [1440, 390]) test(`keeps the effect browser available while editing and removing effects at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 }); await sample(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  const browser = page.getByRole('region', { name: 'Effect browser', exact: true });
+  const search = browser.getByLabel('Search effects', { exact: true });
+  await expect(browser).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add effect', exact: true })).toHaveCount(0);
+  await search.fill('Speed'); await browser.getByRole('button', { name: 'Add Speed', exact: true }).click();
+  await page.getByLabel('Playback speed').selectOption('2');
+  await expect(search).toBeVisible(); await expect(search).toHaveValue('Speed');
+  await search.fill('Volume'); await browser.getByRole('button', { name: 'Add Volume', exact: true }).click();
+  await page.locator('.effect-stack').getByLabel('Volume', { exact: true }).fill('0.5');
+  await expect(search).toBeVisible(); await page.getByRole('button', { name: 'Remove Volume', exact: true }).click();
+  await expect(browser.getByRole('button', { name: 'Add Volume', exact: true })).toBeVisible();
+  await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click();
+  await page.getByRole('button', { name: 'Speed clip 1', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Edit Speed', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(search).toBeVisible(); await expect(search).toHaveValue('Volume');
+  await page.getByRole('button', { name: 'Remove Speed', exact: true }).click();
+  await expect(page.locator('.effect-stack-item')).toHaveCount(0);
+  await search.fill(''); await browser.getByRole('button', { name: 'Timing', exact: true }).click();
+  await expect(browser.getByRole('button', { name: 'Add Speed', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
 test('removes effects directly from the timeline and from a persistent collapsible stack', async ({ page }) => {
   await sample(page); await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await page.getByLabel('Effect target').selectOption({ index: 2 });
   await page.getByLabel('Volume', { exact: true }).fill('0.5'); await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click();

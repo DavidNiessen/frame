@@ -160,7 +160,7 @@ input[type='color'] { width: 100%; height: 34px; background: var(--surface-raise
 .effect-stack-item .control-section { padding: 12px; }
 .effect-stack-item .effect-target-note { margin: 8px 12px; }
 .effect-stack-item .advanced { padding-inline: 12px; }
-.effect-clear, .effect-back { margin: 4px 12px 8px; font-size: 10px; }
+.effect-clear { margin: 4px 12px 8px; font-size: 10px; }
 .effect-browser { border-top: 1px solid var(--border-soft); margin-top: 8px; }
 .effect-browser .effect-library-intro { padding-top: 12px; }
 @media (prefers-reduced-motion: reduce) { .effect-stack-toggle > svg { transition: none; } }

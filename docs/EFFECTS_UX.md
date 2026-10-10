@@ -1,6 +1,6 @@
 # Effect and trim interactions
 
-The inspector follows the selected clip. Applied effects stay visible as a compact stack, with one section expanded for editing at a time. The separate effect browser adds tools; opening an existing effect does not silently re-enable it. Reset restores its neutral settings while leaving its controls open. Remove restores neutral settings and closes that section. Volume returns to 100%, speed to 1×, and fades to zero. Remove all clip effects uses one undo step and preserves source captions, watermarks and music tracks.
+The inspector follows the selected clip. Applied effects stay visible as a compact stack, with one section expanded for editing at a time. The effect browser is always visible below the stack, with search and category filters preserved when adding, adjusting, or removing effects; opening an existing effect does not silently re-enable it. Reset restores its neutral settings while leaving its controls open. Remove restores neutral settings and closes that section. Volume returns to 100%, speed to 1×, and fades to zero. Remove all clip effects uses one undo step and preserves source captions, watermarks and music tracks.
 
 All clips includes effects applied to any individual clip. Different values show “Varies across clips”. Resetting an inherited effect on one clip leaves other clips unchanged. Neutral overrides from older projects do not generate empty timeline bars or effect badges.
 
