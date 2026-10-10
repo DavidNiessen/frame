@@ -1,9 +1,8 @@
 import { useEffect, useId, useRef } from 'react';
-import { Download, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Download, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
-export type InspectorTab = 'controls' | 'effects' | 'export';
+export type InspectorTab = 'effects' | 'export';
 const tabs = [
-  { id: 'controls', label: 'Effect Controls', icon: SlidersHorizontal },
   { id: 'effects', label: 'Effects', icon: Sparkles },
   { id: 'export', label: 'Export', icon: Download },
 ] as const;

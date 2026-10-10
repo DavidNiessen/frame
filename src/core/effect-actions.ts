@@ -1,12 +1,12 @@
 import { clipRecipe, editClips, patchClip } from './clips';
 import { availableEffects, effectActive, enableEffect, resetEffect, type EffectDefinition } from './effect-library';
-import { intrinsicEffects, type EffectId } from './effect-ids';
+import { type EffectId } from './effect-ids';
 import type { EditSettings, MediaAsset } from './types';
 export type EffectAction = 'add' | 'reset' | 'remove';
 function membership(recipe: EditSettings, effect: EffectDefinition, action: EffectAction): EffectId[] {
   const ids = recipe.addedEffects ?? [];
   if (action === 'remove') return ids.filter(id => id !== effect.id);
-  return !intrinsicEffects.includes(effect.id) && !ids.includes(effect.id) ? [...ids, effect.id] : ids;
+  return !ids.includes(effect.id) ? [...ids, effect.id] : ids;
 }
 /** All UI entry points share one undoable, clip-scoped application/removal operation. */
 export function effectAction(edit: EditSettings, asset: MediaAsset, effect: EffectDefinition, selectedClip: string | null, action: EffectAction): Partial<EditSettings> {

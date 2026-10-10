@@ -1,7 +1,6 @@
 import { availableEffects } from '../core/effect-library';
 import { effectAction, effectDragType } from '../core/effect-actions';
 import type { DragEvent } from 'react';
-import { intrinsicEffects } from '../core/effect-ids';
 import { useRef, useState } from 'react';
 import { TimelineRange } from './TimelineRange';
 import { Waveform } from './Waveform';
@@ -29,7 +28,7 @@ export function TimelineClip({ clip, index, edit, asset, position, duration, spe
     if (disabled) return;
     const effect = availableEffects(asset).find(item => item.id === event.dataTransfer.getData(effectDragType));
     if (!effect) return;
-    if (!intrinsicEffects.includes(effect.id)) update(effectAction(edit, asset, effect, clip.id, 'add'));
+    update(effectAction(edit, asset, effect, clip.id, 'add'));
     select(clip.id);
   }
   return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(clip.effects.speed ?? edit.speed)} limits={sectionLimits(edit, index, asset.duration)} duration={duration}

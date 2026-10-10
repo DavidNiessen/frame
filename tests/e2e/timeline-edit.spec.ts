@@ -1,4 +1,4 @@
-import { openEffect } from '../helpers/effects';
+import { closeEffect, openEffect } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 import { setBoundary } from '../helpers/timeline';
 async function dragEdge(page: Page, label: string, delta: number) {
@@ -42,7 +42,7 @@ test('drags, restores, and independently resizes split clips with one undo per g
 });
 test('resizes overlapping captions and fades above the clip and preserves exported cue timing', async ({ page }) => {
   await sample(page);
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openEffect(page, 'Captions');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'timing.srt', mimeType: 'text/plain', buffer: Buffer.from('1\n00:00:00,000 --> 00:00:03,000\nFirst caption\n\n2\n00:00:01,000 --> 00:00:04,000\nOverlapping caption\n') });
   await expect(page.locator('.caption-lane')).toHaveCount(2);

@@ -1,4 +1,4 @@
-import { openEffect } from '../helpers/effects';
+import { closeEffect, openEffect } from '../helpers/effects';
 import { expect, test, _electron } from '@playwright/test';
 import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -34,7 +34,7 @@ test('retains a downloaded source through exit and can export it after automatic
     const retainedPath = checkpoint.sources[0].path; expect(retainedPath).toContain(join('workspace', 'media')); expect(await readFile(retainedPath)).toEqual(server.wav);
     await app.close(); app = await launch(directory); page = await app.firstWindow(); await expect(page.locator('.asset-list li')).toHaveCount(1, { timeout: 30000 }); await expect(page.locator('audio').first()).toHaveJSProperty('readyState', 4);
     const destination = join(directory, 'reopened.flac'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); return true; }, destination);
-    await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByLabel('Output format').selectOption('flac'); await page.getByRole('button', { name: 'Export FLAC', exact: true }).click(); await expect(page.locator('.toast')).toContainText('Export complete');
+    await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await closeEffect(page); await page.getByLabel('Output format').selectOption('flac'); await closeEffect(page); await page.getByRole('button', { name: 'Export FLAC', exact: true }).click(); await expect(page.locator('.toast')).toContainText('Export complete');
     expect((await readFile(destination)).byteLength).toBeGreaterThan(0);
     await page.getByRole('button', { name: 'Clear media library', exact: true }).click(); await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready'); await expect(readFile(retainedPath)).rejects.toThrow(); expect((await readFile(destination)).byteLength).toBeGreaterThan(0);
   } finally { await app.close(); await server.close(); await rm(directory, { recursive: true, force: true }); }

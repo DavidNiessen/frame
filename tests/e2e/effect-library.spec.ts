@@ -1,4 +1,4 @@
-import { openEffect } from '../helpers/effects';
+import { closeEffect, openEffect } from '../helpers/effects';
 import { test, expect } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -8,21 +8,21 @@ const exec = promisify(execFile);
 test('keeps the opposite caption boundary when resizing a cue that spans split clips', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'spanning.srt', mimeType: 'text/plain', buffer: Buffer.from('1\n00:00:01,000 --> 00:00:05,000\nAcross both clips\n') });
   await page.locator('.timeline-track-filters').getByRole('button', { name: 'captions', exact: true }).click();
   await page.getByLabel('Caption 1 start', { exact: true }).first().press('Shift+ArrowRight');
-  await expect(page.locator('.cue-timing')).toHaveText('Caption 1 · 1.10–5.00s');
+  await openEffect(page, 'Captions'); await expect(page.locator('.cue-timing')).toHaveText('Caption 1 · 1.10–5.00s');
   await page.getByLabel('Caption 1 end', { exact: true }).last().press('Shift+ArrowLeft');
-  await expect(page.locator('.cue-timing')).toHaveText('Caption 1 · 1.10–4.90s');
+  await openEffect(page, 'Captions'); await expect(page.locator('.cue-timing')).toHaveText('Caption 1 · 1.10–4.90s');
 });
 
 test('plays reordered clips across the source end and restarts at the sequence beginning', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
   const video = page.locator('video'); await expect(video).toHaveJSProperty('readyState', 4);
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
-  await page.getByLabel('Effect target').selectOption({ index: 2 });
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed');
+  await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 });
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed');
   await page.getByLabel('Playback speed').selectOption('4');
   await page.locator('.timeline-clip .range-body').nth(1).press('Alt+ArrowLeft');
   await page.getByRole('button', { name: 'Back to trim start', exact: true }).click(); await expect(video).toHaveJSProperty('currentTime', 2);
@@ -35,8 +35,8 @@ test('applies an effect to one split clip, reorders it and exports the sequence'
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 45000 });
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
-  await page.getByLabel('Effect target').selectOption({ index: 2 });
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 });
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await page.getByLabel('Search effects').fill('speed');
   await expect(page.locator('.effect-card')).toHaveCount(1); await openEffect(page, 'Speed');
   await page.getByLabel('Playback speed').selectOption('2');
@@ -57,7 +57,7 @@ test('applies an effect to one split clip, reorders it and exports the sequence'
   await expect.poll(() => page.locator('video').evaluate(node => (node as HTMLVideoElement).currentTime)).toBeCloseTo(2 + 1 / 3, 2);
   await page.getByRole('button', { name: 'Seek thumbnail 12', exact: true }).click();
   await expect.poll(() => page.locator('video').evaluate(node => (node as HTMLVideoElement).currentTime)).toBeCloseTo(2 - 1 / 6, 2);
-  await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
+  await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
   const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file', exact: true }).click(); const output = testInfo.outputPath('sequence.mp4'); await (await pending).saveAs(output);
   const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]); expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(4, 1);
 });
@@ -71,7 +71,7 @@ test('keeps waveform generation and cancellation independent of editing and expo
   await page.getByRole('button', { name: 'Generate waveform', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Split', exact: true })).toBeEnabled();
   await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5'); await expect(page.locator('video')).toHaveJSProperty('volume', .5);
-  await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
+  await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
   await page.getByRole('button', { name: 'Cancel waveform', exact: true }).click(); release();
   await page.unroute('**/ffmpeg-core.wasm');
   await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
@@ -81,9 +81,12 @@ test('keeps waveform generation and cancellation independent of editing and expo
 
 test('navigates dense tracks without losing clips and pans the overview independently', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click();
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByRole('button', { name: 'Add Captions', exact: true }).click(); await page.getByRole('tab', { name: 'Effect Controls', exact: true }).click();
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
   const srt = Array.from({ length: 35 }, (_, index) => `${index + 1}\n00:00:00,000 --> 00:00:05,000\nCaption ${index + 1}\n`).join('\n');
   await page.getByLabel('Import subtitle file').setInputFiles({ name: 'dense.srt', mimeType: 'text/plain', buffer: Buffer.from(srt) });
+  await closeEffect(page);
+  const compact = page.getByRole('button', { name: 'Compact', exact: true });
+  if (await compact.getAttribute('aria-pressed') === 'false') await compact.click();
   const tracks = page.getByRole('region', { name: 'Timeline tracks', exact: true });
   await expect(page.getByLabel('Caption 1 start', { exact: true })).toBeHidden();
   await page.locator('.timeline-track-filters').getByRole('button', { name: 'captions', exact: true }).click();

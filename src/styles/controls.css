@@ -142,39 +142,6 @@ input[type='color'] { width: 100%; height: 34px; background: var(--surface-raise
 .effect-target-note { margin: 8px 16px 16px; font-size: 10px; line-height: 1.6; color: var(--quiet); }
 .effect-editor .advanced > summary { display: none; }
 .effect-editor .advanced-content { padding-top: 12px; }
-.effect-stack-heading { padding: 16px 16px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.effect-stack-heading h3 { font-size: 12px; }
-.effect-stack-heading h3 span { color: var(--muted); font-size: 10px; margin-left: 4px; }
-.effect-stack-heading p, .effect-stack-empty { color: var(--quiet); font-size: 10px; line-height: 1.6; margin-top: 6px; }
-.effect-stack-heading .button { flex-shrink: 0; font-size: 10px; padding-inline: 8px; }
-.effect-stack { padding: 0 12px; }
-.effect-control-group { margin-bottom: 12px; }
-.effect-control-group > h4 { display: flex; align-items: center; gap: 7px; font-size: 10px; color: var(--quiet); padding: 6px 3px 10px; }
-.effect-controls-hint { margin: 0 16px 16px; color: var(--quiet); font-size: 10px; line-height: 1.6; }
-.effect-stack-heading > div { min-width: 0; }
-.effect-stack-heading p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.effect-stack-empty { padding: 8px 4px 14px; }
-.effect-stack-item { border-bottom: 1px solid var(--border-soft); overflow: hidden; }
-.effect-stack-item.expanded { background: color-mix(in srgb, var(--surface-raised) 45%, transparent); }
-.effect-stack-row { display: flex; align-items: center; gap: 2px; padding: 3px 5px 3px 3px; }
-.effect-stack-row > .icon-button { width: 28px; height: 30px; flex-shrink: 0; color: var(--muted); }
-.remove-effect:hover { color: var(--danger, #e57794); }
-.effect-stack-toggle { display: flex; flex: 1; min-width: 0; align-items: center; text-align: left; gap: 7px; padding: 8px 4px; }
-.effect-stack-toggle > svg { flex-shrink: 0; color: var(--quiet); transition: transform .18s ease; }
-.effect-stack-toggle[aria-expanded='true'] > svg { transform: rotate(90deg); }
-.effect-stack-toggle > span { min-width: 0; flex: 1; }
-.effect-stack-toggle strong { display: block; font-size: 11px; }
-.effect-stack-toggle small { display: block; font-size: 10px; color: var(--muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.effect-stack-toggle em { color: var(--quiet); font-size: 9px; font-style: normal; }
-.effect-stack-item .control-section { padding: 12px; }
-.effect-stack-item .section-title { display: none; }
-.effect-stack-item .effect-target-note { margin: 8px 12px; }
-.effect-stack-item .advanced { padding-inline: 12px; }
-.effect-clear { margin: 4px 12px 8px; font-size: 10px; }
-.effect-browser { margin: 0; }
-.effect-browser .effect-library-intro { padding-top: 12px; }
-@media (prefers-reduced-motion: reduce) { .effect-stack-toggle > svg, .effect-bin > summary > svg:first-child, .effect-card { transition: none; } }
-
 .effect-recipes { padding: 12px 16px; border-bottom: 1px solid var(--border-soft); }
 .effect-recipes summary { color: var(--muted); font-size: 11px; cursor: pointer; }
 .effect-recipes-content { display: grid; gap: 10px; margin-top: 12px; }
@@ -215,3 +182,25 @@ input[type='color'] { width: 100%; height: 34px; background: var(--surface-raise
 
 .effect-drop-target .timeline-clip { outline: 2px solid var(--accent); outline-offset: 2px; background: var(--accent-dim); }
 .audio-effects-review { padding: 12px; }
+
+.effect-settings-overlay { position: fixed; inset: auto; margin: 0; padding: 0; z-index: 70; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 18px 60px #0007; display: flex; flex-direction: column; overflow: hidden; animation: effect-overlay-enter .18s ease-out; }
+.effect-overlay-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 16px; border-bottom: 1px solid var(--border-soft); }
+.effect-overlay-heading > div { min-width: 0; }
+.effect-overlay-heading span { display: flex; align-items: center; gap: 6px; color: var(--accent-text); font-size: 10px; }
+.effect-overlay-heading h2 { font-size: 16px; margin-top: 8px; }
+.effect-overlay-heading p { font-size: 10px; color: var(--muted); margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.effect-overlay-heading > button { flex-shrink: 0; }
+.effect-overlay-body { min-height: 0; overflow: auto; overscroll-behavior: contain; flex: 1; }
+.effect-overlay-scope { padding: 12px 16px; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
+.effect-overlay-scope .switch-row { font-size: 11px; }
+.effect-overlay-body fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.effect-overlay-body .section-title { display: none; }
+.effect-overlay-body .effect-target-note { margin: 12px 16px; }
+.effect-overlay-body .audio-effects-review { padding: 16px; }
+.effect-overlay-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 12px; border-top: 1px solid var(--border-soft); background: var(--surface); flex-shrink: 0; }
+.effect-overlay-footer > button:last-child { margin-left: auto; }
+@keyframes effect-overlay-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .effect-settings-overlay { animation: none; } }
+
+.effect-clear { margin: 4px 12px 8px; font-size: 10px; }
+.effect-stack-empty { color: var(--muted); font-size: 11px; padding: 8px 16px; }

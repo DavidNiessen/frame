@@ -5,10 +5,31 @@ import { defaultSettings, type MediaAsset } from '../src/core/types';
 import { clipRecipe, editClips, splitClip } from '../src/core/clips';
 import { parseEdit } from '../src/core/project';
 import { buildExportArgs } from '../src/core/export-plan';
+import { clipEffectRows } from '../src/core/effect-timeline';
 const asset = { duration: 6, kind: 'video', hasAudio: true, width: 640, height: 360 } as MediaAsset;
 const find = (id: string) => effectLibrary.find(effect => effect.id === id)!;
 const split = () => { const edit = defaultSettings(asset); return { ...edit, ...splitClip(edit, editClips(edit)[0].id, 3) }; };
 describe('persistent effect application', () => {
+  it('keeps neutral volume, speed and transforms editable on the timeline', () => {
+    let edit = split(); const id = edit.clips![1].id;
+    const original = buildExportArgs(asset, edit, 'input', 'output');
+    for (const effect of ['volume', 'speed', 'transform']) edit = { ...edit, ...effectAction(edit, asset, find(effect), id, 'add') };
+    expect(clipEffectRows(asset, edit).map(row => [row.effect.id, row.items.map(item => item.index)])).toEqual([['volume', [1]], ['speed', [1]], ['transform', [1]]]);
+    expect(buildExportArgs(asset, edit, 'input', 'output')).toEqual(original);
+    edit = { ...edit, ...effectAction(edit, asset, find('volume'), id, 'reset') };
+    expect(clipEffectRows(asset, edit)[0].effect.id).toBe('volume');
+    edit = { ...edit, ...effectAction(edit, asset, find('volume'), id, 'remove') };
+    expect(clipEffectRows(asset, edit).map(row => row.effect.id)).toEqual(['speed', 'transform']);
+  });
+  it('provides a full clip settings bar for explicitly added fades reset to zero', () => {
+    let edit = defaultSettings(asset);
+    edit = { ...edit, ...effectAction(edit, asset, find('audioFadeIn'), null, 'add') };
+    expect(clipEffectRows(asset, edit)).toEqual([]);
+    edit = { ...edit, ...effectAction(edit, asset, find('audioFadeIn'), null, 'reset') };
+    expect(clipEffectRows(asset, edit).map(row => row.effect.id)).toEqual(['audioFadeIn']);
+    edit = { ...edit, ...effectAction(edit, asset, find('audioFadeIn'), null, 'remove') };
+    expect(clipEffectRows(asset, edit)).toEqual([]);
+  });
   it('keeps a legacy standard effect in controls after resetting it', () => {
     let edit = { ...defaultSettings(asset), crop: { x: 0, y: 0, width: 100, height: 100 } };
     edit = { ...edit, ...effectAction(edit, asset, find('crop'), null, 'reset') } as typeof edit;

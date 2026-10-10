@@ -2,7 +2,7 @@ import { trim } from '../helpers/timeline';
 import { test, expect, type Page } from '@playwright/test';
 import { rm } from 'node:fs/promises';
 import { conversionLibrary } from '../helpers/conversion-library';
-import { openEffect } from '../helpers/effects';
+import { closeEffect, openEffect } from '../helpers/effects';
 async function retainedKeys(page: Page) {
   return page.evaluate(() => new Promise<string[]>((resolve, reject) => {
     const request = indexedDB.open('frame-workspace', 2);

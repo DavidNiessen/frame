@@ -1,4 +1,4 @@
-import { openEffect } from '../helpers/effects';
+import { closeEffect, openEffect } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 
 async function sample(page: Page) {
@@ -62,7 +62,7 @@ test('Space toggles playback on timeline ranges and clips without activating the
   await expect(page.locator('.timeline-clip')).toHaveCount(2);
   await expect(page.locator('video')).toHaveJSProperty('paused', true);
   // Typing in caption text must never invoke playback shortcuts.
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openEffect(page, 'Captions'); await page.getByRole('button', { name: 'Add caption', exact: true }).click();
   await page.getByLabel('Subtitle 1 text').fill('Hello'); await page.getByLabel('Subtitle 1 text').press('End'); await page.getByLabel('Subtitle 1 text').press('Space');
   await expect(page.getByLabel('Subtitle 1 text')).toHaveValue('Hello ');

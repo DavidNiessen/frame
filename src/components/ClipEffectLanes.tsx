@@ -9,6 +9,6 @@ export function ClipEffectLanes({ asset, edit, total, disabled, update, seek, se
 }) {
   return <>{clipEffectRows(asset, edit).map(({ effect, items }) => <div className="timeline-lane effect-lane" key={effect.id}>{items.map(({ clip, start, end, index, recipe }) => <TimelineRange key={clip.id} selectOnPointer range={clip} displayRange={edit.clips ? { start, end } : clip} limits={{ start: 0, end: asset.duration }} duration={total}
     label={`${effect.name} clip ${index + 1}`} text={`${effect.name} · ${effectSummary(effect, recipe)}`} className="clip-effect-bar" edges={[]} disabled={disabled} onChange={() => {}}
-    onSelect={() => { selectClip(clip.id); seek(clip.start); openEffect(effect.id); }}
+    onSelect={() => { selectClip(edit.clips ? clip.id : null); seek(clip.start); openEffect(effect.id); }}
     remove={{ label: `Remove ${effect.name} from clip ${index + 1}`, run: () => update(effectAction(edit, asset, effect, edit.clips ? clip.id : null, 'remove')) }} />)}</div>)}</>;
 }

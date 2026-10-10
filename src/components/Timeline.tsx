@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { TimelineViewTools } from './layout/TimelineViewTools';
 import { clipPositions, clipRecipe, editClips, splitClip } from '../core/clips';
-import { availableEffects, effectActive } from '../core/effect-library';
+import { appliedEffects, availableEffects, effectActive } from '../core/effect-library';
 import { outputTimeAtSource, sourceTimeAtOutput } from '../core/fades';
 import { TimelineSnapContext } from './TimelineSnapContext';
 import { snapTargets, snapTime } from '../core/snapping';
@@ -33,14 +33,20 @@ export function Timeline({ openEffect, generateTrackWaveform, generatingId, asse
   const targets = snapTargets(edit, asset.duration, current), scrubTargets = snapTargets(edit, asset.duration);
   const slider = useRef<HTMLInputElement>(null);
   const scroll = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
-  const [filter, setFilter] = useState<TrackFilter>('all'), [compact, setCompact] = useState(true), [fraction, setFraction] = useState(0), [scrollLeft, setScrollLeft] = useState(0);
+  const [filter, setFilter] = useState<TrackFilter>('all'), [compact, setCompact] = useState(false), [fraction, setFraction] = useState(0), [scrollLeft, setScrollLeft] = useState(0);
   const sequence = !!edit.clips, position = sequence ? outputTimeAtSource(edit, current) : current;
   const scale = useTimelineScale(asset.id, asset.duration, editedDuration(edit), sequence), total = scale.total;
   const clips = useMemo(() => editClips(edit), [edit]), positions = useMemo(() => clipPositions(edit), [edit]);
   const effectCounts = useMemo(() => {
     const effects = availableEffects(asset).filter(effect => effect.scope === 'clip');
-    return clips.map(clip => { const recipe = clipRecipe(edit, clip); return effects.filter(effect => effectActive(effect, recipe, asset)).length; });
+    return clips.map(clip => { const recipe = clipRecipe(edit, clip); return effects.filter(effect => recipe.addedEffects?.includes(effect.id) || effectActive(effect, recipe, asset)).length; });
   }, [clips, edit, asset]);
+  const effectCount = effectCounts.reduce((count, value) => count + value, 0) + appliedEffects(asset, edit, null).filter(effect => effect.scope === 'source').length;
+  const previousEffects = useRef(effectCount);
+  useEffect(() => {
+    if (effectCount > previousEffects.current) { setCompact(false); setFilter('all'); }
+    previousEffects.current = effectCount;
+  }, [effectCount]);
   const [zoom, setZoom] = useState(1);
   useEffect(() => { setZoom(1); if (scroll.current) { scroll.current.scrollLeft = 0; scroll.current.scrollTop = 0; } }, [asset.id]);
   useEffect(() => {
