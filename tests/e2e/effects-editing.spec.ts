@@ -18,7 +18,7 @@ for (const width of [1440, 390]) test(`provides crop and volume in timeline over
   await page.getByLabel('Crop width').fill('320'); await page.getByLabel('Crop x', { exact: true }).fill('100'); await expect(page.getByLabel('Crop x', { exact: true })).toHaveValue('100');
   await page.getByRole('button', { name: 'Original', exact: true }).click(); await expect(page.getByLabel('Crop width')).toHaveCount(0);
   await page.getByRole('button', { name: 'Set custom crop', exact: true }).click(); await expect(page.getByLabel('Crop width')).toHaveValue('640');
-  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('1.4'); await expect(page.getByText('Boost above 100% is applied on export and may clip.', { exact: true })).toBeVisible();
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('1.4'); await expect(page.getByText('Boost above 100% updates in the automatic effects preview and may clip.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Reset to 100%', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
   await page.getByRole('button', { name: 'Mute', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('volume', 0);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
