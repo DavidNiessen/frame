@@ -49,7 +49,7 @@
 .crop-handle { position: absolute; width: 16px; height: 16px; border: 2px solid var(--accent-text); background: var(--accent-dim); border-radius: 3px; }
 .crop-handle.nw { left: -4px; top: -4px; cursor: nwse-resize; } .crop-handle.ne { right: -4px; top: -4px; cursor: nesw-resize; } .crop-handle.sw { left: -4px; bottom: -4px; cursor: nesw-resize; } .crop-handle.se { right: -4px; bottom: -4px; cursor: nwse-resize; }
 .timeline { flex-shrink: 0; }
-.timeline-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 13px 17px; border-bottom: 1px solid var(--border-soft); }
+.timeline-toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; padding: 13px 17px; border-bottom: 1px solid var(--border-soft); }
 .timeline-toolbar > div { display: flex; align-items: center; gap: 10px; }
 .timeline-toolbar h2 { font-size: 11px; }
 .timeline-toolbar .badge { font-size: 9px; padding: 4px 6px; }

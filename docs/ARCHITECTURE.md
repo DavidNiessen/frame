@@ -143,3 +143,5 @@ Track effects are validated `effectInstances` with `timeSpace: "output"`. Timed 
 Legacy primary fields, source ranges and clip overrides remain readable and renderable. `split-effects` preserves an older clip fade as one output instance before a split, so its ramp does not restart on each child. Recipe capture applies at track scope and scales stored crop instances to the new source dimensions.
 
 `preview-playback` advances clip identity at contiguous boundaries without seeking the media element. Frame overshoot is retained instead of snapping backwards to a split start. Only gaps, reordering, looping and user navigation assign the source clock, preventing needless decoder stalls on split-only sequences.
+
+`join-clips` reconnects contiguous adjacent source sections with matching local settings, retaining the left ID and all track effects. It rejects gaps, reversed footage, mismatched overrides and legacy fades/normalization tied to individual clip boundaries. Joining changes one recipe in one undo step and does not seek the player.

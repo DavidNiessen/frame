@@ -3,6 +3,7 @@ import { effectiveSpeed, extraInstances } from '../core/effect-instances';
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { TimelineViewTools } from './layout/TimelineViewTools';
 import { clipPositions, clipRecipe, editClips, splitClip } from '../core/clips';
+import { adjacentSplitJoin, joinSplitClips } from '../core/join-clips';
 import { appliedEffects, availableEffects, effectActive } from '../core/effect-library';
 import { outputTimeAtSource, sourceTimeAtOutput } from '../core/fades';
 import { TimelineSnapContext } from './TimelineSnapContext';
@@ -12,7 +13,7 @@ import { TimelineClip } from './TimelineClip';
 import { TimelineNavigator, type TrackFilter } from './layout/TimelineNavigator';
 import { TimedLanes } from './TimedLanes';
 import type { WaveformPoint } from '../core/waveform';
-import { Magnet, Scissors, Trash2, Undo2, Redo2, CornerDownLeft } from 'lucide-react';
+import { Combine, Magnet, Scissors, Trash2, Undo2, Redo2, CornerDownLeft } from 'lucide-react';
 import { editedDuration, timelineSections } from '../core/timeline';
 import { time } from '../core/format';
 import type { EffectId } from '../core/effect-library';
@@ -82,13 +83,19 @@ export function Timeline({ openEffect, generatingId, asset, edit, current, seek,
     const clip = clips.find(clip => current >= clip.start && current < clip.end)!;
     update(splitClip(edit, clip.id, current)); selectClip(clip.id);
   }
+  const joinId = selectedClip ?? clips.find(clip => clip.start === active?.start && clip.end === active?.end)?.id ?? null;
+  const joinPair = adjacentSplitJoin(edit, joinId);
+  function join() {
+    if (!joinPair) return;
+    update(joinSplitClips(edit, joinId)); selectClip(joinPair.left.id);
+  }
   function remove() {
     if (clips.length < 2) { notify('Keep at least one section in the timeline.'); return; }
     const clip = selectedClip ? clips.find(c => c.id === selectedClip) : clips.find(c => c.start === active?.start && c.end === active?.end);
     if (clip) { update({ clips: clips.filter(c => c.id !== clip.id) }); seek(clips.find(c => c.id !== clip.id)!.start); }
   }
   return <TimelineSnapContext value={{ enabled: snapping, targets, frameRate: asset.frameRate }}><section id="media-timeline" className="timeline panel" aria-label="Timeline">
-    <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{sections.length} {sections.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="icon-button snapping-toggle" aria-label="Timeline snapping" aria-pressed={snapping} title="Snap to clip edges, captions and frames · hold Alt to bypass" onClick={() => { setSnapping(!snapping); try { localStorage.setItem('frame:timeline-snapping', String(!snapping)); } catch {} }}><Magnet size={15} /></button><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || (!active && !selectedClip) || sections.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
+    <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{sections.length} {sections.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="icon-button snapping-toggle" aria-label="Timeline snapping" aria-pressed={snapping} title="Snap to clip edges, captions and frames · hold Alt to bypass" onClick={() => { setSnapping(!snapping); try { localStorage.setItem('frame:timeline-snapping', String(!snapping)); } catch {} }}><Magnet size={15} /></button><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Join splits" title={joinPair ? "Join this section with its contiguous neighbour" : "Join adjacent footage with matching clip settings"} disabled={disabled || !joinPair} onClick={join}><Combine size={16} /></button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || (!active && !selectedClip) || sections.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
     <TimelineNavigator extent={total} tools={<TimelineViewTools zoom={zoom} setZoom={setZoom} fit={scale.fit} />} zoom={zoom} edit={edit} position={position} fraction={fraction} pan={value => { if (scroll.current) scroll.current.scrollLeft = value * (scroll.current.scrollWidth - scroll.current.clientWidth); setFraction(value); }} filter={filter} setFilter={setFilter} compact={compact} setCompact={setCompact} locate={locate} />
     <div className="timeline-analysis">
       {autoWaveforms && asset.hasAudio && !waveform && <>{waveformError ? <button className="button small" disabled={disabled} onClick={retryWaveform}>Retry waveform</button> : <span className="waveform-status" role="status">{waveformLoading ? `Reading waveform ${Math.round(analysisProgress * 100)}%` : 'Preparing waveform…'}</span>}{waveformLoading && <button className="button subtle small" onClick={cancelAnalysis}>Cancel waveform</button>}{waveformError && <TransientMessage className="waveform-error" role="alert">{waveformError}</TransientMessage>}</>}
