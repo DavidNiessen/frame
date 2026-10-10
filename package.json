@@ -21,7 +21,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "package": "npm run build && electron-builder --publish never",
     "package:dir": "npm run build && electron-builder --dir --publish never",
-    "test:desktop": "npm run build && playwright test --config playwright.electron.config.ts"
+    "test:desktop": "npm run build && playwright test --config playwright.electron.config.ts",
+    "build:icon": "node scripts/build-icon.mjs"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",

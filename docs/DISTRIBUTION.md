@@ -4,6 +4,8 @@ Frame uses Electron Builder for Windows NSIS installers, macOS DMG files, and op
 
 ## Portable media tools
 
+The violet application logo comes from `public/favicon.svg`. Maintainers can run `pnpm exec playwright install chromium` and `pnpm build:icon` to regenerate `build/icon.png`, which Electron Builder uses for application icons. After changing the logo, regenerate the signed Windows shell assets in this order: `pnpm sign:windows-shell`, `pnpm build:windows-shell`, then `pnpm build`. Signing changes integrity metadata included in the native source fingerprint, so the native build must follow signing. These commands require the signing and compiler tools described in the native component guide; normal installation uses the committed assets. Existing development shell registrations need **Settings → Repair actions** to receive updated Explorer icons. Packaged application icons require rebuilding and installing the updated desktop artifact.
+
 - FFmpeg archives and standalone yt-dlp binaries are committed in `vendor/media-tools/`. Setup verifies their SHA-256 checksums and extracts/copies only the host target into `build/media-tools/`; no GitHub download is needed during setup or build.
 - `@ffprobe-installer/ffprobe` installs a platform-specific FFprobe binary through optional npm dependencies.
 - FFmpeg and yt-dlp are copied into external `resources/media-tools`; FFprobe remains a production dependency unpacked outside Electron's ASAR archive.
