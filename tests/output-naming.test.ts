@@ -1,3 +1,7 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { publishOutput } from '../electron/output-files';
 import { expect, it } from 'vitest';
 import { namedConversion, validateBatchOptions } from '../src/core/output-naming';
 import { conversionName } from '../src/core/conversion';
@@ -14,4 +18,14 @@ it('expands collection naming tokens into portable paths', () => {
 it('rejects malformed naming and sequence data at the batch boundary', () => {
   expect(() => validateBatchOptions({ conversion: true, namingTemplate: '{index}-{name}', order: ['one', 'two'] })).not.toThrow();
   for (const options of [{ order: ['one', 'one'] }, { order: [3] }, { namingTemplate: '{secret}' }, []]) expect(() => validateBatchOptions(options as never)).toThrow();
+});
+
+it('publishes long Unicode tag-based filenames without cutting characters or exceeding filesystem limits', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-unicode-name-'));
+  try {
+    const name = namedConversion({ ...asset, metadata: { title: '日本語🎵'.repeat(100) } }, 'flac', '{title}');
+    const bytes = new TextEncoder().encode(name); expect(bytes.byteLength).toBeLessThanOrEqual(185); expect(new TextDecoder().decode(bytes)).toBe(name);
+    const temporary = join(directory, 'conversion.tmp'); await writeFile(temporary, 'saved output'); const saved = await publishOutput(temporary, directory, name); expect(await readFile(saved, 'utf8')).toBe('saved output');
+    const collision = await publishOutput(temporary, directory, name); expect(collision).toContain('-1.flac'); expect(await readFile(saved, 'utf8')).toBe('saved output');
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
