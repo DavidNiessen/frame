@@ -227,3 +227,5 @@ The repeat control in the preview loops the entire retained sequence or the sele
 In Effects → Recipes & copy / paste, copy clip effects to another clip or source, or save up to 20 named recipes on this device. Recipes apply in the selected effect scope, scale crops to new source dimensions and clamp fades to the receiving duration. Audio sources receive the compatible audio and timing effects.
 
 Captions support literal find-and-replace with case-sensitive and Unicode whole-word matching. Next match navigates across paged caption lists, and Replace all preserves timing and placement in one undoable edit.
+
+Project tools → Video contact sheet exports a PNG overview of the edited clip order and effects. Choose 2–6 rows and columns, frame width, and optional sequence timestamps. Processing stays local on desktop and web.

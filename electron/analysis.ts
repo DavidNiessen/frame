@@ -1,3 +1,4 @@
+import { contactSheetArgs, parseContactSheet } from '../src/core/contact-sheet';
 import type { WindowIpc } from './window-ipc';
 import { silenceArgs, SilenceCollector, parseSilence } from '../src/core/silence';
 import { withResources } from './resources';
@@ -55,6 +56,14 @@ export function registerAnalysis(assets: Map<string, { path: string; asset: Medi
         return new Uint8Array(await readFile(output));
       } finally { await rm(directory, { recursive: true, force: true }); }
     });
+  });
+  ipc.handle('media:contact-sheet', (event, id: string, value: unknown, options: unknown) => {
+    const item = source(event, id), edit = parseEdit(value, item.asset), settings = parseContactSheet(options);
+    return jobs.run(execute => withResources([edit], async (paths, directory) => {
+      const output = join(directory, 'sheet.png');
+      await execute(runFfmpeg(contactSheetArgs(item.asset, edit, settings, item.path, output, paths[0]), item.asset.duration, progress(event, 'Building contact sheet…')));
+      return new Uint8Array(await readFile(output));
+    }, [item.asset]));
   });
   ipc.handle('media:thumbnails' , (event, id: string) => {
     const item = source(event, id);

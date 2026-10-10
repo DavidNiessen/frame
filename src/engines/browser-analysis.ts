@@ -1,3 +1,4 @@
+import { contactSheetArgs } from '../core/contact-sheet';
 import { silenceArgs, SilenceCollector } from '../core/silence';
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import { browserResources } from './browser-resources';
@@ -6,7 +7,7 @@ import { previewAudioArgs } from '../core/audio-preview';
 import { thumbnailArgs } from '../core/thumbnails';
 import { waveformArgs, WaveformCollector } from '../core/waveform';
 import type { MediaEngine } from '../core/types';
-export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string, File>): Pick<MediaEngine, 'detectSilence' | 'previewFrame' | 'previewAudio' | 'thumbnails' | 'waveform'> {
+export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string, File>): Pick<MediaEngine, 'detectSilence' | 'previewFrame' | 'previewAudio' | 'thumbnails' | 'waveform' | 'contactSheet'> {
   return {
     async detectSilence(asset, options, onProgress) {
       const file = files.get(asset.id); if (!file) throw new Error('Import the source again.'); const ff = await ready(); const input = `silence-${asset.id}`; const collector = new SilenceCollector();
@@ -36,6 +37,17 @@ export function browserAnalysis(ready: () => Promise<FFmpeg>, files: Map<string,
         const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid preview output.');
         return URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'audio/wav' }));
       } finally { ff.off('log', log); await ff.deleteFile(input).catch(() => {}); await ff.deleteFile(output).catch(() => {}); }
+    },
+    async contactSheet(asset, edit, options, onProgress) {
+      const source = files.get(asset.id); if (!source) throw new Error('Import the source again.'); const ff = await ready();
+      const resources = await browserResources(ff, [edit], [asset]), input = `sheet-source-${asset.id}`, output = `sheet-${asset.id}.png`;
+      const progress = ({ time }: { time: number }) => onProgress({ ratio: Math.min(1, time / 1e6 / asset.duration), message: 'Building contact sheet…' }); ff.on('progress', progress);
+      try {
+        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        if (await ff.exec(contactSheetArgs(asset, edit, options, input, output, resources.paths[0])) !== 0) throw new Error('Could not build the contact sheet.');
+        const data = await ff.readFile(output); if (typeof data === 'string') throw new Error('Invalid contact sheet.');
+        return URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'image/png' }));
+      } finally { ff.off('progress', progress); await resources.cleanup(); await ff.deleteFile(input).catch(() => {}); await ff.deleteFile(output).catch(() => {}); }
     },
     async thumbnails(asset, onProgress) {
       const source = files.get(asset.id); if (!source) throw new Error('Import the source file again.');

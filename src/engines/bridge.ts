@@ -1,3 +1,4 @@
+import type { ContactSheetOptions } from '../core/contact-sheet';
 import type { UrlImportOptions } from '../core/youtube';
 import type { DesktopCapabilities, PreviewProxy } from '../core/hardware';
 import type { SilenceOptions } from '../core/silence';
@@ -37,6 +38,7 @@ export interface DesktopBridge {
   detectSilence(id: string, options: SilenceOptions): Promise<TimeRange[]>;
   previewFrame(id: string, edit: EditSettings, time: number): Promise<Uint8Array>;
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;
+  contactSheet(id: string, edit: EditSettings, options: ContactSheetOptions): Promise<Uint8Array>;
   thumbnails(id: string): Promise<Uint8Array>;
   cancelWaveform(): void;
   onWaveformProgress(callback: (progress: ExportProgress) => void): () => void;

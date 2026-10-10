@@ -32,6 +32,7 @@ export function createDesktopEngine(): MediaEngine {
       try { return URL.createObjectURL(new Blob([new Uint8Array(await bridge.previewAudio(asset.id, edit))], { type: 'audio/wav' })); }
       finally { remove(); }
     },
+    async contactSheet(asset, edit, options, onProgress) { const remove = bridge.onProgress(onProgress); try { return URL.createObjectURL(new Blob([new Uint8Array(await bridge.contactSheet(asset.id, edit, options))], { type: 'image/png' })); } finally { remove(); } },
     async thumbnails(asset, onProgress) {
       const remove = bridge.onProgress(onProgress);
       try { return URL.createObjectURL(new Blob([new Uint8Array(await bridge.thumbnails(asset.id))], { type: 'image/png' })); }

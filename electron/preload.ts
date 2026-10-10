@@ -32,6 +32,7 @@ const bridge: DesktopBridge = {
   detectSilence: (id, options) => ipcRenderer.invoke('media:silence', id, options),
   previewFrame: (id, edit, time) => ipcRenderer.invoke('media:frame-preview', id, edit, time),
   previewAudio: (id, edit) => ipcRenderer.invoke('media:audio-preview', id, edit),
+  contactSheet: (id, edit, options) => ipcRenderer.invoke('media:contact-sheet', id, edit, options),
   thumbnails: id => ipcRenderer.invoke('media:thumbnails', id),
   cancelWaveform: () => { void ipcRenderer.invoke('media:cancel-waveform').catch(() => {}); },
   onWaveformProgress: callback => {

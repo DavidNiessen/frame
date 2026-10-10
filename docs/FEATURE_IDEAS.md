@@ -14,7 +14,7 @@ This session builds on `feat/effects-library-timeline`. Prioritize complete, tes
 | Reusable effect settings | Copy effects between clips and save favorite recipes | Implemented |
 | Caption find and replace | Correct repeated words across caption sets | Implemented |
 | Source media information | Inspect codecs, frame rate and audio properties | Implemented |
-| Contact-sheet export | Share a quick visual overview of a video | Backlog |
+| Contact-sheet export | Share a quick visual overview of a video | Implemented |
 | Desktop watch folders | Convert newly added files automatically | Backlog |
 | Export completion notifications | Know when long jobs finish while working elsewhere | Backlog |
 | Multi-track music and voiceover | Mix additional audio with video | Backlog |
