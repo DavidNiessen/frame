@@ -17,7 +17,7 @@ test('converts nested song folders and downloads a ZIP with complete media and m
     await expect(page.locator('audio, video, .timeline-track')).toHaveCount(0);
     await page.getByLabel('Conversion format').selectOption('mp4');
     await expect(page.getByRole('button', { name: 'Convert 2 files', exact: true })).toBeDisabled();
-    await expect(page.getByRole('alert')).toContainText('incompatible');
+    await expect(page.locator('.conversion-error')).toContainText('incompatible');
     await page.getByLabel('Conversion format').selectOption('flac');
     await page.getByText('Advanced options', { exact: true }).click();
     await expect(page.getByRole('switch', { name: 'Conversion include artwork' })).toBeChecked();

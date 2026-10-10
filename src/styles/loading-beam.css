@@ -13,3 +13,20 @@
   .loading-beam { transition: none; }
   .loading-beam > span { animation: none; transform: none; width: 100%; opacity: .5; }
 }
+.footer-task { display: flex; align-items: center; gap: 14px; min-width: 0; max-width: 65%; }
+.footer-task .footer-activity { display: flex; align-items: center; gap: 7px; }
+.footer-task-label { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.footer-task-detail { color: var(--muted); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.footer-task-percent { color: var(--accent-text); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.footer-task .status-dot { flex-shrink: 0; }
+.footer-cancel { flex-shrink: 0; white-space: nowrap; color: var(--text); }
+.mini-footer { gap: 12px; flex-wrap: wrap; }
+.mini-footer .footer-task { max-width: 100%; flex: 1 1 100%; }
+.mini-footer .footer-activity { color: var(--muted); font-size: 10px; }
+@media (max-width: 1000px) { .footer-task-detail { display: none; } }
+@media (max-width: 700px) {
+  .app-footer .footer-task { flex: 1 1 100%; max-width: 100%; justify-content: space-between; }
+  .app-footer:has(.footer-cancel) > button { display: none; }
+}
+/* Modal tools retain their own cancel button while the surrounding workspace is inert. */
+body:has(dialog:modal) .footer-cancel { display: none; }

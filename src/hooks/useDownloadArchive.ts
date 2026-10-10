@@ -1,3 +1,4 @@
+import { useLoadingActivity } from './useLoadingActivity';
 import { useEffect, useRef, useState } from 'react';
 import type { BatchJob } from '../core/batch';
 
@@ -6,6 +7,7 @@ export function useDownloadArchive(jobs: BatchJob[]) {
   const controller = useRef<AbortController | null>(null), urlRef = useRef('');
   const signature = jobs.map(job => job.result?.url || '').join('|');
   function reset() { controller.current?.abort(); controller.current = null; if (urlRef.current) URL.revokeObjectURL(urlRef.current); urlRef.current = ''; setUrl(''); setBusy(false); setError(''); }
+  useLoadingActivity(busy, 'Preparing ZIP download…', { priority: 30, ratio: progress, cancel: reset, cancelLabel: 'Cancel download preparation' });
   useEffect(() => { reset(); }, [signature]);
   useEffect(() => () => { controller.current?.abort(); controller.current = null; if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
   async function download() {

@@ -1,3 +1,4 @@
+import { useLoadingActivity } from './useLoadingActivity';
 import { notifyCompletion } from '../core/completion-notifications';
 import { useEffect, useRef, useState } from 'react';
 import { batchSettings, runBatch, type BatchJob, type BatchMode } from '../core/batch';
@@ -9,11 +10,18 @@ export function useBatch(editor: Editor) {
   const [jobs, setJobs] = useState<BatchJob[]>([]);
   const namingOrder = useRef<string[]>([]);
   const [running, setRunning] = useState(false); const runningRef = useRef(false);
+  const [conversionMode, setConversionMode] = useState(false), activeIds = useRef(new Set<string>());
   const cancelled = useRef(false); const jobsRef = useRef(jobs); jobsRef.current = jobs;
+  const queue = jobs.filter(job => activeIds.current.has(job.id)), current = queue.find(job => job.status === 'running');
+  const ratio = queue.length ? queue.reduce((sum, job) => sum + (job.status === 'running' ? job.progress : job.status === 'waiting' ? 0 : 1), 0) / queue.length : undefined;
+  function cancel() { if (runningRef.current) { cancelled.current = true; editor.cancel(); } }
+  useLoadingActivity(running, conversionMode ? 'Converting files…' : 'Exporting batch…', { priority: 30, ratio,
+    message: current ? `${queue.findIndex(job => job.id === current.id) + 1} / ${queue.length} · ${current.asset.name}` : 'Preparing files…', cancel, cancelLabel: conversionMode ? 'Cancel conversion' : 'Cancel batch' });
   const clear = () => { if (runningRef.current) return; namingOrder.current = []; for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); setJobs([]); };
   useEffect(() => () => { for (const job of jobsRef.current) if (job.result?.url) URL.revokeObjectURL(job.result.url); }, []);
   async function execute(queue: BatchJob[], options?: BatchOptions, keepResults = false) {
     if (runningRef.current || editor.busy || !queue.length) return;
+    activeIds.current = new Set(queue.map(job => job.id)); setConversionMode(!!options?.conversion);
     runningRef.current = true; setRunning(true); cancelled.current = false;
     const retained = keepResults ? jobsRef.current.filter(job => !queue.some(next => next.asset.id === job.asset.id)) : [];
     for (const job of jobsRef.current) if (!retained.includes(job) && job.result?.url) URL.revokeObjectURL(job.result.url);
@@ -58,6 +66,6 @@ export function useBatch(editor: Editor) {
     await execute(queue, { conversion: true, keepFolders, namingTemplate, order: namingOrder.current }, true);
   }
   async function openFolder() { try { await window.frameDesktop?.openBatchFolder(); } catch (error) { editor.setNotice(error instanceof Error ? error.message : String(error)); } }
-  return { jobs, start, convert, orderFor, running, clear, openFolder, cancel: () => { if (runningRef.current) { cancelled.current = true; editor.cancel(); } } };
+  return { jobs, start, convert, orderFor, running, clear, openFolder, cancel };
 }
 export type Batch = ReturnType<typeof useBatch>;

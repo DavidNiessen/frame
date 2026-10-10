@@ -117,8 +117,12 @@ test('cancels browser processing and can export again', async ({ page }) => {
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
   await closeEffect(page); await page.getByLabel('Output format').selectOption('gif');
   await closeEffect(page); await page.getByRole('button', { name: 'Export GIF', exact: true }).click();
-  await page.getByRole('button', { name: 'Cancel export' }).click();
-  await expect(page.getByRole('status')).toContainText('Export cancelled.');
+  const footer = page.getByRole('contentinfo', { name: 'Workspace status' });
+  await expect(footer).toHaveAttribute('aria-busy', 'true');
+  await expect(footer.getByRole('status')).toContainText('Exporting media');
+  await expect(page.locator('.export-footer .export-progress')).toHaveCount(0);
+  await footer.getByRole('button', { name: 'Cancel export' }).click();
+  await expect(page.locator('.toast')).toContainText('Export cancelled.');
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 0.5);
   await closeEffect(page); await page.getByLabel('Output format').selectOption('mp4');
   await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();

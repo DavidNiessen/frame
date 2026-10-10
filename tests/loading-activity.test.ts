@@ -10,3 +10,14 @@ it('keeps activity visible until all overlapping jobs finish, including cancella
   expect(activity.snapshot()).toBe('Preview'); finishPreview(); expect(activity.snapshot()).toBe('');
   expect(snapshots).toEqual(['Import', 'Preview', 'Preview', 'Export', 'Preview', '']); unsubscribe();
 });
+it('keeps foreground progress and cancellation visible over background jobs and ignores late updates', () => {
+  const activity = createActivityStore(), cancel = () => {};
+  const exportJob = activity.start('Export', { priority: 20, ratio: .2, cancel, cancelLabel: 'Cancel export' });
+  const preview = activity.start('Preview', { priority: 5, ratio: .7 });
+  expect(activity.taskSnapshot()).toMatchObject({ label: 'Export', ratio: .2, cancel });
+  exportJob.update({ ratio: .6, message: 'Encoding' });
+  expect(activity.taskSnapshot()).toMatchObject({ label: 'Export', ratio: .6, message: 'Encoding' });
+  exportJob.finish(); expect(activity.taskSnapshot()).toMatchObject({ label: 'Preview', ratio: .7 });
+  exportJob.update({ ratio: 1 }); expect(activity.snapshot()).toBe('Preview');
+  preview.finish(); expect(activity.taskSnapshot()).toBeNull();
+});

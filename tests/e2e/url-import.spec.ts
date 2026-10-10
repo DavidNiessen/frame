@@ -80,7 +80,8 @@ test('reports invalid links, CORS, pages, corrupt files and oversized downloads,
     }
     await page.getByLabel('Media URL', { exact: true }).fill(server.url + '/slow.wav');
     await dialog.getByRole('button', { name: 'Load media', exact: true }).click();
-    await expect(dialog.getByRole('status')).toContainText('Downloading media');
+    await expect(page.locator('.app-footer .footer-activity')).toContainText('Downloading media');
+    await expect(dialog.getByRole('status')).toHaveCount(0);
     await dialog.getByRole('button', { name: 'Cancel download' }).click();
     await expect(dialog.getByRole('alert')).toContainText('cancelled');
     await expect.poll(() => server.slowClosed).toBe(true);

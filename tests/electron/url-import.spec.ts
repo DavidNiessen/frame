@@ -26,7 +26,8 @@ test('downloads raw URLs natively without CORS and cleans up on error, cancellat
     }
     await page.getByLabel('Media URL', { exact: true }).fill(server.url + '/slow.wav');
     await page.getByRole('button', { name: 'Load media', exact: true }).click();
-    await expect(dialog.getByRole('status')).toContainText('Downloading media');
+    await expect(page.locator('.app-footer .footer-activity')).toContainText('Downloading media');
+    await expect(dialog.getByRole('status')).toHaveCount(0);
     await page.getByRole('button', { name: 'Cancel download' }).click();
     await expect(dialog.getByRole('alert')).toContainText('cancelled');
     expect(await downloads()).toEqual([]);
