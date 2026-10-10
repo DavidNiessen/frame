@@ -4,15 +4,17 @@ import { snapTime, type SnapSpace } from '../core/snapping';
 import type { TimeRange } from '../core/types';
 import type { Boundary } from '../core/timeline-edit';
 import { time } from '../core/format';
+import { X } from 'lucide-react';
 interface Props {
   snapSpace?: SnapSpace; selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
   disabled: boolean; onChange: (range: TimeRange) => void; onSelect: () => void;
   startLabel?: string; endLabel?: string; edges?: Boundary[]; minimum?: number;
   displayRange?: TimeRange; displaySpeed?: number; bodyProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   renderContent?: (range: TimeRange) => ReactNode;
+  remove?: { label: string; run: () => void };
 }
 export function TimelineRange({ range, limits, duration, label, text, selectOnPointer = false, className = '', disabled, onChange, onSelect,
-  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source' }: Props) {
+  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', remove }: Props) {
   const snap = useContext(TimelineSnapContext);
   const [snapped, setSnapped] = useState(false);
   const [draft, setDraft] = useState<TimeRange | null>(null);
@@ -35,9 +37,12 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     setDraft(pending.current);
   }
   function cancel() { gesture.current = null; setDraft(null); }
-  return <div data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className}`} style={{ left: `${positioned.start / duration * 100}%`, width: `${(positioned.end - positioned.start) / duration * 100}%` }}>
-    <button className="range-body" disabled={disabled} {...bodyProps} onClick={event => { if (event.detail === 0 || selectOnPointer) onSelect(); }} aria-label={label} title={`${label} · ${time(shown.start)}–${time(shown.end)}`}><span>{text ?? label}</span></button>
+  return <div data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className} ${draft ? 'trimming' : ''} ${remove ? 'removable' : ''}`} style={{ left: `${positioned.start / duration * 100}%`, width: `${(positioned.end - positioned.start) / duration * 100}%` }}>
+    <button className="range-body" disabled={disabled} {...bodyProps} onClick={event => { if (event.detail === 0 || selectOnPointer) onSelect(); }}
+      onKeyDown={event => { bodyProps?.onKeyDown?.(event); if (!event.defaultPrevented && remove && ['Delete', 'Backspace'].includes(event.key)) { event.preventDefault(); event.stopPropagation(); remove.run(); } }}
+      aria-label={label} title={`${label} · ${time(shown.start)}–${time(shown.end)}${remove ? ' · Delete to remove' : ''}`}><span>{text ?? label}</span></button>
     {renderContent?.(shown)}
+    {remove && <button className="range-remove" aria-label={remove.label} title={remove.label} disabled={disabled} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); remove.run(); }}><X size={12} /></button>}
     {edges.map(edge => <button key={edge} className={`range-handle ${edge}`} role="slider" aria-label={edge === 'start' ? startLabel : endLabel}
       aria-orientation="horizontal" aria-valuemin={edge === 'start' ? limits.start : shown.start + minimum}
       aria-valuemax={edge === 'start' ? shown.end - minimum : limits.end} aria-valuenow={shown[edge]}

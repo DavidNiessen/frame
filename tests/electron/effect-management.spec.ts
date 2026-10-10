@@ -1,0 +1,26 @@
+import { expect, test, _electron } from '@playwright/test';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { trim } from '../helpers/timeline';
+test('saves minimum split clips and removes an inherited effect through the native timeline', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'frame-effects-')), executablePath = process.env.FRAME_TEST_EXECUTABLE;
+  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  try {
+    const page = await app.firstWindow(); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await trim(page, 'start', 2.4); await trim(page, 'end', 2.5); await page.getByLabel('Volume', { exact: true }).fill('0.5');
+    await page.getByLabel('Seek playhead').fill('2.45'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await expect(page.locator('.timeline-clip')).toHaveCount(2);
+    await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
+    const destination = join(directory, 'minimum.frame.json'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, destination);
+    await page.getByRole('button', { name: 'Save project', exact: true }).click();
+    await expect.poll(() => readFile(destination, 'utf8').then(text => JSON.parse(text).sources[0].edit.clips.length), { timeout: 30000 }).toBe(2);
+    await page.getByRole('button', { name: 'Fit', exact: true }).click();
+    await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click();
+    await page.getByRole('button', { name: 'Remove Volume from clip 2', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume clip 1', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Volume clip 1', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Volume', exact: true })).toHaveAttribute('aria-expanded', 'true');
+    await page.getByRole('button', { name: 'Save project', exact: true }).click();
+    await expect.poll(() => readFile(destination, 'utf8').then(text => JSON.parse(text).sources[0].edit.clips[1].effects.volume), { timeout: 30000 }).toBe(1);
+    await page.getByRole('button', { name: 'Remove Volume', exact: true }).click(); await expect(page.locator('.effect-lane')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume clip 1', exact: true })).toBeVisible();
+  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+});

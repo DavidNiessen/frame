@@ -1,5 +1,6 @@
 import { timelineSections } from './timeline';
 import type { EditSettings, TimeRange } from './types';
+import { hasMinimumDuration } from './time-range';
 
 export const clipEffectKeys = ['volume', 'speed', 'preservePitch', 'normalizeLoudness', 'targetLufs', 'reduceNoise', 'noiseStrength', 'noiseFloor', 'equalizer', 'audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut', 'color', 'geometry', 'crop'] as const;
 export type ClipEffects = Partial<Pick<EditSettings, typeof clipEffectKeys[number]>>;
@@ -25,7 +26,7 @@ export function clipPositions(edit: EditSettings) {
 }
 export function splitClip(edit: EditSettings, id: string, time: number): Partial<EditSettings> {
   const clips = editClips(edit), clip = clips.find(item => item.id === id);
-  if (!clip || time - clip.start < .05 || clip.end - time < .05) return {};
+  if (!clip || !hasMinimumDuration({ start: clip.start, end: time }, clip.effects.speed ?? edit.speed) || !hasMinimumDuration({ start: time, end: clip.end }, clip.effects.speed ?? edit.speed)) return {};
   return { clips: clips.flatMap(item => item.id === id ? [{ ...item, end: time }, { ...item, id: `source-${time}-${clip.end}`, start: time, effects: structuredClone(item.effects) }] : [item]) };
 }
 export function reorderClip(edit: EditSettings, id: string, index: number): Partial<EditSettings> {
@@ -35,5 +36,12 @@ export function reorderClip(edit: EditSettings, id: string, index: number): Part
   return { clips };
 }
 export function patchClip(edit: EditSettings, id: string, patch: ClipEffects): Partial<EditSettings> {
-  return { clips: editClips(edit).map(clip => clip.id === id ? { ...clip, effects: { ...clip.effects, ...patch } } : clip) };
+  return { clips: editClips(edit).map(clip => {
+    if (clip.id !== id) return clip;
+    const inherited = clipRecipe(edit, { ...clip, effects: {} }), effects = { ...clip.effects, ...patch };
+    for (const key of Object.keys(effects) as (keyof ClipEffects)[]) {
+      if (JSON.stringify(effects[key]) === JSON.stringify(inherited[key])) delete effects[key];
+    }
+    return { ...clip, effects };
+  }) };
 }

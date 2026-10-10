@@ -1,5 +1,6 @@
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
-export type EffectId = 'mix' | 'volume' | 'speed' | 'audioFadeIn' | 'audioFadeOut' | 'videoFadeIn' | 'videoFadeOut' | 'normalize' | 'noise' | 'equalizer' | 'color' | 'transform' | 'captions' | 'watermark' | 'silence';
+import { clipRecipe, editClips } from './clips';
+export type EffectId = 'mix' | 'volume' | 'speed' | 'audioFadeIn' | 'audioFadeOut' | 'videoFadeIn' | 'videoFadeOut' | 'normalize' | 'noise' | 'equalizer' | 'color' | 'crop' | 'transform' | 'captions' | 'watermark' | 'silence';
 export interface EffectDefinition { id: EffectId; name: string; description: string; group: 'Audio' | 'Video' | 'Timing'; scope: 'clip' | 'source'; keys: (keyof EditSettings)[] }
 export const effectLibrary: EffectDefinition[] = [
   { id: 'mix', name: 'Music & voiceover', description: 'Layer music and narration over the edit', group: 'Audio', scope: 'source', keys: ['audioLayers'] },
@@ -13,6 +14,7 @@ export const effectLibrary: EffectDefinition[] = [
   { id: 'videoFadeIn', name: 'Video fade in', description: 'Reveal the picture from black', group: 'Video', scope: 'clip', keys: ['videoFadeIn'] },
   { id: 'videoFadeOut', name: 'Video fade out', description: 'Fade the picture to black', group: 'Video', scope: 'clip', keys: ['videoFadeOut'] },
   { id: 'color', name: 'Color & LUTs', description: 'Adjust the look and import a LUT', group: 'Video', scope: 'clip', keys: ['color'] },
+  { id: 'crop', name: 'Crop', description: 'Trim the edges of the picture', group: 'Video', scope: 'clip', keys: ['crop'] },
   { id: 'transform', name: 'Rotate, flip & resize', description: 'Reframe your picture', group: 'Video', scope: 'clip', keys: ['geometry'] },
   { id: 'captions', name: 'Captions', description: 'Import or write timed captions', group: 'Video', scope: 'source', keys: ['subtitles'] },
   { id: 'watermark', name: 'Watermark', description: 'Place text or artwork', group: 'Video', scope: 'source', keys: ['overlays'] },
@@ -20,8 +22,46 @@ export const effectLibrary: EffectDefinition[] = [
 ];
 export function availableEffects(asset: MediaAsset) { return effectLibrary.filter(effect => effect.group !== 'Video' || asset.kind === 'video').filter(effect => effect.group !== 'Audio' || asset.hasAudio || effect.id === 'mix'); }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
+  if (effect.id === 'volume') return edit.volume !== 1;
+  if (effect.id === 'normalize') return edit.normalizeLoudness;
+  if (effect.id === 'noise') return edit.reduceNoise;
+  if (effect.id === 'speed') return edit.speed !== 1;
+  if (effect.id === 'watermark') return !!(edit.overlays.text || edit.overlays.image);
+  if (effect.id === 'captions') return edit.subtitles.cues.length > 0;
+  if (effect.id === 'mix') return (edit.audioLayers?.length ?? 0) > 0;
+  if (effect.id === 'crop') return !!edit.crop;
+  if (effect.id.includes('Fade')) return Number(edit[effect.id as 'audioFadeIn']) > 0;
+  if (effect.id === 'equalizer') return Object.values(edit.equalizer).some(value => value !== 0);
+  if (effect.id === 'color') return !!(edit.color.brightness || edit.color.contrast !== 1 || edit.color.saturation !== 1 || edit.color.temperature || edit.color.lut);
+  if (effect.id === 'transform') return !!(edit.geometry.rotation || edit.geometry.flipHorizontal || edit.geometry.flipVertical || edit.geometry.resize);
   const defaults = defaultSettings(asset);
   return effect.keys.some(key => JSON.stringify(edit[key]) !== JSON.stringify(defaults[key]));
+}
+function equalSetting(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false;
+  const a = left as Record<string, unknown>, b = right as Record<string, unknown>;
+  return Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(key => Object.hasOwn(b, key) && equalSetting(a[key], b[key]));
+}
+export function sameEffectSettings(effect: EffectDefinition, left: EditSettings, right: EditSettings) {
+  return effect.keys.every(key => equalSetting(left[key], right[key]));
+}
+export function appliedEffects(asset: MediaAsset, edit: EditSettings, selectedClip: string | null) {
+  const clips = editClips(edit), clip = clips.find(item => item.id === selectedClip);
+  return availableEffects(asset).filter(effect => effect.scope === 'source' ? effectActive(effect, edit, asset)
+    : clip ? effectActive(effect, clipRecipe(edit, clip), asset)
+    : effectActive(effect, edit, asset) || clips.some(item => effectActive(effect, clipRecipe(edit, item), asset)));
+}
+export function effectSummary(effect: EffectDefinition, edit: EditSettings): string {
+  if (effect.id === 'volume') return `${Math.round(edit.volume * 100)}%`;
+  if (effect.id === 'speed') return `${edit.speed}×`;
+  if (effect.id.includes('Fade')) return `${Number(edit[effect.id as 'audioFadeIn']).toFixed(2)}s`;
+  if (effect.id === 'normalize') return `${edit.targetLufs} LUFS`;
+  if (effect.id === 'crop') return edit.crop ? `${edit.crop.width} × ${edit.crop.height}` : 'Original frame';
+  if (effect.id === 'captions') return `${edit.subtitles.cues.length} captions${edit.subtitles.mode === 'none' ? ' · off' : ''}`;
+  if (effect.id === 'mix') return `${edit.audioLayers?.length ?? 0} tracks`;
+  if (effect.id === 'color' && edit.color.lutName) return edit.color.lutName;
+  return effect.description;
 }
 export function resetEffect(effect: EffectDefinition, asset: MediaAsset): Partial<EditSettings> {
   const defaults = defaultSettings(asset);

@@ -138,6 +138,32 @@ input[type='color'] { width: 100%; height: 34px; background: var(--surface-raise
 .effect-target-note { margin: 8px 16px 16px; font-size: 10px; line-height: 1.6; color: var(--quiet); }
 .effect-editor .advanced > summary { display: none; }
 .effect-editor .advanced-content { padding-top: 12px; }
+.effect-stack-heading { padding: 16px 16px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.effect-stack-heading h3 { font-size: 12px; }
+.effect-stack-heading h3 span { color: var(--muted); font-size: 10px; margin-left: 4px; }
+.effect-stack-heading p, .effect-stack-empty { color: var(--quiet); font-size: 10px; line-height: 1.6; margin-top: 6px; }
+.effect-stack-heading .button { flex-shrink: 0; font-size: 10px; padding-inline: 8px; }
+.effect-stack { padding: 0 12px; }
+.effect-stack-empty { padding: 8px 4px 14px; }
+.effect-stack-item { border: 1px solid var(--border-soft); border-radius: 8px; margin-bottom: 7px; overflow: hidden; background: var(--surface-raised); }
+.effect-stack-item.expanded { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.effect-stack-row { display: flex; align-items: center; gap: 2px; padding: 3px 5px 3px 3px; }
+.effect-stack-row > .icon-button { width: 28px; height: 30px; flex-shrink: 0; color: var(--muted); }
+.remove-effect:hover { color: var(--danger, #e57794); }
+.effect-stack-toggle { display: flex; flex: 1; min-width: 0; align-items: center; text-align: left; gap: 7px; padding: 8px 4px; }
+.effect-stack-toggle > svg { flex-shrink: 0; color: var(--quiet); transition: transform .18s ease; }
+.effect-stack-toggle[aria-expanded='true'] > svg { transform: rotate(180deg); }
+.effect-stack-toggle > span { min-width: 0; flex: 1; }
+.effect-stack-toggle strong { display: block; font-size: 11px; }
+.effect-stack-toggle small { display: block; font-size: 10px; color: var(--muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.effect-stack-toggle em { color: var(--quiet); font-size: 9px; font-style: normal; }
+.effect-stack-item .control-section { padding: 12px; }
+.effect-stack-item .effect-target-note { margin: 8px 12px; }
+.effect-stack-item .advanced { padding-inline: 12px; }
+.effect-clear, .effect-back { margin: 4px 12px 8px; font-size: 10px; }
+.effect-browser { border-top: 1px solid var(--border-soft); margin-top: 8px; }
+.effect-browser .effect-library-intro { padding-top: 12px; }
+@media (prefers-reduced-motion: reduce) { .effect-stack-toggle > svg { transition: none; } }
 
 .effect-recipes { padding: 12px 16px; border-bottom: 1px solid var(--border-soft); }
 .effect-recipes summary { color: var(--muted); font-size: 11px; cursor: pointer; }

@@ -19,7 +19,9 @@ test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard se
   await page.getByRole('button', { name: 'Split', exact: true }).click();
   await clickAt(0.25);
   await page.getByRole('button', { name: 'Remove selected section' }).click();
-  // Once split clips are edited, the ruler follows the retained output sequence.
+  // Trimming preserves the scale; Fit explicitly frames the retained output sequence.
+  await expect(page.locator('.timeline-range.timeline-clip')).toHaveAttribute('data-duration', '6');
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
   await clickAt(0.1, 5.1, .9);
   await expect(page.getByRole('button', { name: 'Remove selected section' })).toBeDisabled();
   await clickAt(0.95, 5.1, .9);

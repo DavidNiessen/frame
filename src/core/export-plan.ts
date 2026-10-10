@@ -6,6 +6,7 @@ import { parseMarkers } from './markers';
 import { gifPaletteFilters, validateGifOutput } from './gif-output';
 import { audioOutputArgs, outputAudioCodec, validateAudioOutput } from './audio-output';
 import { clipEffectKeys, clipRecipe } from './clips';
+import { hasMinimumDuration, minimumSection, timeEpsilon } from './time-range';
 import { clipFilterGraph } from './clip-filters';
 import { parseAcceleration } from './hardware';
 import { validateSizeTarget, resolveSizeTarget } from './size';
@@ -38,9 +39,9 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings): void {
   }
   const format = getFormat(edit.format);
   if (![edit.start, edit.end, edit.volume, edit.audioBitrate, edit.fps].every(Number.isFinite)) throw new Error('Enter valid numeric settings.');
-  if (edit.start < 0 || edit.end > asset.duration + 0.05 || edit.end - edit.start < 0.05) throw new Error('Choose a trim range of at least 0.05 seconds within the media.');
+  if (edit.start < 0 || edit.end > asset.duration + 0.05 || !hasMinimumDuration(edit)) throw new Error('Choose a trim range of at least 0.05 seconds within the media.');
   if (!Array.isArray(edit.cuts) || !Array.isArray(edit.splits) || edit.cuts.some(c => !Number.isFinite(c.start) || !Number.isFinite(c.end) || c.start < 0 || c.end <= c.start || c.end > asset.duration + 0.05) || edit.splits.some(s => !Number.isFinite(s) || s < 0 || s > asset.duration)) throw new Error('Invalid timeline sections.');
-  if (editedDuration(edit) < 0.05) throw new Error('Keep at least 0.05 seconds of media.');
+  if (editedDuration(edit) + timeEpsilon < minimumSection) throw new Error('Keep at least 0.05 seconds of media.');
   if (!Number.isFinite(edit.speed) || edit.speed < 0.25 || edit.speed > 4 || typeof edit.preservePitch !== 'boolean') throw new Error('Playback speed must be between 0.25× and 4×.');
   if ([edit.audioFadeIn, edit.audioFadeOut, edit.videoFadeIn, edit.videoFadeOut].some(d => !Number.isFinite(d) || d < 0 || d > editedDuration(edit))) throw new Error('Fade duration must fit within the edited output.');
   if (edit.volume < 0 || edit.volume > 3) throw new Error('Volume must be between 0% and 300%.');

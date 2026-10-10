@@ -10,6 +10,7 @@ import { clipEffectKeys, editClips, clipRecipe, patchClip } from '../core/clips'
 import { resizeSection } from '../core/timeline-edit';
 import { editedDuration } from '../core/timeline';
 import { validateEdit } from '../core/export-plan';
+import { hasMinimumDuration } from '../core/time-range';
 interface History { past: EditSettings[]; present: EditSettings; future: EditSettings[] }
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
   .replace(/^Error invoking remote method '[^']+': (Error: )?/, '').slice(0, 600);
@@ -66,7 +67,7 @@ export function useEditor() {
       const next = { ...h.present, ...patch };
       if (patch.format && next.audioSampleRate !== null && !sampleRates(next.format).includes(next.audioSampleRate)) next.audioSampleRate = null;
       if (next.clips) {
-        if (patch.start !== undefined || patch.end !== undefined) next.clips = next.clips.map(clip => ({ ...clip, start: Math.max(clip.start, next.start), end: Math.min(clip.end, next.end) })).filter(clip => clip.end - clip.start >= .05);
+        if (patch.start !== undefined || patch.end !== undefined) next.clips = next.clips.map(clip => ({ ...clip, start: Math.max(clip.start, next.start), end: Math.min(clip.end, next.end) })).filter(clip => hasMinimumDuration(clip));
         if (!next.clips.length) return current;
         next.clips = next.clips.map(clip => { const effects = { ...clip.effects }, duration = (clip.end - clip.start) / (effects.speed ?? next.speed); for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) if (effects[key] !== undefined) effects[key] = Math.min(effects[key], duration); return { ...clip, effects }; });
         next.start = Math.min(...next.clips.map(clip => clip.start)); next.end = Math.max(...next.clips.map(clip => clip.end)); next.cuts = []; next.splits = [];
