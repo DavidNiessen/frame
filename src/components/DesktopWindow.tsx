@@ -17,7 +17,7 @@ export function DesktopWindow({ children }: { children: ReactNode }) {
   const style = { '--desktop-chrome-height': `${desktopChromeSpace}px`, '--desktop-content-height': `${state.contentHeight}px`, '--app-height': `${state.contentHeight - 2}px` } as CSSProperties;
   return <div className="desktop-window" style={style}>
     <div className="desktop-window-frame" data-chrome-expanded={state.chromeExpanded}>
-      <DesktopTitleBar state={state} pinned={previewFullscreen || state.fullscreen} />
+      <DesktopTitleBar state={state} pinned={previewFullscreen || state.fullscreen || state.maximized} />
       <div className="desktop-window-content"><DesktopChromeContext.Provider value={setPreviewFullscreen}>{children}</DesktopChromeContext.Provider></div>
     </div>
   </div>;

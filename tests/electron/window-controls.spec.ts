@@ -73,6 +73,8 @@ test('reveals frameless controls without moving panels, supports keyboard access
     await expect(page.getByRole('button', { name: 'Restore window', exact: true })).toBeVisible();
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await expect(bar).toBeVisible();
+    expect((await page.evaluate(() => window.frameDesktop!.setWindowChrome(false))).chromeExpanded).toBe(true);
+    await expect(bar).toBeVisible();
     if (process.platform === 'linux') await app.evaluate(() => { (globalThis as typeof globalThis & { restoreFullscreenTest: () => void }).restoreFullscreenTest(); return true; });
     else await native.evaluate(window => window.setFullScreen(false));
     await expect(bar).toBeHidden();
@@ -98,6 +100,8 @@ test('reveals frameless controls without moving panels, supports keyboard access
     await expect.poll(() => app.evaluate(() => (globalThis as typeof globalThis & { chromeActions: string[] }).chromeActions.at(-1))).toBe('maximize');
     if (process.platform !== 'linux') {
       await expect.poll(() => native.evaluate(window => window.isMaximized())).toBe(true);
+      await page.mouse.move(100, 400);
+      await page.evaluate(() => window.dispatchEvent(new Event('blur')));
       await expect(page.getByRole('button', { name: 'Restore window' })).toBeVisible();
       await page.getByRole('button', { name: 'Restore window' }).click();
       await expect.poll(() => native.evaluate(window => window.isMaximized())).toBe(false);

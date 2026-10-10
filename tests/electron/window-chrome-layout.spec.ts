@@ -52,6 +52,7 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
         const window = BrowserWindow.getAllWindows()[0], original = window.isMaximized.bind(window), bounds = window.getBounds();
         window.isMaximized = () => true; window.setBounds(screen.getDisplayMatching(bounds).workArea); window.emit('maximize');
         (globalThis as typeof globalThis & { restoreChromeTest: () => void }).restoreChromeTest = () => { window.isMaximized = original; window.setBounds(bounds); window.emit('unmaximize'); };
+        return true;
       });
     } else await native.evaluate(window => window.maximize());
     await expect.poll(() => page.evaluate(() => window.frameDesktop!.windowState().then(state => state.maximized))).toBe(true);
@@ -60,10 +61,18 @@ test('keeps the video steady when chrome extends, handles resizing and preserves
     await expect(page.locator('.desktop-window-frame')).toHaveCSS('width', `${dockedBounds.width}px`);
     const maximized = await videoBounds(), maximizedNative = await native.evaluate(window => window.getBounds());
     await show(); expect(await videoBounds()).toEqual(maximized); expect(await native.evaluate(window => window.getBounds())).toEqual(maximizedNative);
-    await hide(); expect(await videoBounds()).toEqual(maximized); expect(await native.evaluate(window => window.getBounds())).toEqual(maximizedNative);
-    if (process.platform === 'linux') await app.evaluate(() => (globalThis as typeof globalThis & { restoreChromeTest: () => void }).restoreChromeTest());
+    await page.mouse.move(100, 400);
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    const hiddenRequest = await page.evaluate(() => window.frameDesktop!.setWindowChrome(false));
+    expect(hiddenRequest.maximized).toBe(true); expect(hiddenRequest.chromeExpanded).toBe(true);
+    await expect(page.getByRole('toolbar', { name: 'Window controls' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Restore window', exact: true })).toBeVisible();
+    await settle();
+    expect(await videoBounds()).toEqual(maximized); expect(await native.evaluate(window => window.getBounds())).toEqual(maximizedNative);
+    if (process.platform === 'linux') await app.evaluate(() => { (globalThis as typeof globalThis & { restoreChromeTest: () => void }).restoreChromeTest(); return true; });
     else await native.evaluate(window => window.unmaximize());
     await expect.poll(() => native.evaluate(window => window.getBounds())).toEqual(restoreBounds);
+    await hide();
     await expect(page.locator('.desktop-window-frame')).toHaveCSS('height', '840px');
     await show();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
