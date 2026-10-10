@@ -1,9 +1,8 @@
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 import { clipRecipe, editClips } from './clips';
-export type EffectId = 'trim' | 'mix' | 'volume' | 'speed' | 'audioFadeIn' | 'audioFadeOut' | 'videoFadeIn' | 'videoFadeOut' | 'normalize' | 'noise' | 'equalizer' | 'color' | 'crop' | 'transform' | 'captions' | 'watermark' | 'silence';
+export type EffectId = 'mix' | 'volume' | 'speed' | 'audioFadeIn' | 'audioFadeOut' | 'videoFadeIn' | 'videoFadeOut' | 'normalize' | 'noise' | 'equalizer' | 'color' | 'crop' | 'transform' | 'captions' | 'watermark' | 'silence';
 export interface EffectDefinition { id: EffectId; name: string; description: string; group: 'Audio' | 'Video' | 'Timing'; scope: 'clip' | 'source'; keys: (keyof EditSettings)[] }
 export const effectLibrary: EffectDefinition[] = [
-  { id: 'trim', name: 'Trim', description: 'Set clip edges at the playhead', group: 'Timing', scope: 'clip', keys: [] },
   { id: 'mix', name: 'Music & voiceover', description: 'Layer music and narration over the edit', group: 'Audio', scope: 'source', keys: ['audioLayers'] },
   { id: 'volume', name: 'Volume', description: 'Mute, balance or boost a clip', group: 'Audio', scope: 'clip', keys: ['volume'] },
   { id: 'speed', name: 'Speed', description: 'Slow down or speed up', group: 'Timing', scope: 'clip', keys: ['speed', 'preservePitch'] },
@@ -54,7 +53,6 @@ export function appliedEffects(asset: MediaAsset, edit: EditSettings, selectedCl
     : effectActive(effect, edit, asset) || clips.some(item => effectActive(effect, clipRecipe(edit, item), asset)));
 }
 export function effectSummary(effect: EffectDefinition, edit: EditSettings): string {
-  if (effect.id === 'trim') return `${edit.start.toFixed(2)}–${edit.end.toFixed(2)}s`;
   if (effect.id === 'volume') return `${Math.round(edit.volume * 100)}%`;
   if (effect.id === 'speed') return `${edit.speed}×`;
   if (effect.id.includes('Fade')) return `${Number(edit[effect.id as 'audioFadeIn']).toFixed(2)}s`;

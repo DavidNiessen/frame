@@ -1,4 +1,5 @@
 import { openEffect } from '../helpers/effects';
+import { trim } from '../helpers/timeline';
 import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -9,8 +10,8 @@ test('saves minimum split clips and removes an inherited effect through the nati
   try {
     const page = await app.firstWindow(); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     await expect(page.getByRole('tab', { name: 'Edit', exact: true })).toHaveCount(0);
-    await openEffect(page, 'Trim'); await page.getByLabel('Seek playhead').fill('2.4'); await page.getByRole('button', { name: 'Set in at playhead' }).click();
-    await page.getByLabel('Seek playhead').fill('2.5'); await page.getByRole('button', { name: 'Set out' }).click();
+    await expect(page.getByRole('button', { name: 'Add Trim', exact: true })).toHaveCount(0);
+    await trim(page, 'start', 2.4); await trim(page, 'end', 2.5);
     await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '2.4');
     await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '2.5'); await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.5');
     await page.getByLabel('Seek playhead').fill('2.45'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await expect(page.locator('.timeline-clip')).toHaveCount(2);
