@@ -10,7 +10,7 @@ test('previews and exports speed edits with undo support', async ({ page }, test
   await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
   await expect(page.locator('video')).toHaveJSProperty('playbackRate', 2);
   await expect(page.locator('video')).toHaveJSProperty('preservesPitch', true);
-  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Audio pitch').selectOption('follow');
+  await page.getByRole('tab', { name: 'Effect Controls', exact: true }).click(); await page.getByLabel('Audio pitch').selectOption('follow');
   await expect(page.locator('video')).toHaveJSProperty('preservesPitch', false);
   await page.getByRole('button', { name: 'Undo edit' }).click();
   await expect(page.getByLabel('Audio pitch')).toHaveValue('preserve');

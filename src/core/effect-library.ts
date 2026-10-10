@@ -1,6 +1,7 @@
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 import { clipRecipe, editClips } from './clips';
-export type EffectId = 'mix' | 'volume' | 'speed' | 'audioFadeIn' | 'audioFadeOut' | 'videoFadeIn' | 'videoFadeOut' | 'normalize' | 'noise' | 'equalizer' | 'color' | 'crop' | 'transform' | 'captions' | 'watermark' | 'silence';
+import type { EffectId } from './effect-ids';
+export type { EffectId } from './effect-ids';
 export interface EffectDefinition { id: EffectId; name: string; description: string; group: 'Audio' | 'Video' | 'Timing'; scope: 'clip' | 'source'; keys: (keyof EditSettings)[] }
 export const effectLibrary: EffectDefinition[] = [
   { id: 'mix', name: 'Music & voiceover', description: 'Layer music and narration over the edit', group: 'Audio', scope: 'source', keys: ['audioLayers'] },
@@ -48,9 +49,10 @@ export function sameEffectSettings(effect: EffectDefinition, left: EditSettings,
 }
 export function appliedEffects(asset: MediaAsset, edit: EditSettings, selectedClip: string | null) {
   const clips = editClips(edit), clip = clips.find(item => item.id === selectedClip);
-  return availableEffects(asset).filter(effect => effect.scope === 'source' ? effectActive(effect, edit, asset)
-    : clip ? effectActive(effect, clipRecipe(edit, clip), asset)
-    : effectActive(effect, edit, asset) || clips.some(item => effectActive(effect, clipRecipe(edit, item), asset)));
+  const present = (effect: EffectDefinition, recipe: EditSettings) => recipe.addedEffects?.includes(effect.id) || effectActive(effect, recipe, asset);
+  return availableEffects(asset).filter(effect => effect.scope === 'source' ? present(effect, edit)
+    : clip ? present(effect, clipRecipe(edit, clip))
+    : present(effect, edit) || clips.some(item => present(effect, clipRecipe(edit, item))));
 }
 export function effectSummary(effect: EffectDefinition, edit: EditSettings): string {
   if (effect.id === 'volume') return `${Math.round(edit.volume * 100)}%`;

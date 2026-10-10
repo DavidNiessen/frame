@@ -127,6 +127,7 @@ test('imports WAV audio and converts it to FLAC', async ({ page }, testInfo) => 
   const wav = testInfo.outputPath('tone.wav');
   await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', wav]);
   await page.goto('/');
+  await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
   await page.getByLabel('Choose media files').setInputFiles(wav);
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
   await expect(page.locator('audio')).toHaveJSProperty('readyState', 4);

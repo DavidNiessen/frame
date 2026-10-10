@@ -1,3 +1,7 @@
+import { availableEffects } from '../core/effect-library';
+import { effectAction, effectDragType } from '../core/effect-actions';
+import type { DragEvent } from 'react';
+import { intrinsicEffects } from '../core/effect-ids';
 import { useRef, useState } from 'react';
 import { TimelineRange } from './TimelineRange';
 import { Waveform } from './Waveform';
@@ -11,9 +15,24 @@ export function TimelineClip({ clip, index, edit, asset, position, duration, spe
   effectCount: number; clip: Clip; index: number; edit: EditSettings; asset: MediaAsset; position: { start: number; end: number }; duration: number; speed: number; disabled: boolean;
   waveform?: WaveformPoint[]; selected: boolean; select: (id: string) => void; seek: (time: number) => void; update: (patch: Partial<EditSettings>) => void; dropIndex: (x: number) => number;
 }) {
-  const drag = useRef<{ pointer: number; origin: number; delta: number } | null>(null), [offset, setOffset] = useState(0);
+  const drag = useRef<{ pointer: number; origin: number; delta: number } | null>(null), [offset, setOffset] = useState(0), [effectDrop, setEffectDrop] = useState(false);
   function cancel() { drag.current = null; setOffset(0); }
-  return <div className={`movable-clip ${offset ? 'dragging' : ''}`} style={{ transform: `translateX(${offset}px)` }}><TimelineRange range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(clip.effects.speed ?? edit.speed)} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
+  function dragOver(event: DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes(effectDragType)) return;
+    event.stopPropagation(); event.preventDefault();
+    event.dataTransfer.dropEffect = disabled ? 'none' : 'copy';
+    if (!disabled) setEffectDrop(true);
+  }
+  function dropEffect(event: DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes(effectDragType)) return;
+    event.preventDefault(); event.stopPropagation(); setEffectDrop(false);
+    if (disabled) return;
+    const effect = availableEffects(asset).find(item => item.id === event.dataTransfer.getData(effectDragType));
+    if (!effect) return;
+    if (!intrinsicEffects.includes(effect.id)) update(effectAction(edit, asset, effect, clip.id, 'add'));
+    select(clip.id);
+  }
+  return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(clip.effects.speed ?? edit.speed)} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
     text={`${index + 1} · ${asset.name}${effectCount ? ' ✦' : ''}`} label={`Select section ${index + 1}, ${time(clip.start)} to ${time(clip.end)}`} startLabel={index === 0 ? 'Trim start' : `Section ${index + 1} start`} endLabel={index === editClips(edit).length - 1 ? 'Trim end' : `Section ${index + 1} end`}
     className={`timeline-clip ${selected ? 'active' : ''} ${asset.kind} ${waveform ? 'with-waveform' : ''}`} disabled={disabled}
     renderContent={waveform ? range => <div className="clip-waveform"><Waveform points={waveform} duration={asset.duration} range={range} /></div> : undefined}

@@ -14,7 +14,7 @@ import { editedDuration } from '../core/timeline';
 export function EffectControls({ effect, editor, current, seek }: { effect: EffectDefinition; editor: Editor; current: number; seek: (time: number) => void }) {
   const scoped: Editor = { ...editor, edit: editor.scopedEdit, update: editor.updateClip }, edit = scoped.edit!, asset = editor.asset!;
   return <div className="effect-editor">
-    <p className="effect-target-note">{effect.id === 'mix' ? 'Output timeline · tracks stay in place when clips move.' : effect.scope === 'source' ? 'Source-wide · timing follows clips when reordered.' : editor.selectedClip ? 'Selected clip' : 'All clips · shared settings'}</p>
+    {effect.scope === 'source' && <p className="effect-target-note">{effect.id === 'mix' ? 'Output timeline · tracks stay in place when clips move.' : 'Source-wide · timing follows clips when reordered.'}</p>}
     {effect.id === 'mix' && <AudioMixControls editor={editor} current={current} />}
     {effect.id === 'volume' && <VolumeControls asset={asset} edit={edit} update={scoped.update} />}
     {effect.id === 'speed' && <SpeedControls edit={edit} update={scoped.update} />}

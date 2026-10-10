@@ -4,28 +4,25 @@ import { setBoundary, trim } from '../helpers/timeline';
 async function sample(page: import('@playwright/test').Page) {
   await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
 }
-for (const width of [1440, 390]) test(`keeps the effect browser available while editing and removing effects at ${width}px`, async ({ page }) => {
+for (const width of [1440, 390]) test(`keeps the catalogue stable and separates controls at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 }); await sample(page);
   await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  const browser = page.getByRole('region', { name: 'Effect browser', exact: true });
-  const search = browser.getByLabel('Search effects', { exact: true });
-  await expect(browser).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Add effect', exact: true })).toHaveCount(0);
-  await search.fill('Speed'); await browser.getByRole('button', { name: 'Add Speed', exact: true }).click();
-  await page.getByLabel('Playback speed').selectOption('2');
-  await expect(search).toBeVisible(); await expect(search).toHaveValue('Speed');
-  await search.fill('Volume'); await browser.getByRole('button', { name: 'Add Volume', exact: true }).click();
-  await page.locator('.effect-stack').getByLabel('Volume', { exact: true }).fill('0.5');
-  await expect(search).toBeVisible(); await page.getByRole('button', { name: 'Remove Volume', exact: true }).click();
-  await expect(browser.getByRole('button', { name: 'Add Volume', exact: true })).toBeVisible();
-  await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click();
-  await page.getByRole('button', { name: 'Speed clip 1', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Edit Speed', exact: true })).toHaveAttribute('aria-expanded', 'true');
-  await expect(search).toBeVisible(); await expect(search).toHaveValue('Volume');
-  await page.getByRole('button', { name: 'Remove Speed', exact: true }).click();
-  await expect(page.locator('.effect-stack-item')).toHaveCount(0);
-  await search.fill(''); await browser.getByRole('button', { name: 'Timing', exact: true }).click();
-  await expect(browser.getByRole('button', { name: 'Add Speed', exact: true })).toBeVisible();
+  const browser = page.getByRole('region', { name: 'Effect browser', exact: true }), search = browser.getByLabel('Search effects');
+  await search.fill('Equalizer'); const item = browser.getByRole('button', { name: 'Select Equalizer effect', exact: true });
+  await item.scrollIntoViewIfNeeded(); const before = (await item.boundingBox())!;
+  await browser.getByRole('button', { name: 'Add Equalizer', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Effects', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(search).toHaveValue('Equalizer'); await expect(item).toBeVisible();
+  expect((await item.boundingBox())!.y).toBeCloseTo(before.y, 0);
+  await expect(page.getByLabel('Equalizer bass')).toBeHidden();
+  await page.getByRole('tab', { name: 'Effect Controls', exact: true }).click();
+  await page.getByLabel('Equalizer bass').fill('2');
+  await page.getByRole('button', { name: 'Reset Equalizer', exact: true }).click();
+  await expect(page.getByLabel('Equalizer bass')).toHaveValue('0'); await expect(page.getByRole('button', { name: 'Remove Equalizer', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Equalizer', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Equalizer', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Equalizer', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await expect(search).toHaveValue('Equalizer');
+  await expect(browser.getByRole('button', { name: 'Select Equalizer effect', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test('removes effects directly from the timeline and from a persistent collapsible stack', async ({ page }) => {
@@ -34,12 +31,12 @@ test('removes effects directly from the timeline and from a persistent collapsib
   await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toBeInViewport(); await page.getByRole('button', { name: 'Volume clip 2', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit Volume', exact: true })).toHaveAttribute('aria-expanded', 'true');
   await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
-  await expect(page.getByRole('button', { name: 'Remove Volume', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Remove Speed', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Edit Volume', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Speed', exact: true })).toHaveAttribute('aria-expanded', 'false');
-  await page.getByRole('button', { name: 'Remove Volume', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Reset Volume', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Reset Speed', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit Volume', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Speed', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('button', { name: 'Reset Volume', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume clip 2', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Remove Volume from clip 2', exact: true }).click(); await page.getByRole('button', { name: 'Remove Speed from clip 2', exact: true }).click();
-  await expect(page.locator('.effect-lane')).toHaveCount(0); await expect(page.locator('.effect-stack-item')).toHaveCount(0);
+  await expect(page.locator('.effect-lane')).toHaveCount(0); await expect(page.locator('.effect-stack-item')).toHaveCount(3);
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
 });
 test('handles shared effects, isolated resets and clearing clip effects without removing captions', async ({ page }) => {

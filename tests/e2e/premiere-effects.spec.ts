@@ -1,0 +1,45 @@
+import { expect, test } from '@playwright/test';
+import { openEffect } from '../helpers/effects';
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false')); await page.goto('/'); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4); });
+test('selects without applying, applies with Enter or double-click, and remembers neutral effects after reopening', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Search effects').fill('Color');
+  const item = page.getByRole('button', { name: 'Select Color & LUTs effect', exact: true }); await item.click();
+  await expect(page.getByRole('button', { name: 'Edit Color & LUTs', exact: true })).toHaveCount(0);
+  await item.press('Enter'); await expect(page.getByRole('tab', { name: 'Effects', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: 'Open Effect Controls', exact: true }).click(); await expect(page.getByLabel('Color brightness')).toHaveValue('0');
+  await page.getByLabel('Color brightness').fill('0.2'); await page.getByRole('button', { name: 'Reset Color & LUTs', exact: true }).click();
+  await expect(page.getByLabel('Color brightness')).toHaveValue('0'); await expect(page.getByRole('button', { name: 'Remove Color & LUTs', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 }); await page.reload();
+  await expect(page.getByRole('button', { name: 'Edit Color & LUTs', exact: true })).toBeVisible(); await page.getByRole('button', { name: 'Edit Color & LUTs', exact: true }).click();
+  await expect(page.getByLabel('Color brightness')).toHaveValue('0');
+  await page.getByRole('button', { name: 'Remove Color & LUTs', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Color & LUTs', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Color & LUTs', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Redo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Color & LUTs', exact: true })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Search effects').fill('Equalizer'); await page.getByRole('button', { name: 'Select Equalizer effect', exact: true }).dblclick();
+  await expect(page.getByRole('tab', { name: 'Effects', exact: true })).toHaveAttribute('aria-selected', 'true'); await page.getByRole('tab', { name: 'Effect Controls', exact: true }).click(); await expect(page.getByLabel('Equalizer bass')).toHaveValue('0');
+});
+test('keeps multiple control sections expanded and restores built-ins without deleting them', async ({ page }) => {
+  await openEffect(page, 'Color & LUTs'); await openEffect(page, 'Equalizer');
+  await expect(page.getByRole('button', { name: 'Edit Color & LUTs', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('button', { name: 'Edit Equalizer', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('button', { name: 'Edit Volume', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await page.getByLabel('Volume', { exact: true }).fill('0.5'); await page.getByRole('button', { name: 'Reset Volume', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
+  await expect(page.getByRole('button', { name: 'Remove Volume', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit Equalizer', exact: true }).press('Delete'); await expect(page.getByRole('button', { name: 'Edit Equalizer', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Edit Color & LUTs', exact: true })).toHaveAttribute('aria-expanded', 'true');
+});
+test('drops an effect onto one clip without importing files or affecting its neighbour', async ({ page }) => {
+  await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await page.getByLabel('Effect target').selectOption('all');
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Search effects').fill('Noise');
+  const transfer = await page.evaluateHandle(() => new DataTransfer());
+  await page.getByRole('button', { name: 'Select Noise reduction effect', exact: true }).dispatchEvent('dragstart', { dataTransfer: transfer });
+  await page.locator('.movable-clip').nth(1).dispatchEvent('dragover', { dataTransfer: transfer }); await expect(page.locator('.movable-clip').nth(1)).toHaveClass(/effect-drop-target/);
+  await page.locator('.movable-clip').nth(1).dispatchEvent('drop', { dataTransfer: transfer }); await expect(page.locator('.movable-clip').nth(1)).not.toHaveClass(/effect-drop-target/);
+  await expect(page.locator('.asset-list li')).toHaveCount(1); await expect(page.getByLabel('Effect target')).toHaveValue('source-3-6');
+  await expect(page.getByRole('tab', { name: 'Effects', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: 'Effect Controls', exact: true }).click(); await page.getByRole('button', { name: 'Edit Noise reduction', exact: true }).click(); await expect(page.getByLabel('Noise reduction amount')).toHaveValue('12');
+  await page.getByLabel('Effect target').selectOption({ index: 1 }); await expect(page.getByRole('button', { name: 'Edit Noise reduction', exact: true })).toHaveCount(0);
+  await page.getByLabel('Effect target').selectOption({ index: 2 }); await expect(page.getByRole('button', { name: 'Edit Noise reduction', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
+  await transfer.dispose();
+});

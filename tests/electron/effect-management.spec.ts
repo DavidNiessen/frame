@@ -25,7 +25,7 @@ test('saves minimum split clips and removes an inherited effect through the nati
     await page.getByRole('button', { name: 'Volume clip 1', exact: true }).click(); await expect(page.getByRole('button', { name: 'Edit Volume', exact: true })).toHaveAttribute('aria-expanded', 'true');
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect.poll(() => readFile(destination, 'utf8').then(text => JSON.parse(text).sources[0].edit.clips[1].effects.volume), { timeout: 30000 }).toBe(1);
-    await page.getByRole('button', { name: 'Remove Volume', exact: true }).click(); await expect(page.locator('.effect-lane')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Reset Volume', exact: true }).click(); await expect(page.locator('.effect-lane')).toHaveCount(0);
     await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume clip 1', exact: true })).toBeVisible();
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
 });

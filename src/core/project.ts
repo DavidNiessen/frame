@@ -1,3 +1,4 @@
+import { parseAddedEffects } from './effect-ids';
 import { parseCoverArtwork } from './cover-art';
 import { parseTagOverrides } from './media-tags';
 import { audioLayerSource, parseAudioLayers, sameLayerSource } from './audio-layers';
@@ -36,6 +37,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const c = e.crop === null ? null : record(e.crop);
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
+    addedEffects: parseAddedEffects(e.addedEffects),
     audioDucking: e.audioDucking === undefined ? false : boolean(e.audioDucking), audioLayers: parseAudioLayers(e.audioLayers), audioMixProtectPeaks: e.audioMixProtectPeaks === undefined ? true : boolean(e.audioMixProtectPeaks),
     markers: parseMarkers(e.markers, asset.duration),
     color: parseColor(e.color),
@@ -70,6 +72,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
       const c = record(value), effects = record(c.effects);
       if (Object.keys(effects).some(key => !clipEffectKeys.includes(key as typeof clipEffectKeys[number]))) return fail();
       const clip: TimelineClip = { id: text(c.id, 120), start: number(c.start), end: number(c.end), effects: { ...effects } };
+      if (clip.effects.addedEffects !== undefined) clip.effects.addedEffects = parseAddedEffects(clip.effects.addedEffects);
       if (clip.effects.color) clip.effects.color = parseColor(clip.effects.color);
       if (clip.effects.geometry) clip.effects.geometry = parseGeometry(clip.effects.geometry);
       return clip;

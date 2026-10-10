@@ -5,7 +5,7 @@ import type { Projects } from './useProjects';
 interface Actions {
   workspaceBusy: boolean; importFiles: () => void; importFolder: () => void; folderSupported: boolean; url: () => void;
   edit: () => void; convert: () => void; settings: () => void; openProject: () => void;
-  effects: () => void; exportSettings: () => void;
+  effectControls: () => void; effects: () => void; exportSettings: () => void;
   contactSheet: () => void; scenes: () => void; merge: () => void; batch: () => void;
   waveform: () => void; waveformBusy: boolean; timelineAvailable: boolean; resetLayout: () => void; shortcuts: () => void;
 }
@@ -26,7 +26,8 @@ export function frameCommands(editor: Editor, projects: Projects, current: numbe
     { id: 'project-save', label: 'Save project', description: 'Save all source recipes in a portable project file', group: 'Projects', disabled: media || (projects.saving ? 'Finish saving first' : undefined), run: () => { void projects.save(); } },
     { id: 'undo', label: 'Undo editor change', description: 'Undo the last change for the selected source', group: 'Editing', shortcut: 'Ctrl / ⌘ Z', disabled: busy || (!editor.canUndo ? 'No change to undo' : undefined), run: editing(editor.undo) },
     { id: 'redo', label: 'Redo editor change', description: 'Restore the last undone change', group: 'Editing', shortcut: 'Ctrl / ⌘ Shift Z', disabled: busy || (!editor.canRedo ? 'No change to redo' : undefined), run: editing(editor.redo) },
-    { id: 'effects', label: 'Show effects', description: 'Crop, volume and advanced clip adjustments', group: 'Editing', keywords: 'editing controls crop volume speed voiceover ducking audio filters subtitles recipes', disabled: media, run: actions.effects },
+    { id: 'effect-controls', label: 'Show Effect Controls', description: 'Adjust effects on the selected clip', group: 'Editing', keywords: 'editing controls crop volume speed', disabled: media, run: actions.effectControls },
+    { id: 'effects', label: 'Show effects', description: 'Browse and apply audio, video and timing effects', group: 'Editing', keywords: 'editing controls crop volume speed voiceover ducking audio filters subtitles recipes', disabled: media, run: actions.effects },
     { id: 'marker', label: 'Add timeline marker', description: 'Bookmark the current moment for navigation or chapters', group: 'Review', shortcut: 'M', disabled: media || (!actions.timelineAvailable ? 'Open the editor workspace first' : undefined), run: editing(() => { if (!editor.edit) return; try { editor.update({ markers: addMarker(editor.edit, current) }); } catch (error) { editor.setNotice((error as Error).message); } }) },
     { id: 'waveform', label: 'Generate audio waveform', description: 'Analyze peaks for the selected source', group: 'Review', disabled: media || (!editor.asset?.hasAudio ? 'This source has no audio' : actions.waveformBusy ? 'Waveform analysis is already running' : undefined), run: editing(actions.waveform) },
     { id: 'scenes', label: 'Find scene changes', description: 'Review likely scene boundaries and split points', group: 'Review', keywords: 'detect cuts scan', disabled: video, run: editing(actions.scenes) },

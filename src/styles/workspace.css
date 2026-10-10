@@ -20,7 +20,9 @@
   .library-url { flex: 1; white-space: nowrap; }
 }
 .inspector-tabs { display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
-.inspector-tabs button { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 1; padding: 10px 4px; border-radius: 6px; color: var(--muted); font-size: 12px; }
+.inspector-tabs button { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; min-width: 0; padding: 10px 3px; border-radius: 6px; color: var(--muted); font-size: 11px; }
+.inspector-tabs button svg { width: 13px; flex-shrink: 0; }
+.inspector-tabs button:first-child { flex: 1.4; }
 .inspector-tabs button:hover { background: var(--surface-raised); color: var(--text); }
 .inspector-tabs button[aria-selected='true'] { background: var(--accent-dim); color: var(--accent-text); font-weight: 600; }
 .inspector-scroll [role='tabpanel'][hidden] { display: none; }

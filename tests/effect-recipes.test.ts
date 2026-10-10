@@ -20,3 +20,10 @@ it('validates persisted recipes and returns independent copies', () => {
   for (const settings of [{ volume: 10 }, { speed: NaN }, { crop: { x: -1, y: 0, width: 10, height: 10 } }, { format: 'wav' }]) expect(() => parseEffectRecipe({ ...recipe, settings })).toThrow();
   expect(readRecipes(JSON.stringify({ version: 1, recipes: [recipe, recipe] }))).toEqual([]);
 });
+
+it('copies neutral clip memberships without copying source controls and filters incompatible recipients', () => {
+  const recipe = captureRecipe({ ...defaultSettings(asset), addedEffects: ['color', 'equalizer', 'captions', 'mix'] }, asset, 'Neutral');
+  expect(recipe.settings.addedEffects).toEqual(['color', 'equalizer']);
+  const audio = { ...asset, kind: 'audio' as const };
+  expect(recipePatch(recipe, audio, defaultSettings(audio)).addedEffects).toEqual(['equalizer']);
+});

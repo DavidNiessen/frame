@@ -1,3 +1,4 @@
+import type { EffectId } from './effect-ids';
 import type { MediaTagOverrides } from './media-tags';
 import type { AudioLayer } from './audio-layers';
 import type { LoudnessStats } from './loudness';
@@ -46,6 +47,7 @@ export interface BatchOptions { conversion?: boolean; keepFolders?: boolean; nam
 export interface Crop { x: number; y: number; width: number; height: number }
 export interface TimeRange { start: number; end: number }
 export interface EditSettings {
+  addedEffects?: EffectId[];
   audioLayers?: AudioLayer[];
   audioMixProtectPeaks?: boolean;
   audioDucking?: boolean;

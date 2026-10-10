@@ -2,7 +2,7 @@ import { timelineSections } from './timeline';
 import type { EditSettings, TimeRange } from './types';
 import { hasMinimumDuration } from './time-range';
 
-export const clipEffectKeys = ['volume', 'speed', 'preservePitch', 'normalizeLoudness', 'targetLufs', 'reduceNoise', 'noiseStrength', 'noiseFloor', 'equalizer', 'audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut', 'color', 'geometry', 'crop'] as const;
+export const clipEffectKeys = ['addedEffects', 'volume', 'speed', 'preservePitch', 'normalizeLoudness', 'targetLufs', 'reduceNoise', 'noiseStrength', 'noiseFloor', 'equalizer', 'audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut', 'color', 'geometry', 'crop'] as const;
 export type ClipEffects = Partial<Pick<EditSettings, typeof clipEffectKeys[number]>>;
 export interface TimelineClip extends TimeRange { id: string; effects: ClipEffects }
 export function editClips(edit: EditSettings): TimelineClip[] {
@@ -40,7 +40,7 @@ export function patchClip(edit: EditSettings, id: string, patch: ClipEffects): P
     if (clip.id !== id) return clip;
     const inherited = clipRecipe(edit, { ...clip, effects: {} }), effects = { ...clip.effects, ...patch };
     for (const key of Object.keys(effects) as (keyof ClipEffects)[]) {
-      if (JSON.stringify(effects[key]) === JSON.stringify(inherited[key])) delete effects[key];
+      if (JSON.stringify(key === 'addedEffects' ? effects[key] ?? [] : effects[key]) === JSON.stringify(key === 'addedEffects' ? inherited[key] ?? [] : inherited[key])) delete effects[key];
     }
     return { ...clip, effects };
   }) };
