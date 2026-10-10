@@ -87,7 +87,7 @@
 .time-navigation label { display: grid; gap: 8px; }
 .time-navigation input { width: 100%; font-variant-numeric: tabular-nums; }
 .time-navigation p { margin: 0; color: var(--muted); font-size: 12px; }
-.time-navigation [role=alert] { color: var(--danger); }
+.time-navigation [role=alert] { color: var(--accent-text); }
 @container media-preview (max-width: 520px) { .transport-left { gap: 5px; } .transport-left .icon-button { width: 25px; } .timecode-button { font-size: 10px; } .timecode-button i { display: none; } }
 
 .playback-loop { position: relative; }

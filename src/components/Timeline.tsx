@@ -15,7 +15,8 @@ import { Magnet, Scissors, Trash2, Undo2, Redo2, CornerDownLeft } from 'lucide-r
 import { editedDuration, timelineSections } from '../core/timeline';
 import { time } from '../core/format';
 import type { EditSettings, MediaAsset } from '../core/types';
-export function Timeline({ asset, edit, current, seek, update, undo, redo, canUndo, canRedo, disabled, notify, waveform, waveformError, generateWaveform, analysisProgress, waveformLoading, cancelAnalysis, thumbnails, generateThumbnails, thumbnailLoading, thumbnailProgress, autoWaveforms = true, assets, waveforms, selectedClip, selectClip }: {
+export function Timeline({ generateTrackWaveform, generatingId, asset, edit, current, seek, update, undo, redo, canUndo, canRedo, disabled, notify, waveform, waveformError, generateWaveform, analysisProgress, waveformLoading, cancelAnalysis, thumbnails, generateThumbnails, thumbnailLoading, thumbnailProgress, autoWaveforms = true, assets, waveforms, selectedClip, selectClip }: {
+  generatingId: string | null; generateTrackWaveform: (asset: MediaAsset) => void;
   assets: MediaAsset[]; waveforms: Record<string, WaveformPoint[]>; selectedClip: string | null; selectClip: (id: string) => void;
   autoWaveforms?: boolean;
   thumbnails?: string; generateThumbnails: () => void; thumbnailLoading: boolean; thumbnailProgress: number;
@@ -75,7 +76,7 @@ export function Timeline({ asset, edit, current, seek, update, undo, redo, canUn
     <div ref={scroll} className="timeline-body" onScroll={event => { const node = event.currentTarget; setScrollLeft(node.scrollLeft); setFraction(node.scrollWidth > node.clientWidth ? node.scrollLeft / (node.scrollWidth - node.clientWidth) : 0); }} role="region" aria-label="Timeline tracks" tabIndex={0}><div ref={content} className="timeline-content" style={{ width: `${zoom * 100}%` }}><div className="timeline-ruler" {...scrubProps} title="Drag to scrub the sequence">{[0, 1, 2, 3, 4].map(i => <span key={i}>{time(total * i / 4)}</span>)}</div>
       <TimelineMarkers edit={edit} current={current} total={total} sequence={sequence} zoom={1} scrollLeft={0} disabled={disabled} seek={seek} update={update} notify={notify} />
       {thumbnails && <ThumbnailStrip url={thumbnails} duration={asset.duration} edit={edit} seek={seek} disabled={disabled} />}
-      {filter !== 'clips' && filter !== 'captions' && <AudioLayerLanes assets={assets} waveforms={waveforms} edit={edit} compact={compact} disabled={disabled} update={update} seek={seek} />}
+      {filter !== 'clips' && filter !== 'captions' && <AudioLayerLanes generateWaveform={generateTrackWaveform} generatingId={generatingId} assets={assets} waveforms={waveforms} edit={edit} compact={compact} disabled={disabled} update={update} seek={seek} />}
       <TimedLanes compact={compact} filter={filter} selectClip={selectClip} asset={asset} edit={edit} update={update} disabled={disabled} seek={seek} />
     </div></div>
     <div className="timeline-clip-viewport">      <div className="timeline-track timeline-lane" style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }} {...scrubProps}><div className="track-baseline" />{clips.map((clip, i) => <TimelineClip key={clip.id} clip={clip} index={i} edit={edit} asset={asset} duration={total} position={sequence ? positions[i] : clip} speed={sequence ? positions[i].speed : 1} disabled={disabled} selected={selectedClip === clip.id || !selectedClip && active?.start === clip.start} select={selectClip} seek={seek} update={update} waveform={waveform}

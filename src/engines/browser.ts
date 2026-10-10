@@ -1,5 +1,6 @@
 import { resolveAudioLayers } from '../core/audio-layers';
 import type { MediaAsset } from '../core/types';
+import { sourceFingerprint } from '../core/source-fingerprint';
 import { mergedChapters, serializeChapters } from '../core/chapters';
 import { writeBrowserLayers } from './browser-audio-layers';
 import { conversionIndex, validateBatchOptions } from '../core/output-naming';
@@ -76,7 +77,7 @@ export function createBrowserEngine(): MediaEngine {
             if (code !== 0 && code !== -1) throw new Error(`Cannot read “${file.name}”. Try a different media file.`);
             const data = await ff.readFile(metadata, 'utf8');
             const asset = { ...parseProbe(JSON.parse(String(data))), id, name: file.name, size: file.size,
-              relativePath: browserRelativePath(file.webkitRelativePath), previewUrl: URL.createObjectURL(file) };
+              fingerprint: await sourceFingerprint(file), relativePath: browserRelativePath(file.webkitRelativePath), previewUrl: URL.createObjectURL(file) };
             files.set(id, file); sources.set(id, asset); report.assets.push(asset); retained += file.size;
           } catch (error) {
             report.issues.push({ name: browserRelativePath(file.webkitRelativePath) || file.name, message: error instanceof Error ? error.message : 'Unable to read this file.' });

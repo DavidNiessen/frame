@@ -44,7 +44,7 @@ export function useProjects(editor: Editor) {
   function restore() {
     if (!pending || !canRestore || editor.busy) return;
     try {
-      editor.restoreEdits(pending.sources.map((entry, index) => ({ id: links[index]!, edit: { ...entry.edit, audioLayers: entry.edit.audioLayers?.map(layer => { const sourceIndex = pending.sources.findIndex(item => sameLayerSource(layer.source, item.source)); const asset = editor.assets.find(item => item.id === links[sourceIndex])!; return { ...layer, source: sourceIdentity(asset) }; }) } })), links[pending.selectedSource]!);
+      editor.restoreEdits(pending.sources.map((entry, index) => ({ id: links[index]!, edit: { ...entry.edit, audioLayers: entry.edit.audioLayers?.map(layer => { const sourceIndex = layer.sourceIndex ?? pending.sources.findIndex(item => sameLayerSource(layer.source, item.source)); const asset = editor.assets.find(item => item.id === links[sourceIndex])!; const { sourceIndex: _sourceIndex, ...runtime } = layer; return { ...runtime, sourceId: asset.id, source: sourceIdentity(asset) }; }) } })), links[pending.selectedSource]!);
       setName(pending.name); setPending(null); setRestoreGeneration(n => n + 1); editor.setNotice('Project opened. Your saved edits are ready.');
     } catch (error) { report(error); }
   }

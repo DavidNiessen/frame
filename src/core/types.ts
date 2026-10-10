@@ -37,6 +37,7 @@ export interface MediaAsset {
   artworkIndex?: number;
   previewUrl: string;
   relativePath?: string;
+  fingerprint?: string;
 }
 export interface ImportIssue { name: string; message: string }
 export interface ImportReport { assets: MediaAsset[]; issues: ImportIssue[]; skipped: number; folderName?: string }

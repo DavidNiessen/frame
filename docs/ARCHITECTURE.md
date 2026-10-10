@@ -116,3 +116,5 @@ Watch-folder configuration uses trusted main-process IPC and native folder selec
 Completion notifications are an independent desktop capability with a durable user preference. Saved exports, merges and batches notify only while their originating window is in the background; partial failures remain explicit and cancellations stay quiet. Notification failure never turns a saved export into an error.
 
 Desktop export history records successfully published outputs centrally, independently of renderer windows. Mutations serialize to an atomic per-user JSON file; trusted IPC exposes bounded history and reveal-by-entry-ID. Shutdown waits briefly for watch jobs and history writes to settle.
+
+Imported sources have a SHA-256 fingerprint sampled from their first and last 64 KiB plus size, with the same algorithm on web and desktop. This is an identity aid, not a full-file integrity guarantee. Projects retain it for same-name relinking; audio layers use runtime IDs in memory and source indices in portable projects. Legacy projects still match using their available metadata.

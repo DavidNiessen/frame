@@ -1,4 +1,4 @@
-import { sameLayerSource } from '../core/audio-layers';
+import { audioLayerSource } from '../core/audio-layers';
 import type { MediaAsset } from '../core/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Editor } from './useEditor';
@@ -45,12 +45,12 @@ export function useWaveforms(editor: Editor, enabled = true, autoWaveforms = tru
     }
   }, [autoWaveforms]);
   useEffect(() => {
-    const targets = [...(editor.asset?.kind === 'audio' ? [editor.asset] : []), ...(editor.edit?.audioLayers ?? []).flatMap(layer => { const source = editor.assets.find(asset => sameLayerSource(layer.source, asset)); return source ? [source] : []; })];
+    const targets = [...(editor.asset?.kind === 'audio' ? [editor.asset] : []), ...(editor.edit?.audioLayers ?? []).flatMap(layer => { const source = audioLayerSource(layer, editor.assets); return source ? [source] : []; })];
     // A single queue serves main and additional tracks, including the independent WASM worker.
     const asset = targets.find(asset => asset.hasAudio && !waveforms[asset.id] && !attempted.current.has(asset.id));
     if (enabled && autoWaveforms && asset && !editor.busy && !job.current) void generate(true, asset);
   }, [enabled, autoWaveforms, editor.asset, editor.edit?.audioLayers, editor.assets, editor.busy, waveforms, loading, generate]);
   useEffect(() => () => { cancelled.current = true; void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.()); }, []);
-  return { all: waveforms, points: editor.asset ? waveforms[editor.asset.id] : undefined, error: editor.asset ? errors[editor.asset.id] : undefined,
+  return { all: waveforms, generatingId: job.current?.id ?? null, points: editor.asset ? waveforms[editor.asset.id] : undefined, error: editor.asset ? errors[editor.asset.id] : undefined,
     generate, progress, loading: loading && job.current?.id === editor.asset?.id, cancel: () => { cancelled.current = true; void latest.current.backgroundEngine().then(engine => engine.cancelWaveform?.()); } };
 }

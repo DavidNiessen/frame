@@ -246,3 +246,5 @@ Desktop Settings includes watch folders: Frame polls up to 10 input folders whil
 Recent exports in Settings lists the last 100 desktop outputs from editing, conversion, merging and watch folders. Search the list, reveal an output in its folder, or forget entries without deleting saved files. History remains on the device and survives restarts.
 
 Timeline markers can become chapters in MP4, MOV, MKV and M4A exports. Enable **Chapters from markers** in advanced export settings, or download a timestamp list from the marker manager. Chapters follow retained clip order and speed. Merged exports can also add chapters using clip names and markers.
+
+Project relinking also compares a small sampled content fingerprint, helping distinguish equally named files from different albums without hashing entire large videos. Audio tracks preserve their specific source references in saved projects.

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { AudioLines, Plus, Trash2, VolumeX } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import { sourceIdentity } from '../core/project';
-import { sameLayerSource, type AudioLayer } from '../core/audio-layers';
+import { audioLayerSource, type AudioLayer } from '../core/audio-layers';
 import { editClips } from '../core/clips';
 import { outputTimeAtSource } from '../core/fades';
 import { editedDuration } from '../core/timeline';
@@ -16,13 +16,13 @@ export function AudioMixControls({ editor, current }: { editor: Editor; current:
   const preview = useAudioPreview(editor);
   const [sourceId, setSourceId] = useState(''), edit = editor.edit!, duration = editedDuration(edit), tracks = edit.audioLayers ?? [], sources = editor.assets.filter(asset => asset.hasAudio);
   const patch = (id: string, values: Partial<AudioLayer>) => editor.update({ audioLayers: tracks.map(layer => { if (layer.id !== id) return layer; const next = { ...layer, ...values }; return { ...next, fadeIn: Math.min(next.fadeIn, next.end - next.start), fadeOut: Math.min(next.fadeOut, next.end - next.start) }; }) });
-  return <section className="control-section audio-mix-controls"><div className="section-title"><AudioLines size={16} /><h3>Music & voiceover</h3></div><p className="field-note">Import audio into the library, then add it here. Tracks follow the edited output time and stay in place when video clips move.</p><div className="audio-mix-add"><select aria-label="Audio track source" value={sourceId} onChange={event => setSourceId(event.target.value)}><option value="">Choose a source…</option>{sources.map(source => <option key={source.id} value={source.id}>{source.name}</option>)}</select><button className="icon-button" aria-label="Add audio track" disabled={!sourceId || tracks.length >= 16} onClick={() => {
+  return <section className="control-section audio-mix-controls"><div className="section-title"><AudioLines size={16} /><h3>Music & voiceover</h3></div><p className="field-note">Import audio into the library, then add it here. Tracks follow the edited output time and stay in place when video clips move.</p><div className="audio-mix-add"><select aria-label="Audio track source" value={sourceId} onChange={event => setSourceId(event.target.value)}><option value="">Choose a source…</option>{sources.map(source => <option key={source.id} value={source.id}>{source.relativePath ?? source.name}</option>)}</select><button className="icon-button" aria-label="Add audio track" disabled={!sourceId || tracks.length >= 16} onClick={() => {
     const source = sources.find(asset => asset.id === sourceId); if (!source) return; const start = Math.min(Math.max(0, outputTimeAtSource(edit, current)), Math.max(0, duration - .05));
-    const layer: AudioLayer = { id: crypto.randomUUID(), source: sourceIdentity(source), start, end: Math.min(duration, start + source.duration), sourceStart: 0, sourceEnd: source.duration, volume: .5, fadeIn: 0, fadeOut: 0, loop: false, muted: false };
+    const layer: AudioLayer = { id: crypto.randomUUID(), sourceId: source.id, source: sourceIdentity(source), start, end: Math.min(duration, start + source.duration), sourceStart: 0, sourceEnd: source.duration, volume: .5, fadeIn: 0, fadeOut: 0, loop: false, muted: false };
     editor.update({ clips: editClips(edit), audioLayers: [...tracks, layer] });
   }}><Plus size={16} /></button></div>
   {tracks.map((layer, index) => <details key={layer.id} className="audio-mix-track" open><summary><span>{index + 1}. {layer.source.name}</span>{layer.muted && <VolumeX size={13} />}</summary><div className="audio-mix-track-controls">
-    {!editor.assets.some(asset => sameLayerSource(layer.source, asset)) && <p role="alert" className="field-note">Import this source to restore its track.</p>}
+    {!audioLayerSource(layer, editor.assets) && <p role="alert" className="field-note">Import this source to restore its track.</p>}
     <p className="field-note">{time(layer.start)}–{time(layer.end)} in output{layer.start >= duration ? ' · outside current edit' : ''} · drag its timeline bar to move, or edges to trim.</p>
     <label className="stacked-label">Track volume · {Math.round(layer.volume * 100)}%<input type="range" aria-label={`Track ${index + 1} volume`} min={0} max={3} step={.01} value={layer.volume} onChange={event => patch(layer.id, { volume: Number(event.target.value) })} /></label>
     <label className="switch-row"><span>Mute track</span><input type="checkbox" aria-label={`Mute track ${index + 1}`} checked={layer.muted} onChange={event => patch(layer.id, { muted: event.target.checked })} /></label>
