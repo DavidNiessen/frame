@@ -1,5 +1,5 @@
 import { recordExport } from './export-history';
-import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 import { readFile, writeFile, rename, rm, lstat, realpath, stat } from 'node:fs/promises';
 import { join, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -8,7 +8,7 @@ import { taggedNamingAsset } from '../src/core/media-tags';
 import { conversionName, conversionSettings, canConvert } from '../src/core/conversion';
 import { buildExportArgs } from '../src/core/export-plan';
 import { editedDuration } from '../src/core/timeline';
-import { WatchRunner, validateWatchPaths } from './watch-runner';
+import { WatchRunner, validateWatchPaths, validateWatchNetwork } from './watch-runner';
 import { MediaJobs } from './jobs';
 import { probeFile, runFfmpeg } from './native';
 import { withResources } from './resources';
@@ -16,6 +16,7 @@ import { safeOutputPath, publishOutput } from './output-files';
 
 export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => void) {
   const config = join(app.getPath('userData'), 'watch-folders.json'), receipts = join(app.getPath('userData'), 'watch-receipts.json');
+  const selections = new WeakMap<WebContents, { input: string; output: string }>();
   const jobs = new MediaJobs(); let writes = Promise.resolve(), mutations = Promise.resolve();
   async function atomic(path: string, data: unknown) {
     const temporary = `${path}.${randomUUID()}.tmp`;
@@ -65,17 +66,21 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
   const find = (id: string) => { const watch = runner.watches.find(item => item.id === id); if (!watch) throw new Error('This watch folder no longer exists.'); return watch; };
   ipcMain.handle('watch:status', async event => { trusted(event); await ready; return runner.status(); });
   ipcMain.handle('watch:choose', async event => {
-    trusted(event); const window = BrowserWindow.fromWebContents(event.sender); if (!window) return null;
+    trusted(event); selections.delete(event.sender); const window = BrowserWindow.fromWebContents(event.sender); if (!window) return null;
     const source = await dialog.showOpenDialog(window, { title: 'Choose a folder to watch', properties: ['openDirectory'] }); if (source.canceled) return null;
     const output = await dialog.showOpenDialog(window, { title: 'Choose where converted files are saved', properties: ['openDirectory', 'createDirectory'] }); if (output.canceled) return null;
-    return validateWatchPaths(source.filePaths[0], output.filePaths[0]);
+    const paths = await validateWatchPaths(source.filePaths[0], output.filePaths[0]); selections.set(event.sender, paths); return paths;
   });
   ipcMain.handle('watch:add', (event, value: unknown) => { trusted(event); return mutate(async () => {
     if (runner.watches.length >= 10) throw new Error('You can watch up to 10 folders.');
-    const draft = parseWatchDraft(value), paths = await validateWatchPaths(draft.input, draft.output);
+    const draft = parseWatchDraft(value), selected = selections.get(event.sender);
+    if (!selected || draft.input !== selected.input || draft.output !== selected.output) throw new Error('Choose the watch folders using the native folder picker first.');
+    const paths = await validateWatchPaths(draft.input, draft.output);
+    if (paths.input !== selected.input || paths.output !== selected.output) throw new Error('A selected folder moved. Choose the folders again.');
     if (runner.watches.some(item => item.input === paths.input)) throw new Error('This source folder already has a watch.');
+    validateWatchNetwork([...runner.watches, paths]);
     if (draft.namingTemplate.includes('{index}')) throw new Error('Watch folders support {name}, {format} and {folder}. Use the batch converter for numbered files.');
-    const watch = { ...draft, ...paths, id: randomUUID(), enabled: true }; await runner.initialize(watch); runner.watches.push(watch);
+    const watch = { ...draft, ...paths, id: randomUUID(), enabled: true }; await runner.initialize(watch); runner.watches.push(watch); selections.delete(event.sender);
   }); });
   ipcMain.handle('watch:enabled', (event, id: string, enabled: unknown) => { trusted(event); return mutate(async () => { if (typeof enabled !== 'boolean') throw new Error('Choose whether the watch is enabled.'); find(id).enabled = enabled; if (!enabled) runner.cancel(id); }); });
   ipcMain.handle('watch:remove', (event, id: string) => { trusted(event); return mutate(async () => { find(id); runner.cancel(id); runner.watches = runner.watches.filter(item => item.id !== id); }); });

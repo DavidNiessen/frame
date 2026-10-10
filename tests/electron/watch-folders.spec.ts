@@ -13,6 +13,12 @@ test('watches stable new files, preserves collisions, pauses, and remembers conv
     await app.evaluate(({ dialog }, paths) => { let index = 0; dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [paths[index++ % 2]] }); }, [library.root, output]);
     await page.getByRole('button', { name: 'Add watch folder', exact: true }).click(); await expect(page.getByRole('dialog', { name: 'Add watch folder' })).toBeVisible();
     await page.getByLabel('Watch name', { exact: true }).fill('Music inbox'); await page.getByRole('button', { name: 'Start watching', exact: true }).click(); await expect(page.getByLabel('Enable Music inbox')).toBeChecked();
+    const draft = await page.evaluate(() => window.frameDesktop!.watchFoldersStatus().then(status => status.watches[0]));
+    await expect(page.evaluate(value => window.frameDesktop!.addWatchFolder(value), draft)).rejects.toThrow('native folder picker');
+    await app.evaluate(({ dialog }, paths) => { let index = 0; dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [paths[index++ % 2]] }); }, [output, library.root]);
+    await page.evaluate(() => window.frameDesktop!.chooseWatchFolders());
+    await expect(page.evaluate(value => window.frameDesktop!.addWatchFolder({ ...value, input: value.output, output: value.input }), draft)).rejects.toThrow('re-enter');
+    expect((await page.evaluate(() => window.frameDesktop!.watchFoldersStatus())).watches).toHaveLength(1);
     // Initial songs are skipped; colliding output files stay intact.
     expect(await readdir(output)).toEqual([]); await mkdir(join(output, 'Album One')); const target = join(output, 'Album One', 'New.flac'); await writeFile(target, 'Existing');
     const incoming = join(library.root, 'Album One', 'New.wav'), bytes = await readFile(library.sources[0]);

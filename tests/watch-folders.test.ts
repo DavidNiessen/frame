@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { StableWatchFiles, parseWatchDraft } from '../src/core/watch-folders';
 import { builtInPresets } from '../src/core/presets';
-import { WatchRunner, validateWatchPaths } from '../electron/watch-runner';
+import { WatchRunner, validateWatchPaths, validateWatchNetwork } from '../electron/watch-runner';
 describe('watch folders', () => {
   it('waits for stable files, records successes across restart, and retries failures explicitly', () => {
     const files = new StableWatchFiles(); expect(files.observe('song', '100:1', 0)).toBe(false); expect(files.observe('song', '200:2', 2000)).toBe(false); expect(files.observe('song', '200:2', 3999)).toBe(false); expect(files.observe('song', '200:2', 4000)).toBe(true);
@@ -16,7 +16,7 @@ describe('watch folders', () => {
     const root = await mkdtemp(join(tmpdir(), 'frame-watch-unit-')); const input = join(root, 'input'), output = join(root, 'output');
     try {
       await mkdir(input); await mkdir(output); await writeFile(join(input, 'old.mp3'), 'old'); await mkdir(join(input, 'converted'));
-      await expect(validateWatchPaths(input, join(input, 'converted'))).rejects.toThrow('outside'); await expect(validateWatchPaths(input, input)).rejects.toThrow('outside');
+      await expect(validateWatchPaths(input, join(input, 'converted'))).rejects.toThrow('outside'); await expect(validateWatchPaths(input, input)).rejects.toThrow('outside'); await expect(validateWatchPaths(input, root)).rejects.toThrow('contain');
       const draft = parseWatchDraft({ name: 'Music', input, output, settings: builtInPresets[5].settings, keepFolders: true, recursive: true, includeExisting: false, namingTemplate: '{name}' });
       const watch = { ...draft, id: 'music', enabled: true }, encoded: string[] = [];
       const runner = new WatchRunner(async work => { encoded.push(work.path); return join(output, 'new.flac'); }, async () => {});
@@ -35,4 +35,12 @@ it('settles cancellation and persists a conversion that completed as shutdown st
     await new Promise<void>(resolve => { const timer = setInterval(() => { if (release) { clearInterval(timer); resolve(); } }, 1); });
     runner.stop(); const settled = runner.settled(); release!(); await settled; await running; expect(saved).toBe(true); expect(runner.status().activity[0].status).toBe('done'); expect(runner.receipts().music[join(input, 'song.mp3')]).toBeDefined();
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+it('rejects output paths that can feed another watch, including paused watches', () => {
+  const root = join(tmpdir(), 'frame-watch-network'), first = { input: join(root, 'originals'), output: join(root, 'converted') }, second = { input: join(root, 'inbox'), output: join(root, 'ready') };
+  expect(() => validateWatchNetwork([first, second])).not.toThrow();
+  expect(() => validateWatchNetwork([first, { ...second, input: first.output }])).toThrow('re-enter');
+  expect(() => validateWatchNetwork([first, { ...second, input: join(first.output, 'albums') }])).toThrow('re-enter');
+  expect(() => validateWatchNetwork([first, { ...second, output: join(first.input, 'nested') }])).toThrow('re-enter');
 });

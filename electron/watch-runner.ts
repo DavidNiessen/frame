@@ -4,12 +4,20 @@ import { isAbsolute, relative, basename, sep } from 'node:path';
 import { StableWatchFiles, type WatchActivity, type WatchFolder, type WatchStatus } from '../src/core/watch-folders';
 import { collectFolderMedia } from './folders';
 export interface WatchWork { watch: WatchFolder; path: string; relativePath: string; signal: AbortSignal; progress: (ratio: number) => void }
+function inside(parent: string, child: string) {
+  const relation = relative(parent, child);
+  return !relation || relation !== '..' && !relation.startsWith(`..${sep}`) && !isAbsolute(relation);
+}
+export function validateWatchNetwork(watches: Pick<WatchFolder, 'input' | 'output'>[]) {
+  for (const output of watches) for (const source of watches) {
+    if (inside(source.input, output.output) || inside(output.output, source.input)) throw new Error('Choose separate watched source and output folders. Converted files must not re-enter any watch.');
+  }
+}
 export async function validateWatchPaths(input: string, output: string) {
   if (!isAbsolute(input) || !isAbsolute(output)) throw new Error('Choose absolute source and destination folders.');
   const [source, destination] = await Promise.all([realpath(input), realpath(output)]);
   if (!(await lstat(source)).isDirectory() || !(await lstat(destination)).isDirectory()) throw new Error('Choose existing source and destination folders.');
-  const relation = relative(source, destination);
-  if (!relation || !relation.startsWith(`..${sep}`) && relation !== '..' && !isAbsolute(relation)) throw new Error('The output folder must be outside the watched source folder.');
+  if (inside(source, destination) || inside(destination, source)) throw new Error('The output folder must be outside the watched source folder, and must not contain it.');
   return { input: source, output: destination };
 }
 export class WatchRunner {
@@ -35,6 +43,7 @@ export class WatchRunner {
     if (this.running || this.stopped) return; this.running = true;
     this.error = '';
     try {
+      try { validateWatchNetwork(this.watches); } catch (issue) { this.error = (issue as Error).message; return; }
       const queues: { watch: WatchFolder; path: string; relativePath: string; fingerprint: string }[][] = [];
       for (const watch of this.watches.filter(watch => watch.enabled)) {
         try {
