@@ -23,7 +23,10 @@ test('previews and exports video/audio fades after a speed edit', async ({ page 
 });
 test('crossfades browser clips with audio and video', async ({ page }, testInfo) => {
   await page.goto('/'); const buffer = await readFile('tests/fixtures/sample.mp4');
-  await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
+  await expect(page.getByLabel('Autosave status')).not.toHaveText(/Reopening|Clearing/);
+  const choosing = page.waitForEvent('filechooser'); await page.getByRole('button', { name: 'Add media', exact: true }).click();
+  await (await choosing).setFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
+  await expect(page.locator('.asset-list li')).toHaveCount(2, { timeout: 30000 }); await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 1); await page.locator('.asset-select').filter({ hasText: 'two.mp4' }).click(); await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 1);
   await page.getByLabel('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Merge clips', exact: true });

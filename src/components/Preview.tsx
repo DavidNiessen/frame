@@ -55,7 +55,8 @@ export function Preview({ asset, edit, previewUrl, mediaRef, current, setCurrent
     if (!media.paused) media.pause();
     else {
       const next = nextPlayableTime(playbackEdit, media.currentTime);
-      media.currentTime = next ?? playbackEdit.clips?.[0]?.start ?? playbackEdit.start;
+      const start = next ?? playbackEdit.clips?.[0]?.start ?? playbackEdit.start;
+      if (media.currentTime !== start) media.currentTime = start;
       void media.play().catch(() => setFailed(true));
     }
   }

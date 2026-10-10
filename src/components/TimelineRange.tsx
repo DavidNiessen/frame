@@ -4,7 +4,6 @@ import { snapTime, type SnapSpace } from '../core/snapping';
 import type { TimeRange } from '../core/types';
 import type { Boundary } from '../core/timeline-edit';
 import { time } from '../core/format';
-import { X } from 'lucide-react';
 interface Props {
   snapSpace?: SnapSpace; selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
   disabled: boolean; onChange: (range: TimeRange) => void; onSelect: (keepView?: boolean) => void;
@@ -60,7 +59,8 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     }
     setDraft(null); event.currentTarget.releasePointerCapture(event.pointerId);
   }
-  return <div data-wide-handles={wideHandles || undefined} data-effect-timeline={selectOnPointer || undefined} data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className} ${draft ? 'trimming' : ''} ${remove ? 'removable' : ''} ${onMove ? 'movable-range' : ''}`} style={{ left: selectOnPointer || wideHandles ? `max(0px, min(${left}, calc(100% - max(var(--effect-hit-width, 48px), ${width}))))` : left, width }}>
+  return <div data-wide-handles={wideHandles || undefined} data-effect-timeline={selectOnPointer || undefined} data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className} ${draft ? 'trimming' : ''} ${onMove ? 'movable-range' : ''}`} style={{ left: selectOnPointer || wideHandles ? `max(0px, min(${left}, calc(100% - max(var(--effect-hit-width, 48px), ${width}))))` : left, width }}
+    onContextMenu={remove ? event => { event.preventDefault(); event.stopPropagation(); if (!disabled) { cancel(); remove.run(); } } : undefined}>
     <button className="range-body" disabled={disabled} {...bodyProps} onClick={event => { if (!suppressClick.current && (event.detail === 0 || selectOnPointer)) onSelect(); }}
       onPointerDown={onMove ? event => {
         event.stopPropagation(); if (disabled || event.button !== 0) return;
@@ -79,9 +79,8 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
         }
         if (!event.defaultPrevented && remove && ['Delete', 'Backspace'].includes(event.key)) { event.preventDefault(); event.stopPropagation(); remove.run(); }
       }}
-      aria-label={label} title={`${label} · ${time(shown.start)}–${time(shown.end)}${remove ? ' · Delete to remove' : ''}`}><span>{text ?? label}</span></button>
+      aria-label={label} title={`${label} · ${time(shown.start)}–${time(shown.end)}${remove ? ' · Right-click or Delete to remove' : ''}`}><span>{text ?? label}</span></button>
     {renderContent?.(shown)}
-    {remove && <button className="range-remove" aria-label={remove.label} title={remove.label} disabled={disabled} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); remove.run(); }}><X size={12} /></button>}
     {edges.map(edge => <button key={edge} className={`range-handle ${edge}`} role="slider" aria-label={edge === 'start' ? startLabel : endLabel}
       title={edge === 'start' ? startTitle : endTitle}
       aria-orientation="horizontal" aria-valuemin={edge === 'start' ? limits.start : shown.start + minimum}

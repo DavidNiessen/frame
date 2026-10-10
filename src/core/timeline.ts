@@ -27,7 +27,7 @@ export function timelineSections(edit: EditSettings): TimeRange[] {
 }
 export function nextPlayableTime(edit: EditSettings, current: number): number | null {
   if (edit.clips) {
-    const currentClip = edit.clips.find(clip => current >= clip.start && current < clip.end - .015);
+    const currentClip = edit.clips.find(clip => current >= clip.start && current < clip.end);
     return currentClip ? current : edit.clips[0]?.start ?? null;
   }
   for (const range of keptRanges(edit)) {

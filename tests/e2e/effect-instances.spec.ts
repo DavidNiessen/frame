@@ -48,7 +48,7 @@ test('adds multiple captions at the playhead and adjusts their own text and posi
   const movable = page.getByRole('button', { name: 'Move caption 2', exact: true }); await expect(movable).toHaveText('Second caption');
   await movable.focus(); await movable.press('ArrowUp');
   await page.getByRole('button', { name: 'Caption 1', exact: true }).click(); await expect(page.getByLabel('Caption text', { exact: true })).toHaveValue('New caption'); await closeEffect(page);
-  await page.getByRole('button', { name: 'Remove caption 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Caption 1', exact: true }).click({ button: 'right' });
   await expect(page.getByRole('button', { name: 'Caption 1', exact: true })).toHaveText('Second caption');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByRole('button', { name: 'Caption 2', exact: true })).toHaveText('Second caption');
 });

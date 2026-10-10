@@ -1,9 +1,10 @@
 import { effectiveSpeed, effectiveVolume, extraInstances } from '../core/effect-instances';
 import { useEffect, useRef, type RefObject } from 'react';
-import { clipAtSource, clipRecipe, editClips } from '../core/clips';
+import { clipAtSource, clipRecipe } from '../core/clips';
 import { fadeGain, outputTimeAtSource } from '../core/fades';
 import { timelineFadeGain } from '../core/timeline-effects';
-import { editedDuration, nextPlayableTime, keptRanges } from '../core/timeline';
+import { editedDuration, keptRanges } from '../core/timeline';
+import { previewPlaybackStep } from '../core/preview-playback';
 import type { EditSettings } from '../core/types';
 export function pauseOtherMedia(active: HTMLMediaElement) {
   for (const element of document.querySelectorAll('video, audio')) if (element !== active && !element.hasAttribute('data-frame-mix-layer')) (element as HTMLMediaElement).pause();
@@ -36,18 +37,11 @@ export function usePreviewEffects(ref: RefObject<HTMLMediaElement | null>, edit:
       const media = ref.current;
       if (!media || media.paused) return;
       const { edit: recipe, publish: updateClock } = latest.current;
-      const clips = editClips(recipe);
-      let index = clips.findIndex(clip => clip.id === playingClip);
-      if (index < 0 || media.currentTime < clips[index].start) index = clips.findIndex(clip => media.currentTime >= clip.start && media.currentTime < clip.end);
-      if (index < 0) index = 0;
-      playingClip = clips[index].id;
-      let next: number | null;
-      if (recipe.clips) {
-        next = media.currentTime >= clips[index].end - .015 ? clips[index + 1]?.start ?? null : media.currentTime;
-        if (next !== null && next !== media.currentTime) playingClip = clips[index + 1]?.id ?? null;
-      } else next = nextPlayableTime(recipe, media.currentTime);
+      const sourceTime = media.currentTime;
+      const step = previewPlaybackStep(recipe, sourceTime, playingClip);
+      const next = step.time; playingClip = step.clipId;
       if (next === null) { if (!latest.current.loop) media.pause(); media.currentTime = keptRanges(recipe)[0]?.start ?? recipe.start; playingClip = null; }
-      else if (next !== media.currentTime) media.currentTime = next;
+      else if (next !== sourceTime) media.currentTime = next;
       applyPreviewEffects(media, recipe);
       updateClock(media.currentTime);
       if (!media.paused) frame = requestAnimationFrame(tick);
