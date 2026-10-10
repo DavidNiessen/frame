@@ -10,7 +10,7 @@ export function OverlayPreview({ outputPosition, edit, asset, current, disabled,
   outputPosition?: number; edit: EditSettings; asset: MediaAsset; current: number; disabled: boolean; update: (patch: Partial<EditSettings>) => void; pause: () => void;
   openEffect: (id: EffectId, instanceId?: string) => void; selectedEffect: { id: EffectId; instanceId?: string } | null;
 }) {
-  return <div className="overlay-preview" data-frame-area>{sourceRecipes(edit, 'watermark').map(({ id, recipe }, index) => {
+  return <div className="overlay-preview" data-frame-area>{sourceRecipes(edit, 'watermark').filter(({ recipe }) => recipe.overlays.text || recipe.overlays.image).map(({ id, recipe }, index) => {
     const o = recipe.overlays;
     const time = extraInstances(edit).some(instance => instance.id === id && instance.timeSpace === 'output') ? (outputPosition ?? outputTimeAtSource(edit, current)) : current;
     if (o.range && (time < o.range.start || time >= o.range.end)) return null;

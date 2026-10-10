@@ -88,7 +88,8 @@ test('splits, removes a section, and exports the remaining browser timeline', as
   await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight');
   await page.getByRole('button', { name: 'Split', exact: true }).click();
   await expect(page.getByRole('button', { name: /Select section/ })).toHaveCount(2);
-  await page.getByRole('button', { name: /Select section 1,/ }).click();
+  // Keyboard selection remains accessible when a tiny section overlaps its neighbors' handles.
+  await page.getByRole('button', { name: /Select section 1,/ }).press('Enter');
   await page.getByRole('button', { name: 'Remove selected section' }).click();
   await expect(page.getByRole('button', { name: /Select section/ })).toHaveCount(1);
   await page.getByRole('button', { name: 'Undo edit' }).click();

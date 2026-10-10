@@ -8,9 +8,9 @@ export function editorBounds(work: Rectangle): Rectangle {
 
 /** Reserve transparent headroom once; hover only changes paint, never native geometry. */
 export function configureEditorChrome(window: BrowserWindow) {
-  let expanded = false;
+  let expanded = false, fullscreen = window.isFullScreen();
   const state = (): WindowState => {
-    const maximized = window.isMaximized(), fullscreen = window.isFullScreen();
+    const maximized = window.isMaximized();
     return {
       maximized, fullscreen, focused: window.isFocused(),
       contentHeight: window.getContentBounds().height - desktopChromeSpace, chromeInset: desktopChromeSpace,
@@ -27,8 +27,11 @@ export function configureEditorChrome(window: BrowserWindow) {
     expanded = value; notify(); return state();
   };
   window.on('resize', notify); window.on('focus', notify); window.on('blur', notify);
-  window.on('maximize', notify); window.on('enter-full-screen', notify);
-  window.on('unmaximize', notify); window.on('leave-full-screen', notify);
+  window.on('maximize', notify);
+  // Transparent Windows windows emit fullscreen events but isFullScreen() remains false.
+  window.on('enter-full-screen', () => { fullscreen = true; notify(); });
+  window.on('unmaximize', notify);
+  window.on('leave-full-screen', () => { fullscreen = false; notify(); });
   notify();
   return { state, expand };
 }

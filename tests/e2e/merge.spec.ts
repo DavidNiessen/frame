@@ -7,7 +7,7 @@ import ffprobe from '@ffprobe-installer/ffprobe';
 const exec = promisify(execFile);
 test('reorders and merges edited source clips in the browser', async ({ page }, testInfo) => {
   await page.goto('/'); const buffer = await readFile('tests/fixtures/sample.mp4');
-  await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
+  await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled(); await page.getByLabel('Choose media files').setInputFiles(['one.mp4', 'two.mp4'].map(name => ({ name, mimeType: 'video/mp4', buffer })));
   await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 0.5);
   await page.locator('.asset-select').filter({ hasText: 'two.mp4' }).click();
   await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 0.5);

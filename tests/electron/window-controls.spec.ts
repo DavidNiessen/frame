@@ -69,7 +69,7 @@ test('reveals frameless controls without moving panels, supports keyboard access
       });
     } else {
       await native.evaluate(window => window.setFullScreen(true));
-      await expect.poll(() => native.evaluate(window => window.isFullScreen())).toBe(true);
+      await expect.poll(() => page.evaluate(async () => (await window.frameDesktop!.windowState()).fullscreen)).toBe(true);
     }
     await expect(bar).toBeVisible();
     await page.mouse.move(100, 400);

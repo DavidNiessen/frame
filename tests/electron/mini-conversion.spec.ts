@@ -22,7 +22,7 @@ test('opens only a frameless corner converter with all settings and retains fail
     await expect(page.locator('.desktop-chrome')).toHaveCount(0);
     expect(await page.evaluate(async () => { try { await globalThis.window.frameDesktop!.windowAction('close'); return false; } catch { return true; } })).toBe(true);
     await expect(page.getByLabel('Conversion format')).toBeEnabled();
-    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
     const window = await app.evaluate(({ BrowserWindow, screen }) => { const w = BrowserWindow.getAllWindows()[0]; return { bounds: w.getBounds(), work: screen.getDisplayMatching(w.getBounds()).workArea, resizable: w.isResizable(), minimizable: w.isMinimizable(), maximizable: w.isMaximizable(), top: w.isAlwaysOnTop() }; });
     expect(window.resizable).toBe(false); expect(window.top).toBe(true);
     // Electron documents these window-manager properties as unsupported on Linux.
@@ -135,7 +135,7 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
     const closed = mini.waitForEvent('close');
     await mini.getByRole('button', { name: 'Convert 2 files', exact: true }).click();
     await closed;
-    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
     await expect(editor.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', draft!);
     await expect(editor.locator('video')).toHaveAttribute('src', source!);
     // Reopening creates a new isolated session, without stale IPC handlers or media.

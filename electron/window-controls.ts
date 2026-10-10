@@ -11,7 +11,7 @@ export function configureWindowControls(window: BrowserWindow, ipc: WindowIpc) {
     switch (action) {
       case 'minimize': window.minimize(); break;
       case 'toggle-maximize':
-        if (window.isFullScreen()) window.setFullScreen(false);
+        if (chrome.state().fullscreen) window.setFullScreen(false);
         else if (window.isMaximized()) window.unmaximize();
         else window.maximize();
         break;

@@ -13,6 +13,7 @@ test('isolates a Pages subdirectory without host headers and converts media loca
   await page.getByLabel('Output format').selectOption('flac');
   await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
+  await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
   await page.reload();
   await expect.poll(() => page.evaluate(() => crossOriginIsolated)).toBe(true);
   await expect(page.locator('.asset-list li')).toHaveCount(1, { timeout: 30000 });

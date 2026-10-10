@@ -20,6 +20,11 @@ export async function openEffect(page: Page, name: string) {
   await page.locator('.timeline-track-filters').getByRole('button', { name: 'All tracks', exact: true }).click();
   const compact = page.getByRole('button', { name: 'Compact', exact: true });
   if (await compact.getAttribute('aria-pressed') === 'true') await compact.click();
+  if (name === 'Remove silence') {
+    const edit = page.getByRole('button', { name: 'Edit Remove silence', exact: true });
+    if (!await edit.count()) await page.getByRole('button', { name: 'Add Remove silence', exact: true }).click();
+    await edit.click(); return;
+  }
   const bar = name === 'Captions' ? page.getByRole('button', { name: 'Caption 1', exact: true }) : page.locator('.effect-lane .range-body').filter({ hasText: name });
   // Repeatable effects have no Applied badge: reopen their existing bar instead of adding another.
   if (!await bar.count()) await page.getByRole('button', { name: `Add ${name}`, exact: true }).click();
