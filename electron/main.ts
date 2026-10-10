@@ -54,7 +54,7 @@ function openWindow(kind: WindowKind) {
     });
     windows.set(kind, window);
     const id = window.webContents.id, ipc = router.scope(window);
-    const session = createMediaSession(window, inboxes[kind], ipc); sessions.set(id, session);
+    const session = createMediaSession(window, inboxes[kind], ipc, !mini); sessions.set(id, session);
     if (mini) {
       const layout = configureMiniWindow(window);
       ipc.handle('desktop:mini-expanded', (_event, expanded: unknown, reducedMotion: unknown) => layout.setExpanded(expanded, reducedMotion));

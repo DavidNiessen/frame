@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  saveWorkspace: (document, ids) => ipcRenderer.invoke('workspace:save', document, ids),
+  recoverWorkspace: () => ipcRenderer.invoke('workspace:recover'),
+  discardWorkspace: () => ipcRenderer.invoke('workspace:clear'),
   exportHistory: () => ipcRenderer.invoke('history:status'),
   clearExportHistory: () => ipcRenderer.invoke('history:clear'),
   removeExportHistory: id => ipcRenderer.invoke('history:remove', id),

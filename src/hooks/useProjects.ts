@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { createProject, matchSources, parseProject, projectFilename, type ProjectDocument } from '../core/project';
 import type { Editor } from './useEditor';
 export function useProjects(editor: Editor) {
-  const [restoreGeneration, setRestoreGeneration] = useState(0);
   const [name, setName] = useState('');
   const [pending, setPending] = useState<ProjectDocument | null>(null);
   const [overrides, setOverrides] = useState<Record<number, string>>({});
@@ -47,10 +46,10 @@ export function useProjects(editor: Editor) {
     if (!pending || !canRestore || editor.busy) return;
     try {
       editor.restoreEdits(pending.sources.map((entry, index) => ({ id: links[index]!, edit: { ...entry.edit, audioLayers: entry.edit.audioLayers?.map(layer => { const sourceIndex = layer.sourceIndex ?? pending.sources.findIndex(item => sameLayerSource(layer.source, item.source)); const asset = editor.assets.find(item => item.id === links[sourceIndex])!; const { sourceIndex: _sourceIndex, ...runtime } = layer; return { ...runtime, sourceId: asset.id, source: sourceIdentity(asset) }; }) } })), links[pending.selectedSource]!);
-      setName(pending.name); setPending(null); setRestoreGeneration(n => n + 1); editor.setNotice('Project opened. Your saved edits are ready.');
+      setName(pending.name); setPending(null); editor.setNotice('Project opened. Your saved edits are ready.');
     } catch (error) { report(error); }
   }
-  return { restoreGeneration, loadDocument: (project: ProjectDocument) => { setError(''); setOverrides({}); setPending(parseProject(project)); }, name, pending, links, saving, canRestore, error, open, save, restore,
+  return { recovered: setName, reset: () => { setName(''); setPending(null); setOverrides({}); setError(''); }, name, pending, links, saving, canRestore, error, open, save, restore,
     close: () => setPending(null), link: (index: number, id: string) => setOverrides(current => ({ ...current, [index]: id })) };
 }
 export type Projects = ReturnType<typeof useProjects>;

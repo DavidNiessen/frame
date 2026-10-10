@@ -1,4 +1,0 @@
-import type { useAutosave } from '../hooks/useAutosave';
-export function RecoveryBanner({ autosave, restore, disabled }: { autosave: ReturnType<typeof useAutosave>; restore: () => void; disabled: boolean }) {
-  return <>{autosave.recovery && <section className="recovery-banner" role="status"><div><strong>A saved workspace is ready to recover.</strong><p>{autosave.recovery.project.sources.length} source files · saved {new Date(autosave.recovery.savedAt).toLocaleString()}. Import or relink the original media to restore edits. Autosave waits until recovery is resolved.</p></div><button className="button subtle small" disabled={disabled} onClick={restore}>Recover workspace</button><button className="button subtle small" disabled={disabled} onClick={() => void autosave.discard()}>Discard recovery</button></section>}{autosave.error && <p className="autosave-error" role="status">{autosave.error}</p>}</>;
-}

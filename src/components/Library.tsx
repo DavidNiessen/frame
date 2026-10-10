@@ -1,9 +1,9 @@
 import { Film, Music2, Plus, Trash2, FolderOpen, ArrowUpRight, Link } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import { bytes, time } from '../core/format';
-export function Library({ editor, onImport, onUrl }: { editor: Editor; onImport: () => void; onUrl: () => void }) {
+export function Library({ editor, onImport, onUrl, onClear, clearDisabled, hasSavedWorkspace }: { editor: Editor; onImport: () => void; onUrl: () => void; onClear: () => void; clearDisabled: boolean; hasSavedWorkspace: boolean }) {
   return <aside id="media-library" className="library panel">
-    <div className="panel-heading"><h2>Media library <span className="count">{editor.assets.length}</span></h2><button className="icon-button" aria-label="Add media" onClick={onImport} disabled={!!editor.busy}><Plus size={17} /></button></div>
+    <div className="panel-heading"><h2>Media library <span className="count">{editor.assets.length}</span></h2><div className="library-heading-actions"><button className="icon-button" aria-label="Clear media library" title="Clear library and saved workspace" disabled={clearDisabled || !!editor.busy || (!editor.assets.length && !hasSavedWorkspace)} onClick={onClear}><Trash2 size={15} /></button><button className="icon-button" aria-label="Add media" onClick={onImport} disabled={!!editor.busy}><Plus size={17} /></button></div></div>
     <div className="library-content">
       {!editor.assets.length ? <div className="library-empty"><FolderOpen size={28} strokeWidth={1.3} /><p>Your starting point.</p><span>Bring in a video or audio file.<br />Everything stays on your device.</span></div> :
         <ul className="asset-list">{editor.assets.map(asset => <li key={asset.id} className={asset.id === editor.selected ? 'asset selected' : 'asset'}>

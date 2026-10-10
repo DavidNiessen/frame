@@ -16,6 +16,9 @@ import type { DesktopLaunchRequest } from '../core/launch';
 import type { ShellIntegrationStatus } from '../core/system-integration';
 import type { WindowAction, WindowState } from '../core/window-controls';
 export interface DesktopBridge extends ExportHistoryBridge {
+  saveWorkspace(document: import('../core/autosave').AutosaveDocument, assetIds: string[]): Promise<void>;
+  recoverWorkspace(): Promise<import('../core/workspace-recovery').WorkspaceRecovery | null>;
+  discardWorkspace(): Promise<void>;
   watchFoldersStatus(): Promise<WatchStatus>;
   chooseWatchFolders(): Promise<{ input: string; output: string } | null>;
   addWatchFolder(draft: WatchFolderDraft): Promise<WatchStatus>;

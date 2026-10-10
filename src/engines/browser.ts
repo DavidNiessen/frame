@@ -1,3 +1,4 @@
+import { browserWorkspace } from './browser-workspace';
 import { resolveAudioLayers } from '../core/audio-layers';
 import type { MediaAsset } from '../core/types';
 import { taggedNamingAsset } from '../core/media-tags';
@@ -155,5 +156,5 @@ export function createBrowserEngine(): MediaEngine {
     cancel() { download?.abort(); cancelled = true; runtime.cancel(); },
     async release(asset) { files.delete(asset.id); sources.delete(asset.id); URL.revokeObjectURL(asset.previewUrl); },
   };
-  return engine;
+  return Object.assign(engine, browserWorkspace(engine, files, sources));
 }

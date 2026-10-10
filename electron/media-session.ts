@@ -1,3 +1,4 @@
+import { registerWorkspace } from './workspace';
 import type { BrowserWindow } from 'electron';
 import type { MediaAsset } from '../src/core/types';
 import { MediaJobs } from './jobs';
@@ -15,12 +16,13 @@ import type { LaunchInbox } from './launch-inbox';
 import { trustWindow, type WindowIpc } from './window-ipc';
 
 export type SessionAssets = Map<string, { path: string; asset: MediaAsset }>;
-export function createMediaSession(window: BrowserWindow, launches: LaunchInbox, ipc: WindowIpc) {
+export function createMediaSession(window: BrowserWindow, launches: LaunchInbox, ipc: WindowIpc, workspaceEnabled = true) {
   const assets: SessionAssets = new Map(), jobs = new MediaJobs(), trusted = trustWindow(window);
   registerAcceleration(jobs, trusted, ipc);
   const proxies = createProxies(assets, jobs, trusted, ipc);
   const folders = createBatchFolders(() => window, trusted, ipc);
   const downloads = registerImports(assets, jobs, () => window, trusted, launches, ipc);
+  if (workspaceEnabled) registerWorkspace(assets, jobs, trusted, ipc, downloads);
   registerLoudnessAnalysis(assets, jobs, trusted, ipc);
   registerSceneAnalysis(assets, jobs, trusted, ipc);
   const analysis = registerAnalysis(assets, jobs, trusted, ipc);

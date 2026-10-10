@@ -1,3 +1,4 @@
+import { recoveredEdits } from '../core/workspace-recovery';
 import { audioLayerSource } from '../core/audio-layers';
 import { notifyCompletion } from '../core/completion-notifications';
 import { sampleRates } from '../core/audio-output';
@@ -5,7 +6,7 @@ import type { UrlImportOptions } from '../core/youtube';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createEngine } from '../engines';
 import { defaultSettings, type EditSettings, type ExportProgress, type ExportResult, type ImportReport, type MediaAsset, type MediaEngine } from '../core/types';
-import { parseEdit } from '../core/project';
+import { createProject, parseEdit } from '../core/project';
 import { clipEffectKeys, editClips, clipRecipe, patchClip } from '../core/clips';
 import { resizeSection } from '../core/timeline-edit';
 import { editedDuration } from '../core/timeline';
@@ -36,6 +37,36 @@ export function useEditor() {
     if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
     if (engineRef.current) void engineRef.current.then(e => { e.cancelWaveform?.(); e.cancel(); return Promise.all(assetsRef.current.map(a => e.release(a))); });
   }, []);
+  async function recoverWorkspace() {
+    if (busyRef.current) throw new Error('Wait for processing to finish.');
+    busyRef.current = true; setBusy('import'); setProgress({ ratio: 0, message: 'Reopening your workspace…' });
+    try {
+      const e = await engine(), recovery = await e.recoverWorkspace?.(setProgress);
+      if (!recovery) return null;
+      const restored = recoveredEdits(recovery), keep = new Set(restored.entries.map(entry => entry.id));
+      await Promise.all(recovery.assets.filter(asset => !keep.has(asset.id)).map(asset => e.release(asset)));
+      const reopened = recovery.assets.filter(asset => keep.has(asset.id));
+      assetsRef.current = reopened; setAssets(reopened);
+      setHistories(Object.fromEntries(restored.entries.map(entry => [entry.id, { past: [], present: entry.edit, future: [] }])));
+      setSelected(restored.selected); setSelectedClip(null);
+      if (restored.issues.length) setNotice(`Reopened ${reopened.length} files. ${restored.issues.length} recovery issues. ${restored.issues[0]}`);
+      const baseline = reopened.length && restored.selected ? createProject(recovery.document.project.name, reopened, id => restored.entries.find(entry => entry.id === id)!.edit, restored.selected) : null;
+      return { document: recovery.document, baseline };
+    } finally { busyRef.current = false; setBusy(null); setProgress(null); }
+  }
+  async function clearLibrary(beforeRelease: () => Promise<unknown> = async () => {}) {
+    if (busyRef.current) throw new Error('Wait for processing to finish.');
+    busyRef.current = true; setBusy('import'); setProgress({ ratio: 0, message: 'Clearing your library…' });
+    const previous = assetsRef.current; assetsRef.current = [];
+    setAssets([]); setHistories({}); setSelected(null); setSelectedClip(null); setImportReport(null);
+    if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);
+    resultRef.current = null; setResult(null);
+    try {
+      await beforeRelease();
+      const e = await engine(); e.cancelWaveform?.();
+      await Promise.all(previous.map(asset => e.release(asset)));
+    } finally { busyRef.current = false; setBusy(null); setProgress(null); }
+  }
   async function performImport(files?: File[], mode: 'files' | 'sample' | 'folder' | 'launch' | 'url' = 'files', launch?: { id: string; activate: () => void; select: (ids: string[]) => void }, url?: string, urlOptions?: UrlImportOptions) {
     if (busyRef.current) return false;
     busyRef.current = true; setBusy('import'); setNotice(''); setProgress({ ratio: 0, message: 'Reading your media…' });
@@ -155,7 +186,7 @@ export function useEditor() {
     importUrl: (url: string, options?: UrlImportOptions) => performImport(undefined, 'url', undefined, url, options),
     importFolder: (files?: File[]) => performImport(files, 'folder'), update, remove, exportMedia, restoreEdits, runExclusive,
     importLaunch: (id: string, activate: () => void, select: (ids: string[]) => void) => performImport(undefined, 'launch', { id, activate, select }),
-    backgroundEngine: engine,
+    backgroundEngine: engine, recoverWorkspace, clearLibrary,
     settingsFor: (id: string) => histories[id]?.present ?? defaultSettings(assets.find(a => a.id === id)!),
     cancel: () => void engine().then(e => e.cancel()),
     undo: () => travel('undo'), redo: () => travel('redo'),

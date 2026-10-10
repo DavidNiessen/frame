@@ -52,6 +52,7 @@ export function registerUrlImports(assets: Map<string, { path: string; asset: Me
     });
   });
   return {
+    temporary: (id: string) => directories.has(id),
     release: async (id: string) => {
       const directory = directories.get(id); if (!directory) return;
       await rm(directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); directories.delete(id);

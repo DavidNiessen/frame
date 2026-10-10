@@ -4,6 +4,9 @@ export function createDesktopEngine(): MediaEngine {
   const bridge = window.frameDesktop!;
   return {
     platform: 'desktop',
+    saveWorkspace: (document, ids) => bridge.saveWorkspace(document, ids),
+    discardWorkspace: () => bridge.discardWorkspace(),
+    async recoverWorkspace(progress) { const remove = bridge.onProgress(progress); try { return await bridge.recoverWorkspace(); } finally { remove(); } },
     async importLaunch(id, onProgress) { const remove = bridge.onProgress(onProgress ?? (() => {})); try { return await bridge.importLaunch(id); } finally { remove(); } },
     async desktopCapabilities(onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.desktopCapabilities(); } finally { remove(); } },
     async previewProxy(asset, onProgress) { const remove = bridge.onProgress(onProgress); try { return await bridge.previewProxy(asset.id); } finally { remove(); } },

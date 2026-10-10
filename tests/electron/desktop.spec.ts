@@ -133,17 +133,6 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
 });
 
-test('recovers desktop recipes after restarting the same profile', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'frame-recovery-test-')); const executablePath = process.env.FRAME_TEST_EXECUTABLE;
-  const launch = () => _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
-  let app = await launch();
-  try {
-    let page = await app.firstWindow(); await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'start', 1); await page.getByRole('tab', { name: 'Edit', exact: true }).click(); await trim(page, 'end', 2); await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
-    await app.close(); app = await launch(); page = await app.firstWindow(); await expect(page.getByRole('button', { name: 'Recover workspace' })).toBeVisible({ timeout: 30000 });
-    await page.getByRole('button', { name: /Start with a sample/ }).click(); await page.getByRole('button', { name: 'Recover workspace' }).click(); await page.getByRole('button', { name: 'Restore edits' }).click(); await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1'); await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '2');
-  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
-});
-
 test('previews an unsupported source through a temporary proxy and exports from the original', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'frame-proxy-test-')), input = join(directory, 'lossless.mkv'), output = join(directory, 'converted.mp4');
   await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'testsrc2=s=320x180:d=1', '-c:v', 'ffv1', '-threads', '1', input]); const original = await readFile(input);

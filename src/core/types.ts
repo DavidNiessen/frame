@@ -84,6 +84,9 @@ export interface ExportProgress { ratio: number; message: string }
 export interface ExportResult { name: string; url?: string; path?: string; size: number; relativePath?: string }
 export interface MediaEngine {
   platform: 'desktop' | 'web';
+  saveWorkspace?(document: import('./autosave').AutosaveDocument, assetIds: string[]): Promise<void>;
+  recoverWorkspace?(onProgress: (p: ExportProgress) => void): Promise<import('./workspace-recovery').WorkspaceRecovery | null>;
+  discardWorkspace?(): Promise<void>;
   desktopCapabilities?(onProgress: (p: ExportProgress) => void): Promise<DesktopCapabilities>;
   previewProxy?(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<PreviewProxy>;
   releaseProxy?(id: string): Promise<void>;
