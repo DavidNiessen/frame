@@ -1,4 +1,5 @@
 import { effectiveSpeed } from './effect-instances';
+import { clipRecipe } from './clips';
 import { editedDuration, timelineSections } from './timeline';
 import type { EditSettings, TimeRange } from './types';
 import { minimumSection, minimumSourceDuration, timeEpsilon } from './time-range';
@@ -19,7 +20,7 @@ export function resizeSection(edit: EditSettings, index: number, range: TimeRang
   const sections = timelineSections(edit), original = sections[index];
   if (!original || !Number.isFinite(range.start) || !Number.isFinite(range.end)) return {};
   const limits = sectionLimits(edit, index, duration);
-  const minimum = minimumSourceDuration(effectiveSpeed({ ...edit, ...edit.clips?.[index].effects }));
+  const minimum = minimumSourceDuration(effectiveSpeed(edit.clips?.[index] ? clipRecipe(edit, edit.clips[index]) : edit));
   const start = Math.max(limits.start, Math.min(original.end - minimum, range.start));
   const end = Math.min(limits.end, Math.max(start + minimum, range.end));
   sections[index] = { start, end };

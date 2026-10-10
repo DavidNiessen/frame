@@ -19,7 +19,7 @@ export function existingEffectTarget(edit: EditSettings, asset: MediaAsset, effe
   if (clip) return locate(clipRecipe(edit, clip), clip.id);
   return locate(edit, null) ?? clips.map(clip => locate(clipRecipe(edit, clip), clip.id)).find(Boolean) ?? null;
 }
-/** All UI entry points share one undoable, clip-scoped application/removal operation. */
+/** Backward-compatible primary/source controls and removal of older clip adjustments. */
 export function effectAction(edit: EditSettings, asset: MediaAsset, effect: EffectDefinition, selectedClip: string | null, action: EffectAction, current?: number): Partial<EditSettings> {
   if (action === 'add' && existingEffectTarget(edit, asset, effect, selectedClip)) return {};
   const instanceId = action === 'add' ? crypto.randomUUID() : '';
@@ -40,7 +40,7 @@ export function effectAction(edit: EditSettings, asset: MediaAsset, effect: Effe
   }
   if (effect.scope === 'source') return patch(edit);
   const clip = editClips(edit).find(item => item.id === selectedClip);
-  if (clip) { const local = patch(clipRecipe(edit, clip)); if (local.effectInstances) local.effectInstances = local.effectInstances.filter(instance => definitionFor(instance.effect).scope === 'clip'); return patchClip(edit, clip.id, local); }
+  if (clip) { const local = patch(clipRecipe(edit, clip)); if (local.effectInstances) local.effectInstances = local.effectInstances.filter(instance => !instance.timeSpace && definitionFor(instance.effect).scope === 'clip'); return patchClip(edit, clip.id, local); }
   const shared = patch(edit);
   return { ...shared, ...(edit.clips ? { clips: edit.clips.map(item => {
     const recipe = clipRecipe(edit, item), effects = { ...item.effects };
@@ -48,7 +48,7 @@ export function effectAction(edit: EditSettings, asset: MediaAsset, effect: Effe
     const local = patch(recipe);
     if (action === 'add') { effects.addedEffects = local.addedEffects ?? recipe.addedEffects; if (local.effectRanges) effects.effectRanges = shared.effectRanges ?? local.effectRanges; if (local.effectInstances && !effect.id.includes('Fade')) effects.effectInstances = local.effectInstances.map(instance => instance.id === instanceId ? shared.effectInstances?.find(item => item.id === instanceId) ?? instance : instance); }
     else Object.assign(effects, local);
-    if (effects.effectInstances) effects.effectInstances = effects.effectInstances.filter(item => definitionFor(item.effect).scope === 'clip');
+    if (effects.effectInstances) effects.effectInstances = effects.effectInstances.filter(item => !item.timeSpace && definitionFor(item.effect).scope === 'clip');
     return { ...item, effects };
   }) } : {}) };
 }

@@ -3,9 +3,9 @@ import { clipPositions, clipRecipe } from './clips';
 import { availableEffects } from './effect-library';
 import { isTimedAdjustment } from './timed-adjustments';
 import type { EditSettings, MediaAsset } from './types';
-/** Matching effects on separate clips share a lane; overlapping instances use another lane. */
+/** Legacy clip-owned effects; new track instances have independent rows and output timing. */
 export function clipEffectRows(asset: MediaAsset, edit: EditSettings) {
-  const positions = clipPositions(edit).map((position, index) => ({ ...position, index, recipe: clipRecipe(edit, position.clip) }));
+  const positions = clipPositions(edit).map((position, index) => { const recipe = clipRecipe(edit, position.clip); return { ...position, index, recipe: { ...recipe, effectInstances: extraInstances(recipe).filter(item => !item.timeSpace) } }; });
   return availableEffects(asset).filter(effect => effect.scope === 'clip').flatMap(effect => {
     const intersects = (recipe: EditSettings) => { const range = isTimedAdjustment(effect.id) ? recipe.effectRanges?.[effect.id] : undefined; return !range || range.start < recipe.end && range.end > recipe.start; };
     const items = positions.filter(({ recipe }) => {

@@ -5,6 +5,7 @@ import type { EffectId } from '../core/effect-library';
 import type { CaptionPosition, SubtitleCue } from '../core/subtitles';
 import type { EditSettings, MediaAsset } from '../core/types';
 import { defaultCaptionStyle, captionFont } from '../core/caption-style';
+import { outputTimeAtSource } from '../core/fades';
 
 function MovableCaption({ cue, index, disabled, movable, pause, change, select, selected }: {
   cue: SubtitleCue; index: number; disabled: boolean; movable: boolean; pause: () => void; change: (patch: Partial<SubtitleCue>) => void; select: () => void; selected: boolean;
@@ -35,7 +36,7 @@ export function CaptionPreview({ asset, edit, current, disabled, pause, update, 
   asset: MediaAsset; edit: EditSettings; current: number; disabled: boolean; pause: () => void; update: (patch: Partial<EditSettings>) => void;
 }) {
   const crop = edit.crop;
-  const active = captionItems(edit).map(item => ({ cue: item.cue, mode: item.mode, index: item.index })).filter(({ cue, mode }) => mode !== 'none' && current >= cue.start && current < cue.end);
+  const active = captionItems(edit).filter(item => { const time = item.timeSpace === 'output' ? outputTimeAtSource(edit, current) : current; return item.mode !== 'none' && time >= item.start && time < item.end; }).map(item => ({ cue: item.cue, mode: item.mode, index: item.index }));
   const area = crop && asset.width && asset.height ? { left: `${crop.x / asset.width * 100}%`, top: `${crop.y / asset.height * 100}%`, width: `${crop.width / asset.width * 100}%`, height: `${crop.height / asset.height * 100}%` } : undefined;
   return <div className="caption-preview" data-frame-area style={area}><div className="caption-defaults">{active.map(({ cue, mode, index }) =>
     <MovableCaption key={captionItems(edit)[index].instanceId ?? 'primary'} cue={mode === 'embed' ? { ...cue, position: undefined, style: undefined } : cue} index={index} disabled={disabled} movable={mode === 'burn'} pause={pause} selected={selectedEffect?.id === 'captions' && selectedEffect.instanceId === captionItems(edit)[index].instanceId} select={() => openEffect('captions', captionItems(edit)[index].instanceId)}

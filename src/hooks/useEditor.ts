@@ -13,6 +13,7 @@ import { createProject, parseEdit } from '../core/project';
 import { clipEffectKeys, editClips, clipRecipe, patchClip } from '../core/clips';
 import { resizeSection } from '../core/timeline-edit';
 import { editedDuration } from '../core/timeline';
+import { fitTimelineEffects } from '../core/timeline-effects';
 import { validateEdit } from '../core/export-plan';
 import { hasMinimumDuration } from '../core/time-range';
 interface History { past: EditSettings[]; present: EditSettings; future: EditSettings[] }
@@ -105,12 +106,12 @@ export function useEditor() {
       if (next.clips) {
         if (patch.start !== undefined || patch.end !== undefined) next.clips = next.clips.map(clip => ({ ...clip, start: Math.max(clip.start, next.start), end: Math.min(clip.end, next.end) })).filter(clip => hasMinimumDuration(clip));
         if (!next.clips.length) return current;
-        next.clips = next.clips.map(clip => { const effects = { ...clip.effects }, duration = (clip.end - clip.start) / effectiveSpeed({ ...next, ...effects }); for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) if (effects[key] !== undefined) effects[key] = Math.min(effects[key], duration); if (effects.effectInstances !== undefined) effects.effectInstances = extraInstances(effects).map(instance => instance.effect.includes('Fade') ? { ...instance, settings: { ...instance.settings, [instance.effect]: Math.min(Number(instance.settings[instance.effect as 'audioFadeIn'] ?? 0), duration) } } : instance); return { ...clip, effects }; });
+        next.clips = next.clips.map(clip => { const effects = { ...clip.effects }, duration = (clip.end - clip.start) / effectiveSpeed(clipRecipe(next, { ...clip, effects })); for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) if (effects[key] !== undefined) effects[key] = Math.min(effects[key], duration); if (effects.effectInstances !== undefined) effects.effectInstances = extraInstances(effects).map(instance => instance.effect.includes('Fade') ? { ...instance, settings: { ...instance.settings, [instance.effect]: Math.min(Number(instance.settings[instance.effect as 'audioFadeIn'] ?? 0), duration) } } : instance); return { ...clip, effects }; });
         next.start = Math.min(...next.clips.map(clip => clip.start)); next.end = Math.max(...next.clips.map(clip => clip.end)); next.cuts = []; next.splits = [];
       }
       const duration = editedDuration(next);
       for (const key of ['audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut'] as const) next[key] = Math.min(next[key], duration);
-      next.effectInstances = extraInstances(next).map(instance => instance.effect.includes('Fade') ? { ...instance, settings: { ...instance.settings, [instance.effect]: Math.min(Number(instance.settings[instance.effect as 'audioFadeIn'] ?? 0), duration) } } : instance);
+      next.effectInstances = fitTimelineEffects(next).map(instance => !instance.timeSpace && instance.effect.includes('Fade') ? { ...instance, settings: { ...instance.settings, [instance.effect]: Math.min(Number(instance.settings[instance.effect as 'audioFadeIn'] ?? 0), duration) } } : instance);
       if (JSON.stringify(next) === JSON.stringify(h.present)) return current;
       return { ...current, [selected]: { past: [...h.past, h.present].slice(-100), present: next, future: [] } };
     });

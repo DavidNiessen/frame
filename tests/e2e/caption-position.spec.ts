@@ -43,7 +43,7 @@ test('moves captions with one undo per drag, keyboard nudges and saved project p
   expect(await caption.evaluate(node => Number.parseFloat((node.closest('[data-frame-object]') as HTMLElement).style.top))).toBeCloseTo(y + 5, 1);
   const saved = page.waitForEvent('download'); await page.getByRole('button', { name: 'Save project', exact: true }).click();
   const project = JSON.parse(await readFile((await (await saved).path())!, 'utf8'));
-  const position = project.sources[0].edit.subtitles.cues[0].position;
+  const position = project.sources[0].edit.effectInstances.find((instance: { effect: string }) => instance.effect === 'captions').settings.subtitles.cues[0].position;
   expect(position.x).toBeGreaterThan(50); expect(position.y).toBeLessThan(92);
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
   await page.reload(); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);

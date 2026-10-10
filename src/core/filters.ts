@@ -1,4 +1,5 @@
 import { timedFilter } from './timed-adjustments';
+import { timelineFadeFilter } from './timeline-effects';
 import { colorFilters } from './color';
 import { frameDimensions, geometryFilters } from './geometry';
 import { overlayFilters } from './overlays';
@@ -18,14 +19,14 @@ export function videoFilters(asset: MediaAsset, edit: EditSettings, resources: R
     const recipe = instanceRecipe(edit, instance), paths = instancePaths(resources, instance);
     if (instance.effect === 'crop' && recipe.crop) { const c = recipe.crop; filters.push(`crop=${c.width}:${c.height}:${c.x}:${c.y}`); }
     if (instance.effect === 'transform') filters.push(...geometryFilters(recipe));
-    if (instance.effect === 'color') filters.push(...colorFilters(recipe.color, paths).map(filter => timedFilter(filter, timing, instance.range)));
+    if (instance.effect === 'color') filters.push(...colorFilters(recipe.color, paths).map(filter => timedFilter(filter, timing, instance.range, instance.timeSpace === 'output')));
   }
-  if (burnedCues(edit).length) filters.push(`subtitles=filename=${filterPath(burnedCaptionPath(edit, resources))}:fontsdir=${filterPath(resources.fonts)}`);
+  if (burnedCues(timing).length) filters.push(`subtitles=filename=${filterPath(burnedCaptionPath(timing, resources))}:fontsdir=${filterPath(resources.fonts)}`);
   filters.push(...overlayFilters(asset, edit, resources, timing), ...fadeFilters(edit, 'video'));
   for (const instance of extraInstances(edit)) {
     const recipe = instanceRecipe(edit, instance), paths = instancePaths(resources, instance);
-    if (instance.effect === 'watermark') filters.push(...overlayFilters(asset, { ...recipe, crop: null, geometry: { ...recipe.geometry, rotation: 0, resize: { ...frameDimensions(asset, edit), fit: 'stretch' } } }, paths, timing));
-    if (instance.effect.startsWith('videoFade')) filters.push(...fadeFilters({ ...recipe, speed }, 'video').filter(filter => filter.includes(instance.effect.endsWith('In') ? 't=in' : 't=out')));
+    if (instance.effect === 'watermark') filters.push(...overlayFilters(asset, { ...recipe, crop: null, geometry: { ...recipe.geometry, rotation: 0, resize: { ...frameDimensions(asset, edit), fit: 'stretch' } } }, paths, instance.timeSpace === 'output' ? instanceRecipe(timing, instance) : timing));
+    if (instance.effect.startsWith('videoFade')) filters.push(...(instance.timeSpace === 'output' ? timelineFadeFilter(instance) : fadeFilters({ ...recipe, speed }, 'video').filter(filter => filter.includes(instance.effect.endsWith('In') ? 't=in' : 't=out'))));
   }
   return filters;
 }
@@ -47,10 +48,10 @@ export function audioFilters(edit: EditSettings, asset?: MediaAsset): string[] {
     const recipe = instanceRecipe(edit, instance);
     if (['noise', 'equalizer', 'normalize'].includes(instance.effect)) {
       const isolated = { ...recipe, reduceNoise: instance.effect === 'noise' && recipe.reduceNoise, normalizeLoudness: instance.effect === 'normalize' && recipe.normalizeLoudness, equalizer: instance.effect === 'equalizer' ? recipe.equalizer : { bass: 0, mid: 0, treble: 0 } };
-      filters.push(...cleanupFilters(isolated, asset));
+      filters.push(...cleanupFilters(isolated, asset, instance.timeSpace === 'output'));
     }
-    if (instance.effect === 'volume' && recipe.volume !== 1) filters.push(timedFilter(`volume=${recipe.volume}`, edit, instance.range));
-    if (instance.effect.startsWith('audioFade')) filters.push(...fadeFilters({ ...recipe, speed: effectiveSpeed(edit) }, 'audio').filter(filter => filter.includes(instance.effect.endsWith('In') ? 't=in' : 't=out')));
+    if (instance.effect === 'volume' && recipe.volume !== 1) filters.push(timedFilter(`volume=${recipe.volume}`, edit, instance.range, instance.timeSpace === 'output'));
+    if (instance.effect.startsWith('audioFade')) filters.push(...(instance.timeSpace === 'output' ? timelineFadeFilter(instance) : fadeFilters({ ...recipe, speed: effectiveSpeed(edit) }, 'audio').filter(filter => filter.includes(instance.effect.endsWith('In') ? 't=in' : 't=out'))));
   }
   return filters;
 }

@@ -25,8 +25,8 @@ export const activeAtSource = (range: TimeRange | undefined, time: number | unde
 export function adjustmentIntervals(edit: EditSettings, range: TimeRange): TimeRange[] {
   return outputCues({ ...edit, subtitles: { mode: 'burn', cues: [{ ...range, text: '' }] } }).map(({ start, end }) => ({ start, end }));
 }
-export function timedFilter(filter: string, edit: EditSettings, range?: TimeRange): string {
+export function timedFilter(filter: string, edit: EditSettings, range?: TimeRange, outputSpace = false): string {
   if (!range) return filter;
-  const expression = adjustmentIntervals(edit, range).map(r => `gte(t,${r.start})*lt(t,${r.end})`).join('+') || '0';
+  const expression = (outputSpace ? [range] : adjustmentIntervals(edit, range)).map(r => `gte(t,${r.start})*lt(t,${r.end})`).join('+') || '0';
   return `${filter}:enable='${expression}'`;
 }

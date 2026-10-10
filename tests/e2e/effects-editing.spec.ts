@@ -25,13 +25,13 @@ for (const width of [1440, 390]) test(`provides crop and volume in timeline over
   await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await closeEffect(page); await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await expect(page.getByLabel('Search effects')).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
-test('scopes trim and volume to split clips and preserves trimming when removing clip effects', async ({ page }) => {
+test('trims split clips independently and preserves trimming when removing track effects', async ({ page }) => {
   await page.goto('/'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
-  await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 });
+  await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click(); await closeEffect(page);
   await setBoundary(page, 'Section 2 start', 3.5);
   await expect(page.getByLabel('Section 2 start')).toHaveAttribute('aria-valuenow', '3.5'); await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
-  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.4'); await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 1 }); await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1');
-  await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 }); await page.getByRole('button', { name: 'Remove all clip effects', exact: true }).click(); await expect(page.getByLabel('Section 2 start')).toHaveAttribute('aria-valuenow', '3.5');
+  await openEffect(page, 'Volume'); await page.getByLabel('Volume', { exact: true }).fill('0.4'); await closeEffect(page);  await openEffect(page, 'Volume'); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.4');
+  await closeEffect(page); await page.getByRole('button', { name: 'Remove all track effects', exact: true }).click(); await expect(page.getByLabel('Section 2 start')).toHaveAttribute('aria-valuenow', '3.5');
   await expect(page.getByRole('button', { name: 'Remove Volume', exact: true })).toHaveCount(0);
 });
 test('offers trimming, mute and reset for audio while keeping video controls out', async ({ page }) => {

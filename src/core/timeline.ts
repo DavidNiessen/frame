@@ -15,7 +15,7 @@ export function keptRanges(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'> & 
   return ranges;
 }
 export function editedDuration(edit: Pick<EditSettings, 'start' | 'end' | 'cuts'> & Partial<Pick<EditSettings, 'clips'>> & Partial<Pick<EditSettings, 'speed' | 'effectInstances'>>): number {
-  if (edit.clips) return edit.clips.reduce((total, clip) => total + (clip.end - clip.start) / effectiveSpeed({ ...edit, ...clip.effects }), 0);
+  if (edit.clips) return edit.clips.reduce((total, clip) => total + (clip.end - clip.start) / effectiveSpeed({ ...edit, ...clip.effects, effectInstances: [...(edit.effectInstances ?? []).filter(item => item.timeSpace === 'output'), ...(clip.effects.effectInstances ?? edit.effectInstances ?? []).filter(item => !item.timeSpace)] }), 0);
   return keptRanges(edit).reduce((total, range) => total + range.end - range.start, 0) / effectiveSpeed(edit);
 }
 export function timelineSections(edit: EditSettings): TimeRange[] {

@@ -23,7 +23,7 @@ for (const width of [1440, 390]) test(`keeps clips and effects in sequence time 
   await expect(cue).toHaveCSS('left', /px$/); expect(await cue.evaluate(node => (node.getBoundingClientRect().left - node.closest('.timeline-lane')!.getBoundingClientRect().left) / node.closest('.timeline-lane')!.getBoundingClientRect().width * 100)).toBeCloseTo(100 / 6);
   expect(await mark.evaluate(node => (node.getBoundingClientRect().left - node.closest('.timeline-lane')!.getBoundingClientRect().left) / node.closest('.timeline-lane')!.getBoundingClientRect().width * 100)).toBeCloseTo(100 / 6);
   const before = await clip.evaluate(node => (node as HTMLElement).style.cssText);
-  await page.getByLabel('Effect target').selectOption({ index: 1 }); await page.getByRole('button', { name: 'Add Volume', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Volume', exact: true }).click();
   await leftAtStart(clip); expect(await clip.evaluate(node => (node as HTMLElement).style.cssText)).toBe(before);
   await page.getByRole('button', { name: 'Add Crop', exact: true }).click();
   const editCrop = page.getByRole('button', { name: 'Edit Crop', exact: true }); await expect(editCrop.locator('[aria-label="Applied"]')).toHaveCount(1); await expect(editCrop.locator('.lucide-plus')).toHaveCount(0);
@@ -38,22 +38,22 @@ for (const width of [1440, 390]) test(`keeps clips and effects in sequence time 
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved'); await page.reload(); await leftAtStart(clip);
   await page.getByRole('button', { name: 'Fit', exact: true }).click(); await expect(clip).toHaveAttribute('data-duration', '2.5'); await leftAtStart(clip);
 });
-test('groups fade and watermark fragments across splits while retaining individual settings', async ({ page }) => {
+test('gives each fade its own row and keeps a watermark across splits', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
   await page.goto('/'); await importTestMedia(page); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Add Watermark', exact: true }).click();
   await page.getByLabel('Seek playhead').fill('3'); await page.getByRole('button', { name: 'Split', exact: true }).click();
   for (const index of [1, 2]) {
-    await page.getByLabel('Effect target').selectOption({ index }); await page.getByRole('button', { name: 'Add Video fade out', exact: true }).click();
+await page.getByRole('button', { name: 'Add Video fade out', exact: true }).click();
   }
-  const a = page.getByRole('button', { name: 'Video fade out clip 1', exact: true }), b = page.getByRole('button', { name: 'Video fade out clip 2', exact: true });
-  expect(await a.evaluate((node, label) => node.closest('.timeline-lane')!.contains([...document.querySelectorAll('[aria-label]')].find(node => node.getAttribute('aria-label') === label)!), 'Video fade out clip 2')).toBe(true);
-  const firstEdge = page.getByLabel('Video fade out clip 1 start', { exact: true });
+  const a = page.getByRole('button', { name: 'Video fade out effect', exact: true }), b = page.getByRole('button', { name: 'Video fade out instance 2 effect', exact: true });
+  expect(await a.evaluate((node, label) => node.closest('.timeline-lane')!.contains([...document.querySelectorAll('[aria-label]')].find(node => node.getAttribute('aria-label') === label)!), 'Video fade out instance 2 effect')).toBe(false);
+  const firstEdge = page.getByLabel('Video fade out effect start', { exact: true });
   for (let i = 0; i < 25; i++) await firstEdge.press('ArrowLeft');
   await closeEffect(page); await b.click(); await expect(page.getByLabel('Video fade out duration', { exact: true })).toHaveValue('0.5'); await closeEffect(page);
-  const edge = page.getByLabel('Video fade out clip 1 start', { exact: true }); await edge.press('ArrowLeft'); await expect(page.getByRole('dialog')).toBeVisible(); await closeEffect(page);
-  const marks = page.getByRole('button', { name: 'Watermark effect', exact: true }); await expect(marks).toHaveCount(2);
-  expect(await marks.first().evaluate(node => node.closest('.timeline-lane')!.querySelectorAll('.watermark-bar').length)).toBe(2);
-  await page.getByRole('button', { name: 'Remove Video fade out from clip 1', exact: true }).click(); await expect(a).toHaveCount(0); await expect(b).toBeVisible();
-  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(a).toBeVisible();
+  const edge = page.getByLabel('Video fade out effect start', { exact: true }); await edge.press('ArrowLeft'); await expect(page.getByRole('dialog')).toBeVisible(); await closeEffect(page);
+  const marks = page.getByRole('button', { name: 'Watermark effect', exact: true }); await expect(marks).toHaveCount(1);
+  expect(await marks.first().evaluate(node => node.closest('.timeline-lane')!.querySelectorAll('.watermark-bar').length)).toBe(1);
+  await page.getByRole('button', { name: 'Remove Video fade out effect', exact: true }).click(); await expect(b).toHaveCount(0); await a.click(); await expect(page.getByLabel('Video fade out duration')).toHaveValue('0.5'); await closeEffect(page);
+  await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(a).toBeVisible(); await expect(b).toBeVisible();
 });

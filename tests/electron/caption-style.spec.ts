@@ -21,15 +21,16 @@ test('lists installed fonts and preserves a styled desktop caption through save 
     await page.getByLabel('Caption text color').fill('#ff0000'); await page.getByLabel('Caption font size').fill('8'); await page.getByLabel('Caption background opacity').fill('0'); await page.getByLabel('Bold', { exact: true }).check(); await page.getByLabel('Italic', { exact: true }).check();
     await page.getByRole('button', { name: 'Play', exact: true }).click(); await expect(page.locator('.effect-settings-overlay')).toBeVisible(); await page.getByRole('button', { name: 'Pause', exact: true }).click(); await closeEffect(page);
     const project = join(directory, 'caption.frame.json'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, project); await page.getByRole('button', { name: 'Save project', exact: true }).click();
-    await expect.poll(() => readFile(project, 'utf8').then(text => JSON.parse(text).sources[0].edit.subtitles.cues[0].style.font)).toBe(`system:${font}`);
+    await expect.poll(() => readFile(project, 'utf8').then(text => JSON.parse(text).sources[0].edit.effectInstances.find((instance: { effect: string }) => instance.effect === 'captions').settings.subtitles.cues[0].style.font)).toBe(`system:${font}`);
     const output = join(directory, 'caption.mp4'); await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
     await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByText('Export ready', { exact: true })).toBeVisible({ timeout: 45000 });
     const { stdout } = await exec(ffmpegPath()!, ['-v', 'error', '-i', output, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer', maxBuffer: 2_000_000 });
     let red = 0; for (let pixel = 0; pixel < stdout.length; pixel += 3) if (stdout[pixel] > 150 && stdout[pixel + 1] < 60 && stdout[pixel + 2] < 60) red++;
     expect(red).toBeGreaterThan(100);
+    await app.evaluate(({ dialog }, filePath) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] }); }, source);
     const assets = await page.evaluate(() => window.frameDesktop!.importFiles());
     const edit = JSON.parse(await readFile(project, 'utf8')).sources[0].edit;
-    edit.subtitles.cues[0].style.font = 'system:Frame Test Missing Font';
+    edit.effectInstances.find((instance: { effect: string }) => instance.effect === 'captions').settings.subtitles.cues[0].style.font = 'system:Frame Test Missing Font';
     await expect(page.evaluate(({ asset, edit }) => window.frameDesktop!.previewFrame(asset.id, edit, 0), { asset: assets.assets[0], edit })).rejects.toThrow('not installed');
   } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
 });

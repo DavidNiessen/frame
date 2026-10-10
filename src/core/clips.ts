@@ -2,6 +2,7 @@ import { definitionFor, effectiveSpeed, extraInstances } from './effect-instance
 import { timelineSections } from './timeline';
 import type { EditSettings, TimeRange } from './types';
 import { hasMinimumDuration } from './time-range';
+import { preserveSplitFades } from './split-effects';
 
 export const clipEffectKeys = ['effectRanges', 'effectInstances', 'addedEffects', 'volume', 'speed', 'preservePitch', 'normalizeLoudness', 'targetLufs', 'reduceNoise', 'noiseStrength', 'noiseFloor', 'equalizer', 'audioFadeIn', 'audioFadeOut', 'videoFadeIn', 'videoFadeOut', 'color', 'geometry', 'crop'] as const;
 export type ClipEffects = Partial<Pick<EditSettings, typeof clipEffectKeys[number]>>;
@@ -12,7 +13,7 @@ export function editClips(edit: EditSettings): TimelineClip[] {
 /** Clip recipes inherit shared controls, while fades on the full output remain a final pass. */
 export function clipRecipe(edit: EditSettings, clip: TimelineClip): EditSettings {
   return { ...edit, audioLayers: [], audioFadeIn: 0, audioFadeOut: 0, videoFadeIn: 0, videoFadeOut: 0, ...clip.effects,
-    effectInstances: [...extraInstances(edit).filter(item => definitionFor(item.effect).scope === 'source'), ...(clip.effects.effectInstances ?? extraInstances(edit).filter(item => definitionFor(item.effect).scope === 'clip' && !item.effect.includes('Fade')))],
+    effectInstances: [...extraInstances(edit).filter(item => item.timeSpace === 'output' && !item.effect.includes('Fade') || definitionFor(item.effect).scope === 'source'), ...(clip.effects.effectInstances ?? extraInstances(edit).filter(item => !item.timeSpace && definitionFor(item.effect).scope === 'clip' && !item.effect.includes('Fade'))).filter(item => !item.timeSpace)],
     start: clip.start, end: clip.end, clips: undefined, cuts: [], splits: [] };
 }
 export function clipAtSource(edit: EditSettings, time: number): TimelineClip | undefined {
@@ -29,7 +30,9 @@ export function clipPositions(edit: EditSettings) {
 export function splitClip(edit: EditSettings, id: string, time: number): Partial<EditSettings> {
   const clips = editClips(edit), clip = clips.find(item => item.id === id);
   if (!clip || !hasMinimumDuration({ start: clip.start, end: time }, effectiveSpeed(clipRecipe(edit, clip))) || !hasMinimumDuration({ start: time, end: clip.end }, effectiveSpeed(clipRecipe(edit, clip)))) return {};
-  return { clips: clips.flatMap(item => item.id === id ? [{ ...item, end: time }, { ...item, id: `source-${time}-${clip.end}`, start: time, effects: structuredClone(item.effects) }] : [item]) };
+  const position = clipPositions(edit).find(item => item.clip.id === id)!;
+  const preserved = preserveSplitFades(edit, clip, position.start, position.speed);
+  return { effectInstances: preserved.instances, clips: clips.flatMap(item => item.id === id ? [{ ...item, end: time, effects: preserved.effects }, { ...item, id: `source-${time}-${clip.end}`, start: time, effects: structuredClone(preserved.effects) }] : [item]) };
 }
 export function reorderClip(edit: EditSettings, id: string, index: number): Partial<EditSettings> {
   const clips = [...editClips(edit)], from = clips.findIndex(clip => clip.id === id);

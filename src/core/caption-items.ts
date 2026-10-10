@@ -1,9 +1,9 @@
-import { changeInstance, sourceRecipes } from './effect-instances';
+import { changeInstance, extraInstances, sourceRecipes } from './effect-instances';
 import type { EditSettings } from './types';
 import type { SubtitleCue } from './subtitles';
 export function captionItems(edit: EditSettings) {
   let index = 0;
-  return sourceRecipes(edit, 'captions').flatMap(({ id, recipe }) => recipe.subtitles.cues.map((cue, localIndex) => ({ ...cue, cue, index: index++, localIndex, instanceId: id, mode: recipe.subtitles.mode })));
+  return sourceRecipes(edit, 'captions').flatMap(({ id, recipe }) => recipe.subtitles.cues.map((cue, localIndex) => ({ ...cue, cue, index: index++, localIndex, instanceId: id, mode: recipe.subtitles.mode, timeSpace: extraInstances(edit).find(item => item.id === id)?.timeSpace })));
 }
 export function changeCaption(edit: EditSettings, item: ReturnType<typeof captionItems>[number], patch: Partial<SubtitleCue> | 'remove'): Partial<EditSettings> {
   const subtitles = sourceRecipes(edit, 'captions').find(recipe => recipe.id === item.instanceId)!.recipe.subtitles;

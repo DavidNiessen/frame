@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { AudioLines, Check, ChevronRight, Film, Folder, Gauge, Plus, Search } from 'lucide-react';
 import { appliedEffects, availableEffects, type EffectId } from '../core/effect-library';
 import { effectAction, effectDragType, existingEffectTarget } from '../core/effect-actions';
+import { addTimelineEffect } from '../core/timeline-effects';
 import { EffectRecipes } from './EffectRecipes';
 import { clearClipEffects } from '../core/effect-actions';
 import type { Editor } from '../hooks/useEditor';
@@ -11,19 +12,19 @@ export function EffectLibrary({ editor, current, seek, openCaption, openEffect }
   const [query, setQuery] = useState(''), [group, setGroup] = useState('All'), [selected, setSelected] = useState<EffectId | null>(null), [message, setMessage] = useState(''), [messageVersion, setMessageVersion] = useState(0);
   const asset = editor.asset!, edit = editor.edit!;
   const effects = useMemo(() => availableEffects(asset), [asset]);
-  const active = appliedEffects(asset, edit, editor.selectedClip);
+  const active = appliedEffects(asset, edit, null);
   const chosen = effects.find(effect => effect.id === selected);
   const filtered = effects.filter(effect => (group === 'All' || effect.group === group) && `${effect.name} ${effect.description}`.toLowerCase().includes(query.toLowerCase()));
   function apply(id: EffectId) {
     const effect = effects.find(item => item.id === id); if (!effect) return;
-    const existing = existingEffectTarget(edit, asset, effect, editor.selectedClip);
+    const existing = existingEffectTarget(edit, asset, effect, null);
     if (existing) { setSelected(id); setMessage(''); if (effect.scope === 'clip') editor.selectClip(existing.clipId); openEffect(id, existing.instanceId); return; }
     setSelected(id); setMessageVersion(version => version + 1);
-    try { editor.update(effectAction(edit, asset, effect, editor.selectedClip, 'add', current)); } catch (error) { setMessage((error as Error).message); return; }
+    try { editor.update(['mix', 'silence'].includes(id) ? effectAction(edit, asset, effect, null, 'add', current) : addTimelineEffect(edit, asset, id, current)); editor.selectClip(null); } catch (error) { setMessage((error as Error).message); return; }
     setMessage(`${effect.name} added. Click its timeline bar to adjust settings.`);
   }
   return <section className="effect-browser" aria-label="Effect browser">
-    <div className="effect-library-intro"><h3>Effects</h3><p>Drag onto a clip, double-click, or use + to apply. Click an effect on the timeline to adjust it.</p>
+    <div className="effect-library-intro"><h3>Effects</h3><p>Double-click or use + to add an effect. Each effect gets its own timeline row, spanning any splits.</p>
       <label className="effect-search"><Search size={15} /><input type="search" aria-label="Search effects" placeholder="Search effects…" value={query} onChange={event => setQuery(event.target.value)} /></label>
       <div className="effect-categories" aria-label="Effect categories">{['All', 'Audio', 'Video', 'Timing'].map(category => <button key={category} aria-pressed={group === category} onClick={() => setGroup(category)}>{category}</button>)}</div>
     </div>
@@ -36,10 +37,10 @@ export function EffectLibrary({ editor, current, seek, openCaption, openEffect }
         </div>; })}</div>
       </details>;
     })}{!filtered.length && <p className="effect-stack-empty">No matching effects. Try another search or category.</p>}</div>
-    <div className="effect-browser-selection"><strong>{chosen?.name ?? 'Choose an effect'}</strong><p>{chosen?.description ?? 'The catalogue stays here when you apply an effect.'}</p>{chosen && <span>{chosen.repeatable ? chosen.id === 'captions' || chosen.id === 'watermark' ? `Adds one timed ${chosen.id === 'captions' ? 'caption' : 'watermark'} at the playhead` : 'Adds an independent adjustment · drag its timeline bar to set timing' : chosen.scope === 'source' ? 'Applies to the entire source' : editor.selectedClip ? 'Applies to the selected clip' : 'Applies to all clips'}</span>}
+    <div className="effect-browser-selection"><strong>{chosen?.name ?? 'Choose an effect'}</strong><p>{chosen?.description ?? 'The catalogue stays here when you apply an effect.'}</p>{chosen && <span>{chosen.repeatable ? chosen.id === 'captions' || chosen.id === 'watermark' ? `Adds one timed ${chosen.id === 'captions' ? 'caption' : 'watermark'} at the playhead` : 'Adds an independent adjustment · drag its timeline bar to set timing' : chosen.scope === 'source' ? 'Applies to the entire source' : 'Applies to the timeline track'}</span>}
       {message && <TransientMessage key={messageVersion} className="effect-apply-message" role="status">{message}</TransientMessage>}
     </div>
-    {active.some(effect => effect.scope === 'clip') && <button className="effect-clear button subtle small" onClick={() => editor.update(clearClipEffects(edit, asset, editor.selectedClip))}>Remove all clip effects</button>}
+    {active.some(effect => effect.scope === 'clip') && <button className="effect-clear button subtle small" onClick={() => editor.update(clearClipEffects(edit, asset, null))}>Remove all track effects</button>}
     {asset.kind === 'video' && <CaptionTools editor={editor} seek={seek} openCaption={openCaption} />}
     <EffectRecipes editor={editor} />
   </section>;

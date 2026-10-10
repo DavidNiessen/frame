@@ -85,7 +85,7 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.locator('.toast')).toContainText('Project saved');
     const project = JSON.parse(await readFile(projectPath, 'utf8'));
     expect(project.sources[0].edit.start).toBe(1);
-    expect(project.sources[0].edit.subtitles.cues[0].position.x).toBeGreaterThan(50);
+    expect(project.sources[0].edit.effectInstances.find((instance: { effect: string }) => instance.effect === 'captions').settings.subtitles.cues[0].position.x).toBeGreaterThan(50);
     expect(JSON.stringify(project)).not.toContain('media://');
     await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 0);
     await page.getByLabel('Choose project file').setInputFiles(projectPath);

@@ -5,14 +5,14 @@ import type { EditSettings } from './types';
 /** Upgrade grouped captions without changing their timing, placement or export mode. */
 export function individualCaptionEffects(edit: EditSettings): EditSettings {
   if (edit.subtitles.cues.length <= 1 && extraInstances(edit, 'captions').every(instance => (instance.settings.subtitles?.cues.length ?? 0) <= 1)) return edit;
-  const split = (subtitles: Subtitles): EffectInstance[] => subtitles.cues.slice(1).map(cue => ({
-    id: crypto.randomUUID(), effect: 'captions', settings: { subtitles: { mode: subtitles.mode, cues: [cue] } },
+  const split = (subtitles: Subtitles, timeSpace?: 'output'): EffectInstance[] => subtitles.cues.slice(1).map(cue => ({
+    id: crypto.randomUUID(), effect: 'captions', ...(timeSpace ? { timeSpace } : {}), settings: { subtitles: { mode: subtitles.mode, cues: [cue] } },
   }));
   return { ...edit, subtitles: { ...edit.subtitles, cues: edit.subtitles.cues.slice(0, 1) }, effectInstances: [
     ...split(edit.subtitles),
     ...extraInstances(edit).flatMap(instance => {
       const subtitles = instance.effect === 'captions' ? instance.settings.subtitles : undefined;
-      return subtitles ? [{ ...instance, settings: { subtitles: { ...subtitles, cues: subtitles.cues.slice(0, 1) } } }, ...split(subtitles)] : [instance];
+      return subtitles ? [{ ...instance, settings: { subtitles: { ...subtitles, cues: subtitles.cues.slice(0, 1) } } }, ...split(subtitles, instance.timeSpace)] : [instance];
     }),
   ] };
 }

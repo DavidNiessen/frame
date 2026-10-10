@@ -1,6 +1,6 @@
-import { effectiveSpeed } from '../core/effect-instances';
 import { availableEffects, type EffectId } from '../core/effect-library';
 import { effectAction, effectDragType, existingEffectTarget } from '../core/effect-actions';
+import { addTimelineEffect } from '../core/timeline-effects';
 import type { DragEvent } from 'react';
 import { useRef, useState } from 'react';
 import { TimelineRange } from './TimelineRange';
@@ -31,11 +31,11 @@ export function TimelineClip({ clip, index, edit, asset, position, duration, spe
     if (disabled) return;
     const effect = availableEffects(asset).find(item => item.id === event.dataTransfer.getData(effectDragType));
     if (!effect) return;
-    const existing = existingEffectTarget(edit, asset, effect, clip.id);
+    const existing = existingEffectTarget(edit, asset, effect, null);
     if (existing) { if (effect.scope === 'clip') select(clip.id); openEffect(effect.id, existing.instanceId); return; }
-    try { update(effectAction(edit, asset, effect, clip.id, 'add', clip.start)); select(clip.id); } catch (error) { notify((error as Error).message); }
+    try { update(['mix', 'silence'].includes(effect.id) ? effectAction(edit, asset, effect, null, 'add', clip.start) : addTimelineEffect(edit, asset, effect.id, clip.start)); } catch (error) { notify((error as Error).message); }
   }
-  return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange wideHandles range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(effectiveSpeed({ ...edit, ...clip.effects }))} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
+  return <div className={`movable-clip ${offset ? 'dragging' : ''} ${effectDrop ? 'effect-drop-target' : ''}`} onDragOver={dragOver} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEffectDrop(false); }} onDrop={dropEffect} style={{ transform: `translateX(${offset}px)` }}><TimelineRange wideHandles range={clip} displayRange={position} displaySpeed={speed} minimum={minimumSourceDuration(speed)} limits={sectionLimits(edit, index, asset.duration)} duration={duration}
     text={`${index + 1} · ${asset.name}${effectCount ? ' ✦' : ''}`} label={`Select section ${index + 1}, ${time(clip.start)} to ${time(clip.end)}`} startLabel={index === 0 ? 'Trim start' : `Section ${index + 1} start`} endLabel={index === editClips(edit).length - 1 ? 'Trim end' : `Section ${index + 1} end`}
     startTitle="Drag left to restore the beginning · drag right to trim"
     endTitle="Drag right to restore the end · drag left to trim"

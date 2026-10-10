@@ -22,27 +22,27 @@ test('plays reordered clips across the source end and restarts at the sequence b
   await page.goto('/'); await importTestMedia(page);
   const video = page.locator('video'); await expect(video).toHaveJSProperty('readyState', 4);
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
-  await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 });
+  await closeEffect(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed');
   await page.getByLabel('Playback speed').selectOption('4');
   await page.locator('.timeline-clip .range-body').nth(1).press('Alt+ArrowLeft');
   await page.getByRole('button', { name: 'Back to trim start', exact: true }).click(); await expect(video).toHaveJSProperty('currentTime', 2);
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect.poll(() => video.evaluate(node => { const media = node as HTMLVideoElement; return !media.paused && media.currentTime < 2 && media.playbackRate === 1; }), { timeout: 8000 }).toBe(true);
+  await expect.poll(() => video.evaluate(node => { const media = node as HTMLVideoElement; return !media.paused && media.currentTime < 2 && media.playbackRate === 4; }), { timeout: 8000 }).toBe(true);
   await expect(video).toHaveJSProperty('paused', true, { timeout: 8000 }); await expect(video).toHaveJSProperty('currentTime', 2);
 });
 
-test('applies an effect to one split clip, reorders it and exports the sequence', async ({ page }, testInfo) => {
+test('applies a track effect, reorders split clips and exports the sequence', async ({ page }, testInfo) => {
   await page.goto('/'); await importTestMedia(page);
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 45000 });
   await page.getByLabel('Seek playhead').fill('2'); await page.getByRole('button', { name: 'Split', exact: true }).click();
-  await closeEffect(page); await page.getByLabel('Effect target').selectOption({ index: 2 });
+  await closeEffect(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await page.getByLabel('Search effects').fill('speed');
   await expect(page.locator('.effect-card')).toHaveCount(1); await openEffect(page, 'Speed');
   await page.getByLabel('Playback speed').selectOption('2');
   await page.getByLabel('Seek playhead').fill('3'); await expect(page.locator('video')).toHaveJSProperty('playbackRate', 2);
-  await page.getByLabel('Seek playhead').fill('1'); await expect(page.locator('video')).toHaveJSProperty('playbackRate', 1);
+  await page.getByLabel('Seek playhead').fill('1'); await expect(page.locator('video')).toHaveJSProperty('playbackRate', 2);
   await page.locator('.timeline-clip .range-body').nth(1).press('Alt+ArrowLeft');
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '2');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
@@ -51,16 +51,12 @@ test('applies an effect to one split clip, reorders it and exports the sequence'
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '2');
   await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click();
   await page.getByLabel('Fullscreen playback position').fill('1'); await expect(page.locator('video')).toHaveJSProperty('currentTime', 4);
-  await page.getByLabel('Fullscreen playback position').fill('2.5'); await expect(page.locator('video')).toHaveJSProperty('currentTime', .5);
+  await page.getByLabel('Fullscreen playback position').fill('2.5'); await expect(page.locator('video')).toHaveJSProperty('currentTime', 1);
   await page.getByRole('button', { name: 'Exit fullscreen preview', exact: true }).click();
-  await page.getByRole('button', { name: 'Generate thumbnails', exact: true }).click();
-  await page.getByRole('button', { name: 'Seek thumbnail 1', exact: true }).click();
-  await expect.poll(() => page.locator('video').evaluate(node => (node as HTMLVideoElement).currentTime)).toBeCloseTo(2 + 1 / 3, 2);
-  await page.getByRole('button', { name: 'Seek thumbnail 12', exact: true }).click();
-  await expect.poll(() => page.locator('video').evaluate(node => (node as HTMLVideoElement).currentTime)).toBeCloseTo(2 - 1 / 6, 2);
+  await expect(page.getByRole('button', { name: 'Generate thumbnails', exact: true })).toHaveCount(0);
   await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
   const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file', exact: true }).click(); const output = testInfo.outputPath('sequence.mp4'); await (await pending).saveAs(output);
-  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]); expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(4, 1);
+  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]); expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(3, 1);
 });
 
 test('keeps waveform generation and cancellation independent of editing and export', async ({ page }) => {

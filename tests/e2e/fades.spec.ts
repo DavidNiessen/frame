@@ -10,10 +10,10 @@ const exec = promisify(execFile);
 test('previews and exports video/audio fades after a speed edit', async ({ page }, testInfo) => {
   await page.goto('/'); await importTestMedia(page);
   await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 2); await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Speed'); await page.getByLabel('Playback speed').selectOption('2');
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Video fade in'); await setBoundary(page, 'Video fade in end', 0.4); await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Audio fade in'); await setBoundary(page, 'Audio fade in end', 0.4);
+  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Video fade in'); await setBoundary(page, 'Video fade in effect end', 0.4); await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Audio fade in'); await setBoundary(page, 'Audio fade in effect end', 0.4);
   await page.getByLabel('Seek playhead').fill('0');
   await expect(page.locator('video')).toHaveCSS('opacity', '0');
-  await page.getByLabel('Seek playhead').fill('0.2');
+  await page.getByLabel('Seek playhead').fill('0.4');
   await expect.poll(() => page.locator('video').evaluate(v => Number((v as HTMLVideoElement).style.opacity))).toBeCloseTo(0.5, 1);
   await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 45000 });

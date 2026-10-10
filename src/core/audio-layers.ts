@@ -1,4 +1,5 @@
 import { allAudioLayers, extraInstances } from './effect-instances';
+import { timelineFadeFilter } from './timeline-effects';
 import { duckMusicGraph } from './audio-ducking';
 import type { SourceIdentity } from './project';
 import type { EditSettings, MediaAsset } from './types';
@@ -57,6 +58,7 @@ export function audioMixGraph(edit: EditSettings, inputs: AudioLayerInput[], fir
   if (edit.audioFadeIn) filters.push(`afade=t=in:d=${edit.audioFadeIn}`);
   if (edit.audioFadeOut) filters.push(`afade=t=out:st=${duration - edit.audioFadeOut}:d=${edit.audioFadeOut}`);
   for (const instance of extraInstances(edit)) {
+    if (instance.timeSpace === 'output' && instance.effect.startsWith('audioFade')) { filters.push(...timelineFadeFilter(instance)); continue; }
     if (instance.effect === 'audioFadeIn' && instance.settings.audioFadeIn) filters.push(`afade=t=in:d=${instance.settings.audioFadeIn}`);
     if (instance.effect === 'audioFadeOut' && instance.settings.audioFadeOut) filters.push(`afade=t=out:st=${duration - instance.settings.audioFadeOut}:d=${instance.settings.audioFadeOut}`);
   }
