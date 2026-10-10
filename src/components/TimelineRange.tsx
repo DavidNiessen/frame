@@ -1,10 +1,13 @@
-import { useContext, useRef, useState, type PointerEvent, type ReactNode, type ButtonHTMLAttributes } from 'react';
+import { useContext, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode, type ButtonHTMLAttributes } from 'react';
 import { TimelineSnapContext } from './TimelineSnapContext';
 import { snapTime, type SnapSpace } from '../core/snapping';
 import type { TimeRange } from '../core/types';
 import type { Boundary } from '../core/timeline-edit';
 import { time } from '../core/format';
+import { TimelineMenuContext, type TimelineMenuTarget } from './TimelineMenuContext';
+import type { TimelineClipboard } from '../core/timeline-clipboard';
 interface Props {
+  clipboard?: TimelineClipboard; contextClipId?: string;
   snapSpace?: SnapSpace; selectOnPointer?: boolean; text?: string; range: TimeRange; limits: TimeRange; duration: number; label: string; className?: string;
   snapMap?: (targets: number[]) => number[];
   disabled: boolean; onChange: (range: TimeRange) => void; onSelect: (keepView?: boolean) => void;
@@ -19,8 +22,11 @@ interface Props {
   remove?: { label: string; run: () => void };
 }
 export function TimelineRange({ range, limits, duration, label, text, selectOnPointer = false, className = '', disabled, onChange, onSelect,
-  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', snapMap, remove, onMove, moveLimits, onPreview, startTitle, endTitle, wideHandles = false, edgeLimits }: Props) {
-  const snap = useContext(TimelineSnapContext);
+  startLabel = `${label} start`, endLabel = `${label} end`, edges = ['start', 'end'], minimum = 0.05, renderContent, displayRange, displaySpeed = 1, bodyProps, snapSpace = 'source', snapMap, remove, onMove, moveLimits, onPreview, startTitle, endTitle, wideHandles = false, edgeLimits, clipboard, contextClipId }: Props) {
+  const element = useRef<HTMLDivElement>(null);
+  const snap = useContext(TimelineSnapContext), menu = useContext(TimelineMenuContext);
+  const target: TimelineMenuTarget = { label, range, shown: displayRange ?? range, limits, speed: displaySpeed, minimum, edges, clipId: contextClipId, clipboard, select: onSelect, change: onChange, move: onMove, moveLimits, preview: onPreview, remove: remove?.run };
+  useLayoutEffect(() => { if (element.current?.contains(document.activeElement)) menu?.focus(target); });
   const [snapped, setSnapped] = useState(false);
   const [draft, setDraft] = useState<TimeRange | null>(null);
   const gesture = useRef<{ pointer: number; edge: Boundary | 'body'; range: TimeRange; origin: number; width: number; moved: boolean } | null>(null);
@@ -65,8 +71,13 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
     }
     setDraft(null); event.currentTarget.releasePointerCapture(event.pointerId);
   }
-  return <div data-wide-handles={wideHandles || undefined} data-effect-timeline={selectOnPointer || undefined} data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className} ${draft ? 'trimming' : ''} ${onMove ? 'movable-range' : ''}`} style={{ left: selectOnPointer || wideHandles ? `max(0px, min(${left}, calc(100% - max(var(--effect-hit-width, 48px), ${width}))))` : left, width }}
-    onContextMenu={remove ? event => { event.preventDefault(); event.stopPropagation(); if (!disabled) { cancel(); remove.run(); } } : undefined}>
+  return <div ref={element} data-wide-handles={wideHandles || undefined} data-effect-timeline={selectOnPointer || undefined} data-duration={duration} data-speed={displaySpeed} className={`timeline-range ${className} ${draft ? 'trimming' : ''} ${onMove ? 'movable-range' : ''}`} style={{ left: selectOnPointer || wideHandles ? `max(0px, min(${left}, calc(100% - max(var(--effect-hit-width, 48px), ${width}))))` : left, width }}
+    onFocusCapture={() => menu?.focus(target)} onKeyDownCapture={event => {
+      if (!menu || !(event.key === 'ContextMenu' || event.shiftKey && event.key === 'F10')) return;
+      const box = event.currentTarget.getBoundingClientRect();
+      menu.open({ clientX: box.left + box.width / 2, clientY: box.bottom, target: event.target, preventDefault: () => event.preventDefault(), stopPropagation: () => event.stopPropagation() } as import('react').MouseEvent<HTMLElement>, target);
+    }}
+    onContextMenu={event => { if (menu) { cancel(); menu.open(event, target); } else if (remove) { event.preventDefault(); event.stopPropagation(); if (!disabled) { cancel(); remove.run(); } } }}>
     <button className="range-body" disabled={disabled} {...bodyProps} onClick={event => { if (!suppressClick.current && (event.detail === 0 || selectOnPointer)) onSelect(); }}
       onPointerDown={onMove ? event => {
         event.stopPropagation(); if (disabled || event.button !== 0) return;
@@ -85,7 +96,7 @@ export function TimelineRange({ range, limits, duration, label, text, selectOnPo
         }
         if (!event.defaultPrevented && remove && ['Delete', 'Backspace'].includes(event.key)) { event.preventDefault(); event.stopPropagation(); remove.run(); }
       }}
-      aria-label={label} title={`${label} · ${time(shown.start)}–${time(shown.end)}${remove ? ' · Right-click or Delete to remove' : ''}`}><span>{text ?? label}</span></button>
+      aria-label={label} title={`${label} · ${time(shown.start)}–${time(shown.end)}${remove ? ' · Right-click for actions · Delete to remove' : ''}`}><span>{text ?? label}</span></button>
     {renderContent?.(shown)}
     {edges.map(edge => <button key={edge} className={`range-handle ${edge}`} role="slider" aria-label={edge === 'start' ? startLabel : endLabel}
       title={edge === 'start' ? startTitle : endTitle}

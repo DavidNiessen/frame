@@ -22,7 +22,7 @@ test('saves minimum split clips and removes a track effect through the native ti
     await expect.poll(() => readFile(destination, 'utf8').then(text => JSON.parse(text).sources[0].edit.clips.length), { timeout: 30000 }).toBe(2);
     await page.getByRole('button', { name: 'Fit', exact: true }).click();
     await page.locator('.timeline-track-filters').getByRole('button', { name: 'effects', exact: true }).click();
-    await closeEffect(page); await page.getByRole('button', { name: 'Volume effect', exact: true }).click({ button: 'right' }); await expect(page.getByRole('button', { name: 'Volume effect', exact: true })).toHaveCount(0);
+    await closeEffect(page); await page.getByRole('button', { name: 'Volume effect', exact: true }).click({ button: 'right' }); await page.getByRole('menuitem', { name: 'Delete', exact: true }).click(); await expect(page.getByRole('button', { name: 'Volume effect', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect.poll(() => readFile(destination, 'utf8').then(text => JSON.parse(text).sources[0].edit.effectInstances.length), { timeout: 30000 }).toBe(0);
     await page.getByRole('button', { name: 'Undo edit', exact: true }).click();

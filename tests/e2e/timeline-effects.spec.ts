@@ -35,10 +35,10 @@ for (const width of [1440, 390]) test(`keeps independent track effects across sp
   await page.getByLabel('Seek playhead').fill('5.5'); await expect(page.getByRole('button', { name: 'Move caption 1', exact: true })).toBeVisible();
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved'); await page.reload();
   await expect(fade).toHaveCount(1); await expect(second).toHaveCount(1); await expect(end).toHaveAttribute('aria-valuenow', '5.5');
-  await expect(page.locator('.range-remove')).toHaveCount(0); await second.click(); await second.click({ button: 'right' }); await expect(second).toHaveCount(0); await expect(fade).toHaveCount(1);
+  await expect(page.locator('.range-remove')).toHaveCount(0); await second.click(); await second.click({ button: 'right' }); await page.getByRole('menuitem', { name: 'Delete', exact: true }).click(); await expect(second).toHaveCount(0); await expect(fade).toHaveCount(1);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(second).toHaveCount(1);
-  await page.getByRole('button', { name: 'Caption 1', exact: true }).click({ button: 'right' }); await expect(page.locator('.caption-lane')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Watermark effect', exact: true }).click({ button: 'right' }); await expect(page.locator('.watermark-bar')).toHaveCount(0); await expect(fade).toHaveCount(1);
+  await page.getByRole('button', { name: 'Caption 1', exact: true }).click({ button: 'right' }); await page.getByRole('menuitem', { name: 'Delete', exact: true }).click(); await expect(page.locator('.caption-lane')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Watermark effect', exact: true }).click({ button: 'right' }); await page.getByRole('menuitem', { name: 'Delete', exact: true }).click(); await expect(page.locator('.watermark-bar')).toHaveCount(0); await expect(fade).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 

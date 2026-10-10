@@ -14,7 +14,13 @@ export function previewSourceTime(ranges: PreviewRange[], time: number) {
   }
   return ranges.at(-1)!.end;
 }
-export function previewMediaTime(ranges: PreviewRange[], source: number) {
+export function previewMediaTime(ranges: PreviewRange[], source: number, preferredOutput?: number) {
+  let offset = 0; const matches: number[] = [];
+  for (const range of ranges) {
+    if (source >= range.start && source <= range.end) matches.push(offset + (source - range.start) / (range.speed ?? 1));
+    offset += (range.end - range.start) / (range.speed ?? 1);
+  }
+  if (matches.length) return preferredOutput === undefined ? matches[0] : matches.reduce((best, value) => Math.abs(value - preferredOutput) < Math.abs(best - preferredOutput) ? value : best);
   let elapsed = 0;
   for (const range of ranges) {
     if (source < range.end) return elapsed + Math.max(0, source - range.start) / (range.speed ?? 1);
@@ -26,8 +32,9 @@ export function readPreviewTime(media: HTMLMediaElement) {
   const ranges = clocks.get(media);
   return ranges ? previewSourceTime(ranges, media.currentTime) : media.currentTime;
 }
-export function seekPreviewTime(media: HTMLMediaElement, source: number) {
-  const ranges = clocks.get(media), target = ranges ? previewMediaTime(ranges, source) : source;
+export function seekPreviewTime(media: HTMLMediaElement, source: number, output?: number) {
+  const ranges = clocks.get(media), target = ranges ? previewMediaTime(ranges, source, output ?? media.currentTime) : source;
+  if (output !== undefined) media.dataset.previewSeekOutput = String(output);
   if (Math.abs(media.currentTime - target) > 1e-8) media.currentTime = target;
 }
 export function hasPreviewClock(media: HTMLMediaElement) { return clocks.has(media); }

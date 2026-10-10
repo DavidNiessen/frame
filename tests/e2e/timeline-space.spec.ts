@@ -54,6 +54,6 @@ await page.getByRole('button', { name: 'Add Video fade out', exact: true }).clic
   const edge = page.getByLabel('Video fade out effect start', { exact: true }); await edge.press('ArrowLeft'); await expect(page.getByRole('dialog')).toBeVisible(); await closeEffect(page);
   const marks = page.getByRole('button', { name: 'Watermark effect', exact: true }); await expect(marks).toHaveCount(1);
   expect(await marks.first().evaluate(node => node.closest('.timeline-lane')!.querySelectorAll('.watermark-bar').length)).toBe(1);
-  await page.getByRole('button', { name: 'Video fade out effect', exact: true }).click({ button: 'right' }); await expect(b).toHaveCount(0); await a.click(); await expect(page.getByLabel('Video fade out duration')).toHaveValue('0.5'); await closeEffect(page);
+  await page.getByRole('button', { name: 'Video fade out effect', exact: true }).click({ button: 'right' }); await page.getByRole('menuitem', { name: 'Delete', exact: true }).click(); await expect(b).toHaveCount(0); await a.click(); await expect(page.getByLabel('Video fade out duration')).toHaveValue('0.5'); await closeEffect(page);
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(a).toBeVisible(); await expect(b).toBeVisible();
 });

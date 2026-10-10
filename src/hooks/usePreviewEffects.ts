@@ -1,6 +1,6 @@
 import { effectiveSpeed, effectiveVolume, extraInstances } from '../core/effect-instances';
 import { useEffect, useRef, type RefObject } from 'react';
-import { clipAtSource, clipRecipe } from '../core/clips';
+import { clipAtSource, clipRecipe, clipPositions } from '../core/clips';
 import { fadeGain, outputTimeAtSource } from '../core/fades';
 import { timelineFadeGain } from '../core/timeline-effects';
 import { editedDuration, keptRanges } from '../core/timeline';
@@ -12,8 +12,8 @@ export function pauseOtherMedia(active: HTMLMediaElement) {
   for (const element of document.querySelectorAll('video, audio')) if (element !== active && !element.hasAttribute('data-frame-mix-layer')) (element as HTMLMediaElement).pause();
 }
 export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings) {
-  const sourceTime = readPreviewTime(media), position = outputTimeAtSource(edit, sourceTime); const duration = editedDuration(edit);
-  const clip = edit.clips ? clipAtSource(edit, sourceTime) : undefined, recipe = clip ? clipRecipe(edit, clip) : edit;
+  const sourceTime = readPreviewTime(media), position = outputTimeAtSource(edit, sourceTime, hasPreviewClock(media) ? media.currentTime : undefined); const duration = editedDuration(edit);
+  const clip = edit.clips ? clipPositions(edit).find(item => position >= item.start && position < item.end)?.clip ?? clipAtSource(edit, sourceTime) : undefined, recipe = clip ? clipRecipe(edit, clip) : edit;
   const speed = effectiveSpeed(recipe), local = (sourceTime - recipe.start) / speed;
   const localFade = clip ? fadeGain(local, editedDuration(recipe), recipe.audioFadeIn, recipe.audioFadeOut) : 1;
   const rendered = media.dataset.previewEffects === 'rendered', rate = rendered ? 1 : Math.min(16, Math.max(.0625, speed));

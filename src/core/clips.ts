@@ -39,7 +39,7 @@ export function splitClip(edit: EditSettings, id: string, time: number): Partial
   const position = clipPositions(edit).find(item => item.clip.id === id)!;
   const preserved = preserveSplitFades(edit, clip, position.start, position.speed);
   const rightGroup = clip.groupId ? crypto.randomUUID() : undefined;
-  const result = clips.flatMap((item, i) => item.id === id ? [{ ...item, end: time, effects: preserved.effects }, { ...item, id: `source-${time}-${clip.end}`, groupId: rightGroup, start: time, effects: structuredClone(preserved.effects) }] : [item.groupId && item.groupId === clip.groupId && i > index ? { ...item, groupId: rightGroup } : item]);
+  const result = clips.flatMap((item, i) => item.id === id ? [{ ...item, end: time, effects: preserved.effects }, { ...item, id: crypto.randomUUID(), groupId: rightGroup, start: time, effects: structuredClone(preserved.effects) }] : [item.groupId && item.groupId === clip.groupId && i > index ? { ...item, groupId: rightGroup } : item]);
   return { effectInstances: preserved.instances, clips: splitJoinedRanges(result, clip.groupId, rightGroup) };
 }
 function splitJoinedRanges(clips: TimelineClip[], ...groups: (string | undefined)[]) {

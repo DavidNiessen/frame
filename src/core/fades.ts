@@ -2,9 +2,10 @@ import { effectiveSpeed } from './effect-instances';
 import { clipPositions } from './clips';
 import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings } from './types';
-export function outputTimeAtSource(edit: EditSettings, sourceTime: number): number {
+export function outputTimeAtSource(edit: EditSettings, sourceTime: number, preferredOutput?: number): number {
   if (edit.clips) {
-    const positions = clipPositions(edit), segment = positions.find(({ clip }) => sourceTime >= clip.start && sourceTime < clip.end) ?? positions.find(({ clip }) => sourceTime === clip.end);
+    const positions = clipPositions(edit), matches = positions.filter(({ clip }) => sourceTime >= clip.start && sourceTime < clip.end);
+    const segment = preferredOutput === undefined ? matches[0] ?? positions.find(({ clip }) => sourceTime === clip.end) : [...(matches.length ? matches : positions.filter(({ clip }) => sourceTime === clip.end))].sort((a, b) => Math.abs(a.start + (sourceTime - a.clip.start) / a.speed - preferredOutput) - Math.abs(b.start + (sourceTime - b.clip.start) / b.speed - preferredOutput))[0];
     return segment ? segment.start + (sourceTime - segment.clip.start) / segment.speed : 0;
   }
   return keptRanges(edit).reduce((time, range) => time + Math.max(0, Math.min(sourceTime, range.end) - range.start), 0) / effectiveSpeed(edit);

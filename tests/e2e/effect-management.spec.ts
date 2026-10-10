@@ -35,7 +35,7 @@ test('edits one timeline effect at a time and retains neutral settings until rem
   await page.getByRole('button', { name: 'Reset Volume', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('1'); await closeEffect(page);
   await expect(page.getByRole('button', { name: 'Volume effect', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await page.getByRole('button', { name: 'Volume effect', exact: true }).click(); await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5'); await closeEffect(page);
-  await closeEffect(page); await page.getByRole('button', { name: 'Volume effect', exact: true }).click({ button: 'right' }); await closeEffect(page); await page.getByRole('button', { name: 'Speed effect', exact: true }).click({ button: 'right' });
+  await closeEffect(page); await page.getByRole('button', { name: 'Volume effect', exact: true }).click({ button: 'right' }); await page.getByRole('menuitem', { name: 'Delete', exact: true }).click(); await closeEffect(page); await page.getByRole('button', { name: 'Speed effect', exact: true }).click({ button: 'right' }); await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
   await expect(page.locator('.effect-lane')).toHaveCount(0); await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', { timeout: 30000 });
 });

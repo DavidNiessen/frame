@@ -21,6 +21,7 @@ import './styles/mini-conversion.css';
 import './styles/border-lighting.css';
 import './styles/desktop-titlebar.css';
 import './styles/loading-beam.css';
+import './styles/timeline-context-menu.css';
 import { DesktopWindow } from './components/DesktopWindow';
 import App from './App';
 import { MiniConversion } from './components/conversion/MiniConversion';
