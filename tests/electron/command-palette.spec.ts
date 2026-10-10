@@ -7,7 +7,7 @@ test('uses native command search to save a real project and navigate export cont
   const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
   try {
     const page = await app.firstWindow(); await page.getByRole('button', { name: 'Try a sample', exact: true }).click(); await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeEnabled();
-    const path = join(directory, 'command.frame.json'); await app.evaluate(({ dialog }, destination) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination }); }, path);
+    const path = join(directory, 'command.frame.json'); await app.evaluate(({ dialog }, destination) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination }); return true; }, path);
     await page.keyboard.press('Control+k'); const search = page.getByRole('combobox', { name: 'Search commands', exact: true }); await expect(search).toBeFocused(); await search.fill('save project'); await search.press('Enter');
     await expect.poll(async () => readFile(path, 'utf8').then(text => JSON.parse(text).sources.length).catch(() => 0)).toBe(1);
     await page.keyboard.press('Control+k'); await search.fill('export settings'); await search.press('Enter'); await expect(page.getByRole('tab', { name: 'Export', exact: true })).toHaveAttribute('aria-selected', 'true');
