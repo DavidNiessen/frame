@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
 const exec = promisify(execFile);
+test.use({ trace: 'retain-on-failure' });
 test('downloads, installs and relaunches the packaged app through Settings', async () => {
   test.skip(
     !process.env.FRAME_TEST_EXECUTABLE || !['darwin', 'win32'].includes(process.platform),

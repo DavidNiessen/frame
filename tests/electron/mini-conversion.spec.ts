@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { conversionLibrary, probeConversion } from '../helpers/conversion-library';
 import { ffmpegPath } from '../../electron/native';
 const exec = promisify(execFile);
+test.use({ trace: 'retain-on-failure' });
 function options(directory: string, files?: string[]) {
   const executablePath = process.env.FRAME_TEST_EXECUTABLE
     ? resolve(process.env.FRAME_TEST_EXECUTABLE)
