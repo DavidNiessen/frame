@@ -19,7 +19,7 @@ function nativeWindow() {
 }
 it('pins controls through Windows fullscreen events even when the transparent window reports false', () => {
   const window = nativeWindow(),
-    chrome = configureEditorChrome(window as unknown as BrowserWindow);
+    chrome = configureEditorChrome(window as unknown as BrowserWindow, false);
   window.emit('enter-full-screen');
   expect(chrome.state()).toMatchObject({ fullscreen: true, chromeExpanded: true });
   window.emit('resize');
@@ -39,7 +39,7 @@ it('restores a transparent fullscreen window instead of maximizing it', () => {
     handle: (channel: string, handler: (...args: unknown[]) => unknown) =>
       handlers.set(channel, handler),
   };
-  configureWindowControls(window as unknown as BrowserWindow, ipc as unknown as WindowIpc);
+  configureWindowControls(window as unknown as BrowserWindow, ipc as unknown as WindowIpc, false);
   window.emit('enter-full-screen');
   handlers.get('desktop:window-action')!(null, 'toggle-maximize');
   expect(window.setFullScreen).toHaveBeenCalledWith(false);
@@ -52,7 +52,7 @@ it('refreshes maximized chrome after native resize geometry settles', async () =
     handle: (channel: string, handler: (...args: unknown[]) => unknown) =>
       handlers.set(channel, handler),
   };
-  configureWindowControls(window as unknown as BrowserWindow, ipc as unknown as WindowIpc);
+  configureWindowControls(window as unknown as BrowserWindow, ipc as unknown as WindowIpc, false);
   window.emit('resize');
   expect(window.webContents.send).toHaveBeenLastCalledWith(
     'desktop:window-state',
@@ -77,4 +77,19 @@ it('refreshes maximized chrome after native resize geometry settles', async () =
     maximized: false,
     chromeExpanded: false,
   });
+});
+
+it('keeps native macOS controls visible without hover changing the content area', () => {
+  const window = nativeWindow(),
+    chrome = configureEditorChrome(window as unknown as BrowserWindow, true);
+  expect(chrome.state()).toMatchObject({
+    contentHeight: 928,
+    chromeInset: 0,
+    chromeExpanded: true,
+  });
+  expect(chrome.expand(false)).toEqual(chrome.expand(true));
+  window.emit('enter-full-screen');
+  expect(chrome.expand(false)).toMatchObject({ fullscreen: true, chromeExpanded: true });
+  window.emit('leave-full-screen');
+  expect(chrome.expand(false)).toMatchObject({ fullscreen: false, chromeExpanded: true });
 });

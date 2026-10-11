@@ -1,5 +1,5 @@
 import { app, dialog, Menu, ipcMain, type IpcMainInvokeEvent } from 'electron';
-import { installShellActions, shellActionState } from './shell-actions';
+import { installShellActions, shellActionState, refreshFinderActions } from './shell-actions';
 import { windowsShellStatus } from './windows-shell-integration';
 import { windowsPrimaryMenu } from './windows-primary-menu';
 import { changeShellCertificate } from './certificate-consent';
@@ -26,11 +26,15 @@ export function configureSystemIntegration(
     executable: app.isPackaged ? process.env.APPIMAGE || process.execPath : process.execPath,
     args: app.isPackaged ? [] : [app.getAppPath()],
   };
+  const refreshed = refreshFinderActions(location).catch(() => {
+    // Settings can repair workflows if an existing service is not writable.
+  });
   let changing = false;
   const integrate = async (remove: boolean) => {
     if (changing) throw new Error('A file-manager integration change is already running.');
     changing = true;
     try {
+      await refreshed;
       return await installShellActions(location, remove);
     } finally {
       changing = false;
@@ -48,6 +52,7 @@ export function configureSystemIntegration(
     return true;
   }
   const status = async (): Promise<ShellIntegrationStatus> => {
+    await refreshed;
     const supported = ['win32', 'darwin', 'linux'].includes(process.platform);
     const available = supported;
     const windows = process.platform === 'win32' ? await windowsShellStatus(location) : undefined;

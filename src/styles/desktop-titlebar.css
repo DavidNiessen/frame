@@ -122,3 +122,15 @@ html[data-desktop-window] body {
 .desktop-window-frame[data-maximized='true'] {
   border-radius: 0;
 }
+
+/* macOS supplies real traffic lights; this region only paints and drags their backdrop. */
+.desktop-native-titlebar {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--desktop-chrome-height);
+  background: var(--bg);
+  -webkit-app-region: drag;
+}
+.desktop-window-frame[data-native-controls='true'] {
+  transition: none;
+}

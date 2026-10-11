@@ -115,14 +115,4 @@ module.exports = async (context) => {
           );
       }
   }
-  if (context.electronPlatformName === 'darwin') {
-    context.packager.platformSpecificBuildOptions.fileAssociations = [
-      {
-        ext: require('../src/core/media-extensions.json'),
-        name: 'Frame media',
-        role: 'Editor',
-        rank: 'Alternate',
-      },
-    ];
-  }
 };

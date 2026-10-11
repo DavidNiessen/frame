@@ -47,6 +47,13 @@ test('opens only a frameless corner converter with all settings and retains fail
     await expect
       .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
       .toBe(1);
+    if (process.platform === 'darwin') {
+      // Dock/Finder activation while the mini window exists must not create an editor.
+      await app.evaluate(({ app }) => app.emit('activate'));
+      expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(
+        1,
+      );
+    }
     const window = await app.evaluate(({ BrowserWindow, screen }) => {
       const w = BrowserWindow.getAllWindows()[0];
       return {

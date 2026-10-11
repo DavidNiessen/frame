@@ -9,7 +9,11 @@ import {
   shellActions,
   windowsInstaller,
 } from '../electron/shell-action-definitions';
-import { installShellActions, shellActionState } from '../electron/shell-actions';
+import {
+  installShellActions,
+  shellActionState,
+  refreshFinderActions,
+} from '../electron/shell-actions';
 import { windowsShellCommand } from '../electron/shell-command';
 import { windowsIntegrationState } from '../electron/windows-shell-integration';
 
@@ -36,7 +40,9 @@ it('installs and removes Finder actions without touching other user services', a
     for (const action of shellActions) {
       const root = join(resources, 'shell-actions', 'mac', `${action.label}.workflow`, 'Contents');
       await mkdir(root, { recursive: true });
-      const files = finderAction(action);
+      const files = finderAction(action, {
+        executable: '/Applications/Frame.app/Contents/MacOS/Frame',
+      });
       await writeFile(join(root, 'Info.plist'), files.info);
       await writeFile(join(root, 'document.wflow'), files.document);
       expect(files.document).toContain('--frame-workflow=' + action.workflow);
@@ -66,6 +72,13 @@ it('installs and removes Finder actions without touching other user services', a
         'utf8',
       ),
     ).toContain('Convert in Frame');
+    const installedCommand = await readFile(
+      join(home, 'Library', 'Services', 'Convert in Frame.workflow', 'Contents', 'document.wflow'),
+      'utf8',
+    );
+    expect(installedCommand).toContain('/Applications/Frame.app/Contents/MacOS/Frame');
+    expect(installedCommand).toContain('--frame-workflow=convert');
+    expect(installedCommand).not.toContain('osascript');
     await installShellActions(location, true);
     expect(await shellActionState(location)).toBe('not-installed');
     expect(await readFile(join(unrelated, 'keep'), 'utf8')).toBe('Other service');
@@ -196,6 +209,39 @@ it('installs development Finder workflows with a direct checkout launch without 
     expect(workflow).toContain("'/Projects/Frame'\\''s media'");
     await installShellActions(location, true);
     expect(await shellActionState(location)).toBe('not-installed');
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+it('refreshes existing legacy Finder services without installing missing actions or changing other services', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'frame-finder-migration-'));
+  const location = {
+    platform: 'darwin' as const,
+    home,
+    resources: '',
+    executable: '/Applications/Frame.app/Contents/MacOS/Frame',
+  };
+  try {
+    await refreshFinderActions(location);
+    expect(await shellActionState(location)).toBe('not-installed');
+    const action = shellActions[1],
+      files = finderAction(action, location);
+    const root = join(home, 'Library', 'Services', `${action.label}.workflow`, 'Contents');
+    await mkdir(root, { recursive: true });
+    await writeFile(join(root, 'Info.plist'), files.info);
+    const legacy = files.document.replace(
+      '<key>COMMAND_STRING</key><string>',
+      '<key>COMMAND_STRING</key><string>path to application id &quot;io.frame.mediaeditor&quot; ',
+    );
+    await writeFile(join(root, 'document.wflow'), legacy);
+    await refreshFinderActions(location);
+    expect(await readFile(join(root, 'document.wflow'), 'utf8')).toBe(files.document);
+    expect(await shellActionState(location)).toBe('partial'); // The edit service is still absent.
+    await writeFile(join(root, 'Info.plist'), 'another service');
+    await writeFile(join(root, 'document.wflow'), legacy);
+    await refreshFinderActions(location);
+    expect(await readFile(join(root, 'document.wflow'), 'utf8')).toBe(legacy);
   } finally {
     await rm(home, { recursive: true, force: true });
   }

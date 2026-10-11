@@ -34,6 +34,7 @@ const bridge: DesktopBridge = {
   setCompletionNotifications: (enabled) => ipcRenderer.invoke('desktop:set-notifications', enabled),
   notifyCompletion: (summary) => ipcRenderer.invoke('desktop:notify-completion', summary),
   miniConversion: process.argv.includes('--frame-mini-conversion'),
+  nativeWindowControls: process.platform === 'darwin',
   windowState: () => ipcRenderer.invoke('desktop:window-state'),
   setWindowChrome: (expanded) => ipcRenderer.invoke('desktop:window-chrome', expanded),
   windowAction: (action) => ipcRenderer.invoke('desktop:window-action', action),

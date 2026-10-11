@@ -1,5 +1,6 @@
 export type WindowAction = 'minimize' | 'toggle-maximize' | 'close';
 export const desktopChromeSpace = 28;
+export const nativeMacChromeSpace = 32;
 export interface WindowState {
   maximized: boolean;
   fullscreen: boolean;

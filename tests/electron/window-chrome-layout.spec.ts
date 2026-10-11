@@ -6,6 +6,10 @@ import { join, resolve } from 'node:path';
 import { desktopChromeSpace } from '../../src/core/window-controls';
 
 test('keeps the video steady when chrome extends, handles resizing and preserves the maximized content area', async () => {
+  test.skip(
+    process.platform === 'darwin',
+    'macOS uses native traffic lights, covered by native-window-controls.spec.ts.',
+  );
   const directory = await mkdtemp(join(tmpdir(), 'frame-chrome-layout-'));
   const executablePath = process.env.FRAME_TEST_EXECUTABLE
     ? resolve(process.env.FRAME_TEST_EXECUTABLE)

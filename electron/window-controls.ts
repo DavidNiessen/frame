@@ -3,8 +3,12 @@ import type { WindowIpc } from './window-ipc';
 import { configureEditorChrome } from './editor-chrome';
 
 /** Editor-only channels: the mini converter cannot control the main window. */
-export function configureWindowControls(window: BrowserWindow, ipc: WindowIpc) {
-  const chrome = configureEditorChrome(window);
+export function configureWindowControls(
+  window: BrowserWindow,
+  ipc: WindowIpc,
+  nativeControls = process.platform === 'darwin',
+) {
+  const chrome = configureEditorChrome(window, nativeControls);
   ipc.handle('desktop:window-state', chrome.state);
   ipc.handle('desktop:window-chrome', (_event, value: unknown) => chrome.expand(value));
   ipc.handle('desktop:window-action', (_event, action: unknown) => {

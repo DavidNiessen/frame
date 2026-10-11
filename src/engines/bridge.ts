@@ -40,6 +40,7 @@ export interface DesktopBridge extends ExportHistoryBridge, UpdateBridge {
   retryWatchFolder(id: string): Promise<WatchStatus>;
   openWatchFolderOutput(id: string): Promise<void>;
   miniConversion: boolean;
+  readonly nativeWindowControls?: boolean;
   notificationPreference(): Promise<NotificationPreference>;
   setCompletionNotifications(enabled: boolean): Promise<NotificationPreference>;
   notifyCompletion(summary: CompletionSummary): Promise<void>;

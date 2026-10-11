@@ -5,6 +5,10 @@ import { join, resolve } from 'node:path';
 import { desktopChromeSpace } from '../../src/core/window-controls';
 
 test('reveals frameless controls without moving panels, supports keyboard access and closes the window', async () => {
+  test.skip(
+    process.platform === 'darwin',
+    'macOS uses native traffic lights, covered by native-window-controls.spec.ts.',
+  );
   const directory = await mkdtemp(join(tmpdir(), 'frame-window-controls-'));
   const executablePath = process.env.FRAME_TEST_EXECUTABLE
     ? resolve(process.env.FRAME_TEST_EXECUTABLE)

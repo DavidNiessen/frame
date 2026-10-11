@@ -1,4 +1,4 @@
-import { mkdir, cp, rm, writeFile, chmod, readFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile, chmod, readFile } from 'node:fs/promises';
 import { join, isAbsolute } from 'node:path';
 import { shellActions, dolphinActions, finderAction } from './shell-action-definitions';
 import { windowsShellStatus } from './windows-shell-integration';
@@ -24,7 +24,7 @@ export async function shellActionState(
   const checks: { path: string; content: string }[] =
     location.platform === 'darwin'
       ? shellActions.flatMap((action) => {
-          const files = finderAction(action, location.args?.length ? location : undefined),
+          const files = finderAction(action, location),
             root = join(
               location.home,
               'Library',
@@ -74,16 +74,13 @@ export async function installShellActions(
       const name = `${action.label}.workflow`,
         target = join(services, name);
       if (remove) await rm(target, { recursive: true, force: true });
-      else if (location.args?.length) {
+      else {
         const contents = join(target, 'Contents'),
           files = finderAction(action, location);
         await mkdir(contents, { recursive: true });
         await writeFile(join(contents, 'Info.plist'), files.info);
         await writeFile(join(contents, 'document.wflow'), files.document);
-      } else
-        await cp(join(location.resources, 'shell-actions', 'mac', name), target, {
-          recursive: true,
-        });
+      }
     }
     return remove
       ? 'Frame’s Finder Quick Actions were removed.'
@@ -105,4 +102,25 @@ export async function installShellActions(
       : 'Dolphin actions installed. Restart Dolphin if needed, then right-click supported media files to edit or convert in Frame.';
   }
   throw new Error('File-manager actions are not available on this operating system.');
+}
+
+/** Refresh only previously installed Frame services containing the old bundle lookup. */
+export async function refreshFinderActions(location: ShellActionLocation) {
+  if (location.platform !== 'darwin') return;
+  for (const action of shellActions) {
+    const root = join(location.home, 'Library', 'Services', `${action.label}.workflow`, 'Contents');
+    const files = finderAction(action, location);
+    try {
+      const info = await readFile(join(root, 'Info.plist'), 'utf8');
+      const document = await readFile(join(root, 'document.wflow'), 'utf8');
+      if (
+        info === files.info &&
+        document.includes('path to application id &quot;io.frame.mediaeditor&quot;') &&
+        document.includes(`--frame-workflow=${action.workflow} -- &quot;$@&quot;`)
+      )
+        await writeFile(join(root, 'document.wflow'), files.document);
+    } catch (cause) {
+      if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause;
+    }
+  }
 }

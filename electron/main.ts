@@ -23,7 +23,7 @@ import { configureMiniWindow } from './mini-window';
 import { loadWindow, prepareWindow } from './window-security';
 import { configureWindowControls } from './window-controls';
 import { editorBounds } from './editor-chrome';
-import { desktopChromeSpace } from '../src/core/window-controls';
+import { desktopChromeSpace, nativeMacChromeSpace } from '../src/core/window-controls';
 
 type WindowKind = 'editor' | 'mini';
 protocol.registerSchemesAsPrivileged([
@@ -86,13 +86,22 @@ function openWindow(kind: WindowKind) {
             skipTaskbar: true,
             hasShadow: true,
           }
-        : {
-            frame: false,
-            transparent: true,
-            backgroundColor: '#00000000',
-            minWidth: 760,
-            minHeight: 600 + desktopChromeSpace,
-          }),
+        : process.platform === 'darwin'
+          ? {
+              frame: true,
+              titleBarStyle: 'hidden',
+              trafficLightPosition: { x: 14, y: 9 },
+              backgroundColor: '#0b0c12',
+              minWidth: 760,
+              minHeight: 600 + nativeMacChromeSpace,
+            }
+          : {
+              frame: false,
+              transparent: true,
+              backgroundColor: '#00000000',
+              minWidth: 760,
+              minHeight: 600 + desktopChromeSpace,
+            }),
       show: false,
       title: mini ? 'Frame — Quick conversion' : 'Frame',
       icon: app.isPackaged

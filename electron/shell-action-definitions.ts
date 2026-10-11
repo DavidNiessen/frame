@@ -143,11 +143,10 @@ function xml(value: string) {
 }
 const plist = (body: string) =>
   `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict>${body}</dict></plist>\n`;
-export function finderAction(action: (typeof shellActions)[number], launch?: ShellLaunch) {
-  // Launch the executable so workflow arguments also reach an already running app.
-  const command = launch
-    ? `${posixShellCommand(launch)} --frame-workflow=${action.workflow} -- "$@" >/dev/null 2>&1 &`
-    : `frame_app=$(/usr/bin/osascript -e 'POSIX path of (path to application id "io.frame.mediaeditor")') || exit 1\n"\${frame_app%/}/Contents/MacOS/Frame" --frame-workflow=${action.workflow} -- "$@" >/dev/null 2>&1 &`;
+export function finderAction(action: (typeof shellActions)[number], launch: ShellLaunch) {
+  // Resolving a bundle through AppleScript can launch the editor before the conversion request.
+  // Launch the installed executable directly so a cold start creates only the requested window.
+  const command = `${posixShellCommand(launch)} --frame-workflow=${action.workflow} -- "$@" >/dev/null 2>&1 &`;
   const info = plist(
     `<key>CFBundleIdentifier</key><string>io.frame.mediaeditor.${action.workflow}.service</string><key>CFBundleName</key><string>${action.label}</string><key>NSServices</key><array><dict><key>NSMenuItem</key><dict><key>default</key><string>${action.label}</string></dict><key>NSMessage</key><string>runWorkflowAsService</string><key>NSPortName</key><string>Automator Runner</string><key>NSSendTypes</key><array><string>NSFilenamesPboardType</string></array><key>NSReturnTypes</key><array/><key>NSRequiredContext</key><dict><key>NSApplicationIdentifier</key><string>com.apple.finder</string></dict></dict></array>`,
   );

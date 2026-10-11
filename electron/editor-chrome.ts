@@ -1,5 +1,9 @@
 import type { BrowserWindow, Rectangle } from 'electron';
-import { desktopChromeSpace, type WindowState } from '../src/core/window-controls';
+import {
+  desktopChromeSpace,
+  nativeMacChromeSpace,
+  type WindowState,
+} from '../src/core/window-controls';
 
 export function editorBounds(work: Rectangle): Rectangle {
   const width = Math.min(1440, work.width - 32),
@@ -13,7 +17,11 @@ export function editorBounds(work: Rectangle): Rectangle {
 }
 
 /** Reserve transparent headroom once; hover only changes paint, never native geometry. */
-export function configureEditorChrome(window: BrowserWindow) {
+export function configureEditorChrome(
+  window: BrowserWindow,
+  nativeControls = process.platform === 'darwin',
+) {
+  const chromeSpace = nativeControls ? nativeMacChromeSpace : desktopChromeSpace;
   let expanded = false,
     fullscreen = window.isFullScreen();
   const state = (): WindowState => {
@@ -22,10 +30,10 @@ export function configureEditorChrome(window: BrowserWindow) {
       maximized,
       fullscreen,
       focused: window.isFocused(),
-      contentHeight: window.getContentBounds().height - desktopChromeSpace,
-      chromeInset: desktopChromeSpace,
+      contentHeight: window.getContentBounds().height - chromeSpace,
+      chromeInset: nativeControls ? 0 : desktopChromeSpace,
       // Native state takes precedence over late hover/blur requests from the renderer.
-      chromeExpanded: expanded || maximized || fullscreen,
+      chromeExpanded: nativeControls || expanded || maximized || fullscreen,
     };
   };
   const notify = () => {
