@@ -3,7 +3,7 @@ import { windowsPowerShellEnv } from '../../scripts/windows-powershell-env.mjs';
 import { execFile, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
@@ -21,20 +21,36 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
   let target: string | undefined;
   try {
     const supplied = resolve(process.env.FRAME_TEST_EXECUTABLE!);
+    const fullRelease = process.env.FRAME_RELEASE_KIND === 'release';
+    const baseline = resolve(
+      'release/update-baseline',
+      process.platform === 'darwin'
+        ? process.arch === 'arm64'
+          ? 'mac-arm64/Frame.app'
+          : 'mac/Frame.app'
+        : 'win-unpacked',
+    );
     let executable = supplied;
     if (process.platform === 'darwin') {
       target = join(directory, 'Frame.app');
-      await exec('/usr/bin/ditto', [dirname(dirname(dirname(supplied))), target]);
+      await exec('/usr/bin/ditto', [
+        fullRelease ? baseline : dirname(dirname(dirname(supplied))),
+        target,
+      ]);
+      await exec('/usr/bin/codesign', ['--verify', '--deep', '--strict', target]);
       executable = join(target, 'Contents/MacOS/Frame');
     } else {
       target = await realpath(dirname(supplied));
+      // Replace only this test's installed files with the packaged preview baseline.
+      // The actual NSIS installer remains unchanged and upgrades this same installation.
+      if (fullRelease) await cp(baseline, target, { recursive: true, force: true });
       executable = join(target, 'Frame.exe');
     }
     const profile = join(directory, 'profile');
     await mkdir(profile);
     await writeFile(
       join(profile, 'update-preferences.json'),
-      JSON.stringify({ automatic: false, includePrereleases: true }),
+      JSON.stringify({ automatic: false, includePrereleases: !fullRelease }),
     );
     application = await _electron.launch({
       executablePath: executable,
@@ -48,6 +64,8 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
       version: app.getVersion(),
       arch: process.arch,
     }));
+    const initial = await page.evaluate(() => window.frameDesktop!.updateStatus());
+    if (fullRelease) expect(initial.current).toBe(`v${info.version}-build.0`);
     const name =
       process.platform === 'darwin'
         ? `Frame-${info.version}-mac-${info.arch}.dmg`
@@ -55,26 +73,24 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
     const source = resolve('release', name),
       contents = await readFile(source);
     const checksum = createHash('sha256').update(contents).digest('hex'),
-      tag = `v${info.version}-build.99999999`;
+      tag = `v${info.version}${fullRelease ? '' : '-build.99999999'}`;
     await application.evaluate(
       ({ net }, fixture) => {
         net.fetch = async (url) => {
           const address = String(url);
-          if (address.includes('/releases?'))
-            return new Response(
-              JSON.stringify([
-                {
-                  tag_name: fixture.tag,
-                  prerelease: true,
-                  draft: false,
-                  assets: [fixture.name, 'SHA256SUMS.txt'].map((name) => ({
-                    name,
-                    size: fixture.size,
-                    browser_download_url: `https://github.com/DavidNiessen/frame/releases/download/${fixture.tag}/${name}`,
-                  })),
-                },
-              ]),
-            );
+          if (address.includes('/releases?') || address.endsWith('/releases/latest')) {
+            const release = {
+              tag_name: fixture.tag,
+              prerelease: fixture.prerelease,
+              draft: false,
+              assets: [fixture.name, 'SHA256SUMS.txt'].map((name) => ({
+                name,
+                size: fixture.size,
+                browser_download_url: `https://github.com/DavidNiessen/frame/releases/download/${fixture.tag}/${name}`,
+              })),
+            };
+            return new Response(JSON.stringify(address.endsWith('/latest') ? release : [release]));
+          }
           if (address.endsWith('/SHA256SUMS.txt'))
             return new Response(`${fixture.checksum}  ${fixture.name}`);
           if (!address.endsWith('/' + fixture.name))
@@ -89,7 +105,7 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
           );
         };
       },
-      { tag, name, checksum, source, size: contents.length },
+      { tag, name, checksum, source, size: contents.length, prerelease: !fullRelease },
     );
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     const updates = page.locator('section[aria-labelledby="updates-heading"]');

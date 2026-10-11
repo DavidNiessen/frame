@@ -69,6 +69,16 @@ describe('Frame release selection', () => {
     expect(installerName('1.0.1', 'linux', 'arm64')).toBeNull();
     expect(() => compareReleaseTags('v01.0.0', 'v1.0.0')).toThrow();
   });
+  it('offers a full release to its preview baseline but rejects same-version previews on stable installs', () => {
+    for (const platform of ['win32', 'darwin']) {
+      const stable = release('v0.1.1', platform),
+        preview = release('v0.1.1-build.99999999', platform);
+      expect(selectUpdateRelease([preview], 'v0.1.1', platform, 'x64', true)).toBeUndefined();
+      expect(selectUpdateRelease([stable], 'v0.1.1-build.0', platform, 'x64', false)?.tag).toBe(
+        'v0.1.1',
+      );
+    }
+  });
   it('requires one exact installer checksum and rejects ambiguity and wrong filenames', () => {
     const line = `${'A'.repeat(64)}  Frame-1.0.1-win-x64.exe`;
     expect(installerChecksum(line, 'Frame-1.0.1-win-x64.exe')).toBe('a'.repeat(64));

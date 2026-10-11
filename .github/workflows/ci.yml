@@ -186,6 +186,12 @@ jobs:
         env:
           CSC_FOR_PULL_REQUEST: 'true'
         run: npm run package
+      - name: Build a preview baseline for testing upgrades to a full release
+        if: runner.os != 'Linux' && needs.version.outputs.kind == 'release'
+        # Keep the shipped installers intact; only the updater test starts from this preview.
+        env:
+          CSC_FOR_PULL_REQUEST: 'true'
+        run: npx electron-builder --dir --publish never --config.directories.output=release/update-baseline --config.extraMetadata.frameReleaseTag=v${{ needs.version.outputs.version }}-build.0
       - name: Verify signatures and test the app installed from the macOS disk image
         if: runner.os == 'macOS'
         run: bash scripts/test-macos-package.sh
