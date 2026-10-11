@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { importTestMedia } from '../helpers/import-media';
 test('isolates a Pages subdirectory without host headers and converts media locally', async ({
   page,
@@ -19,6 +20,16 @@ test('isolates a Pages subdirectory without host headers and converts media loca
   await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({
     timeout: 45000,
   });
+  await page.getByLabel('Output format').selectOption('gif');
+  await page.getByRole('button', { name: 'Export GIF', exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({
+    timeout: 45000,
+  });
+  const pending = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Save file', exact: true }).click();
+  const gif = await readFile((await (await pending).path())!);
+  expect(gif.toString('ascii', 0, 6)).toMatch(/^GIF8[79]a$/);
+  expect(gif.readUInt16LE(6)).toBe(640);
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
   await page.reload();
   await expect.poll(() => page.evaluate(() => crossOriginIsolated)).toBe(true);

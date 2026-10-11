@@ -2,7 +2,7 @@ import { allAudioLayers } from './effect-instances';
 import { mediaTagArgs } from './media-tags';
 import { chapterFormats } from './chapters';
 import { hasEditedAudio, audioMixGraph, type AudioLayerInput } from './audio-layers';
-import { gifPaletteFilters } from './gif-output';
+import { gifPaletteFilters, gifMappingArgs, type GifPass } from './gif-output';
 import { audioOutputArgs, outputAudioCodec } from './audio-output';
 import { clipFilterGraph } from './clip-filters';
 import { resolveSizeTarget } from './size';
@@ -53,6 +53,7 @@ export function buildMergeArgs(
   captionPath = 'merge-captions.srt',
   mixes: AudioLayerInput[][] = [],
   chapterPath = `${captionPath}-chapters.ffmetadata`,
+  gifPass?: GifPass,
 ): string[] {
   clips = clips.map((clip) => ({
     ...clip,
@@ -148,8 +149,11 @@ export function buildMergeArgs(
     settings.includeArtwork &&
     (!!clips[0].edit.customArtwork || clips[0].asset.artworkIndex !== undefined);
   if (artwork) args.push('-i', clips[0].edit.customArtwork ? resources[0].artwork : inputs[0]);
-  const captions =
-    video && subtitleCodec(settings.format) && mergedCues(clips, transition).length > 0;
+  const captions = !!(
+    video &&
+    subtitleCodec(settings.format) &&
+    mergedCues(clips, transition).length > 0
+  );
   if (captions) args.push('-i', captionPath);
   const chapters = settings.includeChapters && chapterFormats.includes(settings.format),
     chapterInput = clips.length + Number(artwork) + Number(captions);
@@ -178,6 +182,7 @@ export function buildMergeArgs(
       graph.push(...mix.graph, `${mix.output}anull[a${index}]`);
       firstLayerInput += layers.length;
     });
+  if (gifPass?.kind === 'encode') args.push('-i', gifPass.path);
   if (transition.type === 'fade') {
     let elapsed = editedDuration(clips[0].edit);
     let v = 'v0';
@@ -201,8 +206,10 @@ export function buildMergeArgs(
     );
   }
   if (edit.format === 'gif') {
-    graph.push(`[mergedv]${gifPaletteFilters(edit, 'mergedgif').join(',')}[gif]`);
-    args.push('-map', '[gif]', '-an', '-loop', String(edit.gifLoop));
+    graph.push(
+      `[mergedv]${gifPaletteFilters(edit, 'mergedgif', gifPass?.kind === 'palette' ? 'palette' : gifPass?.kind === 'encode' ? firstLayerInput : undefined).join(',')}[gif]`,
+    );
+    args.push(...gifMappingArgs(edit, gifPass));
   } else {
     if (video) {
       args.push('-map', '[mergedv]', '-c:v', format.videoCodec!, '-pix_fmt', 'yuv420p');

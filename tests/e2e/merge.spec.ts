@@ -39,4 +39,28 @@ test('reorders and merges edited source clips in the browser', async ({ page }, 
     output,
   ]);
   expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(1, 1);
+  await dialog.getByLabel('Merge format', { exact: true }).selectOption('gif');
+  await dialog.getByRole('button', { name: 'Export merged file' }).click();
+  await expect(
+    dialog.getByRole('link', { name: 'Save merged file' }).or(dialog.getByRole('alert')).first(),
+  ).toBeVisible({ timeout: 45000 });
+  expect(await dialog.getByRole('alert').allTextContents()).toEqual([]);
+  await expect(dialog.getByRole('link', { name: 'Save merged file' })).toBeVisible({
+    timeout: 45000,
+  });
+  const gifPending = page.waitForEvent('download');
+  await dialog.getByRole('link', { name: 'Save merged file' }).click();
+  const gif = testInfo.outputPath('merged.gif');
+  await (await gifPending).saveAs(gif);
+  const { stdout: gifInfo } = await exec(ffprobe.path, [
+    '-v',
+    'error',
+    '-show_streams',
+    '-show_format',
+    '-of',
+    'json',
+    gif,
+  ]);
+  expect(JSON.parse(gifInfo).streams[0].codec_name).toBe('gif');
+  expect(Number(JSON.parse(gifInfo).format.duration)).toBeCloseTo(1, 1);
 });

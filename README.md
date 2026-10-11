@@ -28,11 +28,11 @@ Output formats: **MP4, MOV, MKV, WebM, GIF, MP3, WAV, FLAC, OGG and M4A**. Input
 | Installed system fonts                       | Yes                                             | Bundled fonts only                                  |
 | Hardware encoding, proxies and watch folders | Yes, subject to hardware/platform support       | Unavailable                                         |
 
-The browser has memory guards: 500 MB per source, 800 MB per library and 500 MB of retained conversion results. ZIP preparation uses additional memory. Use desktop for large collections.
+Browser GIF conversion uses separate palette and encoding passes to avoid buffering an entire decoded movie. The browser has memory guards: 500 MB per source, 800 MB per library and 500 MB of retained conversion results. ZIP preparation uses additional memory. Use desktop for large collections.
 
 Media is processed on your device. URL imports connect to the source you choose. Desktop includes FFmpeg, FFprobe and yt-dlp; users do not need to install those tools separately. Web assets and fonts are served with the application, without third-party CDNs or API keys.
 
-Frame is under active development. Desktop downloads are prereleases. Windows installers are currently unsigned. macOS apps are ad-hoc signed to verify bundle integrity, but are not Apple notarized; first launch may require approval in **System Settings → Privacy & Security → Open Anyway**. The Windows Explorer extension has a separate certificate-consent workflow. See [installation, distribution and signing](docs/DISTRIBUTION.md) before redistributing builds.
+Frame is under active development. Automatic desktop builds are prereleases; maintainers can also publish full releases. Windows installers are currently unsigned. macOS apps are ad-hoc signed to verify bundle integrity, but are not Apple notarized; first launch may require approval in **System Settings → Privacy & Security → Open Anyway**. The Windows Explorer extension has a separate certificate-consent workflow. See [installation, distribution and signing](docs/DISTRIBUTION.md) before redistributing builds.
 
 ## Get started
 

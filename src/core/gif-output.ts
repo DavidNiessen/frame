@@ -1,4 +1,5 @@
 import type { EditSettings } from './types';
+export type GifPass = { kind: 'palette' } | { kind: 'encode'; path: string };
 export type GifOutput = Pick<EditSettings, 'gifLoop' | 'gifColors' | 'gifDither' | 'gifWidth'>;
 export function validateGifOutput(settings: GifOutput) {
   if (!Number.isInteger(settings.gifLoop) || settings.gifLoop < -1 || settings.gifLoop > 100)
@@ -13,10 +14,29 @@ export function validateGifOutput(settings: GifOutput) {
   )
     throw new Error('GIF width must be 32–4096 pixels.');
 }
-export function gifPaletteFilters(edit: GifOutput & Pick<EditSettings, 'fps'>, prefix = 'gif') {
+export function gifPaletteFilters(
+  edit: GifOutput & Pick<EditSettings, 'fps'>,
+  prefix = 'gif',
+  pass?: 'palette' | number,
+) {
   return [
     `fps=${edit.fps}`,
     ...(edit.gifWidth ? [`scale=${edit.gifWidth}:-1:flags=lanczos`] : []),
-    `split[${prefix}a][${prefix}b];[${prefix}a]palettegen=stats_mode=diff:max_colors=${edit.gifColors}[${prefix}p];[${prefix}b][${prefix}p]paletteuse=dither=${edit.gifDither}`,
+    pass === 'palette'
+      ? `palettegen=stats_mode=diff:max_colors=${edit.gifColors}`
+      : typeof pass === 'number'
+        ? `format=rgb24[${prefix}b];[${prefix}b][${pass}:v:0]paletteuse=dither=${edit.gifDither}`
+        : `split[${prefix}a][${prefix}b];[${prefix}a]palettegen=stats_mode=diff:max_colors=${edit.gifColors}[${prefix}p];[${prefix}b][${prefix}p]paletteuse=dither=${edit.gifDither}`,
+  ];
+}
+
+export function gifMappingArgs(edit: GifOutput, pass?: GifPass) {
+  return [
+    '-map',
+    '[gif]',
+    '-an',
+    ...(pass?.kind === 'palette'
+      ? ['-frames:v', '1', '-update', '1']
+      : ['-loop', String(edit.gifLoop)]),
   ];
 }

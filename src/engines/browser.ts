@@ -13,6 +13,7 @@ import { serializeSrt } from '../core/subtitles';
 import { browserResources } from './browser-resources';
 import { buildMergeArgs, compositionAsset, mergedCues } from '../core/composition';
 import { editedDuration } from '../core/timeline';
+import { encodeBrowserOutput } from './browser-encoding';
 import { browserRuntime } from './browser-runtime';
 import { browserJoinedPreview } from './browser-joined-preview';
 import { buildExportArgs, outputName } from '../core/export-plan';
@@ -188,25 +189,18 @@ export function createBrowserEngine(): MediaEngine {
         [...sources.values()].map((asset) => ({ asset, path: `layer-${asset.id}` })),
       );
       const resources = await browserResources(ff, [settings], [asset]);
-      const errors: string[] = [];
-      const log = ({ message }: { message: string }) => {
-        errors.push(message);
-        if (errors.length > 15) errors.shift();
-      };
-      const progress = ({ time }: { time: number }) =>
-        onProgress({
-          ratio: Math.min(0.99, Math.max(0, time / 1e6 / editedDuration(settings))),
-          message: 'Encoding your media locally…',
-        });
-      ff.on('progress', progress);
-      ff.on('log', log);
       try {
         await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
         await writeBrowserLayers(ff, layers, files, sources);
-        const code = await ff.exec(
-          buildExportArgs(asset, settings, input, output, resources.paths[0], layers),
+        await encodeBrowserOutput(
+          ff,
+          settings.format,
+          (pass, destination) =>
+            buildExportArgs(asset, settings, input, destination, resources.paths[0], layers, pass),
+          output,
+          editedDuration(settings),
+          onProgress,
         );
-        if (code !== 0) throw new Error(`Export failed. ${errors.slice(-4).join(' ')}`);
         const data = await ff.readFile(output);
         if (typeof data === 'string') throw new Error('Invalid export output.');
         const blob = new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime });
@@ -239,8 +233,6 @@ export function createBrowserEngine(): MediaEngine {
         if (cancelled) throw new Error('Export cancelled.', { cause: error });
         throw error;
       } finally {
-        ff.off('progress', progress);
-        ff.off('log', log);
         await resources.cleanup();
         for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {});
         if (!cancelled) {
@@ -256,12 +248,7 @@ export function createBrowserEngine(): MediaEngine {
       const paths = clips.map((c) => `merge-${c.asset.id}`);
       const output = `merged.${settings.format}`;
       cancelled = false;
-      const progress = ({ time }: { time: number }) =>
-        onProgress({
-          ratio: Math.min(0.99, time / 1e6 / asset.duration),
-          message: 'Merging your clips…',
-        });
-      ff.on('progress', progress);
+
       const mixes = clips.map((clip) =>
         resolveAudioLayers(
           clip.edit,
@@ -286,23 +273,26 @@ export function createBrowserEngine(): MediaEngine {
           await ff.writeFile(`merge-${id}`, new Uint8Array(await file.arrayBuffer()));
         }
         for (const layers of mixes) await writeBrowserLayers(ff, layers, files, sources);
-        if (
-          (await ff.exec(
+        await encodeBrowserOutput(
+          ff,
+          settings.format,
+          (pass, destination) =>
             buildMergeArgs(
               clips,
               settings,
               paths,
-              output,
+              destination,
               transition,
               resources.paths,
               captions,
               mixes,
+              undefined,
+              pass,
             ),
-          )) !== 0
-        )
-          throw new Error(
-            'Could not merge these clips. Try a smaller selection or the desktop editor.',
-          );
+          output,
+          asset.duration,
+          onProgress,
+        );
         const data = await ff.readFile(output);
         if (typeof data === 'string') throw new Error('Invalid merge output.');
         return {
@@ -316,7 +306,6 @@ export function createBrowserEngine(): MediaEngine {
         if (cancelled) throw new Error('Merge cancelled.', { cause: error });
         throw error;
       } finally {
-        ff.off('progress', progress);
         await resources.cleanup();
         for (const layer of mixes.flat()) await ff.deleteFile(layer.path).catch(() => {});
         await ff.deleteFile(captions).catch(() => {});

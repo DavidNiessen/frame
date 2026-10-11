@@ -14,7 +14,7 @@ import {
   type AudioLayerInput,
 } from './audio-layers';
 import { parseLegacyChapterPoints } from './legacy-chapters';
-import { gifPaletteFilters, validateGifOutput } from './gif-output';
+import { gifPaletteFilters, gifMappingArgs, validateGifOutput, type GifPass } from './gif-output';
 import { audioOutputArgs, outputAudioCodec, validateAudioOutput } from './audio-output';
 import { clipEffectKeys, clipRecipe } from './clips';
 import { hasMinimumDuration, minimumSection, timeEpsilon } from './time-range';
@@ -247,6 +247,7 @@ export function buildExportArgs(
   output: string,
   resources: RecipeResources = resourcePaths(),
   layers: AudioLayerInput[] = [],
+  gifPass?: GifPass,
 ): string[] {
   validateEdit(asset, edit);
   edit = resolveSizeTarget(asset, {
@@ -291,6 +292,7 @@ export function buildExportArgs(
   if (chapters) args.push('-f', 'ffmetadata', '-i', resources.chapters);
   const firstLayerInput = chapterInput + Number(!!chapters);
   if (mixing) for (const layer of layers) args.push('-i', layer.path);
+  if (gifPass?.kind === 'encode') args.push('-i', gifPass.path);
   args.push(
     '-t',
     String(editedDuration(edit)),
@@ -364,9 +366,20 @@ export function buildExportArgs(
   }
   if (edit.format === 'gif') {
     const prefix = complex ? videoInput : '[0:V:0]';
-    const filters = [...(complex ? [] : videoFilters), ...gifPaletteFilters(edit)];
+    const filters = [
+      ...(complex ? [] : videoFilters),
+      ...gifPaletteFilters(
+        edit,
+        'gif',
+        gifPass?.kind === 'palette'
+          ? 'palette'
+          : gifPass?.kind === 'encode'
+            ? firstLayerInput
+            : undefined,
+      ),
+    ];
     graph.push(`${prefix}${filters.join(',')}[gif]`);
-    args.push('-map', '[gif]', '-an', '-loop', String(edit.gifLoop));
+    args.push(...gifMappingArgs(edit, gifPass));
   } else if (hasVideo) {
     args.push('-map', videoInput);
     if (hasAudio) args.push('-map', complex || mixing ? audioInput : '0:a:0?');
