@@ -78,23 +78,23 @@
   border-radius: 50%;
   background: radial-gradient(
     ellipse,
-    color-mix(in srgb, var(--audio) 48%, transparent),
+    color-mix(in srgb, var(--audio) 30%, transparent),
     transparent 70%
   );
-  opacity: calc(0.1 + var(--audio-level) * 0.7);
-  transform: translate(-60%, -48%) scale(calc(0.8 + var(--audio-bass) * 0.7));
+  opacity: calc(0.04 + var(--audio-level) * 0.18);
+  transform: translate(-60%, -48%) scale(calc(0.9 + var(--audio-bass) * 0.1));
 }
 .audio-reactive-glow::after {
   background: radial-gradient(
     ellipse,
-    color-mix(in srgb, var(--accent) 45%, transparent),
+    color-mix(in srgb, var(--accent) 30%, transparent),
     transparent 70%
   );
-  transform: translate(-35%, -58%) scale(calc(0.7 + var(--audio-level) * 0.8));
-  opacity: calc(var(--audio-level) * 0.7);
+  transform: translate(-35%, -58%) scale(calc(0.9 + var(--audio-level) * 0.08));
+  opacity: calc(var(--audio-level) * 0.14);
 }
 .audio-preview .audio-art {
-  transform: rotate(-5deg) scale(calc(1 + var(--audio-level) * 0.035));
+  transform: rotate(-5deg) scale(calc(1 + var(--audio-level) * 0.006));
 }
 @container media-preview (max-width: 620px) {
   .frame-step {
