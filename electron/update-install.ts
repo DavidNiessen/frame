@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { windowsPowerShellEnv } from '../scripts/windows-powershell-env.mjs';
-import { access, copyFile, mkdir, open, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, open, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -78,7 +78,9 @@ export async function armUpdateInstall(
   await writeFile(planPath, JSON.stringify(plan), { mode: 0o600 });
   const windows = location.platform === 'win32';
   const helper = join(directory, windows ? 'update-windows.ps1' : 'update-worker.cjs');
-  await copyFile(join(location.helperDirectory, basename(helper)), helper);
+  await writeFile(helper, await readFile(join(location.helperDirectory, basename(helper))), {
+    mode: 0o600,
+  });
   const outputPath = join(directory, 'helper.log');
   const output = await open(outputPath, 'wx', 0o600);
   const child = spawn(
@@ -137,7 +139,7 @@ export async function armUpdateInstall(
       if (child.exitCode !== null) {
         const details = (await readFile(outputPath, 'utf8')).trim().slice(-4000);
         throw new Error(
-          `The update helper stopped before preparing the update.${details ? ' ' + details : ''}`,
+          `The update helper stopped before preparing the update (exit ${child.exitCode}).${details ? ' ' + details : ''}`,
         );
       }
       await delay(100);

@@ -128,15 +128,23 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
     ).toEqual([]);
     if (process.platform === 'darwin') {
       await exec('/usr/bin/codesign', ['--verify', '--deep', '--strict', target]);
+      const canonicalExecutable = await realpath(executable);
       await expect
         .poll(
-          async () =>
-            (await exec('/bin/ps', ['-axo', 'comm='])).stdout
+          async () => {
+            const processes = (
+              await exec('/bin/ps', ['-axww', '-o', 'comm='], {
+                env: { ...process.env, LC_ALL: 'en_US.UTF-8' },
+              })
+            ).stdout
               .split('\n')
-              .map((line) => line.trim()),
+              .map((line) => line.trim())
+              .filter((line) => line.endsWith('/Contents/MacOS/Frame'));
+            return Promise.all(processes.map((path) => realpath(path).catch(() => path)));
+          },
           { timeout: 15000 },
         )
-        .toContain(executable);
+        .toContain(canonicalExecutable);
     } else {
       const { stdout } = await exec(
         'powershell.exe',

@@ -5,4 +5,5 @@ export default defineConfig({
   timeout: 45000,
   expect: { timeout: 15000 },
   workers: 1,
+  use: { trace: 'retain-on-failure' },
 });

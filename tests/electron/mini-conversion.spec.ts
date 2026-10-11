@@ -266,7 +266,7 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
       .getAttribute('aria-valuenow');
     const source = await editor.locator('video').getAttribute('src');
     const command = await app.evaluate(() => process.execPath);
-    const created = app.waitForEvent('window');
+    const created = app.waitForEvent('window', { timeout: 15000 });
     await exec(
       command,
       [...launchOptions.args, '--frame-workflow=convert', '--', ...library.sources],
@@ -293,7 +293,7 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
     await app.evaluate(({ dialog }, path) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] });
     }, output);
-    const closed = mini.waitForEvent('close');
+    const closed = mini.waitForEvent('close', { timeout: 15000 });
     await mini.getByRole('button', { name: 'Convert 2 files', exact: true }).click();
     await closed;
     await expect
@@ -305,7 +305,7 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
     );
     await expect(editor.locator('video')).toHaveAttribute('src', source!);
     // Reopening creates a new isolated session, without stale IPC handlers or media.
-    const reopened = app.waitForEvent('window');
+    const reopened = app.waitForEvent('window', { timeout: 15000 });
     await exec(
       command,
       [...launchOptions.args, '--frame-workflow=convert', '--', library.sources[0]],
@@ -313,7 +313,7 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
     );
     const next = await reopened;
     await expect(next.getByRole('button', { name: 'Convert 1 file', exact: true })).toBeEnabled();
-    const dismissed = next.waitForEvent('close');
+    const dismissed = next.waitForEvent('close', { timeout: 15000 });
     // Electron may destroy the renderer before Playwright receives the click reply.
     await next
       .getByRole('button', { name: 'Close conversion', exact: true })
