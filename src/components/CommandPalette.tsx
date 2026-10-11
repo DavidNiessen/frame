@@ -35,12 +35,13 @@ export function CommandPalette({
   }, [open]);
   const matches = open ? searchCommands(commands, query) : [];
   const active = matches.find((command) => command.id === activeId) ?? matches[0];
+  const selectedId = active?.id;
   useEffect(() => {
-    if (open && active)
+    if (open && selectedId)
       dialog.current
-        ?.querySelector<HTMLElement>(`[data-command="${active.id}"]`)
+        ?.querySelector<HTMLElement>(`[data-command="${selectedId}"]`)
         ?.scrollIntoView({ block: 'nearest' });
-  }, [active?.id, open, query]);
+  }, [selectedId, open, query]);
   function run(command: FrameCommand) {
     if (command.disabled) return;
     dialog.current?.close();
@@ -88,7 +89,7 @@ export function CommandPalette({
           aria-label="Search commands"
           aria-expanded={open}
           aria-controls="frame-command-options"
-          aria-activedescendant={active ? `frame-command-${active.id}` : undefined}
+          aria-activedescendant={active ? `frame-command-${selectedId}` : undefined}
           aria-autocomplete="list"
           placeholder="Find a tool or action…"
           value={query}

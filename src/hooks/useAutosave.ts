@@ -30,6 +30,7 @@ export function useAutosave(
   latest.current = { editor, onRecovered };
   useEffect(() => {
     mounted.current = true;
+    const editor = latest.current.editor;
     boot.current ??= editor.recoverWorkspace().then(async (value) => {
       // Older desktop versions kept only recipes in IndexedDB, without file locations.
       if (!value && editor.platform === 'desktop' && (await readAutosave()))
@@ -62,12 +63,14 @@ export function useAutosave(
       mounted.current = false;
     };
   }, []);
+  const { asset, assets, edit, selected } = editor;
   const snapshot = useMemo(
-    () => (enabled && editor.asset && editor.assets.length ? { editor, name } : null),
-    [editor.assets, editor.edit, editor.selected, name, enabled],
+    () => (enabled && asset && assets.length ? { assets, edit, selected, name } : null),
+    [asset, assets, edit, selected, name, enabled],
   );
-  const snapshotRef = useRef(snapshot);
-  snapshotRef.current = snapshot;
+  const hasSnapshot = !!snapshot;
+  const snapshotRef = useRef<{ editor: Editor; name: string } | null>(null);
+  snapshotRef.current = snapshot ? { editor, name } : null;
   function enqueue(task: () => Promise<void>) {
     const next = pending.current.catch(() => {}).then(task);
     pending.current = next;
@@ -75,7 +78,7 @@ export function useAutosave(
   }
   useEffect(() => {
     if (loading || clearing || !enabled) return;
-    if (snapshot) hadWorkspace.current = true;
+    if (hasSnapshot) hadWorkspace.current = true;
     else if (hadWorkspace.current) {
       hadWorkspace.current = false;
       void enqueue(async () => {
@@ -89,7 +92,7 @@ export function useAutosave(
           if (mounted.current) setError(messageOf(e));
         });
     }
-  }, [!!snapshot, loading, clearing, enabled]);
+  }, [hasSnapshot, loading, clearing, enabled]);
   useEffect(() => {
     if (loading || clearing || !snapshot) {
       setSaving(false);

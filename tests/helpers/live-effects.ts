@@ -132,13 +132,11 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
     await expect(video).toHaveJSProperty('readyState', 4);
     const audioOnlySource = await video.getAttribute('src');
     await openEffect(page, 'Color & LUTs');
-    await page
-      .getByLabel('LUT file', { exact: true })
-      .setInputFiles({
-        name: 'red.cube',
-        mimeType: 'text/plain',
-        buffer: Buffer.from('LUT_3D_SIZE 2\n' + Array(8).fill('1 0 0').join('\n')),
-      });
+    await page.getByLabel('LUT file', { exact: true }).setInputFiles({
+      name: 'red.cube',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('LUT_3D_SIZE 2\n' + Array(8).fill('1 0 0').join('\n')),
+    });
     await expect(video).not.toHaveAttribute('src', audioOnlySource!, { timeout: 60000 });
     await expect(video).toHaveAttribute('data-preview-effects', 'rendered');
     await expect(video).toHaveJSProperty('readyState', 4);

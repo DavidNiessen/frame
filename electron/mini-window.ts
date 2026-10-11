@@ -1,7 +1,7 @@
 import { BrowserWindow, screen } from 'electron';
 import type { Rectangle } from 'electron';
 
-export function miniBounds(work: Rectangle, expanded: boolean): Rectangle {
+function miniBounds(work: Rectangle, expanded: boolean): Rectangle {
   const margin = Math.min(16, work.width / 20, work.height / 20);
   const width = Math.min(expanded ? 460 : 360, work.width - margin * 2);
   const height = Math.min(expanded ? 740 : 78, work.height - margin * 2);

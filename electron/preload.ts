@@ -79,7 +79,6 @@ const bridge: DesktopBridge = {
   measureLoudness: (id, edit) => ipcRenderer.invoke('media:loudness', id, edit),
   detectScenes: (id, options) => ipcRenderer.invoke('media:scenes', id, options),
   contactSheet: (id, edit, options) => ipcRenderer.invoke('media:contact-sheet', id, edit, options),
-  thumbnails: (id) => ipcRenderer.invoke('media:thumbnails', id),
   cancelWaveform: () => {
     void ipcRenderer.invoke('media:cancel-waveform').catch(() => {});
   },

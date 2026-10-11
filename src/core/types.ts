@@ -49,7 +49,7 @@ export interface MediaAsset {
   relativePath?: string;
   fingerprint?: string;
 }
-export interface ImportIssue {
+interface ImportIssue {
   name: string;
   message: string;
 }
@@ -221,7 +221,6 @@ export interface MediaEngine {
     options: ContactSheetOptions,
     onProgress: (p: ExportProgress) => void,
   ): Promise<string>;
-  thumbnails(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<string>;
   cancelWaveform?(): void;
   waveform(asset: MediaAsset, onProgress: (p: ExportProgress) => void): Promise<WaveformPoint[]>;
   beginBatch(options?: BatchOptions): Promise<string | null>;

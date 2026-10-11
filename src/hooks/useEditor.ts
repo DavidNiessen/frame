@@ -206,7 +206,7 @@ export function useEditor() {
         `Imported ${imported.length} ${imported.length === 1 ? 'file' : 'files'}.${report.issues.length ? ` ${report.issues.length} could not be read.` : ''}${report.skipped ? ` Skipped ${report.skipped} non-media ${report.skipped === 1 ? 'file' : 'files'}.` : ''}`,
       );
     } catch (error) {
-      if (mode === 'url') throw new Error(messageOf(error));
+      if (mode === 'url') throw new Error(messageOf(error), { cause: error });
       setNotice(messageOf(error));
     } finally {
       busyRef.current = false;
@@ -447,11 +447,11 @@ export function useEditor() {
     if (result?.url) URL.revokeObjectURL(result.url);
     setResult(null);
   }
-  const clip = edit ? editClips(edit).find((clip) => clip.id === selectedClip) : undefined;
-  const scopedEdit = useMemo(
-    () => (edit && clip ? clipRecipe(edit, clip) : edit),
+  const clip = useMemo(
+    () => (edit ? editClips(edit).find((clip) => clip.id === selectedClip) : undefined),
     [edit, selectedClip],
   );
+  const scopedEdit = useMemo(() => (edit && clip ? clipRecipe(edit, clip) : edit), [edit, clip]);
   return {
     selectedClip: clip?.id ?? null,
     selectClip: setSelectedClip,

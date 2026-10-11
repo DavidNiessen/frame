@@ -124,7 +124,7 @@ test('gives each fade its own row and keeps a watermark across splits', async ({
   await page.getByRole('button', { name: 'Add Watermark', exact: true }).click();
   await page.getByLabel('Seek playhead').fill('3');
   await page.getByRole('button', { name: 'Split', exact: true }).click();
-  for (const index of [1, 2]) {
+  for (const _index of [1, 2]) {
     await page.getByRole('button', { name: 'Add Video fade out', exact: true }).click();
   }
   const a = page.getByRole('button', { name: 'Video fade out effect', exact: true }),

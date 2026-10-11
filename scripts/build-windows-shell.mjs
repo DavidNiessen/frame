@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve, delimiter } from 'node:path';
 import { fileDigest } from './media-tool-files.mjs';
 import { configHeader, nativeRoot, sourceFingerprint } from './windows-shell-source.mjs';

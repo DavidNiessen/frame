@@ -114,8 +114,8 @@ export async function runYoutubeDownloader(
     progress({ ratio: 0.98, message: 'Download complete. Reading media…' });
     return path;
   } catch (error) {
-    if (signal.aborted) throw new Error('YouTube import cancelled.');
-    if (timedOut) throw new Error('YouTube stopped responding. Try again later.');
+    if (signal.aborted) throw new Error('YouTube import cancelled.', { cause: error });
+    if (timedOut) throw new Error('YouTube stopped responding. Try again later.', { cause: error });
     throw error;
   } finally {
     clearTimeout(timer!);

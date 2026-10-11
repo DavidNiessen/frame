@@ -280,17 +280,7 @@ function LayerWaveform({
         { ...layer, start: 0, end: length, sourceStart, fadeIn, fadeOut },
         points,
       ),
-    [
-      points,
-      length,
-      sourceStart,
-      layer.sourceEnd,
-      layer.loop,
-      layer.muted,
-      layer.volume,
-      fadeIn,
-      fadeOut,
-    ],
+    [points, length, sourceStart, layer, fadeIn, fadeOut],
   );
   return (
     <div className="clip-waveform">

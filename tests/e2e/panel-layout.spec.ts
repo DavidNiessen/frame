@@ -1,5 +1,5 @@
 import { importTestMedia } from '../helpers/import-media';
-import { closeEffect, openEffect, openCaptionTools } from '../helpers/effects';
+import { closeEffect, openCaptionTools } from '../helpers/effects';
 import { test, expect, type Page } from '@playwright/test';
 
 async function sample(page: Page) {

@@ -16,13 +16,11 @@ test('keeps the opposite caption boundary when resizing a cue that spans split c
   await closeEffect(page);
   await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await openCaptionTools(page);
-  await page
-    .getByLabel('Import subtitle file')
-    .setInputFiles({
-      name: 'spanning.srt',
-      mimeType: 'text/plain',
-      buffer: Buffer.from('1\n00:00:01,000 --> 00:00:05,000\nAcross both clips\n'),
-    });
+  await page.getByLabel('Import subtitle file').setInputFiles({
+    name: 'spanning.srt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('1\n00:00:01,000 --> 00:00:05,000\nAcross both clips\n'),
+  });
   await page
     .locator('.timeline-track-filters')
     .getByRole('button', { name: 'captions', exact: true })

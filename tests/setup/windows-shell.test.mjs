@@ -342,9 +342,9 @@ test(
     const directory = await mkdtemp(join(tmpdir(), 'frame-shell-arguments-'));
     try {
       const source = `#include "${join(nativeRoot, 'arguments.hpp')}"\n#include <cassert>\nint main() {
-      assert(frame::quote(L"C:\\\\songs\\\\") == L"\\\"C:\\\\songs\\\\\\\\\\\"");
-      assert(frame::quote(L"a\\\"b") == L"\\\"a\\\\\\\"b\\\"");
-      assert(frame::commands(L"Frame.exe", {L"Bj\\u00f6rk & mix.wav", L"100% song.mp3"}, false)[0] == L"Frame.exe --frame-workflow=convert -- \\\"Bj\\u00f6rk & mix.wav\\\" \\\"100% song.mp3\\\"");
+      assert(frame::quote(L"C:\\\\songs\\\\") == L"\\"C:\\\\songs\\\\\\\\\\"");
+      assert(frame::quote(L"a\\"b") == L"\\"a\\\\\\"b\\"");
+      assert(frame::commands(L"Frame.exe", {L"Bj\\u00f6rk & mix.wav", L"100% song.mp3"}, false)[0] == L"Frame.exe --frame-workflow=convert -- \\"Bj\\u00f6rk & mix.wav\\" \\"100% song.mp3\\"");
       std::vector<std::wstring> paths(2000, std::wstring(100, L'x') + L".wav");
       const auto batches = frame::commands(L"Frame.exe", paths, true); assert(batches.size() > 1);
       size_t total = 0; for (const auto& command : batches) { assert(command.size() <= 32760); for (const auto& path : paths) { (void)path; } total += command.size(); }

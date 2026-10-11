@@ -3,7 +3,6 @@ import { clipRecipe } from './clips';
 import { editedDuration, timelineSections } from './timeline';
 import type { EditSettings, TimeRange } from './types';
 import { minimumSection, minimumSourceDuration, timeEpsilon } from './time-range';
-export { minimumSection } from './time-range';
 export type Boundary = 'start' | 'end';
 export function sectionLimits(edit: EditSettings, index: number, duration: number): TimeRange {
   if (edit.clips) {

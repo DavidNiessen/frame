@@ -25,7 +25,7 @@ export interface Subtitles {
   mode: 'none' | 'embed' | 'burn';
   cues: SubtitleCue[];
 }
-export const emptySubtitles = (): Subtitles => ({ mode: 'none', cues: [] });
+const emptySubtitles = (): Subtitles => ({ mode: 'none', cues: [] });
 export function parseSubtitles(value: unknown): Subtitles {
   if (value === undefined) return emptySubtitles();
   const s = value as Subtitles;

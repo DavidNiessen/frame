@@ -6,7 +6,7 @@ import { sameLayerSource } from '../src/core/audio-layers';
 import { isMediaFilename, MAX_IMPORT_FILES } from '../src/core/imports';
 import type { MediaAsset } from '../src/core/types';
 
-export interface WorkspaceSource {
+interface WorkspaceSource {
   path: string;
   relativePath?: string;
   mtimeMs: number;

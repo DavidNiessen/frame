@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Editor } from './useEditor';
 import type { Conversion } from './useConversion';
 
@@ -6,6 +6,7 @@ export function useMiniConversion(editor: Editor, conversion: Conversion) {
   const [expanded, setExpanded] = useState(true),
     [finishing, setFinishing] = useState(false);
   const collapsedRun = useRef(false);
+  const { setNotice } = editor;
   const running = conversion.batch.running;
   const active = conversion.batch.jobs.some((job) => job.status === 'running');
   useEffect(() => {
@@ -14,8 +15,8 @@ export function useMiniConversion(editor: Editor, conversion: Conversion) {
         expanded,
         matchMedia('(prefers-reduced-motion: reduce)').matches,
       )
-      .catch((error) => editor.setNotice(String(error)));
-  }, [expanded]);
+      .catch((error) => setNotice(String(error)));
+  }, [expanded, setNotice]);
   useEffect(() => {
     if (running && active && !collapsedRun.current) {
       collapsedRun.current = true;
@@ -52,16 +53,16 @@ export function useMiniConversion(editor: Editor, conversion: Conversion) {
       clearTimeout(close);
     };
   }, [successful, editor.busy, editor.assets.length]);
-  function dismiss() {
+  const dismiss = useCallback(() => {
     if (!conversion.busy)
-      void window.frameDesktop!.dismissMini().catch((error) => editor.setNotice(String(error)));
-  }
+      void window.frameDesktop!.dismissMini().catch((error) => setNotice(String(error)));
+  }, [conversion.busy, setNotice]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !conversion.busy) dismiss();
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [conversion.busy]);
+  }, [conversion.busy, dismiss]);
   return { expanded, setExpanded, finishing, dismiss };
 }

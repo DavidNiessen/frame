@@ -35,15 +35,13 @@ test('keeps editor URL imports reachable on desktop and mobile with a full libra
         true,
       );
     }
-    await page
-      .getByLabel('Choose media files')
-      .setInputFiles(
-        Array.from({ length: 18 }, (_, index) => ({
-          name: `Song ${index + 1}.wav`,
-          mimeType: 'audio/wav',
-          buffer: server.wav,
-        })),
-      );
+    await page.getByLabel('Choose media files').setInputFiles(
+      Array.from({ length: 18 }, (_, index) => ({
+        name: `Song ${index + 1}.wav`,
+        mimeType: 'audio/wav',
+        buffer: server.wav,
+      })),
+    );
     await expect(page.locator('.asset-list li')).toHaveCount(18, { timeout: 45000 });
     const action = page
       .locator('.library')

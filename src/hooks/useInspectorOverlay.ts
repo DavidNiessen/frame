@@ -5,6 +5,7 @@ export function useInspectorOverlay(
   close: () => void,
   keepView = false,
 ) {
+  const initialKeepView = useRef(keepView);
   const islandWidth = useRef(320),
     latestClose = useRef(close);
   latestClose.current = close;
@@ -64,7 +65,7 @@ export function useInspectorOverlay(
     const dialog = ref.current,
       opener = document.activeElement as HTMLElement | null;
     if (!dialog) return;
-    if (!keepView)
+    if (!initialKeepView.current)
       dialog.querySelector<HTMLButtonElement>('[data-close]')?.focus({ preventScroll: true });
     function outside(event: PointerEvent) {
       if (
@@ -109,6 +110,6 @@ export function useInspectorOverlay(
       if (dialog.contains(document.activeElement) && opener?.isConnected)
         opener.focus({ preventScroll: true });
     };
-  }, []);
+  }, [ref]);
   return bounds;
 }

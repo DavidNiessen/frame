@@ -11,7 +11,7 @@ export function Waveform({
   range: TimeRange;
 }) {
   const path = useMemo(
-    () => waveformPath(points, duration, range),
+    () => waveformPath(points, duration, { start: range.start, end: range.end }),
     [points, duration, range.start, range.end],
   );
   return (

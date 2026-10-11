@@ -4,7 +4,7 @@ import { trim } from '../helpers/timeline';
 import { test, expect, type Page } from '@playwright/test';
 import { rm } from 'node:fs/promises';
 import { conversionLibrary } from '../helpers/conversion-library';
-import { closeEffect, openEffect } from '../helpers/effects';
+import { openEffect } from '../helpers/effects';
 async function retainedKeys(page: Page) {
   return page.evaluate(
     () =>

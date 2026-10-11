@@ -1,6 +1,6 @@
 import type { WindowIpc } from './window-ipc';
-import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
-import { basename, join } from 'node:path';
+import { dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { basename } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import { MAX_IMPORT_FILES, isMediaFilename } from '../src/core/imports';

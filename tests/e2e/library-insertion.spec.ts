@@ -12,15 +12,13 @@ test('inserts library videos and audio, extracts audio, exports and automaticall
   await page.goto('/');
   await expect(page.getByLabel('Autosave status')).not.toHaveText(/Reopening|Clearing/);
   const buffer = await readFile(resolve('tests/fixtures/sample.mp4'));
-  await page
-    .getByLabel('Choose media files', { exact: true })
-    .setInputFiles(
-      ['First.mp4', 'Second.mp4', 'Third.mp4'].map((name) => ({
-        name,
-        mimeType: 'video/mp4',
-        buffer,
-      })),
-    );
+  await page.getByLabel('Choose media files', { exact: true }).setInputFiles(
+    ['First.mp4', 'Second.mp4', 'Third.mp4'].map((name) => ({
+      name,
+      mimeType: 'video/mp4',
+      buffer,
+    })),
+  );
   await verifyLibraryInsertion(page);
   await page.reload();
   await expect(page.locator('.asset-list li')).toHaveCount(6, { timeout: 60000 });

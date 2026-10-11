@@ -66,12 +66,6 @@ export async function readAutosave(): Promise<AutosaveDocument | null> {
   });
   return value ? parseAutosave(value) : null;
 }
-export async function writeAutosave(value: AutosaveDocument): Promise<void> {
-  const document = parseAutosave(value);
-  await transaction<void>('readwrite', (tx) => {
-    tx.objectStore('autosave').put(document, 'latest');
-  });
-}
 export async function discardAutosave(): Promise<void> {
   await transaction<void>('readwrite', (tx) => {
     tx.objectStore('autosave').clear();

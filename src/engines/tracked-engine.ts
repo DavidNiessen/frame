@@ -3,7 +3,6 @@ import { loadingActivity } from '../core/loading-activity';
 const labels: Partial<Record<keyof MediaEngine, string>> = {
   beginBatch: 'Preparing conversion…',
   endBatch: 'Finishing conversion…',
-  thumbnails: 'Preparing images…',
   importFiles: 'Reading your files…',
   importFolder: 'Reading your folder…',
   importLaunch: 'Reading selected files…',
@@ -38,7 +37,6 @@ const progressIndex: Partial<Record<keyof MediaEngine, number>> = {
   appendVideo: 2,
   extractAudio: 1,
   waveform: 1,
-  thumbnails: 1,
   joinedPreview: 2,
   effectPreview: 2,
   previewFrame: 3,
@@ -112,7 +110,7 @@ export function trackedEngine(engine: MediaEngine): MediaEngine {
             return await value.apply(target, args);
           } catch (error) {
             if (cancelled && method === 'waveform')
-              throw new Error('Waveform generation cancelled.');
+              throw new Error('Waveform generation cancelled.', { cause: error });
             throw error;
           } finally {
             owner.finish();

@@ -176,17 +176,6 @@ export function createDesktopEngine(): MediaEngine {
         remove();
       }
     },
-    async thumbnails(asset, onProgress) {
-      const remove = bridge.onProgress(onProgress);
-      try {
-        return URL.createObjectURL(
-          new Blob([new Uint8Array(await bridge.thumbnails(asset.id))], { type: 'image/png' }),
-        );
-      } finally {
-        remove();
-      }
-    },
-    cancelWaveform: () => bridge.cancelWaveform(),
     async waveform(asset, onProgress) {
       const remove = bridge.onWaveformProgress(onProgress);
       try {

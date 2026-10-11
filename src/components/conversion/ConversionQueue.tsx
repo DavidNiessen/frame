@@ -37,10 +37,11 @@ export function ConversionQueue({
   const included = pending.filter((asset) => c.ids.includes(asset.id)).length;
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages - 1);
+  const selectedIndex = filtered.findIndex((asset) => asset.id === editor.selected);
   useEffect(() => {
-    const index = filtered.findIndex((asset) => asset.id === editor.selected);
+    const index = selectedIndex;
     if (index >= 0) setPage(Math.floor(index / pageSize));
-  }, [editor.selected]);
+  }, [selectedIndex]);
   useEffect(() => {
     if (selectAll.current)
       selectAll.current.indeterminate = included > 0 && included < pending.length;

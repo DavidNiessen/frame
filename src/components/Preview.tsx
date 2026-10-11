@@ -1,3 +1,4 @@
+import { useLatest } from '../hooks/useLatest';
 import type { EffectId } from '../core/effect-library';
 import { captionItems } from '../core/caption-items';
 import { changeInstance, effectiveVolume, extraInstances } from '../core/effect-instances';
@@ -90,7 +91,10 @@ export function Preview({
 }) {
   const [loop, setLoop] = useState<LoopMode>('off'),
     [loopClip, setLoopClip] = useState<string | null>(null);
-  const targetClip = editClips(edit).find((clip) => clip.id === loopClip);
+  const targetClip = useMemo(
+    () => editClips(edit).find((clip) => clip.id === loopClip),
+    [edit, loopClip],
+  );
   const playbackEdit = useMemo(
     () =>
       loop === 'clip' && targetClip
@@ -101,7 +105,7 @@ export function Preview({
             ),
           }
         : edit,
-    [edit, loop, loopClip],
+    [edit, loop, targetClip],
   );
   useEffect(() => {
     setLoop('off');
@@ -112,7 +116,7 @@ export function Preview({
       setLoop('off');
       setLoopClip(null);
     }
-  }, [edit, loop, loopClip]);
+  }, [edit, loop, targetClip]);
   useEffect(() => {
     if (loop === 'clip' && selectedClip) setLoopClip(selectedClip);
   }, [selectedClip, loop]);
@@ -181,9 +185,10 @@ export function Preview({
         (!mediaRef.current.paused || (pending && handoff.current.resume)),
     };
   }
+  const sourceReset = useLatest({ sequenceStart, setCurrent });
   useEffect(() => {
-    setCurrent(sequenceStart);
-  }, [asset.id]);
+    sourceReset.current.setCurrent(sourceReset.current.sequenceStart);
+  }, [asset.id, sourceReset]);
   useEffect(() => {
     setFailed(false);
   }, [sourceUrl]);

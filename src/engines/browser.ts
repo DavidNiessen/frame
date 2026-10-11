@@ -82,12 +82,13 @@ export function createBrowserEngine(): MediaEngine {
         }
         return report;
       } catch (error) {
-        if (controller.signal.aborted) throw new Error('URL import cancelled.');
+        if (controller.signal.aborted) throw new Error('URL import cancelled.', { cause: error });
         const message = error instanceof Error ? error.message : String(error);
         if (message.startsWith('Could not download this URL.'))
           throw new Error(
             message +
               ' On web, the host must allow cross-origin access (CORS), and HTTPS pages need HTTPS links. Try desktop if the host blocks browser downloads.',
+            { cause: error },
           );
         throw error;
       } finally {
@@ -235,7 +236,7 @@ export function createBrowserEngine(): MediaEngine {
           size: blob.size,
         };
       } catch (error) {
-        if (cancelled) throw new Error('Export cancelled.');
+        if (cancelled) throw new Error('Export cancelled.', { cause: error });
         throw error;
       } finally {
         ff.off('progress', progress);
@@ -312,7 +313,7 @@ export function createBrowserEngine(): MediaEngine {
           size: data.length,
         };
       } catch (error) {
-        if (cancelled) throw new Error('Merge cancelled.');
+        if (cancelled) throw new Error('Merge cancelled.', { cause: error });
         throw error;
       } finally {
         ff.off('progress', progress);

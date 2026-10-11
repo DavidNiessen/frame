@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-electron/
+release/
+build/
+vendor/
+native/windows-shell/
+public/ffmpeg/
+public/notices/
+.local/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+pnpm-lock.yaml
+# These inputs are fingerprinted against committed Windows shell binaries.
+src/core/media-extensions.json

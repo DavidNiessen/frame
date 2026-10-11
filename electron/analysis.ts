@@ -13,7 +13,6 @@ import type { WaveformPoint } from '../src/core/waveform';
 import { parseEdit } from '../src/core/project';
 import { previewAudioArgs } from '../src/core/audio-preview';
 import { waveformArgs, WaveformCollector } from '../src/core/waveform';
-import { thumbnailArgs } from '../src/core/thumbnails';
 import { runFfmpeg } from './native';
 import { MediaJobs } from './jobs';
 export function registerAnalysis(
@@ -154,25 +153,6 @@ export function registerAnalysis(
         [item.asset],
       ),
     );
-  });
-  ipc.handle('media:thumbnails', (event, id: string) => {
-    const item = source(event, id);
-    return jobs.run(async (execute) => {
-      const directory = await mkdtemp(join(tmpdir(), 'frame-thumbnails-'));
-      const output = join(directory, 'strip.png');
-      try {
-        await execute(
-          runFfmpeg(
-            thumbnailArgs(item.asset, item.path, output),
-            item.asset.duration,
-            progress(event, 'Reading video frames…'),
-          ),
-        );
-        return new Uint8Array(await readFile(output));
-      } finally {
-        await rm(directory, { recursive: true, force: true });
-      }
-    });
   });
   return {
     cancel: () => waveformJobs.cancel(),

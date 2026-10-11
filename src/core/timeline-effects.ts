@@ -14,7 +14,7 @@ import type { EffectId } from './effect-ids';
 import type { EditSettings, MediaAsset, TimeRange } from './types';
 
 /** New adjustments belong to the output track, never to the clips being split. */
-export const isTimelineEffect = (instance: EffectInstance) => instance.timeSpace === 'output';
+const isTimelineEffect = (instance: EffectInstance) => instance.timeSpace === 'output';
 export const hasTimelineRange = (id: EffectId) => isTimedAdjustment(id) || id.includes('Fade');
 export const clipStageEffect = (id: EffectId) => ['crop', 'transform', 'speed'].includes(id);
 export function addTimelineEffect(

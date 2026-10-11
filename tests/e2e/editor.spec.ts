@@ -173,13 +173,11 @@ test('splits, removes a section, and exports the remaining browser timeline', as
 test('rejects corrupt imports and recovers with a valid file', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
-  await page
-    .getByLabel('Choose media files')
-    .setInputFiles({
-      name: 'broken.mp4',
-      mimeType: 'video/mp4',
-      buffer: Buffer.from('not a media file'),
-    });
+  await page.getByLabel('Choose media files').setInputFiles({
+    name: 'broken.mp4',
+    mimeType: 'video/mp4',
+    buffer: Buffer.from('not a media file'),
+  });
   await expect(page.getByRole('button', { name: 'Dismiss message' })).toBeVisible();
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveCount(0);
   await importTestMedia(page);

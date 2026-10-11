@@ -51,7 +51,9 @@ export function readMsixArchive(bytes) {
         ;
         extra < limit && archive.readUInt16LE(extra) !== 1;
         extra += 4 + archive.readUInt16LE(extra + 2)
-      ) {}
+      ) {
+        // Advance to the ZIP64 extra field.
+      }
       if (extra >= limit) fail(name);
       extra += 4;
       if (size === 0xffffffff) {

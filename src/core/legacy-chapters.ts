@@ -2,7 +2,7 @@
 import { editClips } from './clips';
 import { outputTimeAtSource } from './fades';
 import type { EditSettings } from './types';
-export const legacyChapterColors = ['violet', 'blue', 'amber', 'rose', 'mint'] as const;
+const legacyChapterColors = ['violet', 'blue', 'amber', 'rose', 'mint'] as const;
 export interface LegacyChapterPoint {
   id: string;
   name: string;

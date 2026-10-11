@@ -78,13 +78,11 @@ test('converts nested song folders and downloads a ZIP with complete media and m
 test('remembers the conversion workflow and leaves editor drafts unchanged', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
-  await page
-    .getByLabel('Choose media files')
-    .setInputFiles({
-      name: 'study.mp4',
-      mimeType: 'video/mp4',
-      buffer: await readFile('tests/fixtures/sample.mp4'),
-    });
+  await page.getByLabel('Choose media files').setInputFiles({
+    name: 'study.mp4',
+    mimeType: 'video/mp4',
+    buffer: await readFile('tests/fixtures/sample.mp4'),
+  });
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
   await page.getByLabel('Trim start', { exact: true }).press('ArrowRight');
   const start = await page.getByLabel('Trim start', { exact: true }).getAttribute('aria-valuenow');

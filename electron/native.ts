@@ -60,7 +60,8 @@ export async function probeFile(
     });
     child.on('close', (code) => {
       cleanup();
-      code === 0 ? resolve(output) : reject(new Error(errors || 'Unable to read this media file.'));
+      if (code === 0) resolve(output);
+      else reject(new Error(errors || 'Unable to read this media file.'));
     });
   });
   const info = await stat(path);

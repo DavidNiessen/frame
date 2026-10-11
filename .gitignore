@@ -13,3 +13,14 @@ coverage/
 
 .local/
 public/notices/
+
+pnpm-lock.yaml
+
+# Local credentials and signing material (public Frame.cer remains tracked).
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12

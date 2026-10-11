@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fontFamilies } from './font-names';
 
-export function fontDirectories(platform = process.platform, user = homedir()): string[] {
+function fontDirectories(platform = process.platform, user = homedir()): string[] {
   if (platform === 'win32')
     return [
       join(process.env.WINDIR ?? 'C:\\Windows', 'Fonts'),

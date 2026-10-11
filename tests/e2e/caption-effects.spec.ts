@@ -15,15 +15,13 @@ for (const width of [1440, 390])
   test(`individual caption settings and styling at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await openCaptionTools(page);
-    await page
-      .getByLabel('Import subtitle file')
-      .setInputFiles({
-        name: 'two.srt',
-        mimeType: 'text/plain',
-        buffer: Buffer.from(
-          '1\n00:00:00,000 --> 00:00:04,000\nFirst\n\n2\n00:00:00,000 --> 00:00:04,000\nSecond',
-        ),
-      });
+    await page.getByLabel('Import subtitle file').setInputFiles({
+      name: 'two.srt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from(
+        '1\n00:00:00,000 --> 00:00:04,000\nFirst\n\n2\n00:00:00,000 --> 00:00:04,000\nSecond',
+      ),
+    });
     await expect(page.getByRole('button', { name: /^Captions.*effect$/ })).toHaveCount(0);
     await page.getByRole('button', { name: 'Caption 1', exact: true }).click();
     await expect(page.getByRole('dialog')).toContainText('Caption 1');

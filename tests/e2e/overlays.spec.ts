@@ -18,13 +18,11 @@ test('exports browser text and an image watermark', async ({ page }) => {
     c.getContext('2d')!.fillRect(0, 0, 64, 64);
     return c.toDataURL().split(',')[1];
   });
-  await page
-    .getByLabel('Watermark image file')
-    .setInputFiles({
-      name: 'logo.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from(image, 'base64'),
-    });
+  await page.getByLabel('Watermark image file').setInputFiles({
+    name: 'logo.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(image, 'base64'),
+  });
   await expect(page.getByAltText('Watermark preview')).toBeVisible();
   await expect(page.locator('.overlay-preview')).toContainText('Frame watermark');
   await closeEffect(page);

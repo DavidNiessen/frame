@@ -72,16 +72,7 @@ export const TimedLanes = memo(function TimedLanes({
               }),
         )
         .filter((row) => row.length),
-    [
-      edit.subtitles,
-      edit.effectInstances,
-      edit.clips,
-      edit.speed,
-      edit.start,
-      edit.end,
-      edit.cuts,
-      edit.splits,
-    ],
+    [edit],
   );
   const fades = fadeKeys(asset).filter((key) => edit[key] > 0),
     retained = keptRanges(edit);

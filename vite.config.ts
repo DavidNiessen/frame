@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: './',
   plugins: [react()],
-  optimizeDeps: { exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'] },
+  optimizeDeps: { exclude: ['@ffmpeg/ffmpeg'] },
   server: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',

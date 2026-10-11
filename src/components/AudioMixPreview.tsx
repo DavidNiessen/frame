@@ -88,7 +88,7 @@ function TrackPreview({
     if (active && Number.isFinite(media.duration) && Math.abs(media.currentTime - clock) > 0.1)
       media.currentTime = clock;
     if (active && playing && media.paused) void media.play().catch(() => setError(true));
-  }, [playing, position, layer, source, error]);
+  }, [playing, layer, error, active, clock, elapsed, outputFade]);
   useEffect(
     () => () => {
       ref.current?.pause();

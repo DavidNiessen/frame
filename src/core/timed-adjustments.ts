@@ -2,7 +2,7 @@ import type { EffectId } from './effect-ids';
 import type { EditSettings, TimeRange } from './types';
 import { outputCues } from './subtitles';
 
-export const timedAdjustments = ['volume', 'equalizer', 'noise', 'color'] as const;
+const timedAdjustments = ['volume', 'equalizer', 'noise', 'color'] as const;
 export type TimedAdjustment = (typeof timedAdjustments)[number];
 export type EffectRanges = Partial<Record<TimedAdjustment, TimeRange>>;
 export const isTimedAdjustment = (id: EffectId): id is TimedAdjustment =>

@@ -74,7 +74,9 @@ export async function downloadRemoteMedia(input: string, options: RemoteDownload
   } catch (error) {
     if (controller.signal.aborted) throw controller.signal.reason;
     if (error instanceof TypeError)
-      throw new Error('Could not download this URL. Check the link and your connection.');
+      throw new Error('Could not download this URL. Check the link and your connection.', {
+        cause: error,
+      });
     throw error;
   } finally {
     clearTimeout(timeout!);

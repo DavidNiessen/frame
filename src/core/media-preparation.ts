@@ -1,7 +1,6 @@
 import type { MediaAsset } from './types';
 
-export const sequenceFrameRate = (asset: MediaAsset) =>
-  Math.min(60, Math.max(1, asset.frameRate ?? 30));
+const sequenceFrameRate = (asset: MediaAsset) => Math.min(60, Math.max(1, asset.frameRate ?? 30));
 /** Match the exact frame boundary produced when different source frame rates are combined. */
 export const sequenceOffset = (asset: MediaAsset) =>
   Math.ceil(asset.duration * sequenceFrameRate(asset) - 1e-7) / sequenceFrameRate(asset);

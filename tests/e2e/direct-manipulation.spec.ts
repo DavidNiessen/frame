@@ -84,13 +84,11 @@ test('moves a whole caption without shortening it, opens settings during drag an
 }) => {
   await sample(page);
   await openCaptionTools(page);
-  await page
-    .getByLabel('Import subtitle file')
-    .setInputFiles({
-      name: 'one.srt',
-      mimeType: 'text/plain',
-      buffer: Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nMove me'),
-    });
+  await page.getByLabel('Import subtitle file').setInputFiles({
+    name: 'one.srt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nMove me'),
+  });
   await page.getByRole('button', { name: 'Timeline snapping', exact: true }).click();
   const start = page.getByLabel('Caption 1 start', { exact: true }),
     end = page.getByLabel('Caption 1 end', { exact: true }),

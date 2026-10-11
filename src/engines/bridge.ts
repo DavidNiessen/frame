@@ -80,7 +80,6 @@ export interface DesktopBridge extends ExportHistoryBridge {
   measureLoudness(id: string, edit: EditSettings): Promise<LoudnessStats>;
   detectScenes(id: string, options: SceneOptions): Promise<SceneScan>;
   contactSheet(id: string, edit: EditSettings, options: ContactSheetOptions): Promise<Uint8Array>;
-  thumbnails(id: string): Promise<Uint8Array>;
   cancelWaveform(): void;
   onWaveformProgress(callback: (progress: ExportProgress) => void): () => void;
   waveform(id: string): Promise<WaveformPoint[]>;

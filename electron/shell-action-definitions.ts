@@ -95,7 +95,7 @@ FunctionEnd
   StrCpy $R2 "$SYSDIR\\WindowsPowerShell\\v1.0\\powershell.exe"
   IfFileExists "$WINDIR\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe" 0 +2
   StrCpy $R2 "$WINDIR\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe"
-  nsExec::ExecToStack /TIMEOUT=$\{FrameShellTimeout} '\"$R2\" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1\" -Operation $\{Operation} -Executable \"$INSTDIR\\$\{PRODUCT_FILENAME}.exe\"'
+  nsExec::ExecToStack /TIMEOUT=$\{FrameShellTimeout} '"$R2" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\\resources\\shell-actions\\windows\\manage-menu.ps1" -Operation $\{Operation} -Executable "$INSTDIR\\$\{PRODUCT_FILENAME}.exe"'
   !undef FrameShellTimeout
   Pop $R0
   Pop $R1

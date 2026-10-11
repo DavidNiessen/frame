@@ -1,3 +1,4 @@
+import { useLatest } from '../hooks/useLatest';
 import { TransientMessage } from './TransientMessage';
 import { MetadataControls } from './MetadataControls';
 import { chapterFormats } from '../core/chapters';
@@ -22,18 +23,20 @@ export function MergeDialog({
   merge: Merge;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const latestEditor = useLatest(editor);
   const [ids, setIds] = useState<string[]>([]);
   const [settings, setSettings] = useState<OutputSettings | null>(null);
   const [transition, setTransition] = useState<TransitionSettings>({ ...defaultTransition });
   const drag = useRef<number | null>(null);
   useEffect(() => {
+    const editor = latestEditor.current;
     if (open && editor.asset && editor.edit) {
       setIds(editor.assets.map((a) => a.id));
       setTransition({ ...defaultTransition });
       setSettings(outputSettings(editor.edit));
       dialog.current?.showModal();
     } else dialog.current?.close();
-  }, [open]);
+  }, [open, latestEditor]);
   const clips = ids.map((id) => editor.assets.find((a) => a.id === id)!).filter(Boolean);
   const formats = availableFormats({
     kind: clips.every((a) => a.kind === 'video') ? 'video' : 'audio',

@@ -11,19 +11,8 @@ import { frameCommands } from './hooks/frame-commands';
 import { applyEditorEffect } from './hooks/apply-editor-effect';
 import type { InspectorTab } from './components/InspectorTabs';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ArrowDownUp,
-  Clapperboard,
-  Monitor,
-  Globe,
-  Keyboard,
-  Scissors,
-  Upload,
-  X,
-  Settings,
-  Command,
-} from 'lucide-react';
-import { acceptMedia } from './core/types';
+import { Keyboard, Upload, X } from 'lucide-react';
+import { ImportInputs } from './components/ImportInputs';
 import { seekPreviewTime, hasPreviewClock } from './core/preview-clock';
 import { useJoinedPreview } from './hooks/useJoinedPreview';
 import { useProxies } from './hooks/useProxies';
@@ -31,7 +20,7 @@ import { useAutosave } from './hooks/useAutosave';
 import { SceneDetectionDialog } from './components/SceneDetectionDialog';
 import { ContactSheetDialog } from './components/ContactSheetDialog';
 import { WorkspaceActions } from './components/WorkspaceActions';
-import { HeaderActions } from './components/HeaderActions';
+import { AppHeader } from './components/AppHeader';
 import { useEditor } from './hooks/useEditor';
 import { useTheme } from './hooks/useTheme';
 import { useMerge } from './hooks/useMerge';
@@ -58,7 +47,7 @@ import { EditorWorkspace, type WorkspaceLayout } from './components/layout/Edito
 import { useExpandedPreview } from './hooks/useExpandedPreview';
 import { useDesktopChrome } from './hooks/useDesktopChrome';
 import { outputTimeAtSource } from './core/fades';
-import { skipSeconds, stepFrame } from './core/playhead';
+import { useEditorShortcuts } from './hooks/useEditorShortcuts';
 export default function App() {
   const editor = useEditor();
   const { theme, setTheme } = useTheme();
@@ -286,79 +275,23 @@ export default function App() {
           : undefined,
       )
     : 0;
-  useEffect(() => {
-    function key(event: KeyboardEvent) {
-      const target = event.target as HTMLElement,
-        tag = target?.tagName;
-      const textEntry =
-        target?.matches(
-          'textarea, select, input:not([type="range"]):not([type="checkbox"]):not([type="radio"])',
-        ) || target?.isContentEditable;
-      if (
-        event.code === 'Space' &&
-        !event.defaultPrevented &&
-        !textEntry &&
-        !event.metaKey &&
-        !event.ctrlKey &&
-        !event.altKey &&
-        workflow === 'edit' &&
-        !settingsOpen &&
-        editor.edit &&
-        mediaRef.current
-      ) {
-        event.preventDefault();
-        if (event.repeat || editor.busy) return;
-        // Share the transport's pending-preview handling and selected-clip loop.
-        document.querySelector<HTMLButtonElement>('[data-preview-playback] .play-button')?.click();
-        return;
-      }
-      if (
-        event.defaultPrevented ||
-        ['INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY'].includes(tag) ||
-        target?.isContentEditable ||
-        target?.closest('dialog[open]') ||
-        settingsOpen ||
-        shortcuts ||
-        projects.pending ||
-        batchOpen ||
-        mergeOpen ||
-        urlOpen ||
-        openEffect ||
-        openLayer
-      )
-        return;
-      const modified = event.metaKey || event.ctrlKey;
-      if (modified && event.key.toLowerCase() === 'o') {
-        event.preventDefault();
-        if (!editor.busy) onImport();
-      }
-      if (workflow === 'convert') return;
-      if (modified && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        event.shiftKey ? editor.redo() : editor.undo();
-      }
-      if (!editor.edit || editor.busy || modified || event.altKey) return;
-      if ((event.key === ',' || event.key === '.') && editor.asset && mediaRef.current) {
-        event.preventDefault();
-        mediaRef.current.pause();
-        seek(
-          editor.asset.kind === 'video'
-            ? stepFrame(
-                editor.edit,
-                current,
-                editor.asset.frameRate ?? 30,
-                event.key === ',' ? -1 : 1,
-              )
-            : skipSeconds(editor.edit, current, event.key === ',' ? -1 : 1),
-        );
-      }
-      if (event.key.toLowerCase() === 'i')
-        editor.updateClip({ start: Math.min(current, editor.scopedEdit!.end - 0.05) });
-      if (event.key.toLowerCase() === 'o')
-        editor.updateClip({ end: Math.max(current, editor.scopedEdit!.start + 0.05) });
-    }
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
+  useEditorShortcuts({
+    editor,
+    current,
+    workflow,
+    settingsOpen,
+    mediaRef,
+    onImport,
+    seek,
+    blocked: !!(
+      shortcuts ||
+      projects.pending ||
+      batchOpen ||
+      mergeOpen ||
+      urlOpen ||
+      openEffect ||
+      openLayer
+    ),
   });
   return (
     <div
@@ -380,105 +313,48 @@ export default function App() {
       }}
       onDrop={(event) => void onDrop(event)}
     >
-      <header className="app-header">
-        <a
-          className="brand"
-          href="#"
-          aria-label="Frame home"
-          onClick={(event) => event.preventDefault()}
-        >
-          <span className="brand-mark">
-            <Clapperboard size={20} strokeWidth={1.75} />
-          </span>
-          frame<span className="brand-dot">.</span>
-        </a>
-        <nav className="workflow-nav" aria-label="Workflow">
-          <button
-            aria-pressed={!settingsOpen && workflow === 'edit'}
-            disabled={conversion.busy}
-            onClick={() => changeWorkflow('edit')}
-          >
-            <Scissors size={14} />
-            Editor
-          </button>
-          <button
-            aria-pressed={!settingsOpen && workflow === 'convert'}
-            disabled={conversion.busy}
-            onClick={() => changeWorkflow('convert')}
-          >
-            <ArrowDownUp size={14} />
-            Convert
-          </button>
-        </nav>
-        <HeaderActions workflow={settingsOpen ? 'settings' : workflow}>
-          {!settingsOpen && workflow === 'edit' && (
-            <WorkspaceActions
-              extractAudio={() => {
-                mediaRef.current?.pause();
-                void insertion.extractAudio();
-              }}
-              canExtractAudio={editor.asset?.kind === 'video' && editor.asset.hasAudio}
-              projectName={projects.name}
-              scenes={() => {
-                mediaRef.current?.pause();
-                setScenesOpen(true);
-              }}
-              hasVideo={editor.asset?.kind === 'video'}
-              contactSheet={() => {
-                mediaRef.current?.pause();
-                setSheetOpen(true);
-              }}
-              hasMedia={!!editor.asset}
-              busy={!!editor.busy}
-              saving={projects.saving}
-              merge={() => setMergeOpen(true)}
-              batch={() => setBatchOpen(true)}
-              open={() => projectInput.current?.click()}
-              save={() => void projects.save()}
-              resetLayout={() => layoutRef.current?.reset()}
-            />
-          )}
-          <div className="header-right">
-            <span className="platform-badge">
-              {editor.platform === 'desktop' ? <Monitor size={13} /> : <Globe size={13} />}
-              {editor.platform === 'desktop' ? 'Desktop' : 'Web'}
-              <i />
-            </span>
-            <button
-              className="icon-button"
-              aria-label="Search commands"
-              title="Search commands (Ctrl / ⌘ K)"
-              onClick={commandPalette.show}
-            >
-              <Command size={17} />
-              <span className="header-action-label">Search commands</span>
-            </button>
-            <button
-              className="icon-button header-settings"
-              aria-label="Settings"
-              aria-pressed={settingsOpen}
-              title="Settings"
-              onClick={() => {
-                mediaRef.current?.pause();
-                setSettingsOpen((value) => !value);
-              }}
-            >
-              <Settings size={18} />
-              <span className="header-action-label">Settings</span>
-            </button>
-            {!settingsOpen && workflow === 'edit' && (
-              <button
-                className="button subtle small header-import"
-                onClick={onImport}
-                disabled={libraryBusy || !!editor.busy}
-              >
-                <Upload size={14} />
-                Import
-              </button>
-            )}
-          </div>
-        </HeaderActions>
-      </header>
+      <AppHeader
+        workflow={workflow}
+        settingsOpen={settingsOpen}
+        conversionBusy={conversion.busy}
+        importBusy={libraryBusy || !!editor.busy}
+        platform={editor.platform}
+        changeWorkflow={changeWorkflow}
+        showCommands={commandPalette.show}
+        onImport={onImport}
+        toggleSettings={() => {
+          mediaRef.current?.pause();
+          setSettingsOpen((value) => !value);
+        }}
+      >
+        {!settingsOpen && workflow === 'edit' && (
+          <WorkspaceActions
+            extractAudio={() => {
+              mediaRef.current?.pause();
+              void insertion.extractAudio();
+            }}
+            canExtractAudio={editor.asset?.kind === 'video' && editor.asset.hasAudio}
+            projectName={projects.name}
+            scenes={() => {
+              mediaRef.current?.pause();
+              setScenesOpen(true);
+            }}
+            hasVideo={editor.asset?.kind === 'video'}
+            contactSheet={() => {
+              mediaRef.current?.pause();
+              setSheetOpen(true);
+            }}
+            hasMedia={!!editor.asset}
+            busy={!!editor.busy}
+            saving={projects.saving}
+            merge={() => setMergeOpen(true)}
+            batch={() => setBatchOpen(true)}
+            open={() => projectInput.current?.click()}
+            save={() => void projects.save()}
+            resetLayout={() => layoutRef.current?.reset()}
+          />
+        )}
+      </AppHeader>
       {settingsOpen ? (
         <SettingsPage
           timelinePreview={timelinePreview}
@@ -676,41 +552,13 @@ export default function App() {
           <p>Video and audio files & folders welcome.</p>
         </div>
       )}
-      <input
-        ref={input}
-        className="sr-only"
-        type="file"
-        aria-label="Choose media files"
-        accept={acceptMedia}
-        multiple
-        onChange={(event) => {
-          if (event.target.files?.length) void editor.importMedia(Array.from(event.target.files));
-          event.target.value = '';
-        }}
-      />
-      <input
-        ref={folderInput}
-        className="sr-only"
-        type="file"
-        aria-label="Choose media folder"
-        multiple
-        {...{ webkitdirectory: '' }}
-        onChange={(event) => {
-          if (event.target.files?.length) void editor.importFolder(Array.from(event.target.files));
-          event.target.value = '';
-        }}
-      />
-      <input
-        ref={projectInput}
-        className="sr-only"
-        type="file"
-        aria-label="Choose project file"
-        accept=".json"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void projects.open(file);
-          event.target.value = '';
-        }}
+      <ImportInputs
+        fileInput={input}
+        folderInput={folderInput}
+        projectInput={projectInput}
+        importFiles={editor.importMedia}
+        importFolder={editor.importFolder}
+        openProject={projects.open}
       />
       {openEffect &&
         editor.asset &&

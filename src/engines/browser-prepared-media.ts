@@ -95,7 +95,7 @@ export function browserPreparedMedia(files: Map<string, File>, sources: Map<stri
         ff.off('progress', update);
       }
     } catch (error) {
-      if (cancelled) throw new Error('Media preparation cancelled.');
+      if (cancelled) throw new Error('Media preparation cancelled.', { cause: error });
       throw error;
     } finally {
       active = false;

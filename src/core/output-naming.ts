@@ -1,5 +1,5 @@
 import type { BatchOptions, MediaAsset } from './types';
-export const defaultNamingTemplate = '{name}';
+const defaultNamingTemplate = '{name}';
 const filenameEncoder = new TextEncoder();
 export function validateNamingTemplate(value: unknown): asserts value is string {
   if (

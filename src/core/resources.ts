@@ -88,7 +88,7 @@ export function recipeImages(edit: EditSettings, paths: RecipeResources) {
 export function filterPath(path: string): string {
   // FFmpeg parses a filtergraph and then an option value: escape both levels.
   const option = path.replace(/\\/g, '/').replace(/[\\':]/g, (c) => `\\${c}`);
-  return option.replace(/[\\'\[\],;]/g, (c) => `\\${c}`);
+  return option.replace(/[\\'[\],;]/g, (c) => `\\${c}`);
 }
 
 export function recipeFiles(

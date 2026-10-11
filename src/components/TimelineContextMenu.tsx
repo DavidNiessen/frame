@@ -1,3 +1,4 @@
+import { useLatest } from '../hooks/useLatest';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LucideIcon } from 'lucide-react';
@@ -27,6 +28,7 @@ export function TimelineContextMenu({
 }) {
   const ref = useRef<HTMLDivElement>(null),
     [position, setPosition] = useState({ left: x, top: y });
+  const latestClose = useLatest(close);
   useLayoutEffect(() => {
     const node = ref.current!,
       box = node.getBoundingClientRect();
@@ -36,9 +38,9 @@ export function TimelineContextMenu({
     });
     node.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({ preventScroll: true });
     const dismiss = (event: Event) => {
-      if (!node.contains(event.target as Node)) close(false);
+      if (!node.contains(event.target as Node)) latestClose.current(false);
     };
-    const layout = () => close(false);
+    const layout = () => latestClose.current(false);
     window.addEventListener('pointerdown', dismiss, true);
     window.addEventListener('contextmenu', dismiss, true);
     window.addEventListener('resize', layout);
@@ -49,7 +51,7 @@ export function TimelineContextMenu({
       window.removeEventListener('resize', layout);
       window.removeEventListener('blur', layout);
     };
-  }, [x, y]);
+  }, [x, y, latestClose]);
   return createPortal(
     <div
       ref={ref}

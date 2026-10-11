@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { defaultSettings, type EditSettings, type MediaAsset } from '../src/core/types';
 import { effectAction } from '../src/core/effect-actions';
 import { clipEffectRows } from '../src/core/effect-timeline';
@@ -179,7 +179,7 @@ it('renders timed gain and cleanup with real FFmpeg, including overlap, cuts, sp
       [4, 1],
     ])
       expect(gained(time) / normal(time)).toBeCloseTo(ratio, 3);
-    let ordered = { ...edit, ...splitClip(edit, editClips(edit)[0].id, 3) };
+    const ordered = { ...edit, ...splitClip(edit, editClips(edit)[0].id, 3) };
     ordered.clips!.reverse();
     ordered.clips![0].effects.speed = 2;
     const reordered = await energies(ordered, 'ordered');

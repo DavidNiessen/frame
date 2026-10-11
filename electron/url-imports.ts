@@ -67,7 +67,7 @@ export function registerUrlImports(
         return report;
       } catch (error) {
         for (const asset of report?.assets || []) assets.delete(asset.id);
-        if (signal.aborted) throw new Error('URL import cancelled.');
+        if (signal.aborted) throw new Error('URL import cancelled.', { cause: error });
         throw error;
       } finally {
         await file?.close().catch(() => {});

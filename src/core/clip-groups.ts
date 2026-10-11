@@ -28,7 +28,7 @@ export function clipGroups(edit: EditSettings) {
   return groups;
 }
 /** Store the retained source before trimming so a removed edge can be restored across cuts. */
-export function joinedRanges(pieces: TimelineClip[]): TimeRange[] {
+function joinedRanges(pieces: TimelineClip[]): TimeRange[] {
   return pieces[0].joinedRanges ?? pieces.map(({ start, end }) => ({ start, end }));
 }
 export function groupTrimState(edit: EditSettings, pieces: TimelineClip[], duration: number) {

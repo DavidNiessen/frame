@@ -6,7 +6,7 @@ import { youtubeArgs } from './youtube-plan';
 import { runYoutubeDownloader } from './youtube-process';
 import { portableToolPath } from './tool-paths';
 
-export function youtubeToolPath() {
+function youtubeToolPath() {
   return portableToolPath('yt-dlp');
 }
 export async function downloadYoutube(

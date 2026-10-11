@@ -1,7 +1,7 @@
 import { app, type BrowserWindow } from 'electron';
 import { join } from 'node:path';
 
-export const devUrl = !app.isPackaged ? process.env.FRAME_DEV_URL : undefined;
+const devUrl = !app.isPackaged ? process.env.FRAME_DEV_URL : undefined;
 export function prepareWindow(window: BrowserWindow) {
   window.setMenuBarVisibility(false);
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));

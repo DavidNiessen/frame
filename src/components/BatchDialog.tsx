@@ -1,3 +1,4 @@
+import { useLatest } from '../hooks/useLatest';
 import { useEffect, useRef, useState } from 'react';
 import { Layers, X } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
@@ -15,14 +16,16 @@ export function BatchDialog({
   batch: Batch;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const latestEditor = useLatest(editor);
   const [ids, setIds] = useState<string[]>([]);
   const [mode, setMode] = useState<BatchMode>('individual');
   useEffect(() => {
+    const editor = latestEditor.current;
     if (open) {
       setIds(editor.assets.map((a) => a.id));
       dialog.current?.showModal();
     } else dialog.current?.close();
-  }, [open]);
+  }, [open, latestEditor]);
   const running = editor.busy === 'batch';
   return (
     <dialog
