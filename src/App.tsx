@@ -297,7 +297,7 @@ export default function App() {
   });
   return (
     <div
-      className={`app-shell workflow-${workflow}${preview.expanded ? ' preview-expanded' : ''}`}
+      className={`app-shell workflow-${settingsOpen ? 'settings' : workflow}${preview.expanded ? ' preview-expanded' : ''}`}
       onDragEnter={(event) => {
         event.preventDefault();
         if (event.dataTransfer.types.includes('Files')) {

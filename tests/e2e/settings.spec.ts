@@ -138,6 +138,52 @@ test('Escape closes Settings and restores focus after a nested dialog closes fir
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
 });
 
+for (const viewport of [
+  { width: 1440, height: 700 },
+  { width: 390, height: 667 },
+]) {
+  test(`scrolls Settings opened from Convert at ${viewport.width}px and restores the conversion layout`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    const workflows = page.getByRole('navigation', { name: 'Workflow' });
+    await workflows.getByRole('button', { name: 'Convert', exact: true }).click();
+    await page.getByLabel('Choose media files').setInputFiles('tests/fixtures/sample.mp4');
+    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(1);
+    await page.getByLabel('Conversion format').selectOption('gif');
+    if (viewport.width < 700)
+      await page.getByRole('button', { name: 'App menu', exact: true }).click();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+    await page.mouse.move(viewport.width / 2, viewport.height / 2);
+    await page.mouse.wheel(0, 600);
+    await expect
+      .poll(() => page.evaluate(() => document.scrollingElement!.scrollTop))
+      .toBeGreaterThan(0);
+    await page
+      .getByRole('heading', { name: 'Recent exports', exact: true })
+      .scrollIntoViewIfNeeded();
+    await expect(
+      page.getByRole('heading', { name: 'Recent exports', exact: true }),
+    ).toBeInViewport();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toHaveCount(0);
+    await expect(page.getByLabel('Conversion format')).toHaveValue('gif');
+    expect(
+      await page.evaluate(() => ({
+        width: document.documentElement.scrollWidth - innerWidth,
+        height: document.documentElement.scrollHeight - innerHeight,
+      })),
+    ).toEqual({ width: 0, height: 0 });
+    await expect(page.locator('.conversion-table tbody tr')).toHaveCount(1);
+    await expect(
+      page.getByRole('button', { name: 'Convert 1 file', exact: true }),
+    ).toBeInViewport();
+    await expect(page.locator('.app-footer')).toBeInViewport();
+  });
+}
+
 test('preserves timeline edits and the conversion selection when navigating through settings', async ({
   page,
 }) => {
