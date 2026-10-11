@@ -26,9 +26,11 @@ export function configureSystemIntegration(
     executable: app.isPackaged ? process.env.APPIMAGE || process.execPath : process.execPath,
     args: app.isPackaged ? [] : [app.getAppPath()],
   };
-  const refreshed = refreshFinderActions(location).catch(() => {
-    // Settings can repair workflows if an existing service is not writable.
-  });
+  const refreshed = (app.isPackaged ? refreshFinderActions(location) : Promise.resolve()).catch(
+    () => {
+      // Settings can repair workflows if an existing service is not writable.
+    },
+  );
   let changing = false;
   const integrate = async (remove: boolean) => {
     if (changing) throw new Error('A file-manager integration change is already running.');
