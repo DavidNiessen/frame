@@ -3,8 +3,16 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { releaseVersion } from '../src/core/app-updates';
 import { UpdateManager } from './update-manager';
+import {
+  armUpdateInstall,
+  supportsUpdateInstall,
+  type UpdateInstallLocation,
+} from './update-install';
 
-export function configureAppUpdates(trusted: (event: IpcMainInvokeEvent) => void) {
+export function configureAppUpdates(
+  trusted: (event: IpcMainInvokeEvent) => void,
+  canRestart: () => boolean,
+) {
   let current = `v${app.getVersion()}${app.isPackaged ? '' : '-build.0'}`;
   try {
     const { frameReleaseTag } = JSON.parse(
@@ -19,6 +27,15 @@ export function configureAppUpdates(trusted: (event: IpcMainInvokeEvent) => void
   } catch {
     /* Older installations and development checkouts use the app version. */
   }
+  const location: UpdateInstallLocation = {
+    platform: process.platform,
+    arch: process.arch,
+    development: !app.isPackaged,
+    executable: app.getPath('exe'),
+    appImage: process.env.APPIMAGE,
+    userData: app.getPath('userData'),
+    helperDirectory: __dirname,
+  };
   const updates = new UpdateManager({
     current,
     development: !app.isPackaged,
@@ -26,6 +43,9 @@ export function configureAppUpdates(trusted: (event: IpcMainInvokeEvent) => void
     arch: process.arch,
     directory: app.getPath('userData'),
     fetcher: (url, init) => net.fetch(url, init),
+    install: supportsUpdateInstall(location)
+      ? (update) => armUpdateInstall(location, update, canRestart)
+      : undefined,
   });
   updates.subscribe((status) => {
     for (const window of BrowserWindow.getAllWindows())
@@ -51,12 +71,22 @@ export function configureAppUpdates(trusted: (event: IpcMainInvokeEvent) => void
     trusted(event);
     updates.cancelDownload();
   });
-  ipcMain.handle('updates:open', async (event) => {
+  let installing = false;
+  ipcMain.handle('updates:install', async (event) => {
     trusted(event);
-    if (process.platform === 'linux')
-      throw new Error('Use Show download and replace your current AppImage.');
-    const error = await shell.openPath(await updates.installer());
-    if (error) throw new Error(error);
+    if (installing) throw new Error('An update installation is already running.');
+    if (!canRestart())
+      throw new Error('Finish or cancel active media jobs before restarting to update.');
+    installing = true;
+    try {
+      const status = await updates.install();
+      if (status.phase === 'installing') setTimeout(() => app.quit(), 100);
+      else installing = false;
+      return status;
+    } catch (cause) {
+      installing = false;
+      throw cause;
+    }
   });
   ipcMain.handle('updates:reveal', async (event) => {
     trusted(event);

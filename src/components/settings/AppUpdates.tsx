@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Download, RefreshCw, ShieldCheck, Power } from 'lucide-react';
 import { FRAME_RELEASES } from '../../core/app-updates';
 import { useUpdateStatus } from '../../hooks/useAppUpdates';
 import { TransientMessage } from '../TransientMessage';
@@ -11,8 +11,15 @@ export function AppUpdates() {
   const [draft, setDraft] = useState<{ automatic: boolean; includePrereleases: boolean } | null>(
     null,
   );
-  const busy = pending || status?.phase === 'checking' || status?.phase === 'downloading';
+  const busy =
+    pending ||
+    status?.phase === 'checking' ||
+    status?.phase === 'downloading' ||
+    status?.phase === 'installing';
   const available = !!bridge && !!status?.supported;
+  const attention =
+    !!status?.release &&
+    ['available', 'downloading', 'downloaded', 'installing'].includes(status.phase);
   async function run(work: () => Promise<unknown>) {
     setPending(true);
     setError('');
@@ -36,6 +43,12 @@ export function AppUpdates() {
     await run(async () => setStatus(await bridge.setUpdatePreferences(value)));
     setDraft(null);
   }
+  async function install() {
+    const tasks: Promise<unknown>[] = [];
+    window.dispatchEvent(new CustomEvent('frame:prepare-update', { detail: { tasks } }));
+    await Promise.all(tasks);
+    setStatus(await bridge!.installUpdate());
+  }
   let message = !bridge
     ? 'The web app updates when a new full release is published. Reload to get the latest version.'
     : !status
@@ -46,18 +59,24 @@ export function AppUpdates() {
           ? 'Checking GitHub releases…'
           : status.phase === 'downloading'
             ? `Downloading ${status.release?.tag.slice(1)} · ${Math.round((status.ratio ?? 0) * 100)}%`
-            : status.phase === 'downloaded'
-              ? `Frame ${status.release?.tag.slice(1)} is downloaded and verified.`
-              : status.release
-                ? `Frame ${status.release.tag.slice(1)} is available${status.release.prerelease ? ' as a prerelease' : ''}.`
-                : status.phase === 'current'
-                  ? 'You’re up to date. No newer release is available in this channel.'
-                  : status.phase === 'error'
-                    ? 'Update check failed. You can try again.'
-                    : 'Check GitHub for a new release of Frame.';
+            : status.phase === 'installing'
+              ? 'Preparing the verified update. Frame will restart when it is ready…'
+              : status.phase === 'downloaded'
+                ? `Frame ${status.release?.tag.slice(1)} is ready. Restart to update.`
+                : status.release
+                  ? `Frame ${status.release.tag.slice(1)} is available${status.release.prerelease ? ' as a prerelease' : ''}.`
+                  : status.phase === 'current'
+                    ? 'You’re up to date. No newer release is available in this channel.'
+                    : status.phase === 'error'
+                      ? 'Update check failed. You can try again.'
+                      : 'Check GitHub for a new release of Frame.';
   if (status?.development) message += ' Automatic checks run in installed builds.';
   return (
-    <section className="settings-card" aria-labelledby="updates-heading">
+    <section
+      className="settings-card settings-updates"
+      data-update-available={attention}
+      aria-labelledby="updates-heading"
+    >
       <div className="settings-section-heading">
         <Download size={19} />
         <div>
@@ -86,16 +105,19 @@ export function AppUpdates() {
           <RefreshCw size={14} className={status?.phase === 'checking' ? 'spinner' : ''} />
           {status?.phase === 'checking' ? 'Checking…' : 'Check for updates'}
         </button>
-        {status?.release && status.phase !== 'downloaded' && status.phase !== 'downloading' && (
-          <button
-            className="button primary"
-            disabled={busy}
-            onClick={() => void run(async () => setStatus(await bridge!.downloadUpdate()))}
-          >
-            <Download size={14} />
-            Download update
-          </button>
-        )}
+        {status?.release &&
+          status.phase !== 'downloaded' &&
+          status.phase !== 'downloading' &&
+          status.phase !== 'installing' && (
+            <button
+              className="button primary update-install-button"
+              disabled={busy}
+              onClick={() => void run(async () => setStatus(await bridge!.downloadUpdate()))}
+            >
+              <Download size={14} />
+              Install update
+            </button>
+          )}
         {status?.phase === 'downloading' && (
           <button className="button subtle" onClick={() => void bridge!.cancelUpdateDownload()}>
             Cancel download
@@ -103,27 +125,26 @@ export function AppUpdates() {
         )}
         {status?.phase === 'downloaded' && (
           <>
-            {!status.release?.installer.name.endsWith('.AppImage') && (
-              <button
-                className="button primary"
-                disabled={pending}
-                onClick={() => void run(() => bridge!.openUpdateInstaller())}
-              >
-                Open installer
-              </button>
-            )}
             <button
-              className={
-                status.release?.installer.name.endsWith('.AppImage')
-                  ? 'button primary'
-                  : 'button subtle'
-              }
+              className="button primary update-install-button"
+              disabled={pending || !status.installSupported}
+              onClick={() => void run(install)}
+            >
+              <Power size={14} /> Restart to update
+            </button>
+            <button
+              className="button subtle"
               disabled={pending}
               onClick={() => void run(() => bridge!.revealUpdateInstaller())}
             >
               Show download
             </button>
           </>
+        )}
+        {status?.phase === 'installing' && (
+          <button className="button primary" disabled>
+            <RefreshCw size={14} className="spinner" /> Preparing update…
+          </button>
         )}
         <a
           className="button subtle"
@@ -138,8 +159,8 @@ export function AppUpdates() {
         <span>
           Check for updates automatically
           <small>
-            Check shortly after startup and every six hours while Frame is open. Downloads start
-            only when you choose.
+            Check shortly after startup and every six hours. Installed apps download updates in the
+            background; you choose when to restart.
           </small>
         </span>
         <input
@@ -179,9 +200,13 @@ export function AppUpdates() {
       {bridge && (
         <p className="settings-note">
           <ShieldCheck size={13} />
-          Downloads are verified against the release’s SHA-256 checksum. Save your work before
-          installing. On macOS, open the DMG and replace Frame in Applications; on Linux, replace
-          your AppImage.
+          Updates are verified against the release’s SHA-256 checksum and installed when you
+          restart. Enabled workspace autosave finishes first. Save your project if autosave is off.
+          {status?.development
+            ? ' Restart-to-update is disabled in development checkouts.'
+            : status && !status.installSupported
+              ? ' On Linux, run the installed AppImage to enable automatic installation.'
+              : ''}
         </p>
       )}
     </section>

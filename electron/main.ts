@@ -1,5 +1,6 @@
 import { configureCompletionNotifications } from './completion-notifications';
 import { configureAppUpdates } from './app-updates';
+import { configureShutdown } from './shutdown';
 import { configureInstalledFonts } from './installed-fonts';
 import { configureExportHistory } from './export-history';
 import { configureWatchFolders } from './watch-folders';
@@ -39,7 +40,6 @@ const creating = new Set<WindowKind>(),
 let desktopReady = false,
   lastClosed: WindowKind = 'editor';
 let stopWatchFolders: () => Promise<void> = async () => {};
-let quitting = false;
 let flushExportHistory: () => Promise<void> = async () => {};
 let stopAppUpdates: () => Promise<void> = async () => {};
 const shellCommand = shellStartupCommand(process.argv);
@@ -173,7 +173,9 @@ if (ownsInstance && !shellCommand) {
 app.whenReady().then(() => {
   if (!ownsInstance || configureSystemIntegration(shellCommand, trusted)) return;
   configureCompletionNotifications(trusted);
-  stopAppUpdates = configureAppUpdates(trusted);
+  stopAppUpdates = configureAppUpdates(trusted, () =>
+    Array.from(sessions.values()).every((session) => !session.jobs.busy),
+  );
   configureInstalledFonts(trusted);
   flushExportHistory = configureExportHistory(trusted);
   stopWatchFolders = configureWatchFolders(trusted);
@@ -200,25 +202,8 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' || lastClosed === 'mini') app.quit();
 });
-app.on('before-quit', (event) => {
+configureShutdown(app, async () => {
   for (const session of sessions.values()) session.clear();
-  if (quitting) return;
-  event.preventDefault();
-  quitting = true;
-  const updateShutdown = stopAppUpdates();
-  // Flush completion records before exiting, without letting disconnected network folders stall shutdown.
-  const timeout = new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, 3000);
-    timer.unref();
-  });
-  void Promise.race([
-    (async () => {
-      await stopWatchFolders();
-      await flushExportHistory();
-      await updateShutdown;
-    })(),
-    timeout,
-  ])
-    .catch(() => {})
-    .finally(() => app.quit());
+  await Promise.allSettled([stopWatchFolders(), stopAppUpdates()]);
+  await flushExportHistory();
 });

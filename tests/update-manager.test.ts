@@ -160,6 +160,61 @@ describe('desktop updates', () => {
     expect(dev.fetch).not.toHaveBeenCalled();
     dev.updates.stop();
   });
+  it('downloads installed-app updates in the background, restores verified downloads and installs only on request', async () => {
+    const root = await directory(),
+      fetch = fetcher(),
+      install = vi.fn(async (_update: { path: string; checksum: string }) => {});
+    const options = {
+      current: 'v1.0.0',
+      development: false,
+      platform: 'win32',
+      arch: 'x64',
+      directory: root,
+      fetcher: fetch,
+      install,
+    };
+    const updates = new UpdateManager(options);
+    await updates.periodicCheck();
+    expect((await updates.status()).phase).toBe('downloaded');
+    expect(install).not.toHaveBeenCalled();
+    const restored = new UpdateManager(options);
+    expect((await restored.status()).phase).toBe('downloaded');
+    await restored.install();
+    expect(install).toHaveBeenCalledTimes(1);
+    expect(install.mock.calls[0]?.[0]).toMatchObject({
+      checksum: digest,
+      path: join(root, 'updates', 'v1.0.1', name),
+    });
+    await restored.stop();
+    await updates.stop();
+    await writeFile(join(root, 'updates', 'v1.0.1', name), 'tampered');
+    const tampered = new UpdateManager(options);
+    expect((await tampered.status()).phase).toBe('idle');
+    await tampered.stop();
+  });
+  it('keeps staging failures recoverable and clears ready state when changing release channel', async () => {
+    const root = await directory();
+    const updates = new UpdateManager({
+      current: 'v1.0.0',
+      development: false,
+      platform: 'win32',
+      arch: 'x64',
+      directory: root,
+      fetcher: fetcher(),
+      install: async () => {
+        throw new Error('read-only installation');
+      },
+    });
+    await updates.periodicCheck();
+    expect(await updates.install()).toMatchObject({
+      phase: 'downloaded',
+      error: expect.stringContaining('read-only'),
+    });
+    await updates.preferences({ automatic: true, includePrereleases: true });
+    expect((await updates.status()).phase).toBe('idle');
+    expect(await readdir(root)).not.toContain('update-ready.json');
+    await updates.stop();
+  });
   it('keeps failures recoverable and bounds metadata and redirect destinations', async () => {
     const { updates, fetch } = await manager();
     fetch.mockRejectedValueOnce(new Error('offline'));

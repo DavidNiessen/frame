@@ -101,7 +101,7 @@ export function useAutosave(
     setSaving(true);
     let active = true;
     const revision = epoch.current;
-    const persist = () => {
+    const persist = (reportFailure = false) => {
       const current = snapshotRef.current;
       if (revision !== epoch.current || clearingRef.current || !current?.editor.asset) return;
       try {
@@ -124,7 +124,7 @@ export function useAutosave(
         });
         const ids = current.editor.assets.map((asset) => asset.id);
         setSaving(true);
-        void enqueue(async () => {
+        return enqueue(async () => {
           if (revision !== epoch.current) return;
           const e = await current.editor.backgroundEngine();
           if (!e.saveWorkspace) throw new Error('Workspace storage is unavailable.');
@@ -142,24 +142,36 @@ export function useAutosave(
               setSaving(false);
               setError(messageOf(e));
             }
+            if (reportFailure) throw e;
           });
       } catch (e) {
         if (mounted.current && active) {
           setSaving(false);
           setError(messageOf(e));
         }
+        if (reportFailure) return Promise.reject(e);
       }
     };
     const timer = window.setTimeout(persist, 700),
       hidden = () => {
         if (document.visibilityState === 'hidden') persist();
       };
-    window.addEventListener('pagehide', persist);
+    const prepareUpdate = (event: Event) => {
+      const tasks = (event as CustomEvent<{ tasks: Promise<unknown>[] }>).detail.tasks;
+      tasks.push(Promise.resolve(persist(true)));
+      tasks.push(pending.current);
+    };
+    const pagehide = () => {
+      void persist();
+    };
+    window.addEventListener('pagehide', pagehide);
+    window.addEventListener('frame:prepare-update', prepareUpdate);
     document.addEventListener('visibilitychange', hidden);
     return () => {
       active = false;
       clearTimeout(timer);
-      window.removeEventListener('pagehide', persist);
+      window.removeEventListener('pagehide', pagehide);
+      window.removeEventListener('frame:prepare-update', prepareUpdate);
       document.removeEventListener('visibilitychange', hidden);
     };
   }, [snapshot, loading, clearing]);

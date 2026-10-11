@@ -38,4 +38,5 @@ export function useAppUpdateActivity() {
     cancel: () => void window.frameDesktop?.cancelUpdateDownload(),
     cancelLabel: 'Cancel download',
   });
+  useLoadingActivity(status?.phase === 'installing', 'Preparing Frame update…', { priority: 2 });
 }

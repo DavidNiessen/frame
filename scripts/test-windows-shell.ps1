@@ -70,7 +70,7 @@ try {
   $env:FRAME_TEST_EXECUTABLE = $executable
   $env:FRAME_TEST_SHELL_ACTIONS = '1'
   if ($primarySupported) { $env:FRAME_TEST_PRIMARY_MENU = '1' }
-  & npx playwright test --config playwright.electron.config.ts tests/electron/launch.spec.ts tests/electron/settings.spec.ts
+  & npx playwright test --config playwright.electron.config.ts tests/electron/launch.spec.ts tests/electron/settings.spec.ts tests/electron/quit.spec.ts tests/electron/update-install.spec.ts
   if ($LASTEXITCODE -ne 0) { throw 'Installed shell launch/settings tests failed.' }
   Remove-Item Env:FRAME_TEST_EXECUTABLE
   & npx playwright test --config playwright.electron.config.ts tests/electron/settings.spec.ts tests/electron/launch.spec.ts --grep 'manages file-manager|cold-starts a development'

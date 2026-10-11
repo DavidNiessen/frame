@@ -6,7 +6,7 @@ const bridge: DesktopBridge = {
   setUpdatePreferences: (value) => ipcRenderer.invoke('updates:preferences', value),
   downloadUpdate: () => ipcRenderer.invoke('updates:download'),
   cancelUpdateDownload: () => ipcRenderer.invoke('updates:cancel'),
-  openUpdateInstaller: () => ipcRenderer.invoke('updates:open'),
+  installUpdate: () => ipcRenderer.invoke('updates:install'),
   revealUpdateInstaller: () => ipcRenderer.invoke('updates:reveal'),
   onUpdateStatus: (callback) => {
     const listener = (_event: unknown, status: Parameters<typeof callback>[0]) => callback(status);

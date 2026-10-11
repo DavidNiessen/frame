@@ -57,7 +57,9 @@ test('records real saved exports, restores history and forgets entries without d
     ).toBe(output);
     await page.getByLabel('Search recent exports').fill('no matching name');
     await expect(card.getByText('No matching saved files.')).toBeVisible();
-    await page.getByLabel('Search recent exports').fill('');
+    await page.getByRole('button', { name: 'Clear saved files search' }).click();
+    await expect(page.getByLabel('Search recent exports')).toBeFocused();
+    await expect(card.getByText('saved.wav', { exact: true })).toBeVisible();
     await app.close();
     app = await launch();
     const restored = await app.firstWindow();

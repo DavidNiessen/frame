@@ -226,3 +226,32 @@ body:has(dialog:modal) .footer-cancel {
     transition: none;
   }
 }
+.app-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.app-footer > .footer-task {
+  grid-column: 1;
+  grid-row: 1;
+  max-width: 100%;
+}
+.app-footer > button {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+}
+.app-footer > .footer-version {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+@media (max-width: 700px) {
+  .app-footer > .footer-task {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+  .app-footer > button {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

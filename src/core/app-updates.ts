@@ -12,9 +12,18 @@ export interface UpdateStatus {
   current: string;
   development: boolean;
   supported: boolean;
+  installSupported?: boolean;
   automatic: boolean;
   includePrereleases: boolean;
-  phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'downloaded' | 'error';
+  phase:
+    | 'idle'
+    | 'checking'
+    | 'current'
+    | 'available'
+    | 'downloading'
+    | 'downloaded'
+    | 'installing'
+    | 'error';
   checkedAt?: number;
   release?: UpdateRelease;
   downloaded?: string;
@@ -30,7 +39,7 @@ export interface UpdateBridge {
   }): Promise<UpdateStatus>;
   downloadUpdate(): Promise<UpdateStatus>;
   cancelUpdateDownload(): Promise<void>;
-  openUpdateInstaller(): Promise<void>;
+  installUpdate(): Promise<UpdateStatus>;
   revealUpdateInstaller(): Promise<void>;
   onUpdateStatus(callback: (status: UpdateStatus) => void): () => void;
 }
