@@ -75,8 +75,9 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
             return new Response(`${fixture.checksum}  ${fixture.name}`);
           if (!address.endsWith('/' + fixture.name))
             throw new Error('Unexpected updater request: ' + address);
-          const fs = await import('node:fs'),
-            streams = await import('node:stream');
+          // Electron's evaluation context has no dynamic-import callback.
+          const fs = process.getBuiltinModule('fs') as typeof import('node:fs'),
+            streams = process.getBuiltinModule('stream') as typeof import('node:stream');
           return new Response(
             streams.Readable.toWeb(
               fs.createReadStream(fixture.source),
