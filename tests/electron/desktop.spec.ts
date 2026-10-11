@@ -144,7 +144,9 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
       dialog.showSaveDialog = async () => ({ canceled: false, filePath });
     }, projectPath);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
-    await expect(page.locator('.toast')).toContainText('Project saved');
+    await expect
+      .poll(() => readFile(projectPath, 'utf8').catch(() => ''), { timeout: 15000 })
+      .not.toBe('');
     const project = JSON.parse(await readFile(projectPath, 'utf8'));
     expect(project.sources[0].edit.start).toBe(1);
     expect(

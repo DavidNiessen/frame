@@ -235,6 +235,9 @@ body:has(dialog:modal) .footer-cancel {
   grid-row: 1;
   max-width: 100%;
 }
+.app-footer[aria-busy='true'] > .footer-task {
+  grid-column: 1 / -1;
+}
 .app-footer > button {
   grid-column: 2;
   grid-row: 1;

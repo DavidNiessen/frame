@@ -257,6 +257,7 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
   await mkdir(output);
   const launchOptions = options(library.directory),
     app = await _electron.launch(launchOptions);
+  const child = app.process();
   try {
     const editor = await app.firstWindow();
     await importTestMedia(editor, app);
@@ -325,7 +326,18 @@ test('keeps an open editor intact and isolates its assets from the mini conversi
     await dismissed;
     expect(editor.isClosed()).toBe(false);
   } finally {
-    await app.close().catch(() => {});
-    await rm(library.directory, { recursive: true, force: true });
+    try {
+      if (child.exitCode === null) {
+        // Let the inspector acknowledge the request before Frame exits. Playwright's
+        // synchronous app.close() can deadlock when the reopened mini window closed.
+        await app.evaluate(({ app }) => {
+          setTimeout(() => app.quit(), 50);
+        });
+        await expect.poll(() => child.exitCode, { timeout: 8000 }).toBe(0);
+      }
+    } finally {
+      if (child.exitCode === null) child.kill();
+      await rm(library.directory, { recursive: true, force: true });
+    }
   }
 });
