@@ -8,6 +8,9 @@ export function AppUpdates() {
   const bridge = window.frameDesktop;
   const { status, setStatus, error, setError } = useUpdateStatus();
   const [pending, setPending] = useState(false);
+  const [draft, setDraft] = useState<{ automatic: boolean; includePrereleases: boolean } | null>(
+    null,
+  );
   const busy = pending || status?.phase === 'checking' || status?.phase === 'downloading';
   const available = !!bridge && !!status?.supported;
   async function run(work: () => Promise<unknown>) {
@@ -20,6 +23,18 @@ export function AppUpdates() {
     } finally {
       setPending(false);
     }
+  }
+  async function preferences(patch: Partial<{ automatic: boolean; includePrereleases: boolean }>) {
+    if (!bridge || !status || busy) return;
+    const value = {
+      automatic: status.automatic,
+      includePrereleases: status.includePrereleases,
+      ...patch,
+    };
+    // Keep the clicked state visible while the desktop process persists it.
+    setDraft(value);
+    await run(async () => setStatus(await bridge.setUpdatePreferences(value)));
+    setDraft(null);
   }
   let message = !bridge
     ? 'The web app updates when a new full release is published. Reload to get the latest version.'
@@ -130,18 +145,11 @@ export function AppUpdates() {
         <input
           type="checkbox"
           aria-label="Check for updates automatically"
-          checked={status?.automatic ?? true}
+          checked={draft?.automatic ?? status?.automatic ?? true}
           disabled={!available || busy}
           onChange={(event) => {
             const automatic = event.target.checked;
-            void run(async () =>
-              setStatus(
-                await bridge!.setUpdatePreferences({
-                  automatic,
-                  includePrereleases: status!.includePrereleases,
-                }),
-              ),
-            );
+            void preferences({ automatic });
           }}
         />
       </label>
@@ -152,18 +160,11 @@ export function AppUpdates() {
         <input
           type="checkbox"
           aria-label="Include prereleases"
-          checked={status?.includePrereleases ?? false}
+          checked={draft?.includePrereleases ?? status?.includePrereleases ?? false}
           disabled={!available || busy}
           onChange={(event) => {
             const includePrereleases = event.target.checked;
-            void run(async () =>
-              setStatus(
-                await bridge!.setUpdatePreferences({
-                  automatic: status!.automatic,
-                  includePrereleases,
-                }),
-              ),
-            );
+            void preferences({ includePrereleases });
           }}
         />
       </label>

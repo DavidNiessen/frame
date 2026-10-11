@@ -1,6 +1,6 @@
 import { test, expect, _electron } from '@playwright/test';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { installerName } from '../../src/core/app-updates';
@@ -128,18 +128,24 @@ test('checks releases, cancels and verifies downloads, and opens only a verified
     expect(await readFile(path)).toEqual(bytes);
     await updates.getByRole('button', { name: openButton }).click();
     await expect
-      .poll(() =>
-        application.evaluate(
+      .poll(async () => {
+        const opened = await application.evaluate(
           () => (globalThis as typeof globalThis & { openedUpdate: string }).openedUpdate,
-        ),
-      )
-      .toBe(path);
+        );
+        return opened ? realpath(opened) : '';
+      })
+      .toBe(await realpath(path));
     await writeFile(path, 'tampered');
     await updates.getByRole('button', { name: openButton }).click();
     await expect(updates.getByRole('alert')).toContainText('checksum mismatch');
     await expect(updates.getByRole('button', { name: openButton })).toHaveCount(0);
-    await page.getByLabel('Check for updates automatically').check();
-    await page.getByLabel('Check for updates automatically').uncheck();
+    const automatic = page.getByLabel('Check for updates automatically');
+    await automatic.check();
+    await expect(automatic).toBeChecked();
+    await expect(automatic).toBeEnabled();
+    await automatic.uncheck();
+    await expect(automatic).not.toBeChecked();
+    await expect(automatic).toBeEnabled();
     const preferences = JSON.parse(
       await readFile(join(directory, 'profile', 'update-preferences.json'), 'utf8'),
     );

@@ -263,7 +263,12 @@ test('saves a portable project, relinks media after reload, and restores edits w
   const doc = JSON.parse(await readFile(saved, 'utf8'));
   expect(doc.sources[0].edit.start).toBe(1);
   expect(JSON.stringify(doc)).not.toMatch(/blob:|media:\/\//);
+  // Saving a portable project and retaining a workspace complete independently.
+  await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved', {
+    timeout: 30000,
+  });
   await page.reload();
+  await expect(page.locator('.asset-list li')).toHaveCount(1, { timeout: 30000 });
   await expect(
     page.getByRole('button', { name: 'Clear media library', exact: true }),
   ).toBeEnabled();
