@@ -77,38 +77,24 @@ export async function armUpdateInstall(
   const planPath = join(directory, 'plan.json');
   await writeFile(planPath, JSON.stringify(plan), { mode: 0o600 });
   const windows = location.platform === 'win32';
-  const helper = join(directory, windows ? 'update-windows.ps1' : 'update-worker.cjs');
+  const helper = join(directory, 'update-worker.cjs');
   await writeFile(helper, await readFile(join(location.helperDirectory, basename(helper))), {
     mode: 0o600,
   });
+  if (windows)
+    await writeFile(
+      join(directory, 'update-windows.ps1'),
+      await readFile(join(location.helperDirectory, 'update-windows.ps1')),
+      { mode: 0o600 },
+    );
   const outputPath = join(directory, 'helper.log');
   const output = await open(outputPath, 'wx', 0o600);
-  const systemDirectory = join(process.env.SystemRoot || 'C:\\Windows', 'System32');
-  const child = spawn(
-    windows ? join(systemDirectory, 'conhost.exe') : location.executable,
-    windows
-      ? [
-          // Detached PowerShell exits without running its script when it has no console.
-          // Windows' headless console host supplies one without showing a console window.
-          '--headless',
-          join(systemDirectory, 'WindowsPowerShell/v1.0/powershell.exe'),
-          '-NoProfile',
-          '-NonInteractive',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          helper,
-          '-PlanPath',
-          planPath,
-        ]
-      : [helper, planPath],
-    {
-      detached: true,
-      windowsHide: true,
-      stdio: ['ignore', output.fd, output.fd],
-      env: windows ? windowsPowerShellEnv() : { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
-    },
-  );
+  const child = spawn(location.executable, [helper, planPath], {
+    detached: true,
+    windowsHide: true,
+    stdio: ['ignore', output.fd, output.fd],
+    env: { ...(windows ? windowsPowerShellEnv() : process.env), ELECTRON_RUN_AS_NODE: '1' },
+  });
   let launchError: Error | undefined;
   child.once('error', (error) => {
     launchError = error;

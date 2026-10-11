@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { chmod, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  copyFile,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
@@ -37,6 +46,69 @@ afterEach(async () => {
 });
 
 describe('managed application replacement', () => {
+  it.skipIf(process.platform !== 'win32')(
+    'runs PowerShell under a detached worker and waits for the old process before installing',
+    async () => {
+      const { plan } = await fixture();
+      plan.platform = 'win32';
+      plan.target = plan.directory;
+      plan.source = join(plan.directory, 'installer.cmd');
+      const installer = '@echo off\r\nexit /b 23\r\n';
+      await writeFile(plan.source, installer);
+      plan.checksum = createHash('sha256').update(installer).digest('hex');
+      const helper = join(plan.directory, 'update-worker.cjs');
+      await build({
+        entryPoints: ['electron/update-worker.ts'],
+        outfile: helper,
+        bundle: true,
+        platform: 'node',
+        format: 'cjs',
+      });
+      await copyFile('electron/update-windows.ps1', join(plan.directory, 'update-windows.ps1'));
+      const parent = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)']);
+      plan.parent = parent.pid!;
+      const path = join(plan.directory, 'plan.json');
+      await writeFile(path, JSON.stringify(plan));
+      const worker = spawn(process.execPath, [helper, path], {
+        detached: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      });
+      let output = '';
+      worker.stdout.on('data', (chunk) => {
+        output += chunk;
+      });
+      worker.stderr.on('data', (chunk) => {
+        output += chunk;
+      });
+      const completed = new Promise<number | null>((resolve) => worker.once('exit', resolve));
+      try {
+        await expect
+          .poll(
+            async () => {
+              if (worker.exitCode !== null)
+                throw new Error('Worker exited before readiness: ' + output);
+              return readdir(plan.directory);
+            },
+            { timeout: 15000 },
+          )
+          .toContain('armed');
+        expect((await readdir(plan.directory)).includes('error.json')).toBe(false);
+        parent.kill();
+        expect(await completed).toBe(1);
+        expect(
+          JSON.parse(
+            (await readFile(join(plan.directory, 'error.json'), 'utf8')).replace(/^\uFEFF/, ''),
+          ).error,
+        ).toContain('exit code 23');
+        expect((await readdir(plan.directory)).includes('complete')).toBe(false);
+      } finally {
+        parent.kill();
+        worker.kill();
+      }
+    },
+    25000,
+  );
   it('stages on the same filesystem without changing the running app, then swaps and cleans up', async () => {
     const { plan, next } = await fixture();
     const staged = await stageReplacement(plan);

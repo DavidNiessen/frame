@@ -1,4 +1,6 @@
 import { access, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { windowsPowerShellEnv } from '../scripts/windows-powershell-env.mjs';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { applyReplacement, launchReplacement, stageReplacement } from './update-replacement';
@@ -10,6 +12,32 @@ process.noAsar = true;
 
 async function run() {
   const plan: UpdateInstallPlan = JSON.parse(await readFile(process.argv[2], 'utf8'));
+  if (plan.platform === 'win32') {
+    // PowerShell needs a console handle. Keep it under this detached Node worker,
+    // rather than launching PowerShell itself with Windows' DETACHED_PROCESS flag.
+    process.exitCode = await new Promise<number>((resolve, reject) => {
+      const child = spawn(
+        join(
+          process.env.SystemRoot || 'C:\\Windows',
+          'System32/WindowsPowerShell/v1.0/powershell.exe',
+        ),
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-File',
+          join(plan.directory, 'update-windows.ps1'),
+          '-PlanPath',
+          process.argv[2],
+        ],
+        { windowsHide: true, stdio: ['pipe', 'inherit', 'inherit'], env: windowsPowerShellEnv() },
+      );
+      child.once('error', reject);
+      child.once('exit', (code) => resolve(code ?? 1));
+    });
+    return;
+  }
   let staged: string | undefined;
   try {
     staged = await stageReplacement(plan);
@@ -55,6 +83,7 @@ async function run() {
     if (staged) await rm(staged, { recursive: true, force: true }).catch(() => {});
   }
 }
-void run().catch(() => {
+void run().catch((cause) => {
+  console.error((cause as Error).message);
   process.exitCode = 1;
 });
