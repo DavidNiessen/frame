@@ -114,7 +114,8 @@ test('bulk converts native folders, numbers collisions, and retries only unfinis
     ).toBe('pcm_s16le');
   } finally {
     await app.close();
-    await rm(library.directory, { recursive: true, force: true });
+    // Chromium can release its Windows profile files just after the app exits.
+    await rm(library.directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 });
 
@@ -172,6 +173,7 @@ test('keeps custom numbering on retries and applies native audio delivery settin
     expect(await readdir(join(output, 'Album One'))).toEqual(['001-Song.wav']);
   } finally {
     await app.close();
-    await rm(library.directory, { recursive: true, force: true });
+    // Chromium can release its Windows profile files just after the app exits.
+    await rm(library.directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 });
