@@ -71,7 +71,10 @@
       "dist/**/*",
       "dist-electron/**/*",
       "package.json",
-      "!dist/ffmpeg/**/*"
+      "!dist/ffmpeg/**/*",
+      "!node_modules/@ffmpeg/**/*",
+      "!node_modules/@fontsource/**/*",
+      "!node_modules/{react,react-dom,scheduler,lucide-react,fflate}/**/*"
     ],
     "asarUnpack": [
       "node_modules/@ffprobe-installer/**"

@@ -2,6 +2,8 @@
 
 Frame uses Electron Builder for Windows NSIS installers, macOS DMG files, and optional Linux AppImages. Run the build on the same OS and CPU architecture as the artifact. `scripts/verify-package.cjs` enforces that requirement and runs both portable media tools with an empty PATH before packaging.
 
+Renderer libraries and font assets are bundled by Vite. Their original Node package copies are excluded from desktop archives, including both unused WebAssembly binaries. The external FFprobe package and its native platform dependency remain packaged; desktop processing uses the portable native tools.
+
 ## Portable media tools
 
 The violet application logo comes from `public/favicon.svg`. Maintainers can run `pnpm exec playwright install chromium` and `pnpm build:icon` to regenerate `build/icon.png`, which Electron Builder uses for application icons. After changing the logo, regenerate the signed Windows shell assets in this order: `pnpm sign:windows-shell`, `pnpm build:windows-shell`, then `pnpm build`. Signing changes integrity metadata included in the native source fingerprint, so the native build must follow signing. These commands require the signing and compiler tools described in the native component guide; normal installation uses the committed assets. Existing development shell registrations need **Settings → Repair actions** to receive updated Explorer icons. Packaged application icons require rebuilding and installing the updated desktop artifact.
