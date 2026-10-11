@@ -1,0 +1,293 @@
+.download-app-trigger {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 10px 14px;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, var(--text));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 25%, transparent);
+  white-space: nowrap;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.download-app-trigger::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -80% -120%;
+  background: linear-gradient(110deg, transparent 42%, #ffffff70 49%, transparent 56%);
+  animation: download-app-shine 5s ease-in-out infinite;
+  pointer-events: none;
+}
+.download-app-trigger > svg {
+  animation: download-app-nudge 5s ease-in-out infinite;
+}
+.download-app-trigger:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.download-app-trigger:active {
+  transform: translateY(0);
+}
+.download-app-trigger + .header-actions {
+  margin-left: 0;
+}
+.download-app-dialog {
+  width: 500px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  padding: 28px;
+}
+.download-app-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  animation: download-dialog-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.download-app-dialog > .dialog-heading,
+.download-app-footer {
+  flex-shrink: 0;
+}
+.download-app-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.download-app-footer {
+  padding-top: 8px;
+}
+.download-app-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--accent-text);
+  background: var(--accent-dim);
+  border: 1px solid var(--border);
+}
+.download-app-eyebrow {
+  display: block;
+  margin: 24px 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  color: var(--accent-text);
+}
+.download-app-dialog h2 {
+  font-size: 28px;
+  letter-spacing: -1px;
+}
+#download-app-description {
+  margin-top: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.download-app-selectors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 26px;
+}
+.download-app-selectors label {
+  min-width: 0;
+  gap: 9px;
+}
+.download-app-selectors select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 10px;
+}
+.download-app-detection {
+  margin-top: 12px;
+  color: var(--quiet);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.download-app-channel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+.download-app-channel input {
+  flex-shrink: 0;
+}
+.download-app-channel > span {
+  flex: 1;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.download-app-channel small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.download-app-channel > svg {
+  flex-shrink: 0;
+  color: var(--accent-text);
+}
+.download-app-result {
+  min-height: 72px;
+  padding: 20px 0 14px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.download-app-result strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.download-app-result strong > span {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent-dim);
+  color: var(--accent-text);
+  font-size: 10px;
+  font-weight: 500;
+}
+.download-app-result p {
+  color: var(--muted);
+}
+.download-app-result button {
+  margin-top: 8px;
+}
+.download-app-submit {
+  width: 100%;
+  min-height: 48px;
+  gap: 10px;
+}
+.download-app-submit > span {
+  padding-left: 8px;
+  border-left: 1px solid currentColor;
+  font-size: 11px;
+  opacity: 0.8;
+}
+.download-app-releases {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.download-app-releases:hover {
+  color: var(--accent-text);
+}
+@keyframes download-app-shine {
+  0%,
+  55% {
+    transform: translateX(-35%);
+  }
+  80%,
+  100% {
+    transform: translateX(35%);
+  }
+}
+@keyframes download-app-nudge {
+  0%,
+  60%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  70% {
+    transform: translateY(2px);
+  }
+}
+@keyframes download-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@media (701px <= width <= 1000px) {
+  .app-header:has(.download-app-trigger) {
+    gap: 10px;
+    padding-inline: 14px;
+  }
+  .app-header:has(.download-app-trigger) .header-menu-panel,
+  .app-header:has(.download-app-trigger) .header-right {
+    gap: 6px;
+  }
+  .app-header:has(.download-app-trigger) .workspace-actions + .header-right {
+    padding-left: 8px;
+  }
+  .app-header:has(.download-app-trigger) .header-import {
+    font-size: 0;
+    width: 32px;
+    padding: 8px;
+  }
+  .app-header:has(.download-app-trigger) .header-import svg {
+    flex-shrink: 0;
+  }
+  .download-app-trigger {
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 700px) {
+  .app-header:has(.download-app-trigger) {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: 8px;
+  }
+  .app-header:has(.download-app-trigger) .header-actions {
+    grid-column: 3;
+  }
+  .download-app-trigger {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 10px;
+    font-size: 11px;
+    gap: 6px;
+  }
+}
+@media (max-width: 400px) {
+  .app-header:has(.download-app-trigger) .brand {
+    font-size: 22px;
+  }
+  .app-header:has(.download-app-trigger) .brand-mark {
+    width: 28px;
+    height: 28px;
+    margin-right: 6px;
+  }
+  .download-app-dialog {
+    padding: 22px;
+  }
+  .download-app-selectors {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .download-app-trigger,
+  .download-app-trigger > svg,
+  .download-app-trigger::after,
+  .download-app-dialog[open] {
+    display: flex;
+    flex-direction: column;
+    animation: none;
+    transition: none;
+  }
+  .download-app-trigger::after {
+    display: none;
+  }
+}

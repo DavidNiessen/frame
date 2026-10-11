@@ -17,6 +17,7 @@ import './styles/command-palette.css';
 import './styles/islands.css';
 import './styles/conversion-layout.css';
 import './styles/app-header.css';
+import './styles/app-download.css';
 import './styles/expanded-preview.css';
 import './styles/mini-conversion.css';
 import './styles/border-lighting.css';

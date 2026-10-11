@@ -10,6 +10,7 @@ import {
   Command,
 } from 'lucide-react';
 import type { Workflow } from '../core/launch';
+import { DownloadApp } from './DownloadApp';
 import { HeaderActions } from './HeaderActions';
 
 interface Props {
@@ -68,6 +69,7 @@ export function AppHeader({
           Convert
         </button>
       </nav>
+      {platform === 'web' && <DownloadApp />}
       <HeaderActions workflow={settingsOpen ? 'settings' : workflow}>
         {children}
         <div className="header-right">
