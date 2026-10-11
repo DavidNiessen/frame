@@ -1,23 +1,21 @@
 import { useEffect, useState } from 'react';
-export type Theme = 'system' | 'light' | 'dark' | 'midnight';
+export type Theme = 'system' | 'light' | 'dark' | 'high-contrast';
+function savedTheme(value: string | null): Theme {
+  // Preserve an explicit theme choice when upgrading from the retired theme.
+  if (value === 'midnight') return 'high-contrast';
+  return value === 'light' || value === 'dark' || value === 'high-contrast' ? value : 'system';
+}
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     try {
-      const saved = localStorage.getItem('frame-theme');
-      return ['system', 'light', 'dark', 'midnight'].includes(saved ?? '')
-        ? (saved as Theme)
-        : 'system';
+      return savedTheme(localStorage.getItem('frame-theme'));
     } catch {
       return 'system';
     }
   });
   useEffect(() => {
     const sync = (event: StorageEvent) => {
-      if (
-        event.key === 'frame-theme' &&
-        ['system', 'light', 'dark', 'midnight'].includes(event.newValue ?? '')
-      )
-        setTheme(event.newValue as Theme);
+      if (event.key === 'frame-theme' || event.key === null) setTheme(savedTheme(event.newValue));
     };
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);

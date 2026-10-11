@@ -5,7 +5,7 @@ const choices: { value: Theme; label: string; detail: string }[] = [
   { value: 'system', label: 'System', detail: 'Follow your device' },
   { value: 'light', label: 'Light', detail: 'Bright & clear' },
   { value: 'dark', label: 'Dark', detail: 'Easy on the eyes' },
-  { value: 'midnight', label: 'Midnight', detail: 'A touch of indigo' },
+  { value: 'high-contrast', label: 'High contrast', detail: 'Sharper text & borders' },
 ];
 export function ThemeChoices({
   theme,

@@ -1,6 +1,63 @@
 import { importTestMedia } from '../helpers/import-media';
 import { test, expect } from '@playwright/test';
 
+for (const choice of [
+  {
+    name: 'migrates Midnight to high contrast',
+    saved: 'midnight',
+    theme: 'high-contrast',
+    label: 'High contrast theme',
+  },
+  {
+    name: 'keeps Light text and panel boundaries clearly visible',
+    saved: 'light',
+    theme: 'light',
+    label: 'Light theme',
+  },
+]) {
+  test(choice.name, async ({ page }) => {
+    await page.addInitScript((saved) => localStorage.setItem('frame-theme', saved), choice.saved);
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', choice.theme);
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('frame-theme')))
+      .toBe(choice.theme);
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await expect(page.getByRole('radio', { name: choice.label, exact: true })).toBeChecked();
+    await expect(page.getByRole('radio', { name: 'Midnight theme', exact: true })).toHaveCount(0);
+    const contrast = await page
+      .locator('.settings-card')
+      .first()
+      .evaluate((card) => {
+        const luminance = (color: string) => {
+          const values = color
+            .match(/[\d.]+/g)!
+            .slice(0, 3)
+            .map(Number)
+            .map((value) => {
+              const channel = value / 255;
+              return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+            });
+          return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+        };
+        const style = getComputedStyle(card),
+          background = luminance(style.backgroundColor);
+        const ratio = (color: string) => {
+          const foreground = luminance(color);
+          return (
+            (Math.max(background, foreground) + 0.05) / (Math.min(background, foreground) + 0.05)
+          );
+        };
+        return {
+          text: ratio(getComputedStyle(card.querySelector('p')!).color),
+          border: ratio(style.borderTopColor),
+        };
+      });
+    expect(contrast.text).toBeGreaterThanOrEqual(7);
+    expect(contrast.border).toBeGreaterThanOrEqual(3);
+  });
+}
+
 test('shows disabled file-manager actions on web and previewed themes that persist', async ({
   page,
 }) => {
@@ -27,17 +84,19 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
   await page.getByRole('radio', { name: 'Light theme', exact: true }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await page.getByRole('radio', { name: 'Midnight theme', exact: true }).check();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
+  await page.getByRole('radio', { name: 'High contrast theme', exact: true }).check();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'high-contrast');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await expect(page.getByRole('radio', { name: 'Midnight theme', exact: true })).toBeInViewport();
+  await expect(
+    page.getByRole('radio', { name: 'High contrast theme', exact: true }),
+  ).toBeInViewport();
   await page.screenshot({ path: 'test-results/settings-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: 'test-results/settings-desktop.png', fullPage: true });
   await page.reload();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await expect(page.getByRole('radio', { name: 'Midnight theme', exact: true })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'High contrast theme', exact: true })).toBeChecked();
   await expect(page.getByLabel('Show timeline preview')).not.toBeChecked();
   await page.getByRole('radio', { name: 'System theme' }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');

@@ -167,18 +167,18 @@
   border: 1px solid #80808030;
 }
 .theme-preview[data-preview='light'] {
-  --preview-bg: #eeeef7;
+  --preview-bg: #e4e6f0;
   --preview-panel: #fff;
-  --preview-stage: #e9eaf5;
-  --preview-line: #d8dbea;
+  --preview-stage: #e6e8f2;
+  --preview-line: #7b8199;
   --preview-accent: #6652d9;
 }
-.theme-preview[data-preview='midnight'] {
-  --preview-bg: #080b16;
-  --preview-panel: #1a2236;
-  --preview-stage: #080d1a;
-  --preview-line: #354366;
-  --preview-accent: #a5b4fc;
+.theme-preview[data-preview='high-contrast'] {
+  --preview-bg: #000;
+  --preview-panel: #181818;
+  --preview-stage: #000;
+  --preview-line: #c4c4ce;
+  --preview-accent: #c4b5ff;
 }
 .theme-preview-header {
   display: flex;

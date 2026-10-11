@@ -17,7 +17,7 @@ Frame is a desktop-first editing workspace with a responsive web interface. Favo
 | `--accent`         | Actions and selection     | `#9b91ff`    |
 | `--audio`          | Audio visualization       | `#a5c8fa`    |
 
-Public Sans is bundled locally. System appearance is the default, with Light, Dark and Midnight previews in Settings. New surfaces must remain legible in every theme.
+Public Sans is bundled locally. System appearance is the default, with Light, Dark and High contrast previews in Settings. High contrast uses near-black surfaces, white text and clearly visible borders. New surfaces must remain legible in every theme.
 
 ## Layout and interaction
 

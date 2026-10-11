@@ -15,9 +15,9 @@ test('follows system theme, switches themes, and fits a mobile viewport', async 
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.getByRole('radio', { name: 'Midnight theme', exact: true }).check();
+  await page.getByRole('radio', { name: 'High contrast theme', exact: true }).check();
   await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'high-contrast');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.getByRole('button', { name: 'Add media' })).toBeVisible();

@@ -11,7 +11,7 @@ A cross-platform media editor and converter for video and audio. Edit a clip, la
 - **Captions:** independent text effects with on-frame editing, positioning and resizing; fonts, colors and styling; SRT import/export and burned-in subtitles.
 - **Convert:** files or recursive folders, a dedicated batch queue, presets, custom filenames, metadata and artwork, plus advanced encoding options.
 - **Workspace:** undo/redo, portable `.frame.json` projects, automatic local recovery, resizable panels, keyboard shortcuts and a command palette.
-- **Appearance:** system light/dark detection, Light, Dark and Midnight themes, responsive layouts and reduced-motion support.
+- **Appearance:** system light/dark detection, Light, Dark and High contrast themes, responsive layouts and reduced-motion support.
 
 Output formats: **MP4, MOV, MKV, WebM, GIF, MP3, WAV, FLAC, OGG and M4A**. Input support depends on FFmpeg and the playback capabilities of your platform; desktop proxies help preview formats that the browser cannot play directly.
 
