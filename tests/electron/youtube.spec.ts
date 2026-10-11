@@ -105,7 +105,7 @@ test('uses bundled YouTube tools, shows video/audio choices, and cancels native 
     await expect.poll(() => connections.length).toBeGreaterThan(0);
     expect(connections[0]).toMatch(/^www\.youtube\.com:443$/);
     await expect(page.getByLabel('YouTube import type')).toBeDisabled();
-    await page.getByRole('button', { name: 'Cancel download' }).click();
+    await dialog.getByRole('button', { name: 'Cancel download' }).click();
     await expect(dialog.getByRole('alert')).toContainText('cancelled');
     await expect(page.locator('.asset-list li')).toHaveCount(0);
     expect(
