@@ -577,3 +577,6 @@
   height: 24px;
   padding: 4px;
 }
+.settings-history > .button {
+  margin-top: 18px;
+}

@@ -1,3 +1,5 @@
+import { monitorVolume } from '../core/monitor-volume';
+import { useMonitorVolume } from './useMonitorVolume';
 import { effectiveSpeed, effectiveVolume, extraInstances } from '../core/effect-instances';
 import { useEffect, useRef, type RefObject } from 'react';
 import { clipAtSource, clipRecipe, clipPositions } from '../core/clips';
@@ -72,16 +74,18 @@ export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings)
               )),
         1,
       );
-  media.volume = rendered
-    ? 1
-    : Math.min(
-        1,
-        effectiveVolume(recipe, sourceTime, position) *
-          sharedFade('audio') *
-          additionalFade('audio') *
-          localFade *
-          fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut),
-      );
+  media.volume =
+    monitorVolume() *
+    (rendered
+      ? 1
+      : Math.min(
+          1,
+          effectiveVolume(recipe, sourceTime, position) *
+            sharedFade('audio') *
+            additionalFade('audio') *
+            localFade *
+            fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut),
+        ));
   if (media.tagName === 'VIDEO')
     media.style.opacity = String(
       sharedFade('video') *
@@ -102,11 +106,12 @@ export function usePreviewEffects(
   loop = false,
   effects = edit,
 ) {
+  const monitoring = useMonitorVolume();
   const latest = useRef({ edit, publish, loop, effects });
   latest.current = { edit, publish, loop, effects };
   useEffect(() => {
     if (!playing && ref.current) applyPreviewEffects(ref.current, effects);
-  }, [ref, effects, playing, current, assetId]);
+  }, [ref, effects, playing, current, assetId, monitoring]);
   useEffect(() => {
     let playingClip: string | null = null;
     const media = ref.current;

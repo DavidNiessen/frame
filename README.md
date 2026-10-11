@@ -8,6 +8,7 @@ A cross-platform media editor and converter for video and audio. Edit a clip, la
 
 - **Edit:** trim, split, reorder and join clips; insert videos from the library; replace or layer audio; extract audio from video.
 - **Effects:** crop, rotate, resize, speed, fades, color adjustments, LUTs, volume, EQ, noise reduction and loudness normalization. Timed effects have draggable timeline bars and live previews.
+- **Playback:** independent monitoring volume, five-second skips that keep playback running, precise frame stepping and an audio-reactive background.
 - **Captions:** independent text effects with on-frame editing, positioning and resizing; fonts, colors and styling; SRT import/export and burned-in subtitles.
 - **Convert:** files or recursive folders, a dedicated batch queue, presets, custom filenames, metadata and artwork, plus advanced encoding options.
 - **Desktop downloads:** an animated Install App button opens a platform picker, with automatic detection and an optional latest prerelease.

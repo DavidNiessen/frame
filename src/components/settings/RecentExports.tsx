@@ -54,7 +54,7 @@ export function RecentExports() {
     pages = Math.max(1, Math.ceil(matches.length / 8)),
     shown = Math.min(page, pages - 1);
   return (
-    <section className="settings-card" aria-labelledby="history-heading">
+    <section className="settings-card settings-history" aria-labelledby="history-heading">
       <div className="settings-section-heading">
         <Clock3 size={19} />
         <div>

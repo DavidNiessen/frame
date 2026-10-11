@@ -17,6 +17,7 @@ test('exits on the first quit request, including from macOS fullscreen', async (
     ],
     env: { ...process.env, FRAME_DEV_URL: '' },
   });
+  const child = application.process();
   try {
     const page = await application.firstWindow();
     await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
@@ -30,19 +31,18 @@ test('exits on the first quit request, including from macOS fullscreen', async (
         )
         .toBe(true);
     }
-    const exited = new Promise<number | null>((resolve) =>
-      application.process().once('exit', resolve),
-    );
+    const exited = new Promise<number | null>((resolve) => child.once('exit', resolve));
     await application.evaluate(({ app, Menu }) => {
-      const item = Menu.getApplicationMenu()
-        ?.items.flatMap((item) => item.submenu?.items ?? [])
-        .find((item) => item.role === 'quit');
-      if (item) item.click();
-      else app.quit();
+      // Native macOS menu roles have no JavaScript click implementation.
+      // Dispatch Cocoa's real Quit action after the evaluation has returned.
+      setTimeout(() => {
+        if (process.platform === 'darwin') Menu.sendActionToFirstResponder('terminate:');
+        else app.quit();
+      }, 50);
     });
     expect(await exited).toBe(0);
   } finally {
-    if (application.process().exitCode === null) await application.close();
+    if (child.exitCode === null) await application.close();
     await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 });

@@ -28,6 +28,7 @@ export async function mediaResponse(path: string, request: Request): Promise<Res
   const headers = new Headers({
     'Content-Type': mime[extname(path).toLowerCase()] ?? 'application/octet-stream',
     'Accept-Ranges': 'bytes',
+    'Access-Control-Allow-Origin': '*',
   });
   let start = 0,
     end = file.size - 1,

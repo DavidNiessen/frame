@@ -71,6 +71,21 @@ export function SettingsPage({
       active = false;
     };
   }, [bridge]);
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      if (
+        event.key !== 'Escape' ||
+        event.defaultPrevented ||
+        document.querySelector('dialog[open]')
+      )
+        return;
+      event.preventDefault();
+      back();
+      document.querySelector<HTMLButtonElement>('.header-settings')?.focus();
+    };
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, [back]);
   async function update(enabled?: boolean) {
     if (!bridge || pending) return;
     setPending(enabled === undefined ? 'checking' : enabled ? 'installing' : 'removing');

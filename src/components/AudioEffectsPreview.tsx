@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+import { useMonitorMediaVolume } from '../hooks/useMonitorVolume';
 import { TransientMessage } from './TransientMessage';
 import type { Editor } from '../hooks/useEditor';
 import { useAudioPreview } from '../hooks/useAudioPreview';
@@ -6,6 +8,8 @@ import { LoudnessControls } from './LoudnessControls';
 /** One preview and loudness report cover all expanded audio adjustments on this target. */
 export function AudioEffectsPreview({ editor }: { editor: Editor }) {
   const preview = useAudioPreview(editor);
+  const audio = useRef<HTMLAudioElement>(null);
+  useMonitorMediaVolume(audio, preview.url);
   return (
     <div className="audio-effects-review">
       <button
@@ -17,6 +21,7 @@ export function AudioEffectsPreview({ editor }: { editor: Editor }) {
       </button>
       {preview.url && (
         <audio
+          ref={audio}
           className="effects-audio"
           aria-label="Processed audio preview"
           controls

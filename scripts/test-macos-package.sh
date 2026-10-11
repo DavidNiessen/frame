@@ -38,7 +38,7 @@ codesign --verify --deep --strict --verbose=2 "${frame_app}"
 codesign --display --verbose=2 "${frame_app}"
 
 FRAME_TEST_EXECUTABLE="${frame_app}/Contents/MacOS/Frame" \
-  npx playwright test --config playwright.electron.config.ts tests/electron/desktop.spec.ts tests/electron/native-window-controls.spec.ts tests/electron/quit.spec.ts tests/electron/update-install.spec.ts
+  npx playwright test --config playwright.electron.config.ts tests/electron/desktop.spec.ts tests/electron/native-window-controls.spec.ts tests/electron/quit.spec.ts tests/electron/update-install.spec.ts tests/electron/audio-playback.spec.ts tests/electron/url-import.spec.ts
 
 FRAME_TEST_EXECUTABLE="${frame_app}/Contents/MacOS/Frame" \
   npx playwright test --config playwright.electron.config.ts tests/electron/mini-conversion.spec.ts \

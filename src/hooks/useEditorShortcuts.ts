@@ -68,7 +68,7 @@ export function useEditorShortcuts(context: ShortcutContext) {
       if (!editor.edit || editor.busy || modified || event.altKey) return;
       if ((event.key === ',' || event.key === '.') && editor.asset && mediaRef.current) {
         event.preventDefault();
-        mediaRef.current.pause();
+        if (editor.asset.kind === 'video') mediaRef.current.pause();
         seek(
           editor.asset.kind === 'video'
             ? stepFrame(
@@ -77,7 +77,7 @@ export function useEditorShortcuts(context: ShortcutContext) {
                 editor.asset.frameRate ?? 30,
                 event.key === ',' ? -1 : 1,
               )
-            : skipSeconds(editor.edit, current, event.key === ',' ? -1 : 1),
+            : skipSeconds(editor.edit, current, event.key === ',' ? -5 : 5),
         );
       }
       if (event.key.toLowerCase() === 'i')

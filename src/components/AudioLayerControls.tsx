@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+import { useMonitorMediaVolume } from '../hooks/useMonitorVolume';
 import { TransientMessage } from './TransientMessage';
 import { useAudioPreview } from '../hooks/useAudioPreview';
 import { pauseOtherMedia } from '../hooks/usePreviewEffects';
@@ -30,6 +32,8 @@ export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: A
         }),
       ),
     );
+  const audio = useRef<HTMLAudioElement>(null);
+  useMonitorMediaVolume(audio, preview.url);
   return (
     <div className="audio-layer-controls">
       {!audioLayerSource(layer, editor.assets) && (
@@ -180,6 +184,7 @@ export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: A
         </button>
         {preview.url && (
           <audio
+            ref={audio}
             className="effects-audio"
             aria-label="Exported mix preview"
             controls

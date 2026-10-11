@@ -1,7 +1,9 @@
+import { useAudioBackdrop } from '../hooks/useAudioBackdrop';
+import { MonitorVolume } from './MonitorVolume';
 import { useLatest } from '../hooks/useLatest';
 import type { EffectId } from '../core/effect-library';
 import { captionItems } from '../core/caption-items';
-import { changeInstance, effectiveVolume, extraInstances } from '../core/effect-instances';
+import { changeInstance, extraInstances } from '../core/effect-instances';
 import { stackedGeometryPreview, colorPreview } from '../core/visual-preview';
 import { AudioMixPreview } from './AudioMixPreview';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
@@ -14,7 +16,8 @@ import {
   SkipBack,
   StepBack,
   StepForward,
-  Volume2,
+  RotateCcw,
+  RotateCw,
 } from 'lucide-react';
 import type { PreviewRange } from '../core/preview-clock';
 import type { EditSettings, MediaAsset } from '../core/types';
@@ -35,7 +38,7 @@ import { MediaInfo } from './MediaInfo';
 import { PlaybackLoop, type LoopMode } from './PlaybackLoop';
 import { editClips } from '../core/clips';
 import { GoToTime } from './GoToTime';
-import { preciseTimecode, skipSeconds, stepFrame } from '../core/playhead';
+import { preciseTimecode, stepFrame } from '../core/playhead';
 import {
   configurePreviewClock,
   hasPreviewClock,
@@ -121,6 +124,8 @@ export function Preview({
     if (loop === 'clip' && selectedClip) setLoopClip(selectedClip);
   }, [selectedClip, loop]);
   const [playing, setPlaying] = useState(false);
+  const audioBackdrop = useRef<HTMLDivElement>(null);
+  useAudioBackdrop(mediaRef, audioBackdrop, asset.kind === 'audio', asset.id);
   useEffect(() => {
     setPlaying(false);
   }, [asset.id]);
@@ -216,11 +221,20 @@ export function Preview({
     setCurrent(source);
   }
   function step(direction: -1 | 1) {
-    pauseSeek(
-      asset.kind === 'video'
-        ? stepFrame(edit, current, asset.frameRate ?? 30, direction)
-        : skipSeconds(edit, current, direction),
+    pauseSeek(stepFrame(edit, current, asset.frameRate ?? 30, direction));
+  }
+  function skip(direction: -1 | 1) {
+    const media = mediaRef.current;
+    if (!media) return;
+    const position = outputTimeAtSource(
+      edit,
+      readPreviewTime(media),
+      hasPreviewClock(media) ? media.currentTime : undefined,
     );
+    const output = Math.max(0, Math.min(editedDuration(edit), position + direction * 5));
+    const source = sourceTimeAtOutput(edit, output);
+    seekPreviewTime(media, source, output);
+    setCurrent(source);
   }
   function toggle() {
     const media = mediaRef.current;
@@ -402,7 +416,8 @@ export function Preview({
             )}
           </div>
         ) : (
-          <div className="audio-preview">
+          <div className="audio-preview" ref={audioBackdrop}>
+            <span className="audio-reactive-glow" aria-hidden="true" />
             <span className="audio-orbit" />
             <span className="audio-orbit second" />
             <div className="audio-art">
@@ -415,6 +430,7 @@ export function Preview({
                 : 'Audio source'}
             </p>
             <audio
+              crossOrigin="anonymous"
               data-frame-source={asset.id}
               data-preview-effects={previewProcessed ? 'rendered' : undefined}
               data-preview-preparing={preparing || undefined}
@@ -507,6 +523,15 @@ export function Preview({
             <SkipBack size={17} />
           </button>
           <button
+            className="icon-button skip-seconds"
+            aria-label="Back five seconds"
+            disabled={disabled || gif || failed}
+            onClick={() => skip(-1)}
+          >
+            <RotateCcw size={21} />
+            <span>5</span>
+          </button>
+          <button
             className="play-button"
             aria-label={playing ? 'Pause' : 'Play'}
             disabled={disabled || gif || failed}
@@ -515,27 +540,36 @@ export function Preview({
             {playing ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}
           </button>
           <button
-            className="icon-button frame-step"
-            aria-label={asset.kind === 'video' ? 'Previous frame' : 'Back one second'}
-            title={asset.kind === 'video' ? 'Previous frame · ,' : 'Back one second · ,'}
+            className="icon-button skip-seconds"
+            aria-label="Forward five seconds"
             disabled={disabled || gif || failed}
-            onClick={() => step(-1)}
+            onClick={() => skip(1)}
           >
-            <StepBack size={15} />
+            <RotateCw size={21} />
+            <span>5</span>
           </button>
-          <button
-            className="icon-button frame-step"
-            aria-label={asset.kind === 'video' ? 'Next frame' : 'Forward one second'}
-            title={
-              asset.kind === 'video'
-                ? `Next frame · . · ${asset.frameRate ? Number(asset.frameRate.toFixed(3)) : 'estimated 30'} fps`
-                : 'Forward one second · .'
-            }
-            disabled={disabled || gif || failed}
-            onClick={() => step(1)}
-          >
-            <StepForward size={15} />
-          </button>
+          {asset.kind === 'video' && (
+            <>
+              <button
+                className="icon-button frame-step"
+                aria-label="Previous frame"
+                title="Previous frame · ,"
+                disabled={disabled || gif || failed}
+                onClick={() => step(-1)}
+              >
+                <StepBack size={15} />
+              </button>
+              <button
+                className="icon-button frame-step"
+                aria-label="Next frame"
+                title={`Next frame · . · ${asset.frameRate ? Number(asset.frameRate.toFixed(3)) : 'estimated 30'} fps`}
+                disabled={disabled || gif || failed}
+                onClick={() => step(1)}
+              >
+                <StepForward size={15} />
+              </button>
+            </>
+          )}
           <GoToTime
             current={position}
             duration={editedDuration(edit)}
@@ -559,13 +593,7 @@ export function Preview({
               }
             }}
           />
-          <span className="preview-volume">
-            <Volume2 size={15} />
-            {Math.round(effectiveVolume(visual, current, position) * 100)}%
-            {effectiveVolume(visual, current, position) > 1 && !previewProcessed
-              ? ' · preparing preview'
-              : ''}
-          </span>
+          <MonitorVolume />
           <button
             data-preview-expand
             className="icon-button"

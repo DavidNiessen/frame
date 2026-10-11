@@ -13,6 +13,7 @@ it('serves accurate file lengths and byte ranges needed for desktop audio seekin
     expect(complete.headers.get('content-type')).toBe('audio/wav');
     expect(complete.headers.get('content-length')).toBe('10');
     expect(complete.headers.get('accept-ranges')).toBe('bytes');
+    expect(complete.headers.get('access-control-allow-origin')).toBe('*');
     expect(await complete.text()).toBe('0123456789');
     for (const [range, body, contentRange] of [
       ['bytes=2-5', '2345', 'bytes 2-5/10'],

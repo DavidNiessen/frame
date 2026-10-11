@@ -10,7 +10,7 @@ export function Shortcuts({ open, close }: { open: boolean; close: () => void })
     ['Command search', '⌘ / Ctrl + K'],
     ['Import media', '⌘ / Ctrl + O'],
     ['Play / pause', 'Space'],
-    ['Previous / next frame (audio: 1 second)', ', / .'],
+    ['Previous / next frame (audio: 5 seconds)', ', / .'],
     ['Set trim start', 'I'],
     ['Set trim end', 'O'],
     ['Undo', '⌘ / Ctrl + Z'],

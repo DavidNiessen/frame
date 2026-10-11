@@ -136,7 +136,24 @@ test('reports invalid links, CORS, pages, corrupt files and oversized downloads,
     await dialog.getByRole('button', { name: 'Load media', exact: true }).click();
     await expect(page.locator('.app-footer .footer-activity')).toContainText('Downloading media');
     await expect(dialog.getByRole('status')).toHaveCount(0);
-    await dialog.getByRole('button', { name: 'Cancel download' }).click();
+    const clearStatus = await page.locator('.app-footer').evaluate((footer) => {
+      const status = footer.getBoundingClientRect(),
+        overlay = document.querySelector('.url-import-backdrop')!.getBoundingClientRect();
+      return {
+        backdropBottom: overlay.bottom,
+        statusTop: status.top,
+        topElement:
+          document
+            .elementFromPoint(status.x + 20, status.y + status.height / 2)
+            ?.closest('.app-footer') === footer,
+      };
+    });
+    expect(clearStatus.backdropBottom).toBeLessThanOrEqual(clearStatus.statusTop);
+    expect(clearStatus.topElement).toBe(true);
+    await page
+      .locator('.app-footer')
+      .getByRole('button', { name: /Cancel/ })
+      .click();
     await expect(dialog.getByRole('alert')).toContainText('cancelled');
     await expect.poll(() => server.slowClosed).toBe(true);
     await page.getByLabel('Media URL', { exact: true }).fill(server.url + '/video.mp4');

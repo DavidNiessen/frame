@@ -81,6 +81,14 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add watch folder', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Show saved exports' })).toBeDisabled();
+  const historySpacing = await page
+    .locator('.settings-history')
+    .evaluate(
+      (card) =>
+        card.querySelector('button')!.getBoundingClientRect().top -
+        card.querySelector('.settings-section-heading')!.getBoundingClientRect().bottom,
+    );
+  expect(historySpacing).toBeGreaterThanOrEqual(16);
   await expect(page.getByRole('button', { name: 'Check for updates' })).toBeDisabled();
   await expect(page.getByLabel('Check for updates automatically')).toBeDisabled();
   await expect(page.getByLabel('Include prereleases')).toBeDisabled();
@@ -94,6 +102,9 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'high-contrast');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page
+    .getByRole('radio', { name: 'High contrast theme', exact: true })
+    .scrollIntoViewIfNeeded();
   await expect(
     page.getByRole('radio', { name: 'High contrast theme', exact: true }),
   ).toBeInViewport();
@@ -110,6 +121,21 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.getByRole('button', { name: 'Back to workspace' }).click();
   await expect(page.getByRole('button', { name: 'Add media' })).toBeVisible();
+});
+
+test('Escape closes Settings and restores focus after a nested dialog closes first', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Command palette' })).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
 });
 
 test('preserves timeline edits and the conversion selection when navigating through settings', async ({

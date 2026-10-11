@@ -1,3 +1,4 @@
+import { useMonitorVolume } from '../hooks/useMonitorVolume';
 import { TransientMessage } from './TransientMessage';
 import { allAudioLayers, extraInstances } from '../core/effect-instances';
 import { useEffect, useRef, useState } from 'react';
@@ -67,6 +68,7 @@ function TrackPreview({
   playing: boolean;
   outputFade: number;
 }) {
+  const monitoring = useMonitorVolume();
   const ref = useRef<HTMLAudioElement>(null),
     [error, setError] = useState(false);
   const elapsed = position - layer.start,
@@ -78,17 +80,19 @@ function TrackPreview({
   useEffect(() => {
     const media = ref.current;
     if (!media || error) return;
-    media.volume = Math.min(
-      1,
-      layer.volume *
-        fadeGain(Math.max(0, elapsed), layer.end - layer.start, layer.fadeIn, layer.fadeOut) *
-        outputFade,
-    );
+    media.volume =
+      monitoring *
+      Math.min(
+        1,
+        layer.volume *
+          fadeGain(Math.max(0, elapsed), layer.end - layer.start, layer.fadeIn, layer.fadeOut) *
+          outputFade,
+      );
     if (!active || !playing) media.pause();
     if (active && Number.isFinite(media.duration) && Math.abs(media.currentTime - clock) > 0.1)
       media.currentTime = clock;
     if (active && playing && media.paused) void media.play().catch(() => setError(true));
-  }, [playing, layer, error, active, clock, elapsed, outputFade]);
+  }, [playing, layer, error, active, clock, elapsed, outputFade, monitoring]);
   useEffect(
     () => () => {
       ref.current?.pause();

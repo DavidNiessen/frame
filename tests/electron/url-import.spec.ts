@@ -52,7 +52,35 @@ test('downloads raw URLs natively without CORS and cleans up on error, cancellat
     await page.getByRole('button', { name: 'Load media', exact: true }).click();
     await expect(page.locator('.app-footer .footer-activity')).toContainText('Downloading media');
     await expect(dialog.getByRole('status')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Cancel download' }).click();
+    const nativeControls = await page.evaluate(() => !!window.frameDesktop?.nativeWindowControls);
+    if (!nativeControls) {
+      await page.keyboard.press('Control+Shift+Space');
+      const minimize = page.getByRole('button', { name: 'Minimize window', exact: true });
+      await expect(minimize).toBeVisible();
+      await expect
+        .poll(() =>
+          minimize.evaluate((button) => {
+            const bounds = button.getBoundingClientRect();
+            return (
+              document.elementFromPoint(
+                bounds.x + bounds.width / 2,
+                bounds.y + bounds.height / 2,
+              ) === button ||
+              button.contains(
+                document.elementFromPoint(
+                  bounds.x + bounds.width / 2,
+                  bounds.y + bounds.height / 2,
+                ),
+              )
+            );
+          }),
+        )
+        .toBe(true);
+    }
+    await page
+      .locator('.app-footer')
+      .getByRole('button', { name: /Cancel/ })
+      .click();
     await expect(dialog.getByRole('alert')).toContainText('cancelled');
     expect(await downloads()).toEqual([]);
     await page.getByLabel('Media URL', { exact: true }).fill(server.url + '/no-cors.wav');

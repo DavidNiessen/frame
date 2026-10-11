@@ -1,5 +1,5 @@
 import { test, expect, _electron } from '@playwright/test';
-import { execFile, spawn } from 'node:child_process';
+import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
@@ -17,6 +17,7 @@ test('updates and relaunches the installed macOS app or Windows installer throug
   const directory = await realpath(await mkdtemp(join(tmpdir(), 'Frame update Ü ')));
   let application: Awaited<ReturnType<typeof _electron.launch>> | undefined;
   let worker: ReturnType<typeof spawn> | undefined;
+  let original: ChildProcess | undefined;
   let target: string | undefined;
   try {
     const supplied = resolve(process.env.FRAME_TEST_EXECUTABLE!);
@@ -32,6 +33,7 @@ test('updates and relaunches the installed macOS app or Windows installer throug
       args: [`--user-data-dir=${profile}`],
       env: { ...process.env, FRAME_DEV_URL: '' },
     });
+    original = application.process();
     const page = await application.firstWindow();
     await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
     const info = await application.evaluate(({ app }) => ({
@@ -88,11 +90,21 @@ test('updates and relaunches the installed macOS app or Windows installer throug
       diagnostics += chunk;
     });
     const completed = new Promise<number | null>((resolve) => worker!.once('exit', resolve));
-    await expect.poll(async () => readdir(directory), { timeout: 120000 }).toContain('armed');
-    const exited = new Promise<number | null>((resolve) =>
-      application!.process().once('exit', resolve),
-    );
-    await application.evaluate(({ app }) => app.quit());
+    await expect
+      .poll(
+        async () => {
+          const files = await readdir(directory);
+          if (files.includes('error.json'))
+            throw new Error(await readFile(join(directory, 'error.json'), 'utf8'));
+          return files;
+        },
+        { timeout: 120000 },
+      )
+      .toContain('armed');
+    const exited = new Promise<number | null>((resolve) => original!.once('exit', resolve));
+    await application.evaluate(({ app }) => {
+      setTimeout(() => app.quit(), 50);
+    });
     expect(await exited).toBe(0);
     expect(await completed, diagnostics).toBe(0);
     expect(await readdir(directory)).toContain('complete');
@@ -120,7 +132,7 @@ test('updates and relaunches the installed macOS app or Windows installer throug
     }
   } finally {
     worker?.kill();
-    if (application && application.process().exitCode === null) await application.close();
+    if (application && original?.exitCode === null) await application.close();
     // Terminate only the relaunched executable owned by this test, never another Frame installation.
     if (target) {
       if (process.platform === 'darwin') {

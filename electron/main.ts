@@ -30,7 +30,13 @@ type WindowKind = 'editor' | 'mini';
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'media',
-    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      corsEnabled: true,
+    },
   },
 ]);
 const windows = new Map<WindowKind, BrowserWindow>(),
