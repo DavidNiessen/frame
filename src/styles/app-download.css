@@ -57,6 +57,8 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding: 4px;
+  margin: -4px;
 }
 .download-app-footer {
   padding-top: 8px;
@@ -93,6 +95,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   margin-top: 26px;
+  padding: 3px;
 }
 .download-app-selectors label {
   min-width: 0;

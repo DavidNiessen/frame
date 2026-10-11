@@ -4,6 +4,8 @@ import { Download, ExternalLink, Monitor, Sparkles, X } from 'lucide-react';
 import { FRAME_RELEASES } from '../core/app-updates';
 import {
   detectDownloadTarget,
+  downloadArchitectures,
+  normalizeDownloadTarget,
   fetchDownloadReleases,
   selectDownloadRelease,
   type DownloadTarget,
@@ -25,7 +27,7 @@ export function DownloadApp() {
   useEffect(() => {
     let active = true;
     void detectDownloadTarget(navigator).then((detected) => {
-      if (active && !manuallySelected.current) setTarget(detected);
+      if (active && !manuallySelected.current) setTarget(normalizeDownloadTarget(detected));
     });
     return () => {
       active = false;
@@ -72,7 +74,7 @@ export function DownloadApp() {
     !loading && !error ? selectDownloadRelease(releases, target, previews) : undefined;
   function choose(next: DownloadTarget) {
     manuallySelected.current = true;
-    setTarget(next);
+    setTarget(normalizeDownloadTarget(next));
     setRequested(false);
   }
   let note = !target.platform
@@ -98,7 +100,7 @@ export function DownloadApp() {
         aria-haspopup="dialog"
       >
         <Download size={16} />
-        Download App
+        Install App
       </button>
       {createPortal(
         <dialog
@@ -166,6 +168,7 @@ export function DownloadApp() {
                 Architecture
                 <select
                   value={target.arch ?? ''}
+                  disabled={downloadArchitectures(target.platform).length < 2}
                   onChange={(event) =>
                     choose({ ...target, arch: event.target.value as DownloadTarget['arch'] })
                   }
@@ -173,17 +176,22 @@ export function DownloadApp() {
                   <option value="" disabled>
                     Choose your processor
                   </option>
-                  <option value="x64">
-                    {target.platform === 'darwin' ? 'Intel · x64' : 'Intel / AMD · x64'}
-                  </option>
-                  <option value="arm64">
-                    {target.platform === 'darwin' ? 'Apple Silicon · ARM64' : 'ARM64'}
-                  </option>
+                  {downloadArchitectures(target.platform).map((arch) => (
+                    <option key={arch} value={arch}>
+                      {arch === 'arm64'
+                        ? 'Apple Silicon · ARM64'
+                        : target.platform === 'darwin'
+                          ? 'Intel · x64'
+                          : 'Intel / AMD · x64'}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
             <p className="download-app-detection">
-              Browser detection is automatic where available. You can change either selection.
+              {target.platform === 'darwin'
+                ? 'Choose Apple Silicon or Intel to match your Mac.'
+                : 'Windows and Linux builds use x64. Choose macOS for Apple Silicon or Intel.'}
             </p>
             <label className="download-app-channel">
               <input
@@ -223,13 +231,13 @@ export function DownloadApp() {
                 download={release.installer.name}
                 onClick={() => setRequested(true)}
               >
-                <Download size={17} /> Download for {platforms[target.platform!]}{' '}
+                <Download size={17} /> Install for {platforms[target.platform!]}{' '}
                 <span>{target.arch === 'arm64' ? 'ARM64' : 'x64'}</span>
               </a>
             ) : (
               <button className="button primary download-app-submit" disabled>
                 <Download size={17} />
-                {loading ? 'Finding your download…' : 'Download Frame'}
+                {loading ? 'Finding your installer…' : 'Install Frame'}
               </button>
             )}
             <a

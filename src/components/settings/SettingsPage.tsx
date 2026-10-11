@@ -123,6 +123,7 @@ export function SettingsPage({
         <h1>Settings</h1>
         <p>Make Frame feel at home.</p>
       </div>
+      <AppUpdates />
       <section className="settings-card" aria-labelledby="appearance-heading">
         <div className="settings-section-heading">
           <Palette size={19} />
@@ -191,7 +192,6 @@ export function SettingsPage({
         </label>
       </section>
       <CompletionNotifications />
-      <AppUpdates />
       <WatchFolders />
       <RecentExports />
       <section className="settings-card" aria-labelledby="integration-heading">

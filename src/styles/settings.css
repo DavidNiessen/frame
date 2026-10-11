@@ -483,3 +483,96 @@
   font-size: 11px;
   color: var(--muted);
 }
+.header-settings,
+.header-menu-toggle {
+  position: relative;
+}
+.settings-update-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 9px;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 50%;
+  color: transparent;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 10px var(--accent-dim);
+  pointer-events: none;
+}
+.settings-updates[data-update-available='true'] {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+  box-shadow:
+    0 0 0 1px var(--accent-dim),
+    0 0 28px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.update-install-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow: 0 0 18px var(--accent-dim);
+}
+.update-install-button:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -80% -120%;
+  background: linear-gradient(110deg, transparent 42%, #ffffff70 49%, transparent 56%);
+  animation: download-app-shine 5s ease-in-out infinite;
+  pointer-events: none;
+}
+.update-install-button:not(:disabled) > svg {
+  animation: download-app-nudge 5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .update-install-button::after,
+  .update-install-button > svg {
+    animation: none;
+  }
+}
+.recent-export-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+.recent-export-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.recent-export-search > svg {
+  flex-shrink: 0;
+}
+.recent-export-search input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  border: 0;
+  padding: 10px 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+.recent-export-search input::placeholder {
+  color: var(--quiet);
+}
+.recent-export-search input::-webkit-search-cancel-button {
+  display: none;
+}
+.recent-export-search .icon-button {
+  width: 24px;
+  height: 24px;
+}

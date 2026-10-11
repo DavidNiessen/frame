@@ -2,7 +2,15 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Menu, X } from 'lucide-react';
 
 /** Desktop actions stay inline; phones use the same controls in a keyboard-accessible disclosure. */
-export function HeaderActions({ children, workflow }: { children: ReactNode; workflow: string }) {
+export function HeaderActions({
+  children,
+  workflow,
+  attention = false,
+}: {
+  children: ReactNode;
+  workflow: string;
+  attention?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null),
     toggle = useRef<HTMLButtonElement>(null);
@@ -52,6 +60,7 @@ export function HeaderActions({ children, workflow }: { children: ReactNode; wor
         onClick={() => setOpen((value) => !value)}
       >
         {open ? <X size={20} /> : <Menu size={20} />}
+        {attention && <span className="settings-update-badge" aria-label="Update available" />}
       </button>
       <div
         className="header-menu-panel"

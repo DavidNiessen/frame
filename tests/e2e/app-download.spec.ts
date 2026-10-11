@@ -47,14 +47,15 @@ test('detects the platform, switches channels and downloads the exact GitHub ins
   await fixtures(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
-  const trigger = page.getByRole('button', { name: 'Download App', exact: true });
+  const trigger = page.getByRole('button', { name: 'Install App', exact: true });
   await trigger.click();
   const modal = page.getByRole('dialog', { name: 'More room to create.' });
   await expect(modal).toBeVisible();
   await expect(modal.getByLabel('Operating system')).toHaveValue('win32');
   await expect(modal.getByLabel('Architecture')).toHaveValue('x64');
+  await expect(modal.getByLabel('Architecture')).toBeDisabled();
   await expect(modal.getByLabel('Download the latest prerelease')).not.toBeChecked();
-  const button = modal.getByRole('link', { name: 'Download for Windows x64' });
+  const button = modal.getByRole('link', { name: 'Install for Windows x64' });
   await expect(button).toHaveAttribute(
     'href',
     `${FRAME_RELEASES}/download/v1.0.0/Frame-1.0.0-win-x64.exe`,
@@ -81,7 +82,7 @@ test('detects the platform, switches channels and downloads the exact GitHub ins
   );
   await modal.getByLabel('Operating system').selectOption('darwin');
   await modal.getByLabel('Architecture').selectOption('arm64');
-  await expect(modal.getByRole('link', { name: 'Download for macOS ARM64' })).toHaveAttribute(
+  await expect(modal.getByRole('link', { name: 'Install for macOS ARM64' })).toHaveAttribute(
     'href',
     `${FRAME_RELEASES}/download/v1.0.1-build.10/Frame-1.0.1-mac-arm64.dmg`,
   );
@@ -103,7 +104,7 @@ test('keeps the download visible on phones and asks for a desktop target', async
   );
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/');
-  const trigger = page.getByRole('button', { name: 'Download App', exact: true });
+  const trigger = page.getByRole('button', { name: 'Install App', exact: true });
   await expect(trigger).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await trigger.click();
@@ -111,11 +112,9 @@ test('keeps the download visible on phones and asks for a desktop target', async
   await expect(modal.getByLabel('Operating system')).toHaveValue('');
   await expect(modal.getByLabel('Architecture')).toHaveValue('');
   await modal.getByLabel('Operating system').selectOption('linux');
-  await modal.getByLabel('Architecture').selectOption('arm64');
-  await expect(modal).toContainText('No full release installer is available');
-  await expect(modal.getByRole('link', { name: /Download for/ })).toHaveCount(0);
-  await modal.getByLabel('Architecture').selectOption('x64');
-  await expect(modal.getByRole('link', { name: 'Download for Linux x64' })).toBeInViewport();
+  await expect(modal.getByLabel('Architecture')).toHaveValue('x64');
+  await expect(modal.getByLabel('Architecture')).toBeDisabled();
+  await expect(modal.getByRole('link', { name: 'Install for Linux x64' })).toBeInViewport();
   await expect(modal.getByRole('link', { name: 'View all GitHub releases' })).toBeInViewport();
   await page.screenshot({ animations: 'disabled', path: 'test-results/app-download-phone.png' });
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -129,10 +128,10 @@ test('handles missing full releases and recovers from GitHub errors', async ({ p
     route.fulfill({ status: 404, json: { message: 'Not Found' } }),
   );
   await page.goto('/');
-  await page.getByRole('button', { name: 'Download App', exact: true }).click();
+  await page.getByRole('button', { name: 'Install App', exact: true }).click();
   const modal = page.getByRole('dialog', { name: 'More room to create.' });
   await expect(modal).toContainText('No full release has been published yet');
-  await expect(modal.getByRole('button', { name: 'Download Frame' })).toBeDisabled();
+  await expect(modal.getByRole('button', { name: 'Install Frame' })).toBeDisabled();
   await page.route(`${FRAME_RELEASES_API}**`, (route) =>
     route.fulfill({ status: 403, json: { message: 'rate limited' } }),
   );
@@ -140,5 +139,5 @@ test('handles missing full releases and recovers from GitHub errors', async ({ p
   await expect(modal.getByRole('alert')).toContainText('request limit');
   await fixtures(page);
   await modal.getByRole('button', { name: 'Try again' }).click();
-  await expect(modal.getByRole('link', { name: 'Download for Windows x64' })).toBeVisible();
+  await expect(modal.getByRole('link', { name: 'Install for Windows x64' })).toBeVisible();
 });

@@ -12,6 +12,7 @@ import {
 import type { Workflow } from '../core/launch';
 import { DownloadApp } from './DownloadApp';
 import { HeaderActions } from './HeaderActions';
+import { useUpdateStatus } from '../hooks/useAppUpdates';
 
 interface Props {
   workflow: Workflow;
@@ -38,6 +39,9 @@ export function AppHeader({
   onImport,
   children,
 }: Props) {
+  const { status } = useUpdateStatus();
+  const updateAvailable =
+    !!status?.release && status.phase !== 'current' && status.phase !== 'idle';
   return (
     <header className="app-header">
       <a
@@ -70,7 +74,7 @@ export function AppHeader({
         </button>
       </nav>
       {platform === 'web' && <DownloadApp />}
-      <HeaderActions workflow={settingsOpen ? 'settings' : workflow}>
+      <HeaderActions workflow={settingsOpen ? 'settings' : workflow} attention={updateAvailable}>
         {children}
         <div className="header-right">
           <span className="platform-badge">
@@ -92,9 +96,15 @@ export function AppHeader({
             aria-label="Settings"
             aria-pressed={settingsOpen}
             title="Settings"
+            aria-describedby={updateAvailable ? 'settings-update-notice' : undefined}
             onClick={toggleSettings}
           >
             <Settings size={18} />
+            {updateAvailable && (
+              <span className="settings-update-badge" id="settings-update-notice" role="status">
+                Update available
+              </span>
+            )}
             <span className="header-action-label">Settings</span>
           </button>
           {!settingsOpen && workflow === 'edit' && (

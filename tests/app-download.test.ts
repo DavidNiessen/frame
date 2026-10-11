@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { detectDownloadTarget, selectDownloadRelease } from '../src/core/app-download';
+import {
+  detectDownloadTarget,
+  downloadArchitectures,
+  normalizeDownloadTarget,
+  selectDownloadRelease,
+} from '../src/core/app-download';
 import { FRAME_RELEASES, installerName } from '../src/core/app-updates';
 
 function release(tag: string, preview = tag.includes('-build.')) {
@@ -21,6 +26,17 @@ function release(tag: string, preview = tag.includes('-build.')) {
   };
 }
 describe('browser app downloads', () => {
+  it('restricts architecture choices to the builds offered for each OS', () => {
+    expect(downloadArchitectures('darwin')).toEqual(['arm64', 'x64']);
+    for (const platform of ['linux', 'win32'] as const) {
+      expect(downloadArchitectures(platform)).toEqual(['x64']);
+      expect(normalizeDownloadTarget({ platform, arch: 'arm64' })).toEqual({
+        platform,
+        arch: 'x64',
+      });
+    }
+    expect(downloadArchitectures(null)).toEqual([]);
+  });
   it('uses high entropy CPU hints instead of a frozen or translated user agent', async () => {
     expect(
       await detectDownloadTarget({

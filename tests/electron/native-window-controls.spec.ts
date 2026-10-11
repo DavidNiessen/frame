@@ -25,7 +25,7 @@ test('uses native macOS traffic lights with a stable title-bar area', async () =
     });
     await expect(page.locator('.desktop-native-titlebar')).toBeVisible();
     await expect(page.locator('.desktop-window-buttons, .desktop-chrome')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Download App', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Install App', exact: true })).toHaveCount(0);
     await expect(page.locator('.desktop-native-titlebar')).toHaveCSS(
       'height',
       `${nativeMacChromeSpace}px`,

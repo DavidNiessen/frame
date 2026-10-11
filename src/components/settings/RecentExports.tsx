@@ -1,10 +1,12 @@
 import { useLoadingActivity } from '../../hooks/useLoadingActivity';
 import { TransientMessage } from '../TransientMessage';
 import { useEffect, useState } from 'react';
-import { Clock3, FolderOpen, Trash2 } from 'lucide-react';
+import { Clock3, FolderOpen, Trash2, Search, X } from 'lucide-react';
+import { useRef } from 'react';
 import type { ExportHistoryStatus } from '../../core/export-history';
 import { bytes } from '../../core/format';
 export function RecentExports() {
+  const search = useRef<HTMLInputElement>(null);
   const bridge = window.frameDesktop,
     [status, setStatus] = useState<ExportHistoryStatus>({ entries: [], error: '' }),
     [query, setQuery] = useState(''),
@@ -66,16 +68,33 @@ export function RecentExports() {
       {bridge ? (
         <>
           <div className="recent-export-toolbar">
-            <input
-              type="search"
-              aria-label="Search recent exports"
-              placeholder="Search saved files…"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setPage(0);
-              }}
-            />
+            <div className="recent-export-search">
+              <Search size={16} aria-hidden="true" />
+              <input
+                ref={search}
+                type="search"
+                aria-label="Search recent exports"
+                placeholder="Search saved files…"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(0);
+                }}
+              />
+              {query && (
+                <button
+                  className="icon-button"
+                  aria-label="Clear saved files search"
+                  onClick={() => {
+                    setQuery('');
+                    setPage(0);
+                    search.current?.focus();
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
             <button
               className="button subtle small"
               disabled={busy || !status.entries.length}

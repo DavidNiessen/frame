@@ -6,6 +6,19 @@ export interface DownloadTarget {
   platform: DownloadPlatform | null;
   arch: DownloadArchitecture | null;
 }
+export function downloadArchitectures(
+  platform: DownloadTarget['platform'],
+): DownloadArchitecture[] {
+  return platform === 'darwin' ? ['arm64', 'x64'] : platform ? ['x64'] : [];
+}
+
+export function normalizeDownloadTarget(target: DownloadTarget): DownloadTarget {
+  const architectures = downloadArchitectures(target.platform);
+  return {
+    platform: target.platform,
+    arch: architectures.length === 1 ? architectures[0] : target.arch,
+  };
+}
 interface BrowserIdentity {
   userAgent: string;
   platform: string;
