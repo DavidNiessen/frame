@@ -1,3 +1,4 @@
+import { readSavedProject } from '../helpers/saved-project';
 import { importTestMedia } from '../helpers/import-media';
 import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -54,11 +55,7 @@ test('edits, saves and exports independent effects with the portable desktop eng
     }, project);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect
-      .poll(() =>
-        readFile(project, 'utf8').then(
-          (text) => JSON.parse(text).sources[0].edit.effectInstances.length,
-        ),
-      )
+      .poll(async () => (await readSavedProject(project))?.sources[0].edit.effectInstances.length)
       .toBe(5);
     const edit = JSON.parse(await readFile(project, 'utf8')).sources[0].edit;
     expect(edit.volume).toBe(1);

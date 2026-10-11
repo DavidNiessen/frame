@@ -1,3 +1,4 @@
+import { readSavedProject } from '../helpers/saved-project';
 import { test, expect, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -43,11 +44,7 @@ test('joins retained footage after deletion, saves cuts and exports without rest
     }, project);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect
-      .poll(async () =>
-        readFile(project, 'utf8')
-          .then((text) => JSON.parse(text).sources[0].edit.clips.length)
-          .catch(() => 0),
-      )
+      .poll(async () => (await readSavedProject(project))?.sources[0].edit.clips.length)
       .toBe(2);
     const clips = JSON.parse(await readFile(project, 'utf8')).sources[0].edit.clips;
     expect(clips.map((clip: { start: number; end: number }) => [clip.start, clip.end])).toEqual([

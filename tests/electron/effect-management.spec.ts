@@ -1,8 +1,9 @@
+import { readSavedProject } from '../helpers/saved-project';
 import { importTestMedia } from '../helpers/import-media';
 import { closeEffect, openEffect } from '../helpers/effects';
 import { trim } from '../helpers/timeline';
 import { expect, test, _electron } from '@playwright/test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 test('saves minimum split clips and removes a track effect through the native timeline', async () => {
@@ -46,13 +47,9 @@ test('saves minimum split clips and removes a track effect through the native ti
     await closeEffect(page);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect
-      .poll(
-        () =>
-          readFile(destination, 'utf8').then(
-            (text) => JSON.parse(text).sources[0].edit.clips.length,
-          ),
-        { timeout: 30000 },
-      )
+      .poll(async () => (await readSavedProject(destination))?.sources[0].edit.clips.length, {
+        timeout: 30000,
+      })
       .toBe(2);
     await page.getByRole('button', { name: 'Fit', exact: true }).click();
     await page
@@ -68,10 +65,7 @@ test('saves minimum split clips and removes a track effect through the native ti
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect
       .poll(
-        () =>
-          readFile(destination, 'utf8').then(
-            (text) => JSON.parse(text).sources[0].edit.effectInstances.length,
-          ),
+        async () => (await readSavedProject(destination))?.sources[0].edit.effectInstances.length,
         { timeout: 30000 },
       )
       .toBe(0);

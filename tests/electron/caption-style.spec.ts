@@ -1,3 +1,4 @@
+import { readSavedProject } from '../helpers/saved-project';
 import { expect, test, _electron } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -53,13 +54,11 @@ test('lists installed fonts and preserves a styled desktop caption through save 
     }, project);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect
-      .poll(() =>
-        readFile(project, 'utf8').then(
-          (text) =>
-            JSON.parse(text).sources[0].edit.effectInstances.find(
-              (instance: { effect: string }) => instance.effect === 'captions',
-            ).settings.subtitles.cues[0].style.font,
-        ),
+      .poll(
+        async () =>
+          (await readSavedProject(project))?.sources[0].edit.effectInstances.find(
+            (instance: { effect: string }) => instance.effect === 'captions',
+          ).settings.subtitles.cues[0].style.font,
       )
       .toBe(`system:${font}`);
     const output = join(directory, 'caption.mp4');
