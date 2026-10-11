@@ -101,7 +101,7 @@ export async function armUpdateInstall(
       detached: true,
       windowsHide: true,
       stdio: 'ignore',
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      env: windows ? process.env : { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
     },
   );
   let launchError: Error | undefined;

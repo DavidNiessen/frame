@@ -8,8 +8,16 @@ import { verifyInstaller } from './update-download';
 import type { UpdateInstallPlan } from './update-install-types';
 
 const exec = promisify(execFile);
+function launchEnvironment() {
+  const environment = { ...process.env };
+  // This flag belongs to the detached helper, never the restarted GUI.
+  delete environment.ELECTRON_RUN_AS_NODE;
+  return environment;
+}
 async function command(binary: string, args: string[]) {
-  return (await exec(binary, args, { timeout: 120000, maxBuffer: 1024 * 1024 })).stdout.trim();
+  return (
+    await exec(binary, args, { timeout: 120000, maxBuffer: 1024 * 1024, env: launchEnvironment() })
+  ).stdout.trim();
 }
 export async function verifyMacBundle(path: string, version: string, arch: string) {
   await command('/usr/bin/codesign', ['--verify', '--deep', '--strict', path]);
@@ -96,6 +104,7 @@ export async function launchReplacement(plan: UpdateInstallPlan) {
       const child = spawn(plan.target, ['--updated', `--user-data-dir=${plan.userData}`], {
         detached: true,
         stdio: 'ignore',
+        env: launchEnvironment(),
       });
       child.once('error', reject);
       child.once('spawn', () => {

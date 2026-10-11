@@ -17,7 +17,7 @@ async function fixture() {
     source = join(directory, 'new.AppImage');
   await writeFile(target, 'original app');
   await chmod(target, 0o755);
-  const next = `#!/bin/sh\nprintf new > '${join(directory, 'launched')}'\n`;
+  const next = `#!/bin/sh\nprintf '%s' "\${ELECTRON_RUN_AS_NODE-unset}" > '${join(directory, 'launch-mode')}'\nprintf new > '${join(directory, 'launched')}'\n`;
   await writeFile(source, next);
   const plan: UpdateInstallPlan = {
     platform: 'linux',
@@ -81,7 +81,9 @@ describe('managed application replacement', () => {
       plan.parent = parent.pid!;
       const path = join(plan.directory, 'plan.json');
       await writeFile(path, JSON.stringify(plan));
-      const worker = spawn(process.execPath, [helper, path]);
+      const worker = spawn(process.execPath, [helper, path], {
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      });
       const completed = new Promise<number | null>((resolve) => worker.once('exit', resolve));
       try {
         await expect.poll(async () => readdir(plan.directory)).toContain('armed');
@@ -90,6 +92,7 @@ describe('managed application replacement', () => {
         expect(await completed).toBe(0);
         expect(await readFile(plan.target, 'utf8')).toBe(next);
         await expect.poll(async () => readdir(plan.directory)).toContain('launched');
+        expect(await readFile(join(plan.directory, 'launch-mode'), 'utf8')).toBe('unset');
         expect(await readFile(join(plan.directory, 'complete'), 'utf8')).toBe('');
       } finally {
         parent.kill();

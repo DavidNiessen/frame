@@ -1,5 +1,7 @@
 param([Parameter(Mandatory = $true)][string]$PlanPath)
 $ErrorActionPreference = 'Stop'
+# Frame must restart as the desktop GUI, even if the helper was invoked from a Node host.
+Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
 $plan = Get-Content -LiteralPath $PlanPath -Raw -Encoding UTF8 | ConvertFrom-Json
 try {
   if ((Get-FileHash -LiteralPath $plan.source -Algorithm SHA256).Hash.ToLowerInvariant() -ne $plan.checksum) { throw 'Installer checksum mismatch. Download the update again.' }
