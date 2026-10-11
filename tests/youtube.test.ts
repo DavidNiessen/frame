@@ -92,8 +92,8 @@ it('cancels the downloader process tree and rejects outputs outside its temporar
   const directory = await mkdtemp(join(tmpdir(), 'frame-youtube-cancel-'));
   try {
     const tick = join(directory, 'ticks');
-    const grandchild = `const fs=require('fs');process.on('SIGTERM',()=>{});setInterval(()=>fs.appendFileSync(${JSON.stringify(tick)},'.'),20)`;
-    const script = `const {spawn}=require('child_process');spawn(process.execPath,['-e',${JSON.stringify(grandchild)}],{stdio:'ignore'});process.on('SIGTERM',()=>{});setTimeout(()=>console.log('FRAME_PROGRESS:{"downloaded":1,"total":10}'),200);setInterval(()=>{},100)`;
+    const grandchild = `const fs=require('fs');process.on('SIGTERM',()=>{});fs.appendFileSync(${JSON.stringify(tick)},'.');process.send('ready');setInterval(()=>fs.appendFileSync(${JSON.stringify(tick)},'.'),20)`;
+    const script = `const {spawn}=require('child_process');const child=spawn(process.execPath,['-e',${JSON.stringify(grandchild)}],{stdio:['ignore','ignore','ignore','ipc']});process.on('SIGTERM',()=>{});child.once('message',()=>console.log('FRAME_PROGRESS:{"downloaded":1,"total":10}'));setInterval(()=>{},100)`;
     const controller = new AbortController();
     await expect(
       runYoutubeDownloader(
