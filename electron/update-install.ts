@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { windowsPowerShellEnv } from '../scripts/windows-powershell-env.mjs';
 import { access, copyFile, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -101,7 +102,7 @@ export async function armUpdateInstall(
       detached: true,
       windowsHide: true,
       stdio: 'ignore',
-      env: windows ? process.env : { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      env: windows ? windowsPowerShellEnv() : { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
     },
   );
   let launchError: Error | undefined;

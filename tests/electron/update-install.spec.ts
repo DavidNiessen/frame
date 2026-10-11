@@ -1,4 +1,5 @@
 import { test, expect, _electron } from '@playwright/test';
+import { windowsPowerShellEnv } from '../../scripts/windows-powershell-env.mjs';
 import { execFile, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
@@ -136,12 +137,17 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
         )
         .toContain(executable);
     } else {
-      await exec('powershell.exe', [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        'Get-Process Frame -ErrorAction Stop | Select-Object -ExpandProperty Path',
-      ]);
+      const { stdout } = await exec(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          'Get-Process Frame -ErrorAction Stop | Select-Object -ExpandProperty Path',
+        ],
+        { env: windowsPowerShellEnv() },
+      );
+      expect(stdout.toLowerCase()).toContain(join(target, 'Frame.exe').toLowerCase());
     }
   } finally {
     if (application && original?.exitCode === null) await application.close();
@@ -165,16 +171,20 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
           cleanup,
           "param([string]$TargetPath)\n$p=Get-Content -LiteralPath $TargetPath -Raw -Encoding UTF8 | ConvertFrom-Json\n$exe=Join-Path $p.target 'Frame.exe'\nGet-Process Frame -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Stop-Process -Force\n",
         );
-        await exec('powershell.exe', [
-          '-NoProfile',
-          '-NonInteractive',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          cleanup,
-          '-TargetPath',
-          cleanupTarget,
-        ]).catch(() => {});
+        await exec(
+          'powershell.exe',
+          [
+            '-NoProfile',
+            '-NonInteractive',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            cleanup,
+            '-TargetPath',
+            cleanupTarget,
+          ],
+          { env: windowsPowerShellEnv() },
+        ).catch(() => {});
       }
     }
     await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
