@@ -58,7 +58,10 @@ export function ConversionWorkspace({
           </div>
         )}
       </div>
-      <ConversionLayout settings={<ConversionSettings editor={editor} conversion={c} />}>
+      <ConversionLayout
+        fileCount={editor.assets.length}
+        settings={<ConversionSettings editor={editor} conversion={c} />}
+      >
         {report && (report.issues.length > 0 || report.skipped > 0) && (
           <TransientMessage className="conversion-import-report" role="alert">
             <details>

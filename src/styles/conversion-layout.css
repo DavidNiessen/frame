@@ -1,0 +1,177 @@
+/* The window stays fixed; only the queue and option bodies scroll. */
+.app-shell.workflow-convert {
+  height: var(--app-height, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+}
+.workflow-convert > .app-header,
+.workflow-convert > .app-footer {
+  flex-shrink: 0;
+}
+.workflow-convert .conversion-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.workflow-convert .conversion-intro {
+  flex-shrink: 0;
+  padding: 16px 20px;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.workflow-convert .conversion-intro h1 {
+  font-size: 25px;
+  margin-top: 0;
+}
+.workflow-convert .conversion-intro .eyebrow {
+  display: none;
+}
+.workflow-convert .conversion-intro p {
+  margin-top: 6px;
+  font-size: 11px;
+}
+.workflow-convert .conversion-layout {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+  grid-template-rows: minmax(0, 1fr);
+}
+.workflow-convert .conversion-main,
+.workflow-convert .conversion-files,
+.workflow-convert .conversion-settings {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.workflow-convert .conversion-main {
+  gap: 12px;
+}
+.workflow-convert .conversion-files,
+.workflow-convert .conversion-empty {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.workflow-convert .conversion-panel-title,
+.workflow-convert .conversion-table-footer {
+  flex-shrink: 0;
+}
+.workflow-convert .conversion-panel-title {
+  min-height: 68px;
+  padding: 14px 18px;
+}
+.workflow-convert .conversion-table-wrap {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overscroll-behavior: contain;
+}
+.workflow-convert .conversion-settings {
+  position: static;
+  overflow: hidden;
+}
+.workflow-convert .conversion-settings-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.workflow-convert .conversion-action {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 1;
+  padding: 16px 20px;
+  background: var(--surface-raised);
+}
+.workflow-convert .conversion-results,
+.workflow-convert .conversion-import-report {
+  flex-shrink: 0;
+  max-height: 32%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.workflow-convert .conversion-privacy {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: 10px;
+}
+.workflow-convert .conversion-empty {
+  overflow: auto;
+  justify-content: safe center;
+  padding: 20px;
+  overscroll-behavior: contain;
+}
+.workflow-convert .conversion-empty > * {
+  flex-shrink: 0;
+}
+.workflow-convert .conversion-empty-art {
+  margin-bottom: 0;
+}
+.workflow-convert .conversion-supported {
+  margin-top: 18px;
+  padding-top: 12px;
+}
+.conversion-pane-nav {
+  display: none;
+}
+.workflow-convert .resizable-conversion[data-layout='stacked'] {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.workflow-convert [data-layout='stacked'] .conversion-pane-nav {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  min-height: 42px;
+}
+.conversion-pane-nav button {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.workflow-convert [data-layout='stacked'][data-pane='files'] .conversion-settings,
+.workflow-convert [data-layout='stacked'][data-pane='settings'] .conversion-main {
+  display: none;
+}
+@media (max-width: 780px) {
+  .workflow-convert .conversion-intro {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+  .workflow-convert .conversion-intro h1 {
+    font-size: 21px;
+  }
+  .workflow-convert .conversion-intro > .conversion-add-actions {
+    width: auto;
+    gap: 6px;
+  }
+  .workflow-convert .conversion-intro .button {
+    padding: 8px 10px;
+    min-height: 34px;
+    font-size: 10px;
+  }
+  .workflow-convert .conversion-privacy {
+    display: none;
+  }
+}
+@media (max-height: 720px) {
+  .workflow-convert .conversion-intro p,
+  .workflow-convert .conversion-output-summary,
+  .workflow-convert .conversion-destination,
+  .workflow-convert .conversion-originals,
+  .workflow-convert .conversion-empty-art {
+    display: none;
+  }
+  .workflow-convert .conversion-action {
+    padding: 12px 16px;
+  }
+  .workflow-convert .conversion-empty h2 {
+    font-size: 22px;
+  }
+}

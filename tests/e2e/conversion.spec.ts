@@ -56,7 +56,15 @@ test('converts nested song folders and downloads a ZIP with complete media and m
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByLabel('Conversion format')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+    await page
+      .getByRole('navigation', { name: 'Conversion panels' })
+      .getByRole('button', { name: /^Files/ })
+      .click();
     await page.getByRole('button', { name: 'Clear results', exact: true }).click();
+    await page
+      .getByRole('navigation', { name: 'Conversion panels' })
+      .getByRole('button', { name: 'Format & quality', exact: true })
+      .click();
     await expect(page.getByRole('button', { name: 'Convert 2 files', exact: true })).toBeEnabled();
     await workflow.getByRole('button', { name: 'Editor', exact: true }).click();
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({
