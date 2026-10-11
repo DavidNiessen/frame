@@ -76,3 +76,7 @@ The asset-preparation script copies the native FFmpeg vendor license/README and 
 - https://github.com/ffmpegwasm/ffmpeg.wasm/tree/v0.12.10 (WebAssembly build instructions)
 
 Preserve the sources/build instructions that correspond to the exact shipped binaries when preparing a public release. The project intentionally does not invent a license for the application owner's code.
+
+## Library and font attribution
+
+Asset preparation copies upstream license files for React, React DOM, Scheduler, Lucide, fflate and Public Sans into `public/notices/`, alongside license texts for the WebAssembly wrapper/core and FFprobe installer. DejaVu notices remain in `public/fonts/LICENSE.txt`. The generated `LIBRARIES.txt` lists installed versions and attribution locations. Web builds serve these resources from `notices/`; desktop packages include them under `resources/notices/`. Maintain the supplemental texts in [vendor/licenses](../vendor/licenses/README.md) when updating packages whose npm archives omit license files.

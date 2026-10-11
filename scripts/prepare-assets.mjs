@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { ensureFfmpeg } from './prepare-ffmpeg.mjs';
+import { prepareNotices } from './prepare-notices.mjs';
 const require = createRequire(import.meta.url);
 await mkdir('public/ffmpeg', { recursive: true });
 for (const name of ['ffmpeg-core.js', 'ffmpeg-core.wasm']) {
@@ -50,3 +51,5 @@ for (const [source, destination] of [
 ]) {
   await cp(source, `public/notices/${destination}`);
 }
+
+await prepareNotices();
