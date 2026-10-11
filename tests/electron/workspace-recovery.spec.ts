@@ -4,7 +4,7 @@ import { expect, test, _electron } from '@playwright/test';
 import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { trim } from '../helpers/timeline';
+import { trim, waitForPreviewMetadata } from '../helpers/timeline';
 import { mediaServer } from '../helpers/media-server';
 function launch(directory: string) {
   const executablePath = process.env.FRAME_TEST_EXECUTABLE;
@@ -42,7 +42,10 @@ test('automatically reopens desktop media and recipes, then clears without resur
     await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '2');
     await openEffect(page, 'Volume');
     await expect(page.getByLabel('Volume', { exact: true })).toHaveValue('0.5');
+    await waitForPreviewMetadata(page);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await page.locator('video').evaluate((node) => (node as HTMLMediaElement).pause());
     await expect(page.getByRole('button', { name: 'Recover workspace' })).toHaveCount(0);
     await openEffect(page, 'Volume');
     await page.getByLabel('Volume', { exact: true }).fill('0.3');
@@ -83,7 +86,13 @@ test('retains a downloaded source through exit and can export it after automatic
     app = await launch(directory);
     page = await app.firstWindow();
     await expect(page.locator('.asset-list li')).toHaveCount(1, { timeout: 30000 });
+    await waitForPreviewMetadata(page);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(page.locator('audio').first()).toHaveJSProperty('readyState', 4);
+    await page
+      .locator('audio')
+      .first()
+      .evaluate((node) => (node as HTMLMediaElement).pause());
     const destination = join(directory, 'reopened.flac');
     await app.evaluate(({ dialog }, filePath) => {
       dialog.showSaveDialog = async () => ({ canceled: false, filePath });
@@ -131,7 +140,10 @@ test('reopens available originals when another source is missing and keeps its c
     page = await app.firstWindow();
     await expect(page.locator('.asset-list li')).toHaveCount(1, { timeout: 30000 });
     await expect(page.locator('.toast')).toContainText('moved or deleted');
+    await waitForPreviewMetadata(page);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await page.locator('video').evaluate((node) => (node as HTMLMediaElement).pause());
     // A settings visit and idle recovery must not replace the partially restored checkpoint.
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     expect(

@@ -34,7 +34,7 @@ To replace a video's audio with an MP3:
 
 ### Projects and recovery
 
-Automatic workspace recovery reopens retained media and edits locally. Disable it in Settings if preferred. Storage quotas, private browsing, deleted files or cleared app/site data can prevent recovery.
+Automatic workspace recovery reopens retained media and edits locally. Settings can disable new automatic saves; existing saved workspaces still reopen until cleared. Storage quotas, private browsing, deleted files or cleared app/site data can prevent recovery.
 
 Save a `.frame.json` project for a portable edit recipe. Project files do not embed original audio/video: import or relink missing originals when opening on another device. Autosave and manual projects are separate.
 

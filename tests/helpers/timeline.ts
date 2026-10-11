@@ -1,7 +1,15 @@
 import { expect, type Page } from '@playwright/test';
+export async function waitForPreviewMetadata(page: Page) {
+  const media = page.locator('video, audio').first();
+  // A paused preload=metadata player need not buffer frames. Wait for the metadata
+  // callback to initialize its source clock before changing timeline boundaries.
+  await expect
+    .poll(() => media.evaluate((node) => (node as HTMLMediaElement).readyState))
+    .toBeGreaterThanOrEqual(1);
+  await expect(media).not.toHaveAttribute('data-preview-switching', 'true');
+}
 export async function trim(page: Page, edge: 'start' | 'end', seconds: number) {
-  // Native imports can expose controls before media metadata resets the initial playhead.
-  await expect(page.locator('video, audio').first()).toHaveJSProperty('readyState', 4);
+  await waitForPreviewMetadata(page);
   const start = Number(
     await page
       .getByRole('slider', { name: 'Trim start', exact: true })

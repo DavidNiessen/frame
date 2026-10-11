@@ -128,13 +128,17 @@ test('collapses real conversion to progress, expands and cancels without closing
   try {
     const page = await app.firstWindow();
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    const initialHeight = await app.evaluate(
-      ({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height,
-    );
     await expect(page.getByRole('button', { name: 'Convert 1 file', exact: true })).toBeEnabled();
     // VP9 encoding stays active long enough to exercise expansion and cancellation on fast runners.
     await page.getByLabel('Conversion format').selectOption('webm');
     await page.getByRole('button', { name: 'High', exact: true }).click();
+    // Import completion means the window has been shown; firstWindow can arrive
+    // before Cocoa settles its initial frame geometry.
+    const initialBounds = await app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].getBounds(),
+    );
+    const initialHeight = initialBounds.height;
+
     await app.evaluate(({ dialog }, path) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] });
     }, output);
@@ -161,7 +165,18 @@ test('collapses real conversion to progress, expands and cancels without closing
           )) - initialHeight,
         ),
       )
-      .toBeLessThanOrEqual(2);
+      .toBeLessThanOrEqual(2)
+      .catch(async (error) => {
+        const restored = await app.evaluate(({ BrowserWindow, screen }) => {
+          const bounds = BrowserWindow.getAllWindows()[0].getBounds();
+          return { bounds, workArea: screen.getDisplayMatching(bounds).workArea };
+        });
+        await test.info().attach('mini-window-geometry', {
+          body: JSON.stringify({ initialBounds, restored }, null, 2),
+          contentType: 'application/json',
+        });
+        throw error;
+      });
     await expect(page.locator('.mini-footer .footer-activity')).toContainText('Converting files');
     await expect(page.locator('.mini-footer .footer-task-percent')).toHaveText(/\d+%/);
     await expect(
