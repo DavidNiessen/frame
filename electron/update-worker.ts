@@ -13,6 +13,7 @@ process.noAsar = true;
 async function run() {
   const plan: UpdateInstallPlan = JSON.parse(await readFile(process.argv[2], 'utf8'));
   if (plan.platform === 'win32') {
+    await writeFile(join(plan.directory, 'runtime.pid'), String(process.pid), { mode: 0o600 });
     // PowerShell needs a console handle. Keep it under this detached Node worker,
     // rather than launching PowerShell itself with Windows' DETACHED_PROCESS flag.
     process.exitCode = await new Promise<number>((resolve, reject) => {

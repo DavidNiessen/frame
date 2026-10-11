@@ -12,8 +12,10 @@ try {
   # NSIS consumes /D through the end of the command line; it must be last and unquoted.
   # --updated preserves shortcuts. Relaunch as this user after NSIS completes, keeping their profile.
   $arguments = '/S --updated /D=' + $plan.target
+  [IO.File]::WriteAllText((Join-Path $plan.directory 'stage'), 'Installing')
   $installer = Start-Process -FilePath $plan.source -ArgumentList $arguments -Wait -PassThru
   if ($installer.ExitCode -ne 0) { throw "Frame update failed with exit code $($installer.ExitCode)." }
+  [IO.File]::WriteAllText((Join-Path $plan.directory 'stage'), 'Relaunching')
   Start-Process -FilePath (Join-Path $plan.target 'Frame.exe') -ArgumentList ('--updated "--user-data-dir=' + $plan.userData + '"')
   [IO.File]::WriteAllText((Join-Path $plan.directory 'complete'), '')
 } catch {

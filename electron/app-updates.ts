@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { releaseVersion } from '../src/core/app-updates';
 import { UpdateManager } from './update-manager';
+import { cleanupWindowsUpdateRuntimes } from './update-runtime';
 import {
   armUpdateInstall,
   supportsUpdateInstall,
@@ -96,7 +97,13 @@ export function configureAppUpdates(
   const timer = setInterval(() => void updates.periodicCheck(), 60 * 1000);
   startup.unref();
   timer.unref();
+  const cleanup = setTimeout(() => {
+    if (process.platform === 'win32')
+      void cleanupWindowsUpdateRuntimes(location.userData).catch(() => {});
+  }, 15000);
+  cleanup.unref();
   return () => {
+    clearTimeout(cleanup);
     clearTimeout(startup);
     clearInterval(timer);
     return updates.stop();

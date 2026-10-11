@@ -162,6 +162,24 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
       );
       expect(stdout.toLowerCase()).toContain(join(target, 'Frame.exe').toLowerCase());
     }
+  } catch (cause) {
+    const profile = join(directory, 'profile');
+    const updates = join(profile, 'updates');
+    for (const release of await readdir(updates).catch(() => [])) {
+      const cache = join(updates, release);
+      for (const name of await readdir(cache).catch(() => [])) {
+        if (!name.startsWith('apply-')) continue;
+        const applied = join(cache, name);
+        const details: Record<string, string> = {};
+        for (const file of ['helper.log', 'stage', 'plan.json', 'error.json', 'runtime.pid'])
+          details[file] = await readFile(join(applied, file), 'utf8').catch(() => 'Missing');
+        await test.info().attach('updater-diagnostics', {
+          body: JSON.stringify(details, null, 2),
+          contentType: 'application/json',
+        });
+      }
+    }
+    throw cause;
   } finally {
     if (application && original?.exitCode === null) await application.close();
     // Terminate only the relaunched executable owned by this test, never another Frame installation.

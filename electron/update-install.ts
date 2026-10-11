@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { UpdateRelease } from '../src/core/app-updates';
 import type { UpdateInstallPlan } from './update-install-types';
+import { prepareWindowsUpdateRuntime } from './update-runtime';
 
 export interface UpdateInstallLocation {
   platform: string;
@@ -88,10 +89,14 @@ export async function armUpdateInstall(
       { mode: 0o600 },
     );
   const outputPath = join(directory, 'helper.log');
+  const runtime = windows
+    ? await prepareWindowsUpdateRuntime(location.executable, directory)
+    : location.executable;
   const output = await open(outputPath, 'wx', 0o600);
-  const child = spawn(location.executable, [helper, planPath], {
+  const child = spawn(runtime, [helper, planPath], {
     detached: true,
     windowsHide: true,
+    cwd: directory,
     stdio: ['ignore', output.fd, output.fd],
     env: { ...(windows ? windowsPowerShellEnv() : process.env), ELECTRON_RUN_AS_NODE: '1' },
   });

@@ -17,6 +17,7 @@ import { build } from 'esbuild';
 import { applyReplacement, stageReplacement } from '../electron/update-replacement';
 import { supportsUpdateInstall, updateInstallTarget } from '../electron/update-install';
 import type { UpdateInstallPlan } from '../electron/update-install-types';
+import { prepareWindowsUpdateRuntime } from '../electron/update-runtime';
 
 const directories: string[] = [];
 async function fixture() {
@@ -69,7 +70,8 @@ describe('managed application replacement', () => {
       plan.parent = parent.pid!;
       const path = join(plan.directory, 'plan.json');
       await writeFile(path, JSON.stringify(plan));
-      const worker = spawn(process.execPath, [helper, path], {
+      const runtime = await prepareWindowsUpdateRuntime(process.execPath, plan.directory);
+      const worker = spawn(runtime, [helper, path], {
         detached: true,
         stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
