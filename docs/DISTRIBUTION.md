@@ -22,6 +22,22 @@ FRAME_TEST_EXECUTABLE=/absolute/path/to/Frame npm run test:desktop
 
 On Windows set environment variables using PowerShell syntax; on Linux provide a display or run under Xvfb. The test launches the application with an empty PATH, imports and previews a test fixture, performs a native FLAC export, and checks output duration and cleanup.
 
+## macOS installation
+
+Use the **Mac Apple Silicon** download on M1/M2/M3/M4 Macs and **Mac Intel** on Intel Macs. Open the DMG and drag Frame into Applications, replacing an older copy when updating.
+
+Both architectures are explicitly ad-hoc signed after packaging. CI mounts the actual DMG, copies its app as Finder would, verifies the resource seal and nested code with `codesign --verify --deep --strict`, and runs native import/export smoke tests against that installed copy. It also checks that modifying the app's resources invalidates the signature. This catches broken Electron resource signatures before publishing.
+
+Ad-hoc signing verifies integrity; it does not establish an Apple-verified publisher or notarization. If macOS blocks a prerelease on first launch, attempt to open **Applications → Frame**, then use **System Settings → Privacy & Security → Open Anyway** and approve that app. On recent macOS versions, Finder's right-click Open alone may not offer this approval.
+
+If macOS reports that Frame is damaged, verify the installed app:
+
+```sh
+codesign --verify --deep --strict --verbose=2 /Applications/Frame.app
+```
+
+An error such as `code has no resources but signature indicates they must be present` means the bundle signature is invalid. Replace that copy with the latest release. If the latest copy also fails verification, report the release, architecture and command output. A passing integrity check is separate from Gatekeeper approval.
+
 ## File-manager integration
 
 The Electron build generates `build/generated/windows-context-menu.nsh` and the bundled Finder workflow resources from the canonical supported-extension list. The assisted NSIS installer shows a checkbox checked on first installation and remembers the per-user preference in `HKCU\Software\Frame\ShellActions`. Silent installation supports `/NOFRAMECONTEXTMENU` and `/FRAMECONTEXTMENU` overrides. Its `customInstall` / `customUnInstall` hooks register classic actions under `HKCU` and install/remove the Windows 11 primary-menu component. Each supported extension gets `Frame.Edit` and `Frame.Convert` under `Software\Classes\SystemFileAssociations`, with an executable icon, quoted `%1` input, explicit workflow, and `MultiSelectModel=Player`. Shared canonical verb names allow mixed file-type selections. Explorer may invoke one process per file; Frame’s single-instance inbox coalesces pending requests and imports every accepted path. Classic Explorer verbs are limited to 100 selected files and appear in Windows 11’s **Show more options** menu. Default file associations are unchanged.
@@ -46,7 +62,7 @@ For Windows package-open failures, run `pnpm verify:windows-shell` from the chec
 
 ## Signing
 
-Local packaging and CI use unsigned application installers by default; the bundled shell MSIX is signed with Frame’s self-signed certificate. Configure Electron Builder's supported certificate, notarization, and signing settings when preparing publicly trusted installers. Do not commit private signing keys, PFX files, passwords, API keys, or developer credentials. Public verification certificates may be committed. Packaging never publishes automatically.
+Windows application installers are unsigned by default. Mac apps use the explicit ad-hoc identity `-`; the bundled Windows shell MSIX is signed with Frame’s self-signed certificate. For publicly trusted Mac downloads, replace `mac.identity` with a **Developer ID Application** identity and configure Electron Builder's Apple certificate and notarization credentials. Apple Developer membership and notarization are required for that trust; ad-hoc signing cannot replace them. Do not commit private signing keys, PFX files, passwords, API keys, or developer credentials. Public verification certificates may be committed. Local packaging never publishes; CI publishes validated installers separately.
 
 ### GitHub Actions shell signing
 

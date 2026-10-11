@@ -141,6 +141,16 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:desktop
       - run: npm run package
+        if: runner.os != 'macOS'
+      - name: Build and ad-hoc sign the macOS disk image
+        if: runner.os == 'macOS'
+        # Ad-hoc signing needs no certificate or private credentials, including on PRs.
+        env:
+          CSC_FOR_PULL_REQUEST: 'true'
+        run: npm run package
+      - name: Verify signatures and test the app installed from the macOS disk image
+        if: runner.os == 'macOS'
+        run: bash scripts/test-macos-package.sh
       - name: Disable Developer Mode on the disposable Windows test runner
         if: runner.os == 'Windows'
         shell: pwsh

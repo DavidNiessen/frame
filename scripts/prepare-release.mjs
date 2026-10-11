@@ -48,7 +48,7 @@ export async function prepareRelease(directory, { version, runNumber, sha, notes
     '',
     'Download the installer for your platform. SHA256SUMS.txt contains the SHA-256 checksums.',
     '',
-    'These development builds are prereleases. Windows installers and macOS apps are not yet code-signed or notarized; the Windows Explorer extension has separate certificate trust. See [distribution notes](https://github.com/' +
+    'These development builds are prereleases. Windows installers are unsigned. Mac apps are ad-hoc signed for integrity, but are not Apple notarized; first launch may require System Settings → Privacy & Security → Open Anyway. The Windows Explorer extension has separate certificate trust. See [installation and distribution notes](https://github.com/' +
       (process.env.GITHUB_REPOSITORY ?? 'DavidNiessen/frame') +
       '/blob/' +
       sha +
