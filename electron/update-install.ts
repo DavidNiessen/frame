@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { windowsPowerShellEnv } from '../scripts/windows-powershell-env.mjs';
-import { access, copyFile, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, open, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -79,6 +79,8 @@ export async function armUpdateInstall(
   const windows = location.platform === 'win32';
   const helper = join(directory, windows ? 'update-windows.ps1' : 'update-worker.cjs');
   await copyFile(join(location.helperDirectory, basename(helper)), helper);
+  const outputPath = join(directory, 'helper.log');
+  const output = await open(outputPath, 'wx', 0o600);
   const child = spawn(
     windows
       ? join(
@@ -101,7 +103,7 @@ export async function armUpdateInstall(
     {
       detached: true,
       windowsHide: true,
-      stdio: 'ignore',
+      stdio: ['ignore', output.fd, output.fd],
       env: windows ? windowsPowerShellEnv() : { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
     },
   );
@@ -110,6 +112,7 @@ export async function armUpdateInstall(
     launchError = error;
   });
   child.unref();
+  await output.close();
   try {
     const deadline = Date.now() + 180000;
     while (Date.now() < deadline) {
@@ -122,14 +125,21 @@ export async function armUpdateInstall(
       } catch (cause) {
         if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause;
       }
-      try {
-        await access(join(directory, 'armed'));
+      const armed = await access(join(directory, 'armed')).then(
+        () => true,
+        () => false,
+      );
+      if (armed) {
         if (!canRestart())
           throw new Error('Finish or cancel active media jobs before restarting to update.');
         return;
-      } catch {}
-      if (child.exitCode !== null)
-        throw new Error('The update helper stopped before preparing the update.');
+      }
+      if (child.exitCode !== null) {
+        const details = (await readFile(outputPath, 'utf8')).trim().slice(-4000);
+        throw new Error(
+          `The update helper stopped before preparing the update.${details ? ' ' + details : ''}`,
+        );
+      }
       await delay(100);
     }
     throw new Error('Preparing the update took too long. Frame was not changed.');

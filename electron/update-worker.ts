@@ -4,6 +4,10 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { applyReplacement, launchReplacement, stageReplacement } from './update-replacement';
 import type { UpdateInstallPlan } from './update-install-types';
 
+// The detached helper manages whole bundles, including app.asar as a real file.
+// Electron's virtual ASAR directories otherwise prevent recursive backup removal.
+process.noAsar = true;
+
 async function run() {
   const plan: UpdateInstallPlan = JSON.parse(await readFile(process.argv[2], 'utf8'));
   let staged: string | undefined;
