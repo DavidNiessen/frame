@@ -1,22 +1,20 @@
 import { test, expect, _electron } from '@playwright/test';
-import { execFile, spawn, type ChildProcess } from 'node:child_process';
+import { execFile, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import type { UpdateInstallPlan } from '../../electron/update-install-types';
 
 const exec = promisify(execFile);
-test('updates and relaunches the installed macOS app or Windows installer through the shipped helper', async () => {
+test('downloads, installs and relaunches the packaged app through Settings', async () => {
   test.skip(
     !process.env.FRAME_TEST_EXECUTABLE || !['darwin', 'win32'].includes(process.platform),
     'Runs against the actual installed release package.',
   );
-  test.setTimeout(180000);
+  test.setTimeout(240000);
   const directory = await realpath(await mkdtemp(join(tmpdir(), 'Frame update Ü ')));
   let application: Awaited<ReturnType<typeof _electron.launch>> | undefined;
-  let worker: ReturnType<typeof spawn> | undefined;
   let original: ChildProcess | undefined;
   let target: string | undefined;
   try {
@@ -28,6 +26,11 @@ test('updates and relaunches the installed macOS app or Windows installer throug
       executable = join(target, 'Contents/MacOS/Frame');
     } else target = dirname(supplied);
     const profile = join(directory, 'profile');
+    await mkdir(profile);
+    await writeFile(
+      join(profile, 'update-preferences.json'),
+      JSON.stringify({ automatic: false, includePrereleases: true }),
+    );
     application = await _electron.launch({
       executablePath: executable,
       args: [`--user-data-dir=${profile}`],
@@ -39,7 +42,6 @@ test('updates and relaunches the installed macOS app or Windows installer throug
     const info = await application.evaluate(({ app }) => ({
       version: app.getVersion(),
       arch: process.arch,
-      parent: process.pid,
     }));
     const name =
       process.platform === 'darwin'
@@ -47,67 +49,78 @@ test('updates and relaunches the installed macOS app or Windows installer throug
         : `Frame-${info.version}-win-x64.exe`;
     const source = resolve('release', name),
       contents = await readFile(source);
-    const plan: UpdateInstallPlan = {
-      platform: process.platform as 'darwin' | 'win32',
-      arch: info.arch,
-      parent: info.parent,
-      source,
-      checksum: createHash('sha256').update(contents).digest('hex'),
-      target,
-      version: info.version,
-      directory,
-      userData: profile,
-    };
-    const helperName = process.platform === 'win32' ? 'update-windows.ps1' : 'update-worker.cjs';
-    const packaged = await application.evaluate(async ({ app }, name) => {
-      const fs = await import('node:fs');
-      const path = await import('node:path');
-      return fs.readFileSync(path.join(app.getAppPath(), 'dist-electron', name)).toString('base64');
-    }, helperName);
-    const helper = join(directory, helperName),
-      planPath = join(directory, 'plan.json');
-    await writeFile(helper, Buffer.from(packaged, 'base64'));
-    await writeFile(planPath, JSON.stringify(plan));
-    const windows = process.platform === 'win32';
-    worker = spawn(
-      windows ? 'powershell.exe' : executable,
-      windows
-        ? [
-            '-NoProfile',
-            '-NonInteractive',
-            '-ExecutionPolicy',
-            'Bypass',
-            '-File',
-            helper,
-            '-PlanPath',
-            planPath,
-          ]
-        : [helper, planPath],
-      { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } },
+    const checksum = createHash('sha256').update(contents).digest('hex'),
+      tag = `v${info.version}-build.99999999`;
+    await application.evaluate(
+      ({ net }, fixture) => {
+        net.fetch = async (url) => {
+          const address = String(url);
+          if (address.includes('/releases?'))
+            return new Response(
+              JSON.stringify([
+                {
+                  tag_name: fixture.tag,
+                  prerelease: true,
+                  draft: false,
+                  assets: [fixture.name, 'SHA256SUMS.txt'].map((name) => ({
+                    name,
+                    size: fixture.size,
+                    browser_download_url: `https://github.com/DavidNiessen/frame/releases/download/${fixture.tag}/${name}`,
+                  })),
+                },
+              ]),
+            );
+          if (address.endsWith('/SHA256SUMS.txt'))
+            return new Response(`${fixture.checksum}  ${fixture.name}`);
+          if (!address.endsWith('/' + fixture.name))
+            throw new Error('Unexpected updater request: ' + address);
+          const fs = await import('node:fs'),
+            streams = await import('node:stream');
+          return new Response(
+            streams.Readable.toWeb(
+              fs.createReadStream(fixture.source),
+            ) as ReadableStream<Uint8Array>,
+          );
+        };
+      },
+      { tag, name, checksum, source, size: contents.length },
     );
-    let diagnostics = '';
-    worker.stderr?.on('data', (chunk) => {
-      diagnostics += chunk;
-    });
-    const completed = new Promise<number | null>((resolve) => worker!.once('exit', resolve));
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const updates = page.locator('section[aria-labelledby="updates-heading"]');
+    await updates.getByRole('button', { name: 'Check for updates', exact: true }).click();
+    await updates.getByRole('button', { name: 'Install update', exact: true }).click();
+    const restart = updates.getByRole('button', { name: 'Restart to update', exact: true });
+    await expect(restart).toBeEnabled({ timeout: 60000 });
+    await restart.click();
     await expect
       .poll(
         async () => {
-          const files = await readdir(directory);
+          if (original!.exitCode !== null) return original!.exitCode;
+          const status = await page
+            .evaluate(() => window.frameDesktop!.updateStatus())
+            .catch(() => null);
+          if (status?.error) throw new Error(status.error);
+          return null;
+        },
+        { timeout: 180000 },
+      )
+      .toBe(0);
+    const cache = join(profile, 'updates', tag);
+    const apply = (await readdir(cache)).find((name) => name.startsWith('apply-'))!;
+    const applied = join(cache, apply);
+    const planPath = join(applied, 'plan.json');
+    expect(JSON.parse(await readFile(planPath, 'utf8')).target).toBe(target);
+    await expect
+      .poll(
+        async () => {
+          const files = await readdir(applied);
           if (files.includes('error.json'))
-            throw new Error(await readFile(join(directory, 'error.json'), 'utf8'));
+            throw new Error(await readFile(join(applied, 'error.json'), 'utf8'));
           return files;
         },
         { timeout: 120000 },
       )
-      .toContain('armed');
-    const exited = new Promise<number | null>((resolve) => original!.once('exit', resolve));
-    await application.evaluate(({ app }) => {
-      setTimeout(() => app.quit(), 50);
-    });
-    expect(await exited).toBe(0);
-    expect(await completed, diagnostics).toBe(0);
-    expect(await readdir(directory)).toContain('complete');
+      .toContain('complete');
     expect(
       (await readdir(dirname(target))).filter((name) => name.startsWith('.Frame-update-')),
     ).toEqual([]);
@@ -131,7 +144,6 @@ test('updates and relaunches the installed macOS app or Windows installer throug
       ]);
     }
   } finally {
-    worker?.kill();
     if (application && original?.exitCode === null) await application.close();
     // Terminate only the relaunched executable owned by this test, never another Frame installation.
     if (target) {
@@ -146,10 +158,12 @@ test('updates and relaunches the installed macOS app or Windows installer throug
             } catch {}
         }
       } else {
-        const cleanup = join(directory, 'cleanup.ps1');
+        const cleanup = join(directory, 'cleanup.ps1'),
+          cleanupTarget = join(directory, 'cleanup-target.json');
+        await writeFile(cleanupTarget, JSON.stringify({ target }));
         await writeFile(
           cleanup,
-          "param([string]$PlanPath)\n$p=Get-Content -LiteralPath $PlanPath -Raw -Encoding UTF8 | ConvertFrom-Json\n$exe=Join-Path $p.target 'Frame.exe'\nGet-Process Frame -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Stop-Process -Force\n",
+          "param([string]$TargetPath)\n$p=Get-Content -LiteralPath $TargetPath -Raw -Encoding UTF8 | ConvertFrom-Json\n$exe=Join-Path $p.target 'Frame.exe'\nGet-Process Frame -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Stop-Process -Force\n",
         );
         await exec('powershell.exe', [
           '-NoProfile',
@@ -158,8 +172,8 @@ test('updates and relaunches the installed macOS app or Windows installer throug
           'Bypass',
           '-File',
           cleanup,
-          '-PlanPath',
-          join(directory, 'plan.json'),
+          '-TargetPath',
+          cleanupTarget,
         ]).catch(() => {});
       }
     }
