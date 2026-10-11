@@ -26,7 +26,10 @@ test('downloads, installs and relaunches the packaged app through Settings', asy
       target = join(directory, 'Frame.app');
       await exec('/usr/bin/ditto', [dirname(dirname(dirname(supplied))), target]);
       executable = join(target, 'Contents/MacOS/Frame');
-    } else target = dirname(supplied);
+    } else {
+      target = await realpath(dirname(supplied));
+      executable = join(target, 'Frame.exe');
+    }
     const profile = join(directory, 'profile');
     await mkdir(profile);
     await writeFile(
