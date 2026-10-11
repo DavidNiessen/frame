@@ -4,12 +4,39 @@ on:
     branches: [master]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: Publish a prerelease or a full release
+        type: choice
+        options: [prerelease, release]
+        default: prerelease
+      version:
+        description: 'Version (e.g. 1.0.0); leave blank to continue the current release line'
+        type: string
+        required: false
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 permissions:
   contents: read
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      kind: ${{ steps.version.outputs.kind }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Select the published release line
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUESTED_KIND: ${{ inputs.release_type }}
+        run: node scripts/release-version.mjs
   windows-shell:
     runs-on: ubuntu-24.04
     steps:
@@ -65,6 +92,9 @@ jobs:
             native/windows-shell/package/signature.json
           if-no-files-found: error
   pnpm-install:
+    needs: version
+    env:
+      FRAME_RELEASE_VERSION: ${{ needs.version.outputs.version }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,11 +104,15 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: '12.10.1'
+      - run: node scripts/release-version.mjs --apply
       - run: pnpm import
       - run: pnpm install --frozen-lockfile
       - run: pnpm run setup:desktop
       - run: node --test tests/setup/*.test.mjs
   web:
+    needs: version
+    env:
+      FRAME_RELEASE_VERSION: ${{ needs.version.outputs.version }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +120,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - run: node scripts/release-version.mjs --apply
       - run: npm ci
       - run: npm run check
       - run: npm test
@@ -103,7 +138,7 @@ jobs:
           name: frame-web
           path: dist/
   desktop:
-    needs: windows-shell
+    needs: [windows-shell, version]
     strategy:
       fail-fast: false
       matrix:
@@ -111,6 +146,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      FRAME_RELEASE_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - name: Use the verified CI shell package
@@ -127,6 +163,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - run: node scripts/release-version.mjs --apply
       - run: npm ci
       - run: npm test
       - name: Configure Electron's Linux sandbox
@@ -178,11 +215,16 @@ jobs:
           if-no-files-found: error
   release:
     name: Publish desktop installers
-    needs: [web, pnpm-install, desktop]
+    needs: [version, web, pnpm-install, desktop]
     if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    env:
+      FRAME_RELEASE_VERSION: ${{ needs.version.outputs.version }}
+      FRAME_RELEASE_KIND: ${{ needs.version.outputs.kind }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -197,7 +239,7 @@ jobs:
       - name: Verify completeness and generate checksums
         id: release
         run: node scripts/prepare-release.mjs installers "$RUNNER_TEMP/frame-release-notes.md"
-      - name: Publish the installers as a GitHub prerelease
+      - name: Publish the verified desktop release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -205,9 +247,27 @@ jobs:
           RELEASE_TITLE: ${{ steps.release.outputs.title }}
         run: |
           if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            if [ "$FRAME_RELEASE_KIND" = release ]; then
+              echo "Full release $RELEASE_TAG already exists; choose a new version." >&2
+              exit 1
+            fi
             gh release upload "$RELEASE_TAG" installers/* --clobber
           else
+            release_flags=(--prerelease)
+            if [ "$FRAME_RELEASE_KIND" = release ]; then release_flags=(--latest); fi
             gh release create "$RELEASE_TAG" installers/* \
               --target "$GITHUB_SHA" --title "$RELEASE_TITLE" \
-              --prerelease --generate-notes --notes-file "$RUNNER_TEMP/frame-release-notes.md"
+              "${release_flags[@]}" --generate-notes --notes-file "$RUNNER_TEMP/frame-release-notes.md"
           fi
+  pages:
+    name: Deploy full release to GitHub Pages
+    needs: [version, release]
+    if: needs.version.outputs.kind == 'release'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
+    with:
+      ref: ${{ needs.release.outputs.tag }}
+      version: ${{ needs.version.outputs.version }}

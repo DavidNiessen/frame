@@ -59,3 +59,12 @@ test('rejects empty installers and invalid release metadata', async (t) => {
   );
   await assert.rejects(prepareRelease(directory, { ...options, sha: 'master' }), /must be valid/);
 });
+
+test('full releases use stable tags and omit the development-build notice', async (t) => {
+  const { directory, options } = await fixture(t);
+  assert.deepEqual(await prepareRelease(directory, { ...options, kind: 'release' }), {
+    tag: 'v0.1.0',
+    title: 'Frame 0.1.0',
+  });
+  assert.ok(!(await readFile(options.notesPath, 'utf8')).includes('development builds'));
+});

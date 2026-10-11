@@ -98,3 +98,11 @@ Preserve the sources/build instructions that correspond to the exact shipped bin
 ## Library and font attribution
 
 Asset preparation copies upstream license files for React, React DOM, Scheduler, Lucide, fflate and Public Sans into `public/notices/`, alongside license texts for the WebAssembly wrapper/core and FFprobe installer. DejaVu notices remain in `public/fonts/LICENSE.txt`. The generated `LIBRARIES.txt` lists installed versions and attribution locations. Web builds serve these resources from `notices/`; desktop packages include them under `resources/notices/`. Maintain the supplemental texts in [vendor/licenses](../vendor/licenses/README.md) when updating packages whose npm archives omit license files.
+
+## Publishing versions
+
+Use **Actions → Validate and package → Run workflow** on `master`. Choose `release` for a full release (`v1.0.0`) or `prerelease` for a preview (`v1.0.0-build.N`). The optional version input accepts a numeric version such as `1.0.0`; leave it blank to continue the current line. All four installers are built with that version and published only after validation passes. Full releases cannot overwrite an existing release.
+
+Every master push creates a prerelease. After full release `1.0.0`, these builds use `1.0.1-build.N` until the next full release or a manually selected newer version. The release history persists the version line, so a prerelease does not increment the patch on each push. Selecting a full release does not change the signing or notarization requirements above.
+
+Only full releases deploy GitHub Pages. The publishing workflow calls the Pages workflow directly with the published tag; it builds and tests that exact release before deploying. This works with GitHub's Actions token, which does not trigger a second workflow through a generated release event.

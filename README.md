@@ -74,7 +74,7 @@ npm run build            # Web and Electron bundles
 npm run package          # Installer for the current OS and architecture
 ```
 
-Use `npm run format` and `npm run lint:fix` to apply automatic fixes. CI validates the web app, pnpm setup and native desktop builds on Windows, macOS Intel/Apple Silicon and Linux. Every successful `master` push or manual CI run publishes all four installers and `SHA256SUMS.txt` as a uniquely versioned prerelease.
+Use `npm run format` and `npm run lint:fix` to apply automatic fixes. CI validates the web app, pnpm setup and native desktop builds on Windows, macOS Intel/Apple Silicon and Linux. Every successful `master` push publishes all four installers and `SHA256SUMS.txt` as a uniquely versioned prerelease. For a full release, open **Actions → Validate and package → Run workflow**, select `master`, choose **release**, and enter a version such as `1.0.0`. Choose **prerelease** for a manual preview. Leaving the version blank continues the current release line. After `v1.0.0`, automatic previews use `v1.0.1-build.N`; a manually selected newer prerelease version becomes the preview line. Published tags determine versions without committing automated version bumps. Full releases are never overwritten.
 
 ## Project structure
 
@@ -95,7 +95,7 @@ See [architecture](docs/ARCHITECTURE.md), [design](docs/DESIGN.md), and [contrib
 
 ## Hosting
 
-`npm run build` produces the web app in `dist/`. Serve it over HTTPS with the isolation headers in [the nginx example](docs/nginx.conf). GitHub Pages uses the included isolation service worker; its deployment workflow builds and tests that mode automatically. No media-processing backend is needed.
+`npm run build` produces the web app in `dist/`. Serve it over HTTPS with the isolation headers in [the nginx example](docs/nginx.conf). GitHub Pages uses the included isolation service worker; the full-release workflow builds and tests that mode before deploying. GitHub Pages updates only on full releases, so automatic prereleases do not change the public web app. No media-processing backend is needed.
 
 ## Licensing
 

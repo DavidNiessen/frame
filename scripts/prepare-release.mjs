@@ -5,9 +5,13 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** Refuse partial releases and hash the exact installers produced by this run. */
-export async function prepareRelease(directory, { version, runNumber, sha, notesPath }) {
+export async function prepareRelease(
+  directory,
+  { version, runNumber, sha, notesPath, kind = 'prerelease' },
+) {
   if (
-    !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(version) ||
+    !/^\d+\.\d+\.\d+$/.test(version) ||
+    !['prerelease', 'release'].includes(kind) ||
     !/^[1-9]\d*$/.test(runNumber) ||
     !/^[a-f0-9]{40}$/.test(sha)
   ) {
@@ -48,7 +52,8 @@ export async function prepareRelease(directory, { version, runNumber, sha, notes
     '',
     'Download the installer for your platform. SHA256SUMS.txt contains the SHA-256 checksums.',
     '',
-    'These development builds are prereleases. Windows installers are unsigned. Mac apps are ad-hoc signed for integrity, but are not Apple notarized; first launch may require System Settings → Privacy & Security → Open Anyway. The Windows Explorer extension has separate certificate trust. See [installation and distribution notes](https://github.com/' +
+    (kind === 'prerelease' ? 'These development builds are prereleases. ' : '') +
+      'Windows installers are unsigned. Mac apps are ad-hoc signed for integrity, but are not Apple notarized; first launch may require System Settings → Privacy & Security → Open Anyway. The Windows Explorer extension has separate certificate trust. See [installation and distribution notes](https://github.com/' +
       (process.env.GITHUB_REPOSITORY ?? 'DavidNiessen/frame') +
       '/blob/' +
       sha +
@@ -56,7 +61,10 @@ export async function prepareRelease(directory, { version, runNumber, sha, notes
     '',
   ].join('\n');
   await writeFile(notesPath, notes);
-  return { tag: `v${version}-build.${runNumber}`, title: `Frame ${version} (build ${runNumber})` };
+  return {
+    tag: kind === 'release' ? `v${version}` : `v${version}-build.${runNumber}`,
+    title: kind === 'release' ? `Frame ${version}` : `Frame ${version} (build ${runNumber})`,
+  };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -64,7 +72,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     await readFile(new URL('../package.json', import.meta.url), 'utf8'),
   );
   const result = await prepareRelease(process.argv[2], {
-    version,
+    version: process.env.FRAME_RELEASE_VERSION || version,
+    kind: process.env.FRAME_RELEASE_KIND || 'prerelease',
     runNumber: process.env.GITHUB_RUN_NUMBER,
     sha: process.env.GITHUB_SHA,
     notesPath: process.argv[3],
