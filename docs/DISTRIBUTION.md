@@ -101,6 +101,16 @@ Asset preparation copies upstream license files for React, React DOM, Scheduler,
 
 ## Publishing versions
 
+### Desktop update checks
+
+**Settings → Updates** checks the latest full GitHub release by default; enable **Include prereleases** to use preview builds. Installed builds check shortly after startup and every six hours while running. Turn off **Check for updates automatically** to use manual checks only. Development checkouts offer manual checks but do not poll automatically.
+
+Frame selects an installer matching the current OS and architecture. Downloads start only when the user chooses **Download update**, stream to a temporary file, and are verified against the release's `SHA256SUMS.txt` before becoming available. Cancellation or checksum failure removes the temporary file. **Open installer** and **Show download** verify the file again. The downloaded installer lives under Frame's user-data directory in `updates/<release-tag>/`; Frame never replaces the running app automatically. Save work before using the Windows installer; on macOS open the DMG and replace Frame in Applications, and on Linux replace the AppImage. These downloads retain the signing and notarization limits described above.
+
+CI embeds the exact release tag in each desktop package, so previews compare by build number, a full release supersedes previews of the same version, and a lower release is never offered as an update. Unsupported architectures display an unavailable control and link to releases. On the web, update controls are disabled; a full release redeploys the hosted app.
+
+### Release workflow
+
 Use **Actions → Validate and package → Run workflow** on `master`. Choose `release` for a full release (`v1.0.0`) or `prerelease` for a preview (`v1.0.0-build.N`). The optional version input accepts a numeric version such as `1.0.0`; leave it blank to continue the current line. All four installers are built with that version and published only after validation passes. Full releases cannot overwrite an existing release.
 
 Every master push creates a prerelease. After full release `1.0.0`, these builds use `1.0.1-build.N` until the next full release or a manually selected newer version. The release history persists the version line, so a prerelease does not increment the patch on each push. Selecting a full release does not change the signing or notarization requirements above.

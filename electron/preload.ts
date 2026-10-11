@@ -1,6 +1,20 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DesktopBridge } from '../src/engines/bridge';
 const bridge: DesktopBridge = {
+  updateStatus: () => ipcRenderer.invoke('updates:status'),
+  checkForUpdates: () => ipcRenderer.invoke('updates:check'),
+  setUpdatePreferences: (value) => ipcRenderer.invoke('updates:preferences', value),
+  downloadUpdate: () => ipcRenderer.invoke('updates:download'),
+  cancelUpdateDownload: () => ipcRenderer.invoke('updates:cancel'),
+  openUpdateInstaller: () => ipcRenderer.invoke('updates:open'),
+  revealUpdateInstaller: () => ipcRenderer.invoke('updates:reveal'),
+  onUpdateStatus: (callback) => {
+    const listener = (_event: unknown, status: Parameters<typeof callback>[0]) => callback(status);
+    ipcRenderer.on('desktop:update-status', listener);
+    return () => {
+      ipcRenderer.removeListener('desktop:update-status', listener);
+    };
+  },
   installedFonts: () => ipcRenderer.invoke('desktop:fonts'),
   saveWorkspace: (document, ids) => ipcRenderer.invoke('workspace:save', document, ids),
   recoverWorkspace: () => ipcRenderer.invoke('workspace:recover'),

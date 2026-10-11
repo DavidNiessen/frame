@@ -147,6 +147,7 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       FRAME_RELEASE_VERSION: ${{ needs.version.outputs.version }}
+      FRAME_RELEASE_KIND: ${{ needs.version.outputs.kind }}
     steps:
       - uses: actions/checkout@v4
       - name: Use the verified CI shell package

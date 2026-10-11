@@ -10,6 +10,7 @@ A cross-platform media editor and converter for video and audio. Edit a clip, la
 - **Effects:** crop, rotate, resize, speed, fades, color adjustments, LUTs, volume, EQ, noise reduction and loudness normalization. Timed effects have draggable timeline bars and live previews.
 - **Captions:** independent text effects with on-frame editing, positioning and resizing; fonts, colors and styling; SRT import/export and burned-in subtitles.
 - **Convert:** files or recursive folders, a dedicated batch queue, presets, custom filenames, metadata and artwork, plus advanced encoding options.
+- **Updates:** check GitHub releases in desktop Settings, download a verified installer, and opt into prereleases. Installed apps check automatically at startup and every six hours.
 - **Workspace:** undo/redo, portable `.frame.json` projects, automatic local recovery, resizable panels, keyboard shortcuts and a command palette.
 - **Appearance:** system light/dark detection, Light, Dark and High contrast themes, responsive layouts and reduced-motion support.
 

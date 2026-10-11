@@ -81,6 +81,12 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add watch folder', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Show saved exports' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Check for updates' })).toBeDisabled();
+  await expect(page.getByLabel('Check for updates automatically')).toBeDisabled();
+  await expect(page.getByLabel('Include prereleases')).toBeDisabled();
+  await expect(page.locator('section[aria-labelledby="updates-heading"]')).toContainText(
+    'Reload to get the latest version',
+  );
   await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
   await page.getByRole('radio', { name: 'Light theme', exact: true }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');

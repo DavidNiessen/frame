@@ -1,4 +1,5 @@
 import { configureCompletionNotifications } from './completion-notifications';
+import { configureAppUpdates } from './app-updates';
 import { configureInstalledFonts } from './installed-fonts';
 import { configureExportHistory } from './export-history';
 import { configureWatchFolders } from './watch-folders';
@@ -40,6 +41,7 @@ let desktopReady = false,
 let stopWatchFolders: () => Promise<void> = async () => {};
 let quitting = false;
 let flushExportHistory: () => Promise<void> = async () => {};
+let stopAppUpdates: () => Promise<void> = async () => {};
 const shellCommand = shellStartupCommand(process.argv);
 const ownsInstance = !!shellCommand || app.requestSingleInstanceLock();
 if (!ownsInstance) app.quit();
@@ -162,6 +164,7 @@ if (ownsInstance && !shellCommand) {
 app.whenReady().then(() => {
   if (!ownsInstance || configureSystemIntegration(shellCommand, trusted)) return;
   configureCompletionNotifications(trusted);
+  stopAppUpdates = configureAppUpdates(trusted);
   configureInstalledFonts(trusted);
   flushExportHistory = configureExportHistory(trusted);
   stopWatchFolders = configureWatchFolders(trusted);
@@ -193,6 +196,7 @@ app.on('before-quit', (event) => {
   if (quitting) return;
   event.preventDefault();
   quitting = true;
+  const updateShutdown = stopAppUpdates();
   // Flush completion records before exiting, without letting disconnected network folders stall shutdown.
   const timeout = new Promise<void>((resolve) => {
     const timer = setTimeout(resolve, 3000);
@@ -202,6 +206,7 @@ app.on('before-quit', (event) => {
     (async () => {
       await stopWatchFolders();
       await flushExportHistory();
+      await updateShutdown;
     })(),
     timeout,
   ])

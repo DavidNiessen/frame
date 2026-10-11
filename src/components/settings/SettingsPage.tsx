@@ -17,6 +17,7 @@ import { CompletionNotifications } from './CompletionNotifications';
 import { RecentExports } from './RecentExports';
 import { WatchFolders } from './WatchFolders';
 import { CertificateTrust } from './CertificateTrust';
+import { AppUpdates } from './AppUpdates';
 
 const webStatus: ShellIntegrationStatus = {
   platform: 'web',
@@ -190,6 +191,7 @@ export function SettingsPage({
         </label>
       </section>
       <CompletionNotifications />
+      <AppUpdates />
       <WatchFolders />
       <RecentExports />
       <section className="settings-card" aria-labelledby="integration-heading">

@@ -1,4 +1,5 @@
 import { AppFooter } from './components/LoadingBeam';
+import { useAppUpdateActivity } from './hooks/useAppUpdates';
 import { useLoadingActivity } from './hooks/useLoadingActivity';
 import { AudioLayerOverlay } from './components/AudioLayerOverlay';
 import { useLibraryInsertion } from './hooks/useLibraryInsertion';
@@ -49,6 +50,7 @@ import { useDesktopChrome } from './hooks/useDesktopChrome';
 import { outputTimeAtSource } from './core/fades';
 import { useEditorShortcuts } from './hooks/useEditorShortcuts';
 export default function App() {
+  useAppUpdateActivity();
   const editor = useEditor();
   const { theme, setTheme } = useTheme();
   const [workflow, setWorkflow] = useState<'edit' | 'convert'>(() => {

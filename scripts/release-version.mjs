@@ -49,12 +49,25 @@ export function selectReleaseVersion({
   return { version, kind };
 }
 
-export async function applyReleaseVersion(version, root = new URL('../', import.meta.url)) {
+export async function applyReleaseVersion(
+  version,
+  root = new URL('../', import.meta.url),
+  release,
+) {
   if (!validVersion(version)) throw new Error('Invalid release version.');
+  if (
+    release &&
+    (!['release', 'prerelease'].includes(release.kind) ||
+      !/^[1-9]\d*$/.test(String(release.build)) ||
+      !Number.isSafeInteger(Number(release.build)))
+  )
+    throw new Error('Invalid release build metadata.');
   for (const name of ['package.json', 'package-lock.json']) {
     const path = new URL(name, root);
     const data = JSON.parse(await readFile(path, 'utf8'));
     data.version = version;
+    if (name === 'package.json' && release)
+      data.frameReleaseTag = `v${version}${release.kind === 'prerelease' ? `-build.${release.build}` : ''}`;
     if (data.packages?.['']) data.packages[''].version = version;
     await writeFile(path, `${JSON.stringify(data, null, 2)}\n`);
   }
@@ -62,7 +75,16 @@ export async function applyReleaseVersion(version, root = new URL('../', import.
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv[2] === '--apply') {
-    await applyReleaseVersion(process.env.FRAME_RELEASE_VERSION);
+    await applyReleaseVersion(
+      process.env.FRAME_RELEASE_VERSION,
+      undefined,
+      process.env.GITHUB_RUN_NUMBER
+        ? {
+            kind: process.env.FRAME_RELEASE_KIND || 'prerelease',
+            build: process.env.GITHUB_RUN_NUMBER,
+          }
+        : undefined,
+    );
   } else {
     const { version: fallback } = JSON.parse(
       await readFile(new URL('../package.json', import.meta.url), 'utf8'),

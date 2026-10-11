@@ -84,4 +84,20 @@ test('applies the selected version to the manifest and both root lockfile entrie
   assert.equal(lock.version, '1.0.1');
   assert.equal(lock.packages[''].version, '1.0.1');
   assert.equal(lock.packages['node_modules/example'].version, '3.0.0');
+  await applyReleaseVersion('1.0.1', pathToFileURL(`${directory}/`), {
+    kind: 'prerelease',
+    build: 42,
+  });
+  assert.equal(
+    JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).frameReleaseTag,
+    'v1.0.1-build.42',
+  );
+  await applyReleaseVersion('1.0.1', pathToFileURL(`${directory}/`), {
+    kind: 'release',
+    build: 43,
+  });
+  assert.equal(
+    JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).frameReleaseTag,
+    'v1.0.1',
+  );
 });
