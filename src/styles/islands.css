@@ -24,7 +24,8 @@
 }
 .app-shell:has(.editor-layout[data-layout='wide']) {
   height: var(--app-height, 100dvh);
-  min-height: 760px;
+  min-height: 0;
+  overflow: hidden;
 }
 .workspace.editor-layout {
   width: 100%;
@@ -41,6 +42,7 @@
 .editor-layout[data-layout='wide'] {
   flex: 1;
   height: 0;
+  min-height: 0;
   grid-template-rows: minmax(0, 1fr);
 }
 .editor-layout > .library {
@@ -80,7 +82,7 @@
 }
 .editor-layout .editor-center.has-media {
   display: grid;
-  grid-template-rows: minmax(240px, 1fr) 12px var(--timeline-height);
+  grid-template-rows: minmax(var(--preview-min-height, 240px), 1fr) 12px var(--timeline-height);
 }
 .editor-layout .empty-stage {
   min-height: 0;

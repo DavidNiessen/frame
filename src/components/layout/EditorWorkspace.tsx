@@ -40,6 +40,7 @@ export function EditorWorkspace({
     '--library-width': `${layout.library}px`,
     '--inspector-width': `${layout.inspector}px`,
     '--timeline-height': `${layout.timeline}px`,
+    '--preview-min-height': `${layout.previewMin}px`,
   } as CSSProperties;
   return (
     <main
@@ -72,7 +73,7 @@ export function EditorWorkspace({
               axis="y"
               reverse
               value={layout.timeline}
-              min={180}
+              min={layout.timelineMin}
               max={layout.timelineMax}
               defaultValue={layout.timelineDefault}
               resize={(value) => resize('timeline', value)}

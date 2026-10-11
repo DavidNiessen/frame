@@ -33,6 +33,46 @@ async function dragDivider(page: Page, name: string, x: number, y: number) {
   });
   await page.mouse.up();
 }
+test('keeps short wide browser windows within the viewport and scrolls content inside panels', async ({
+  page,
+}) => {
+  const contained = async () => {
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          horizontal: document.documentElement.scrollWidth - innerWidth,
+          vertical: document.documentElement.scrollHeight - innerHeight,
+        })),
+      )
+      .toEqual({ horizontal: 0, vertical: 0 });
+    await expect(page.locator('.app-footer')).toBeInViewport();
+  };
+  await page.setViewportSize({ width: 1440, height: 700 });
+  await page.goto('/');
+  for (const height of [700, 600, 500, 829]) {
+    await page.setViewportSize({ width: 1440, height });
+    await expect(page.locator('.editor-layout')).toHaveAttribute('data-layout', 'wide');
+    await contained();
+    await expect(page.getByRole('button', { name: 'Import media', exact: true })).toBeInViewport();
+  }
+  await sample(page);
+  await crowdedTimeline(page);
+  for (const height of [700, 600, 500, 829]) {
+    await page.setViewportSize({ width: 1440, height });
+    await contained();
+    const tracks = page.getByRole('region', { name: 'Timeline tracks', exact: true });
+    expect(await tracks.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true);
+    await tracks.evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+    });
+    await contained();
+    await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeInViewport();
+  }
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  // Long pages must still scroll; only the wide editor uses panel-contained scrolling.
+  expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(true);
+});
+
 test('fits the empty preview at short desktop heights and contains genuine overflow inside its rounded border', async ({
   page,
 }) => {

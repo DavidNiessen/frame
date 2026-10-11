@@ -38,16 +38,22 @@ export function editorPanelLayout(
   const inspector = clampPanel(preferred.inspector, 280, inspectorMax);
   const libraryMax = mode === 'wide' ? Math.min(400, width - inspector - 440 - 24) : 400;
   const library = clampPanel(preferred.library, 180, libraryMax);
-  const timelineMax = mode === 'stacked' ? 520 : Math.max(180, height - 240 - 12);
+  const halfHeight = Math.floor(Math.max(0, height - 12) / 2);
+  const previewMin = mode === 'stacked' ? 240 : Math.min(240, halfHeight);
+  const timelineMin = mode === 'stacked' ? 180 : Math.min(180, halfHeight);
+  const timelineMax =
+    mode === 'stacked' ? 520 : Math.floor(Math.max(timelineMin, height - previewMin - 12));
   const timelineDefault =
     mode === 'stacked'
       ? clampPanel(viewportHeight * 0.5, 240, 480)
-      : clampPanel((height - 12) / 2, 180, timelineMax);
+      : clampPanel((height - 12) / 2, timelineMin, timelineMax);
   return {
     mode,
     library,
     inspector,
-    timeline: clampPanel(preferred.timeline ?? timelineDefault, 180, timelineMax),
+    timeline: clampPanel(preferred.timeline ?? timelineDefault, timelineMin, timelineMax),
+    previewMin,
+    timelineMin,
     timelineDefault,
     libraryMax,
     inspectorMax: mode === 'wide' ? Math.min(480, width - library - 440 - 24) : inspectorMax,

@@ -36,3 +36,13 @@ it('divides the player and timeline equally by default, including tall windows',
   expect(phone.timeline).toBe(422);
   expect(editorPanelLayout(readPanelSizes({ timeline: 248 }), 1440, 1000).timeline).toBe(248);
 });
+
+it('fits saved timeline sizes into short windows without overflowing the player', () => {
+  for (const height of [280, 360, 430]) {
+    for (const timeline of [null, 248, 2000]) {
+      const layout = editorPanelLayout({ ...defaultPanelSizes, timeline }, 1440, height);
+      expect(layout.timeline + layout.previewMin + 12).toBeLessThanOrEqual(height);
+      expect(layout.timeline).toBeGreaterThanOrEqual(layout.timelineMin);
+    }
+  }
+});
