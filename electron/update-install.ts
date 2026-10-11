@@ -83,15 +83,15 @@ export async function armUpdateInstall(
   });
   const outputPath = join(directory, 'helper.log');
   const output = await open(outputPath, 'wx', 0o600);
+  const systemDirectory = join(process.env.SystemRoot || 'C:\\Windows', 'System32');
   const child = spawn(
-    windows
-      ? join(
-          process.env.SystemRoot || 'C:\\Windows',
-          'System32/WindowsPowerShell/v1.0/powershell.exe',
-        )
-      : location.executable,
+    windows ? join(systemDirectory, 'conhost.exe') : location.executable,
     windows
       ? [
+          // Detached PowerShell exits without running its script when it has no console.
+          // Windows' headless console host supplies one without showing a console window.
+          '--headless',
+          join(systemDirectory, 'WindowsPowerShell/v1.0/powershell.exe'),
           '-NoProfile',
           '-NonInteractive',
           '-ExecutionPolicy',
