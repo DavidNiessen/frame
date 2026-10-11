@@ -6,11 +6,18 @@ import { windowsShellCommand, type ShellLaunch } from './shell-command';
 
 // Use .NET registry APIs instead of interpolating filenames into shell commands.
 // All registrations are per-user; default file associations are never modified.
-export async function windowsShellActions(launch: ShellLaunch, operation: 'status' | 'install' | 'remove') {
-  const entries = extensions.flatMap(extension => shellActions.map(action => ({
-    key: `Software\\Classes\\SystemFileAssociations\\.${extension}\\shell\\${action.verb}`,
-    label: action.label, icon: `"${launch.executable}",0`, command: windowsShellCommand(launch, action.workflow),
-  })));
+export async function windowsShellActions(
+  launch: ShellLaunch,
+  operation: 'status' | 'install' | 'remove',
+) {
+  const entries = extensions.flatMap((extension) =>
+    shellActions.map((action) => ({
+      key: `Software\\Classes\\SystemFileAssociations\\.${extension}\\shell\\${action.verb}`,
+      label: action.label,
+      icon: `"${launch.executable}",0`,
+      command: windowsShellCommand(launch, action.workflow),
+    })),
+  );
   const script = `
 $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
@@ -48,12 +55,25 @@ if ($data.operation -ne 'status') {
   const systemRoot = process.env.SystemRoot || 'C:\\Windows';
   // Send paths through stdin to avoid Windows' command-line length limit for long install paths.
   const stdout = await new Promise<string>((resolve, reject) => {
-    const child = execFile(join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
-      ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
-      { windowsHide: true, env: windowsPowerShellEnv(), timeout: 30000, maxBuffer: 1024 * 1024 }, (error, output) => error ? reject(error) : resolve(output));
+    const child = execFile(
+      join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+      [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        '-EncodedCommand',
+        Buffer.from(script, 'utf16le').toString('base64'),
+      ],
+      { windowsHide: true, env: windowsPowerShellEnv(), timeout: 30000, maxBuffer: 1024 * 1024 },
+      (error, output) => (error ? reject(error) : resolve(output)),
+    );
     child.stdin!.on('error', reject);
     child.stdin!.end(JSON.stringify({ entries, operation }), 'utf8');
   });
   const result = JSON.parse(stdout.trim()) as { owned: number; complete: number; total: number };
-  return result.complete === result.total ? 'installed' : result.owned > 0 ? 'partial' : 'not-installed';
+  return result.complete === result.total
+    ? 'installed'
+    : result.owned > 0
+      ? 'partial'
+      : 'not-installed';
 }

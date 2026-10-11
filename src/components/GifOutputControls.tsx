@@ -1,11 +1,95 @@
 import type { GifOutput } from '../core/gif-output';
-export function GifOutputControls({ settings, update }: { settings: GifOutput; update: (patch: Partial<GifOutput>) => void }) {
-  return <div className="gif-output-controls">
-    <label className="stacked-label">Playback repeats<select aria-label="GIF repeat mode" value={settings.gifLoop === 0 ? 'forever' : settings.gifLoop === -1 ? 'once' : 'count'} onChange={event => update({ gifLoop: event.target.value === 'forever' ? 0 : event.target.value === 'once' ? -1 : 1 })}><option value="forever">Loop forever</option><option value="once">Play once</option><option value="count">Repeat a set number of times</option></select></label>
-    {settings.gifLoop > 0 && <label className="stacked-label">Extra repeats<input type="number" aria-label="GIF extra repeats" min={1} max={100} value={settings.gifLoop} onChange={event => update({ gifLoop: Number(event.target.value) })} /></label>}
-    <label className="stacked-label">Width<select aria-label="GIF width" value={settings.gifWidth ?? ''} onChange={event => update({ gifWidth: event.target.value ? Number(event.target.value) : null })}><option value="">Original output width</option>{[320, 480, 640, 960, 1280].map(width => <option key={width} value={width}>{width} px</option>)}{settings.gifWidth && ![320, 480, 640, 960, 1280].includes(settings.gifWidth) && <option value={settings.gifWidth}>{settings.gifWidth} px</option>}</select></label>
-    <label className="stacked-label">Palette colors<select aria-label="GIF palette colors" value={settings.gifColors} onChange={event => update({ gifColors: Number(event.target.value) })}>{[32, 64, 128, 256].map(colors => <option key={colors} value={colors}>{colors} colors</option>)}{![32, 64, 128, 256].includes(settings.gifColors) && <option value={settings.gifColors}>{settings.gifColors} colors</option>}</select></label>
-    <label className="stacked-label">Dithering<select aria-label="GIF dithering" value={settings.gifDither} onChange={event => update({ gifDither: event.target.value as GifOutput['gifDither'] })}><option value="sierra2_4a">Smooth gradients</option><option value="bayer">Ordered pattern</option><option value="none">None · smaller, may show color bands</option></select></label>
-    <p className="field-note">Smaller dimensions and palettes can reduce size. Some players override GIF repeat counts.</p>
-  </div>;
+export function GifOutputControls({
+  settings,
+  update,
+}: {
+  settings: GifOutput;
+  update: (patch: Partial<GifOutput>) => void;
+}) {
+  return (
+    <div className="gif-output-controls">
+      <label className="stacked-label">
+        Playback repeats
+        <select
+          aria-label="GIF repeat mode"
+          value={settings.gifLoop === 0 ? 'forever' : settings.gifLoop === -1 ? 'once' : 'count'}
+          onChange={(event) =>
+            update({
+              gifLoop:
+                event.target.value === 'forever' ? 0 : event.target.value === 'once' ? -1 : 1,
+            })
+          }
+        >
+          <option value="forever">Loop forever</option>
+          <option value="once">Play once</option>
+          <option value="count">Repeat a set number of times</option>
+        </select>
+      </label>
+      {settings.gifLoop > 0 && (
+        <label className="stacked-label">
+          Extra repeats
+          <input
+            type="number"
+            aria-label="GIF extra repeats"
+            min={1}
+            max={100}
+            value={settings.gifLoop}
+            onChange={(event) => update({ gifLoop: Number(event.target.value) })}
+          />
+        </label>
+      )}
+      <label className="stacked-label">
+        Width
+        <select
+          aria-label="GIF width"
+          value={settings.gifWidth ?? ''}
+          onChange={(event) =>
+            update({ gifWidth: event.target.value ? Number(event.target.value) : null })
+          }
+        >
+          <option value="">Original output width</option>
+          {[320, 480, 640, 960, 1280].map((width) => (
+            <option key={width} value={width}>
+              {width} px
+            </option>
+          ))}
+          {settings.gifWidth && ![320, 480, 640, 960, 1280].includes(settings.gifWidth) && (
+            <option value={settings.gifWidth}>{settings.gifWidth} px</option>
+          )}
+        </select>
+      </label>
+      <label className="stacked-label">
+        Palette colors
+        <select
+          aria-label="GIF palette colors"
+          value={settings.gifColors}
+          onChange={(event) => update({ gifColors: Number(event.target.value) })}
+        >
+          {[32, 64, 128, 256].map((colors) => (
+            <option key={colors} value={colors}>
+              {colors} colors
+            </option>
+          ))}
+          {![32, 64, 128, 256].includes(settings.gifColors) && (
+            <option value={settings.gifColors}>{settings.gifColors} colors</option>
+          )}
+        </select>
+      </label>
+      <label className="stacked-label">
+        Dithering
+        <select
+          aria-label="GIF dithering"
+          value={settings.gifDither}
+          onChange={(event) => update({ gifDither: event.target.value as GifOutput['gifDither'] })}
+        >
+          <option value="sierra2_4a">Smooth gradients</option>
+          <option value="bayer">Ordered pattern</option>
+          <option value="none">None · smaller, may show color bands</option>
+        </select>
+      </label>
+      <p className="field-note">
+        Smaller dimensions and palettes can reduce size. Some players override GIF repeat counts.
+      </p>
+    </div>
+  );
 }

@@ -3,17 +3,25 @@ import { availableFormats } from './formats';
 import { outputSettings, type OutputSettings } from './presets';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 
-export const canConvert = (asset: MediaAsset, output: OutputSettings) => availableFormats(asset).some(format => format.id === output.format);
+export const canConvert = (asset: MediaAsset, output: OutputSettings) =>
+  availableFormats(asset).some((format) => format.id === output.format);
 
 export function conversionSettings(asset: MediaAsset, output: OutputSettings): EditSettings {
   // Conversion always uses the complete source, independently of its editing recipe.
   return { ...defaultSettings(asset), ...outputSettings(output) };
 }
 
-export function conversionName(asset: MediaAsset, format: string, keepFolders = false, template = '{name}', index = 1): string {
+export function conversionName(
+  asset: MediaAsset,
+  format: string,
+  keepFolders = false,
+  template = '{name}',
+  index = 1,
+): string {
   const name = namedConversion(asset, format, template, index);
   if (!keepFolders || !asset.relativePath) return name;
   const folders = asset.relativePath.replace(/\\/g, '/').split('/').slice(0, -1);
-  if (folders.some(folder => !folder || folder === '.' || folder === '..')) throw new Error('Invalid source folder structure.');
+  if (folders.some((folder) => !folder || folder === '.' || folder === '..'))
+    throw new Error('Invalid source folder structure.');
   return [...folders.map(filenameStem), name].join('/');
 }

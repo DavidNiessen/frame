@@ -31,7 +31,22 @@ const mini = !!window.frameDesktop?.miniConversion;
 if (mini) document.documentElement.dataset.miniConversion = 'true';
 const desktop = !mini && typeof window.frameDesktop?.windowState === 'function';
 if (desktop) document.documentElement.dataset.desktopWindow = 'true';
-function FrameRoot() { useBorderLight(); return mini ? <MiniConversion /> : desktop ? <DesktopWindow><App /></DesktopWindow> : <App />; }
+function FrameRoot() {
+  useBorderLight();
+  return mini ? (
+    <MiniConversion />
+  ) : desktop ? (
+    <DesktopWindow>
+      <App />
+    </DesktopWindow>
+  ) : (
+    <App />
+  );
+}
 void prepareBrowserIsolation().then(() => {
-  ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><FrameRoot /></React.StrictMode>);
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <FrameRoot />
+    </React.StrictMode>,
+  );
 });

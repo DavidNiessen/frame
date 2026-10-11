@@ -7,76 +7,97 @@ const bridge: DesktopBridge = {
   discardWorkspace: () => ipcRenderer.invoke('workspace:clear'),
   exportHistory: () => ipcRenderer.invoke('history:status'),
   clearExportHistory: () => ipcRenderer.invoke('history:clear'),
-  removeExportHistory: id => ipcRenderer.invoke('history:remove', id),
-  revealExport: id => ipcRenderer.invoke('history:reveal', id),
+  removeExportHistory: (id) => ipcRenderer.invoke('history:remove', id),
+  revealExport: (id) => ipcRenderer.invoke('history:reveal', id),
   watchFoldersStatus: () => ipcRenderer.invoke('watch:status'),
   chooseWatchFolders: () => ipcRenderer.invoke('watch:choose'),
-  addWatchFolder: draft => ipcRenderer.invoke('watch:add', draft),
+  addWatchFolder: (draft) => ipcRenderer.invoke('watch:add', draft),
   setWatchFolderEnabled: (id, enabled) => ipcRenderer.invoke('watch:enabled', id, enabled),
-  removeWatchFolder: id => ipcRenderer.invoke('watch:remove', id),
-  retryWatchFolder: id => ipcRenderer.invoke('watch:retry', id),
-  openWatchFolderOutput: id => ipcRenderer.invoke('watch:open', id),
+  removeWatchFolder: (id) => ipcRenderer.invoke('watch:remove', id),
+  retryWatchFolder: (id) => ipcRenderer.invoke('watch:retry', id),
+  openWatchFolderOutput: (id) => ipcRenderer.invoke('watch:open', id),
   notificationPreference: () => ipcRenderer.invoke('desktop:notification-preference'),
-  setCompletionNotifications: enabled => ipcRenderer.invoke('desktop:set-notifications', enabled),
-  notifyCompletion: summary => ipcRenderer.invoke('desktop:notify-completion', summary),
+  setCompletionNotifications: (enabled) => ipcRenderer.invoke('desktop:set-notifications', enabled),
+  notifyCompletion: (summary) => ipcRenderer.invoke('desktop:notify-completion', summary),
   miniConversion: process.argv.includes('--frame-mini-conversion'),
   windowState: () => ipcRenderer.invoke('desktop:window-state'),
-  setWindowChrome: expanded => ipcRenderer.invoke('desktop:window-chrome', expanded),
-  windowAction: action => ipcRenderer.invoke('desktop:window-action', action),
-  onWindowState: callback => {
+  setWindowChrome: (expanded) => ipcRenderer.invoke('desktop:window-chrome', expanded),
+  windowAction: (action) => ipcRenderer.invoke('desktop:window-action', action),
+  onWindowState: (callback) => {
     const listener = (_event: unknown, state: Parameters<typeof callback>[0]) => callback(state);
     ipcRenderer.on('desktop:window-state', listener);
     return () => ipcRenderer.removeListener('desktop:window-state', listener);
   },
-  setMiniExpanded: (expanded, reducedMotion) => ipcRenderer.invoke('desktop:mini-expanded', expanded, reducedMotion),
+  setMiniExpanded: (expanded, reducedMotion) =>
+    ipcRenderer.invoke('desktop:mini-expanded', expanded, reducedMotion),
   finishMini: () => ipcRenderer.invoke('desktop:mini-finish'),
   dismissMini: () => ipcRenderer.invoke('desktop:mini-dismiss'),
   shellIntegrationStatus: () => ipcRenderer.invoke('desktop:shell-status'),
-  setShellIntegration: enabled => ipcRenderer.invoke('desktop:set-shell-actions', enabled),
-  changeShellCertificate: action => ipcRenderer.invoke('desktop:shell-certificate', action),
+  setShellIntegration: (enabled) => ipcRenderer.invoke('desktop:set-shell-actions', enabled),
+  changeShellCertificate: (action) => ipcRenderer.invoke('desktop:shell-certificate', action),
   nextLaunch: () => ipcRenderer.invoke('desktop:next-launch'),
-  importLaunch: id => ipcRenderer.invoke('desktop:import-launch', id),
-  onLaunchAvailable: callback => { const listener = () => callback(); ipcRenderer.on('desktop:launch-available', listener); return () => ipcRenderer.removeListener('desktop:launch-available', listener); },
+  importLaunch: (id) => ipcRenderer.invoke('desktop:import-launch', id),
+  onLaunchAvailable: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('desktop:launch-available', listener);
+    return () => ipcRenderer.removeListener('desktop:launch-available', listener);
+  },
   desktopCapabilities: () => ipcRenderer.invoke('media:capabilities'),
-  previewProxy: id => ipcRenderer.invoke('media:proxy', id),
-  releaseProxy: id => ipcRenderer.invoke('media:release-proxy', id),
+  previewProxy: (id) => ipcRenderer.invoke('media:proxy', id),
+  releaseProxy: (id) => ipcRenderer.invoke('media:release-proxy', id),
   joinedPreview: (id, ranges) => ipcRenderer.invoke('media:joined-preview', id, ranges),
   effectPreview: (id, edit) => ipcRenderer.invoke('media:effect-preview', id, edit),
-  cancelJoinedPreview: () => { void ipcRenderer.invoke('media:cancel-joined-preview').catch(() => {}); },
-  onJoinedPreviewProgress: callback => {
-    const listener = (_event: Electron.IpcRendererEvent, progress: import('../src/core/types').ExportProgress) => callback(progress);
-    ipcRenderer.on('media:joined-preview-progress', listener);
-    return () => { ipcRenderer.removeListener('media:joined-preview-progress', listener); };
+  cancelJoinedPreview: () => {
+    void ipcRenderer.invoke('media:cancel-joined-preview').catch(() => {});
   },
-  importFiles: files => ipcRenderer.invoke('media:import', files?.map(file => webUtils.getPathForFile(file))),
+  onJoinedPreviewProgress: (callback) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: import('../src/core/types').ExportProgress,
+    ) => callback(progress);
+    ipcRenderer.on('media:joined-preview-progress', listener);
+    return () => {
+      ipcRenderer.removeListener('media:joined-preview-progress', listener);
+    };
+  },
+  importFiles: (files) =>
+    ipcRenderer.invoke(
+      'media:import',
+      files?.map((file) => webUtils.getPathForFile(file)),
+    ),
   importFolder: () => ipcRenderer.invoke('media:import-folder'),
   importUrl: (url, options) => ipcRenderer.invoke('media:import-url', url, options),
   export: (id, settings, token) => ipcRenderer.invoke('media:export', id, settings, token),
-  saveProject: project => ipcRenderer.invoke('project:save', project),
-  merge: (clips, settings, transition) => ipcRenderer.invoke('media:merge', clips, settings, transition),
+  saveProject: (project) => ipcRenderer.invoke('project:save', project),
+  merge: (clips, settings, transition) =>
+    ipcRenderer.invoke('media:merge', clips, settings, transition),
   appendVideo: (id, addedId) => ipcRenderer.invoke('media:append-video', id, addedId),
-  extractAudio: id => ipcRenderer.invoke('media:extract-audio', id),
+  extractAudio: (id) => ipcRenderer.invoke('media:extract-audio', id),
   detectSilence: (id, options) => ipcRenderer.invoke('media:silence', id, options),
   previewFrame: (id, edit, time) => ipcRenderer.invoke('media:frame-preview', id, edit, time),
   previewAudio: (id, edit) => ipcRenderer.invoke('media:audio-preview', id, edit),
   measureLoudness: (id, edit) => ipcRenderer.invoke('media:loudness', id, edit),
   detectScenes: (id, options) => ipcRenderer.invoke('media:scenes', id, options),
   contactSheet: (id, edit, options) => ipcRenderer.invoke('media:contact-sheet', id, edit, options),
-  thumbnails: id => ipcRenderer.invoke('media:thumbnails', id),
-  cancelWaveform: () => { void ipcRenderer.invoke('media:cancel-waveform').catch(() => {}); },
-  onWaveformProgress: callback => {
-    const listener = (_event: unknown, progress: Parameters<typeof callback>[0]) => callback(progress);
+  thumbnails: (id) => ipcRenderer.invoke('media:thumbnails', id),
+  cancelWaveform: () => {
+    void ipcRenderer.invoke('media:cancel-waveform').catch(() => {});
+  },
+  onWaveformProgress: (callback) => {
+    const listener = (_event: unknown, progress: Parameters<typeof callback>[0]) =>
+      callback(progress);
     ipcRenderer.on('media:waveform-progress', listener);
     return () => ipcRenderer.removeListener('media:waveform-progress', listener);
   },
-  waveform: id => ipcRenderer.invoke('media:waveform', id),
-  beginBatch: options => ipcRenderer.invoke('batch:begin', options),
-  endBatch: token => ipcRenderer.invoke('batch:end', token),
+  waveform: (id) => ipcRenderer.invoke('media:waveform', id),
+  beginBatch: (options) => ipcRenderer.invoke('batch:begin', options),
+  endBatch: (token) => ipcRenderer.invoke('batch:end', token),
   openBatchFolder: () => ipcRenderer.invoke('batch:open-folder'),
   cancel: () => ipcRenderer.send('media:cancel'),
-  release: id => ipcRenderer.invoke('media:release', id),
-  onProgress: callback => {
-    const listener = (_event: unknown, progress: Parameters<typeof callback>[0]) => callback(progress);
+  release: (id) => ipcRenderer.invoke('media:release', id),
+  onProgress: (callback) => {
+    const listener = (_event: unknown, progress: Parameters<typeof callback>[0]) =>
+      callback(progress);
     ipcRenderer.on('media:progress', listener);
     return () => ipcRenderer.removeListener('media:progress', listener);
   },

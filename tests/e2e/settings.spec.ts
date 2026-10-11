@@ -1,7 +1,9 @@
 import { importTestMedia } from '../helpers/import-media';
 import { test, expect } from '@playwright/test';
 
-test('shows disabled file-manager actions on web and previewed themes that persist', async ({ page }) => {
+test('shows disabled file-manager actions on web and previewed themes that persist', async ({
+  page,
+}) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
   await expect(page.locator('.desktop-chrome')).toHaveCount(0);
@@ -15,7 +17,11 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await expect(page.getByRole('button', { name: 'Install actions' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Install actions' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Remove actions' })).toBeDisabled();
-  await expect(page.locator('section[aria-labelledby="integration-heading"]').getByText('Desktop only', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .locator('section[aria-labelledby="integration-heading"]')
+      .getByText('Desktop only', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add watch folder', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Show saved exports' })).toBeDisabled();
   await expect(page.getByLabel('File context menu preview')).toHaveCount(0);
@@ -41,7 +47,9 @@ test('shows disabled file-manager actions on web and previewed themes that persi
   await expect(page.getByRole('button', { name: 'Add media' })).toBeVisible();
 });
 
-test('preserves timeline edits and the conversion selection when navigating through settings', async ({ page }) => {
+test('preserves timeline edits and the conversion selection when navigating through settings', async ({
+  page,
+}) => {
   await page.goto('/');
   await importTestMedia(page);
   const start = page.getByLabel('Trim start', { exact: true });
@@ -61,7 +69,10 @@ test('preserves timeline edits and the conversion selection when navigating thro
   await page.getByLabel('Conversion format').selectOption('gif');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Back to workspace' }).click();
-  await expect(workflows.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(workflows.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await expect(page.getByLabel('Conversion format')).toHaveValue('gif');
   await expect(page.locator('.conversion-table tbody tr')).toHaveCount(1);
 });

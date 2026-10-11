@@ -2,8 +2,15 @@ import { expect, it } from 'vitest';
 import { fadeRange, resizeFade } from '../src/core/timed-effects';
 import { sourceTimeAtOutput } from '../src/core/fades';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
-const edit = { ...defaultSettings({ duration: 10, kind: 'video' } as MediaAsset), start: 1, end: 9,
-  cuts: [{ start: 3, end: 5 }], speed: 2, audioFadeIn: 1.5, videoFadeOut: 1.5 };
+const edit = {
+  ...defaultSettings({ duration: 10, kind: 'video' } as MediaAsset),
+  start: 1,
+  end: 9,
+  cuts: [{ start: 3, end: 5 }],
+  speed: 2,
+  audioFadeIn: 1.5,
+  videoFadeOut: 1.5,
+};
 it('maps timed fades through trims, gaps, and speed into source lanes', () => {
   expect(sourceTimeAtOutput(edit, 1, 'end')).toBe(3);
   expect(sourceTimeAtOutput(edit, 1, 'start')).toBe(5);

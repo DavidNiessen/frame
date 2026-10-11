@@ -50,8 +50,8 @@ Local packaging and CI use unsigned application installers by default; the bundl
 
 In the repository's **Settings → Secrets and variables → Actions**, add these two repository secrets using the complete PEM file contents, including the `BEGIN`/`END` lines. No base64 encoding is needed.
 
-| Secret | File |
-| --- | --- |
+| Secret                                | File                                           |
+| ------------------------------------- | ---------------------------------------------- |
 | `FRAME_WINDOWS_SHELL_PRIVATE_KEY_PEM` | `.local/windows-shell-signing/private-key.pem` |
 | `FRAME_WINDOWS_SHELL_CERTIFICATE_PEM` | `.local/windows-shell-signing/certificate.pem` |
 

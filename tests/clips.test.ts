@@ -14,71 +14,195 @@ import { parseEdit } from '../src/core/project';
 import { buildExportArgs } from '../src/core/export-plan';
 import { buildMergeArgs } from '../src/core/composition';
 import { ffmpegPath, ffprobePath, probeFile } from '../electron/native';
-const exec = promisify(execFile), source = resolve('tests/fixtures/sample.mp4');
+const exec = promisify(execFile),
+  source = resolve('tests/fixtures/sample.mp4');
 let asset: MediaAsset, directory: string;
-beforeAll(async () => { directory = await mkdtemp(join(tmpdir(), 'frame-clips-')); asset = { ...await probeFile(source), id: 'test', name: 'sample.mp4', previewUrl: '' }; });
-afterAll(async () => { await rm(directory, { recursive: true, force: true }); });
+beforeAll(async () => {
+  directory = await mkdtemp(join(tmpdir(), 'frame-clips-'));
+  asset = { ...(await probeFile(source)), id: 'test', name: 'sample.mp4', previewUrl: '' };
+});
+afterAll(async () => {
+  await rm(directory, { recursive: true, force: true });
+});
 function recipe() {
   let edit = { ...defaultSettings(asset), end: 4 };
   edit = { ...edit, ...splitClip(edit, editClips(edit)[0].id, 2) };
-  edit = { ...edit, ...patchClip(edit, edit.clips![1].id, { speed: 2, volume: 0, color: { ...edit.color, saturation: 0 } }) };
+  edit = {
+    ...edit,
+    ...patchClip(edit, edit.clips![1].id, {
+      speed: 2,
+      volume: 0,
+      color: { ...edit.color, saturation: 0 },
+    }),
+  };
   return { ...edit, ...reorderClip(edit, edit.clips![1].id, 0) };
 }
 describe('ordered clips with scoped effects', () => {
   it('persists independent effects, order and source/output time mappings', () => {
-    const original = recipe(), snapshot = JSON.stringify(original);
-    reorderClip(original, original.clips![0].id, 1); expect(JSON.stringify(original)).toBe(snapshot);
-    const edit = recipe(), restored = parseEdit(JSON.parse(JSON.stringify(edit)), asset);
-    expect(restored.clips!.map(c => c.start)).toEqual([2, 0]);
+    const original = recipe(),
+      snapshot = JSON.stringify(original);
+    reorderClip(original, original.clips![0].id, 1);
+    expect(JSON.stringify(original)).toBe(snapshot);
+    const edit = recipe(),
+      restored = parseEdit(JSON.parse(JSON.stringify(edit)), asset);
+    expect(restored.clips!.map((c) => c.start)).toEqual([2, 0]);
     expect(restored.clips![1].effects).toEqual({});
     expect(editedDuration(restored)).toBe(3);
-    expect(outputTimeAtSource(restored, 3)).toBe(.5);
-    expect(sourceTimeAtOutput(restored, 1.5)).toBe(.5);
-    const boundaries = { ...defaultSettings(asset), clips: [{ id: 'a', start: 0, end: 2, effects: {} }, { id: 'b', start: 4, end: 6, effects: {} }, { id: 'c', start: 2, end: 4, effects: {} }] };
+    expect(outputTimeAtSource(restored, 3)).toBe(0.5);
+    expect(sourceTimeAtOutput(restored, 1.5)).toBe(0.5);
+    const boundaries = {
+      ...defaultSettings(asset),
+      clips: [
+        { id: 'a', start: 0, end: 2, effects: {} },
+        { id: 'b', start: 4, end: 6, effects: {} },
+        { id: 'c', start: 2, end: 4, effects: {} },
+      ],
+    };
     expect(outputTimeAtSource(boundaries, sourceTimeAtOutput(boundaries, 4))).toBe(4);
-    expect(outputCues({ ...restored, subtitles: { mode: 'burn', cues: [{ start: 2, end: 3, text: 'first in output' }, { start: .5, end: 1, text: 'second' }] } })).toEqual([{ start: 0, end: .5, text: 'first in output' }, { start: 1.5, end: 2, text: 'second' }]);
+    expect(
+      outputCues({
+        ...restored,
+        subtitles: {
+          mode: 'burn',
+          cues: [
+            { start: 2, end: 3, text: 'first in output' },
+            { start: 0.5, end: 1, text: 'second' },
+          ],
+        },
+      }),
+    ).toEqual([
+      { start: 0, end: 0.5, text: 'first in output' },
+      { start: 1.5, end: 2, text: 'second' },
+    ]);
   });
   it('keeps a split clip’s effects on both children and rejects malformed projects', () => {
-    const edit = recipe(), split = { ...edit, ...splitClip(edit, edit.clips![0].id, 3) };
-    expect(split.clips!.slice(0, 2).map(c => c.effects.volume)).toEqual([0, 0]);
-    for (const patch of [{ speed: 0 }, { color: { lut: 'unsafe' } }, { format: 'mp3' }]) expect(() => parseEdit({ ...edit, clips: [{ ...edit.clips![0], effects: patch }] }, asset)).toThrow();
+    const edit = recipe(),
+      split = { ...edit, ...splitClip(edit, edit.clips![0].id, 3) };
+    expect(split.clips!.slice(0, 2).map((c) => c.effects.volume)).toEqual([0, 0]);
+    for (const patch of [{ speed: 0 }, { color: { lut: 'unsafe' } }, { format: 'mp3' }])
+      expect(() =>
+        parseEdit({ ...edit, clips: [{ ...edit.clips![0], effects: patch }] }, asset),
+      ).toThrow();
     expect(() => parseEdit({ ...edit, clips: [edit.clips![0], edit.clips![0]] }, asset)).toThrow();
   });
   it('exports reordered clips with different speed, color and volume through real FFmpeg', async () => {
-    const edit = recipe(), output = join(directory, 'ordered.mp4');
+    const edit = recipe(),
+      output = join(directory, 'ordered.mp4');
     await exec(ffmpegPath(), buildExportArgs(asset, edit, source, output));
-    const { stdout } = await exec(ffprobePath(), ['-v', 'error', '-show_format', '-of', 'json', output]);
+    const { stdout } = await exec(ffprobePath(), [
+      '-v',
+      'error',
+      '-show_format',
+      '-of',
+      'json',
+      output,
+    ]);
     expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(3, 1);
-    const first = await exec(ffmpegPath(), ['-i', output, '-t', '0.7', '-map', '0:a', '-af', 'volumedetect', '-f', 'null', '-']);
-    const second = await exec(ffmpegPath(), ['-ss', '1.3', '-i', output, '-t', '0.7', '-map', '0:a', '-af', 'volumedetect', '-f', 'null', '-']);
+    const first = await exec(ffmpegPath(), [
+      '-i',
+      output,
+      '-t',
+      '0.7',
+      '-map',
+      '0:a',
+      '-af',
+      'volumedetect',
+      '-f',
+      'null',
+      '-',
+    ]);
+    const second = await exec(ffmpegPath(), [
+      '-ss',
+      '1.3',
+      '-i',
+      output,
+      '-t',
+      '0.7',
+      '-map',
+      '0:a',
+      '-af',
+      'volumedetect',
+      '-f',
+      'null',
+      '-',
+    ]);
     expect(first.stderr).toMatch(/mean_volume: -91/);
     expect(Number(/mean_volume: (-?[\d.]+)/.exec(second.stderr)![1])).toBeGreaterThan(-60);
   });
   it('exports joined retained sections without bringing back deleted footage', async () => {
-    const base = { ...defaultSettings(asset), clips: [{ id: 'a', start: 0, end: 2, effects: {} }, { id: 'b', start: 4, end: 6, effects: {} }] };
-    const edit = { ...base, ...joinSplitClips(base, 'a') }, output = join(directory, 'joined-with-cut.mp4');
+    const base = {
+      ...defaultSettings(asset),
+      clips: [
+        { id: 'a', start: 0, end: 2, effects: {} },
+        { id: 'b', start: 4, end: 6, effects: {} },
+      ],
+    };
+    const edit = { ...base, ...joinSplitClips(base, 'a') },
+      output = join(directory, 'joined-with-cut.mp4');
     const args = buildExportArgs(asset, edit, source, output);
-    expect(args.join(' ')).toContain('trim=start=0:end=2'); expect(args.join(' ')).toContain('trim=start=4:end=6');
+    expect(args.join(' ')).toContain('trim=start=0:end=2');
+    expect(args.join(' ')).toContain('trim=start=4:end=6');
     await exec(ffmpegPath(), args);
-    const { stdout } = await exec(ffprobePath(), ['-v', 'error', '-show_format', '-of', 'json', output]);
+    const { stdout } = await exec(ffprobePath(), [
+      '-v',
+      'error',
+      '-show_format',
+      '-of',
+      'json',
+      output,
+    ]);
     expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(4, 1);
     expect(sourceTimeAtOutput(edit, 2.5)).toBe(4.5);
   });
   it('merges ordered sources without discarding scoped effects', async () => {
-    const edit = recipe(), output = join(directory, 'merged.mp4');
-    await exec(ffmpegPath(), buildMergeArgs([{ asset, edit }, { asset, edit: { ...defaultSettings(asset), end: 1 } }], defaultSettings(asset), [source, source], output));
-    const { stdout } = await exec(ffprobePath(), ['-v', 'error', '-show_format', '-of', 'json', output]);
+    const edit = recipe(),
+      output = join(directory, 'merged.mp4');
+    await exec(
+      ffmpegPath(),
+      buildMergeArgs(
+        [
+          { asset, edit },
+          { asset, edit: { ...defaultSettings(asset), end: 1 } },
+        ],
+        defaultSettings(asset),
+        [source, source],
+        output,
+      ),
+    );
+    const { stdout } = await exec(ffprobePath(), [
+      '-v',
+      'error',
+      '-show_format',
+      '-of',
+      'json',
+      output,
+    ]);
     expect(Number(JSON.parse(stdout).format.duration)).toBeCloseTo(4, 1);
   });
   it('places output-wide fades at the actual end when clips inherit shared speed', async () => {
     const base = { ...defaultSettings(asset), end: 4, speed: 2, audioFadeOut: 1 };
     let edit = { ...base, ...splitClip(base, editClips(base)[0].id, 2) };
     edit = { ...edit, ...patchClip(edit, edit.clips![1].id, { speed: 1 }) };
-    const output = join(directory, 'shared-fade.mp4'); await exec(ffmpegPath(), buildExportArgs(asset, edit, source, output));
+    const output = join(directory, 'shared-fade.mp4');
+    await exec(ffmpegPath(), buildExportArgs(asset, edit, source, output));
     const volume = async (start: number) => {
-      const result = await exec(ffmpegPath(), ['-ss', String(start), '-i', output, '-t', '0.15', '-map', '0:a', '-af', 'volumedetect', '-f', 'null', '-']);
+      const result = await exec(ffmpegPath(), [
+        '-ss',
+        String(start),
+        '-i',
+        output,
+        '-t',
+        '0.15',
+        '-map',
+        '0:a',
+        '-af',
+        'volumedetect',
+        '-f',
+        'null',
+        '-',
+      ]);
       return Number(/mean_volume: (-?[\d.]+)/.exec(result.stderr)![1]);
     };
-    expect(await volume(2.8)).toBeLessThan(await volume(1.4) - 10);
+    expect(await volume(2.8)).toBeLessThan((await volume(1.4)) - 10);
   });
 });

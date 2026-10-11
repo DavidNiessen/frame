@@ -25,101 +25,536 @@ import type { EffectId } from '../core/effect-library';
 import { hasMinimumDuration } from '../core/time-range';
 import { useTimelineScale } from '../hooks/useTimelineScale';
 import type { EditSettings, MediaAsset } from '../core/types';
-export function Timeline({ onInsert, openAudioLayer, openEffect, generatingId, asset, edit, current, outputPosition, seek, update, undo, redo, canUndo, canRedo, disabled, notify, waveform, waveformError, retryWaveform, autoWaveforms = true, timelinePreview = true, assets, waveforms, selectedClip, selectClip }: {
-  onInsert: (id: string) => void; openAudioLayer: (id: string, keepView?: boolean) => void;
-  openEffect: (id: EffectId, instanceId?: string, keepView?: boolean) => void; generatingId: string | null;
-  assets: MediaAsset[]; waveforms: Record<string, WaveformPoint[]>; selectedClip: string | null; selectClip: (id: string | null) => void;
-  autoWaveforms?: boolean; timelinePreview?: boolean;
-  waveformLoading: boolean; cancelAnalysis: () => void; waveform?: WaveformPoint[]; waveformError?: string; retryWaveform: () => void; analysisProgress: number;
-  asset: MediaAsset; edit: EditSettings; current: number; outputPosition?: number; seek: (value: number, output?: number) => void;
-  update: (patch: Partial<EditSettings>) => void; undo: () => void; redo: () => void;
-  canUndo: boolean; canRedo: boolean; disabled: boolean; notify: (message: string) => void;
+export function Timeline({
+  onInsert,
+  openAudioLayer,
+  openEffect,
+  generatingId,
+  asset,
+  edit,
+  current,
+  outputPosition,
+  seek,
+  update,
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+  disabled,
+  notify,
+  waveform,
+  waveformError,
+  retryWaveform,
+  autoWaveforms = true,
+  timelinePreview = true,
+  assets,
+  waveforms,
+  selectedClip,
+  selectClip,
+}: {
+  onInsert: (id: string) => void;
+  openAudioLayer: (id: string, keepView?: boolean) => void;
+  openEffect: (id: EffectId, instanceId?: string, keepView?: boolean) => void;
+  generatingId: string | null;
+  assets: MediaAsset[];
+  waveforms: Record<string, WaveformPoint[]>;
+  selectedClip: string | null;
+  selectClip: (id: string | null) => void;
+  autoWaveforms?: boolean;
+  timelinePreview?: boolean;
+  waveformLoading: boolean;
+  cancelAnalysis: () => void;
+  waveform?: WaveformPoint[];
+  waveformError?: string;
+  retryWaveform: () => void;
+  analysisProgress: number;
+  asset: MediaAsset;
+  edit: EditSettings;
+  current: number;
+  outputPosition?: number;
+  seek: (value: number, output?: number) => void;
+  update: (patch: Partial<EditSettings>) => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  disabled: boolean;
+  notify: (message: string) => void;
 }) {
-  const [snapping, setSnapping] = useState(() => { try { return localStorage.getItem('frame:timeline-snapping') !== 'false'; } catch { return true; } });
-  const targets = snapTargets(edit, asset.duration, current), scrubTargets = snapTargets(edit, asset.duration);
+  const [snapping, setSnapping] = useState(() => {
+    try {
+      return localStorage.getItem('frame:timeline-snapping') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  const targets = snapTargets(edit, asset.duration, current),
+    scrubTargets = snapTargets(edit, asset.duration);
   const slider = useRef<HTMLInputElement>(null);
-  const scroll = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
-  const [filter, setFilter] = useState<TrackFilter>('all'), [compact, setCompact] = useState(false), [fraction, setFraction] = useState(0), [scrollLeft, setScrollLeft] = useState(0);
+  const scroll = useRef<HTMLDivElement>(null),
+    content = useRef<HTMLDivElement>(null);
+  const [filter, setFilter] = useState<TrackFilter>('all'),
+    [compact, setCompact] = useState(false),
+    [fraction, setFraction] = useState(0),
+    [scrollLeft, setScrollLeft] = useState(0);
   const position = outputPosition ?? outputTimeAtSource(edit, current);
-  const scale = useTimelineScale(asset.id, asset.duration, editedDuration(edit)), total = scale.total;
-  const clips = useMemo(() => editClips(edit), [edit]), positions = useMemo(() => clipPositions(edit), [edit]);
+  const scale = useTimelineScale(asset.id, asset.duration, editedDuration(edit)),
+    total = scale.total;
+  const clips = useMemo(() => editClips(edit), [edit]),
+    positions = useMemo(() => clipPositions(edit), [edit]);
   const groups = useMemo(() => clipGroups(edit), [edit]);
   const effectCounts = useMemo(() => {
-    const effects = availableEffects(asset).filter(effect => effect.scope === 'clip');
-    return clips.map(clip => { const recipe = clipRecipe(edit, clip); return effects.filter(effect => recipe.addedEffects?.includes(effect.id) || effectActive(effect, recipe, asset)).length + extraInstances(recipe).filter(instance => availableEffects(asset).some(effect => effect.id === instance.effect && effect.scope === 'clip')).length; });
+    const effects = availableEffects(asset).filter((effect) => effect.scope === 'clip');
+    return clips.map((clip) => {
+      const recipe = clipRecipe(edit, clip);
+      return (
+        effects.filter(
+          (effect) =>
+            recipe.addedEffects?.includes(effect.id) || effectActive(effect, recipe, asset),
+        ).length +
+        extraInstances(recipe).filter((instance) =>
+          availableEffects(asset).some(
+            (effect) => effect.id === instance.effect && effect.scope === 'clip',
+          ),
+        ).length
+      );
+    });
   }, [clips, edit, asset]);
-  const effectCount = allAudioLayers(edit).length + effectCounts.reduce((count, value) => count + value, 0) + appliedEffects(asset, edit, null).filter(effect => effect.scope === 'source').length + extraInstances(edit).filter(instance => availableEffects(asset).some(effect => effect.id === instance.effect && effect.scope === 'source') || instance.effect.includes('Fade')).length;
+  const effectCount =
+    allAudioLayers(edit).length +
+    effectCounts.reduce((count, value) => count + value, 0) +
+    appliedEffects(asset, edit, null).filter((effect) => effect.scope === 'source').length +
+    extraInstances(edit).filter(
+      (instance) =>
+        availableEffects(asset).some(
+          (effect) => effect.id === instance.effect && effect.scope === 'source',
+        ) || instance.effect.includes('Fade'),
+    ).length;
   const previousEffects = useRef(effectCount);
   useEffect(() => {
-    if (effectCount > previousEffects.current) { setCompact(false); setFilter('all'); }
+    if (effectCount > previousEffects.current) {
+      setCompact(false);
+      setFilter('all');
+    }
     previousEffects.current = effectCount;
   }, [effectCount]);
   const [zoom, setZoom] = useState(1);
-  useEffect(() => { setZoom(1); if (scroll.current) { scroll.current.scrollLeft = 0; scroll.current.scrollTop = 0; } }, [asset.id]);
   useEffect(() => {
-    const viewport = scroll.current; if (!viewport) return;
+    setZoom(1);
+    if (scroll.current) {
+      scroll.current.scrollLeft = 0;
+      scroll.current.scrollTop = 0;
+    }
+  }, [asset.id]);
+  useEffect(() => {
+    const viewport = scroll.current;
+    if (!viewport) return;
     const group = viewport.querySelector<HTMLElement>(`[data-timeline-kind="${filter}"]`);
-    const top = group ? group.getBoundingClientRect().top - viewport.getBoundingClientRect().top + viewport.scrollTop : 0;
-    viewport.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    const top = group
+      ? group.getBoundingClientRect().top -
+        viewport.getBoundingClientRect().top +
+        viewport.scrollTop
+      : 0;
+    viewport.scrollTo({
+      top,
+      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    });
   }, [filter]);
   useEffect(() => {
-    const viewport = scroll.current, tracks = content.current; if (!viewport || !tracks || zoom === 1) return;
-    const x = position / total * tracks.clientWidth;
+    const viewport = scroll.current,
+      tracks = content.current;
+    if (!viewport || !tracks || zoom === 1) return;
+    const x = (position / total) * tracks.clientWidth;
     if (x < viewport.scrollLeft) viewport.scrollLeft = Math.max(0, x - 24);
-    else if (x > viewport.scrollLeft + viewport.clientWidth - 40) viewport.scrollLeft = x - viewport.clientWidth + 48;
+    else if (x > viewport.scrollLeft + viewport.clientWidth - 40)
+      viewport.scrollLeft = x - viewport.clientWidth + 48;
   }, [position, zoom, asset.id, total]);
-  const activePosition = positions.find(item => position >= item.start && position < item.end && current >= item.clip.start && current < item.clip.end) ?? (current === positions.at(-1)?.clip.end ? positions.at(-1) : undefined);
+  const activePosition =
+    positions.find(
+      (item) =>
+        position >= item.start &&
+        position < item.end &&
+        current >= item.clip.start &&
+        current < item.clip.end,
+    ) ?? (current === positions.at(-1)?.clip.end ? positions.at(-1) : undefined);
   const active = activePosition?.clip;
-  function locate() { const viewport = scroll.current, tracks = content.current; if (viewport && tracks) { viewport.scrollLeft = Math.max(0, position / total * tracks.clientWidth - viewport.clientWidth / 2); viewport.scrollTop = viewport.scrollHeight; } }
+  function locate() {
+    const viewport = scroll.current,
+      tracks = content.current;
+    if (viewport && tracks) {
+      viewport.scrollLeft = Math.max(
+        0,
+        (position / total) * tracks.clientWidth - viewport.clientWidth / 2,
+      );
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+  }
   function scrub(event: PointerEvent<HTMLDivElement>) {
     const track = event.currentTarget;
     const bounds = track.getBoundingClientRect();
     if (disabled || bounds.width === 0) return;
-    const raw = Math.max(0, Math.min(total, (event.clientX - bounds.left) / bounds.width * total));
-    const value = snapping && !event.altKey ? snapTime(raw, scrubTargets.output, 8 / bounds.width * total, undefined) : raw;
+    const raw = Math.max(
+      0,
+      Math.min(total, ((event.clientX - bounds.left) / bounds.width) * total),
+    );
+    const value =
+      snapping && !event.altKey
+        ? snapTime(raw, scrubTargets.output, (8 / bounds.width) * total, undefined)
+        : raw;
     seek(sourceTimeAtOutput(edit, value), value);
   }
   const scrubProps = {
-    onPointerDown: (event: PointerEvent<HTMLDivElement>) => { if (disabled || event.button !== 0) return; event.preventDefault(); slider.current?.focus({ preventScroll: true }); event.currentTarget.setPointerCapture(event.pointerId); scrub(event); },
-    onPointerMove: (event: PointerEvent<HTMLDivElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) scrub(event); },
-    onPointerUp: (event: PointerEvent<HTMLDivElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) { scrub(event); event.currentTarget.releasePointerCapture(event.pointerId); } },
+    onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
+      if (disabled || event.button !== 0) return;
+      event.preventDefault();
+      slider.current?.focus({ preventScroll: true });
+      event.currentTarget.setPointerCapture(event.pointerId);
+      scrub(event);
+    },
+    onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) scrub(event);
+    },
+    onPointerUp: (event: PointerEvent<HTMLDivElement>) => {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        scrub(event);
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    },
   };
   function split() {
     const clip = activePosition?.clip;
-    const index = clips.findIndex(item => item.id === clip?.id);
-    if (clip?.groupId && current === clip.start && clips[index - 1]?.groupId === clip.groupId) { update(splitClip(edit, clip.id, current)); selectClip(clip.id); return; }
+    const index = clips.findIndex((item) => item.id === clip?.id);
+    if (clip?.groupId && current === clip.start && clips[index - 1]?.groupId === clip.groupId) {
+      update(splitClip(edit, clip.id, current));
+      selectClip(clip.id);
+      return;
+    }
     const speed = effectiveSpeed({ ...edit, ...clip?.effects });
-    if (!active || !hasMinimumDuration({ start: active.start, end: current }, speed) || !hasMinimumDuration({ start: current, end: active.end }, speed)) { notify('Move the playhead inside a section to split it.'); return; }
-    update(splitClip(edit, clip!.id, current)); selectClip(clip!.id);
+    if (
+      !active ||
+      !hasMinimumDuration({ start: active.start, end: current }, speed) ||
+      !hasMinimumDuration({ start: current, end: active.end }, speed)
+    ) {
+      notify('Move the playhead inside a section to split it.');
+      return;
+    }
+    update(splitClip(edit, clip!.id, current));
+    selectClip(clip!.id);
   }
   const joinId = selectedClip ?? active?.id ?? null;
   const joinPair = adjacentSplitJoin(edit, joinId);
   function join() {
     if (!joinPair) return;
-    update(joinSplitClips(edit, joinId)); selectClip(joinPair.left.id);
+    update(joinSplitClips(edit, joinId));
+    selectClip(joinPair.left.id);
   }
   function remove() {
-    if (groups.length < 2) { notify('Keep at least one section in the timeline.'); return; }
-    const clip = selectedClip ? clips.find(c => c.id === selectedClip) : active;
-    if (clip) { const retained = clips.filter(c => clip.groupId ? c.groupId !== clip.groupId : c.id !== clip.id); update({ clips: retained }); selectClip(null); seek(retained[0].start, 0); }
+    if (groups.length < 2) {
+      notify('Keep at least one section in the timeline.');
+      return;
+    }
+    const clip = selectedClip ? clips.find((c) => c.id === selectedClip) : active;
+    if (clip) {
+      const retained = clips.filter((c) =>
+        clip.groupId ? c.groupId !== clip.groupId : c.id !== clip.id,
+      );
+      update({ clips: retained });
+      selectClip(null);
+      seek(retained[0].start, 0);
+    }
   }
-  function toggleSnapping() { setSnapping(!snapping); try { localStorage.setItem('frame:timeline-snapping', String(!snapping)); } catch {} }
-  const contextMenu = useTimelineContextMenu({ edit, asset, assets, total, current: position, disabled, update, seek, selectClip, selectedClip, notify, openEffect, openAudioLayer, undo, redo, canUndo, canRedo, snapping, toggleSnapping, compact, toggleCompact: () => setCompact(!compact), fit: () => { scale.fit(); setZoom(1); }, bounds: () => content.current?.getBoundingClientRect() });
-  return <TimelineMenuContext value={{ open: contextMenu.open, focus: contextMenu.focus }}><TimelineSnapContext value={{ enabled: snapping, targets, frameRate: asset.frameRate }}><section id="media-timeline" className="timeline panel" aria-label="Timeline" onContextMenu={event => { if ((event.target as HTMLElement).closest('.timeline-lane, .timeline-body, .timeline-ruler, .timeline-clip-viewport')) contextMenu.open(event); }} onDragOver={event => { if (event.dataTransfer.types.includes(mediaDragType)) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = disabled ? 'none' : 'copy'; } }} onDrop={event => { const id = event.dataTransfer.getData(mediaDragType); if (id) { event.preventDefault(); event.stopPropagation(); if (!disabled) onInsert(id); } }}>
-    <div className="timeline-toolbar"><div><h2>Timeline</h2><span className="badge">{groups.length} {groups.length === 1 ? 'section' : 'sections'}</span></div><div className="timeline-actions"><button className="icon-button" aria-label="Undo edit" disabled={disabled || !canUndo} onClick={undo}><Undo2 size={16} /></button><button className="icon-button" aria-label="Redo edit" disabled={disabled || !canRedo} onClick={redo}><Redo2 size={16} /></button><span className="separator" /><button className="icon-button snapping-toggle" aria-label="Timeline snapping" aria-pressed={snapping} title="Snap to clip edges, captions and frames · hold Alt to bypass" onClick={toggleSnapping}><Magnet size={15} /></button><button className="button small subtle" disabled={disabled} onClick={split}><Scissors size={14} />Split</button><button className="icon-button" aria-label="Join splits" title={joinPair ? "Join this section with its neighbour, preserving cuts" : "Join adjacent sections with matching clip settings"} disabled={disabled || !joinPair} onClick={join}><Combine size={16} /></button><button className="icon-button" aria-label="Remove selected section" disabled={disabled || (!active && !selectedClip) || groups.length < 2} onClick={remove}><Trash2 size={15} /></button></div></div>
-    <TimelineNavigator showPreview={timelinePreview} extent={total} tools={<TimelineViewTools zoom={zoom} setZoom={setZoom} fit={scale.fit} />} zoom={zoom} edit={edit} position={position} fraction={fraction} pan={value => { if (scroll.current) scroll.current.scrollLeft = value * (scroll.current.scrollWidth - scroll.current.clientWidth); setFraction(value); }} filter={filter} setFilter={setFilter} compact={compact} setCompact={setCompact} locate={locate} />
-    <div className="timeline-analysis">
-      {autoWaveforms && asset.hasAudio && !waveform && waveformError && <><button className="button small" disabled={disabled} onClick={retryWaveform}>Retry waveform</button><TransientMessage className="waveform-error" role="alert">{waveformError}</TransientMessage></>}
-    </div>
-    <div ref={scroll} className="timeline-body" onScroll={event => { const node = event.currentTarget; setScrollLeft(node.scrollLeft); setFraction(node.scrollWidth > node.clientWidth ? node.scrollLeft / (node.scrollWidth - node.clientWidth) : 0); }} role="region" aria-label="Timeline tracks" tabIndex={0}><div ref={content} className="timeline-content" style={{ width: `${zoom * 100}%` }}><div className="timeline-ruler" {...scrubProps} title="Drag to scrub the sequence">{[0, 1, 2, 3, 4].map(i => <span key={i}>{time(total * i / 4)}</span>)}</div>
-      {filter !== 'clips' && filter !== 'captions' && <AudioLayerLanes openLayer={openAudioLayer} axisDuration={total} generatingId={generatingId} assets={assets} waveforms={waveforms} edit={edit} compact={compact} disabled={disabled} update={update} seek={seek} />}
-      <TimedLanes total={total} openEffect={openEffect} compact={compact} filter={filter} selectClip={selectClip} asset={asset} edit={edit} update={update} disabled={disabled} seek={seek} />
-    </div></div>
-    <div className="timeline-clip-viewport">      <div className="timeline-track timeline-lane" style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }} {...scrubProps}><div className="track-baseline" />{groups.map(group => { const clip = group.clips[0], i = group.index; return <TimelineClip pieces={group.clips} openEffect={openEffect} key={clip.id} notify={notify} effectCount={effectCounts[i]} clip={clip} index={i} edit={edit} asset={asset} duration={total} position={group} speed={group.speed} disabled={disabled} selected={group.clips.some(piece => selectedClip === piece.id || !selectedClip && active?.id === piece.id)} select={selectClip} seek={seek} update={update} waveform={waveform}
-        dropIndex={x => { const bounds = content.current!.getBoundingClientRect(), value = Math.max(0, Math.min(total, (x - bounds.left) / bounds.width * total)); const index = positions.findIndex(item => value < item.end); return index < 0 ? clips.length - 1 : index; }} />; })}
-        <div className="playhead" style={{ left: `${position / total * 100}%` }}><span /></div>
-      <input data-preview-playback ref={slider} className="seek-slider" type="range" aria-label="Seek playhead" aria-valuetext={`${current.toFixed(2)} of ${asset.duration.toFixed(2)} seconds`} min={0} max={asset.duration} step={0.01} value={current} disabled={disabled} onChange={event => seek(Number(event.target.value))} /></div>
-    </div>
-    <div className="timeline-summary"><span><CornerDownLeft size={13} /> Drag library media here · clip edges to trim.</span><strong>{time(editedDuration(edit))} <span>output</span></strong></div>
-  </section>{contextMenu.menu && <TimelineContextMenu x={contextMenu.menu.x} y={contextMenu.menu.y} title={contextMenu.title} actions={contextMenu.actions} close={contextMenu.close} />}</TimelineSnapContext></TimelineMenuContext>;
+  function toggleSnapping() {
+    setSnapping(!snapping);
+    try {
+      localStorage.setItem('frame:timeline-snapping', String(!snapping));
+    } catch {}
+  }
+  const contextMenu = useTimelineContextMenu({
+    edit,
+    asset,
+    assets,
+    total,
+    current: position,
+    disabled,
+    update,
+    seek,
+    selectClip,
+    selectedClip,
+    notify,
+    openEffect,
+    openAudioLayer,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    snapping,
+    toggleSnapping,
+    compact,
+    toggleCompact: () => setCompact(!compact),
+    fit: () => {
+      scale.fit();
+      setZoom(1);
+    },
+    bounds: () => content.current?.getBoundingClientRect(),
+  });
+  return (
+    <TimelineMenuContext value={{ open: contextMenu.open, focus: contextMenu.focus }}>
+      <TimelineSnapContext value={{ enabled: snapping, targets, frameRate: asset.frameRate }}>
+        <section
+          id="media-timeline"
+          className="timeline panel"
+          aria-label="Timeline"
+          onContextMenu={(event) => {
+            if (
+              (event.target as HTMLElement).closest(
+                '.timeline-lane, .timeline-body, .timeline-ruler, .timeline-clip-viewport',
+              )
+            )
+              contextMenu.open(event);
+          }}
+          onDragOver={(event) => {
+            if (event.dataTransfer.types.includes(mediaDragType)) {
+              event.preventDefault();
+              event.stopPropagation();
+              event.dataTransfer.dropEffect = disabled ? 'none' : 'copy';
+            }
+          }}
+          onDrop={(event) => {
+            const id = event.dataTransfer.getData(mediaDragType);
+            if (id) {
+              event.preventDefault();
+              event.stopPropagation();
+              if (!disabled) onInsert(id);
+            }
+          }}
+        >
+          <div className="timeline-toolbar">
+            <div>
+              <h2>Timeline</h2>
+              <span className="badge">
+                {groups.length} {groups.length === 1 ? 'section' : 'sections'}
+              </span>
+            </div>
+            <div className="timeline-actions">
+              <button
+                className="icon-button"
+                aria-label="Undo edit"
+                disabled={disabled || !canUndo}
+                onClick={undo}
+              >
+                <Undo2 size={16} />
+              </button>
+              <button
+                className="icon-button"
+                aria-label="Redo edit"
+                disabled={disabled || !canRedo}
+                onClick={redo}
+              >
+                <Redo2 size={16} />
+              </button>
+              <span className="separator" />
+              <button
+                className="icon-button snapping-toggle"
+                aria-label="Timeline snapping"
+                aria-pressed={snapping}
+                title="Snap to clip edges, captions and frames · hold Alt to bypass"
+                onClick={toggleSnapping}
+              >
+                <Magnet size={15} />
+              </button>
+              <button className="button small subtle" disabled={disabled} onClick={split}>
+                <Scissors size={14} />
+                Split
+              </button>
+              <button
+                className="icon-button"
+                aria-label="Join splits"
+                title={
+                  joinPair
+                    ? 'Join this section with its neighbour, preserving cuts'
+                    : 'Join adjacent sections with matching clip settings'
+                }
+                disabled={disabled || !joinPair}
+                onClick={join}
+              >
+                <Combine size={16} />
+              </button>
+              <button
+                className="icon-button"
+                aria-label="Remove selected section"
+                disabled={disabled || (!active && !selectedClip) || groups.length < 2}
+                onClick={remove}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          </div>
+          <TimelineNavigator
+            showPreview={timelinePreview}
+            extent={total}
+            tools={<TimelineViewTools zoom={zoom} setZoom={setZoom} fit={scale.fit} />}
+            zoom={zoom}
+            edit={edit}
+            position={position}
+            fraction={fraction}
+            pan={(value) => {
+              if (scroll.current)
+                scroll.current.scrollLeft =
+                  value * (scroll.current.scrollWidth - scroll.current.clientWidth);
+              setFraction(value);
+            }}
+            filter={filter}
+            setFilter={setFilter}
+            compact={compact}
+            setCompact={setCompact}
+            locate={locate}
+          />
+          <div className="timeline-analysis">
+            {autoWaveforms && asset.hasAudio && !waveform && waveformError && (
+              <>
+                <button className="button small" disabled={disabled} onClick={retryWaveform}>
+                  Retry waveform
+                </button>
+                <TransientMessage className="waveform-error" role="alert">
+                  {waveformError}
+                </TransientMessage>
+              </>
+            )}
+          </div>
+          <div
+            ref={scroll}
+            className="timeline-body"
+            onScroll={(event) => {
+              const node = event.currentTarget;
+              setScrollLeft(node.scrollLeft);
+              setFraction(
+                node.scrollWidth > node.clientWidth
+                  ? node.scrollLeft / (node.scrollWidth - node.clientWidth)
+                  : 0,
+              );
+            }}
+            role="region"
+            aria-label="Timeline tracks"
+            tabIndex={0}
+          >
+            <div ref={content} className="timeline-content" style={{ width: `${zoom * 100}%` }}>
+              <div className="timeline-ruler" {...scrubProps} title="Drag to scrub the sequence">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <span key={i}>{time((total * i) / 4)}</span>
+                ))}
+              </div>
+              {filter !== 'clips' && filter !== 'captions' && (
+                <AudioLayerLanes
+                  openLayer={openAudioLayer}
+                  axisDuration={total}
+                  generatingId={generatingId}
+                  assets={assets}
+                  waveforms={waveforms}
+                  edit={edit}
+                  compact={compact}
+                  disabled={disabled}
+                  update={update}
+                  seek={seek}
+                />
+              )}
+              <TimedLanes
+                total={total}
+                openEffect={openEffect}
+                compact={compact}
+                filter={filter}
+                selectClip={selectClip}
+                asset={asset}
+                edit={edit}
+                update={update}
+                disabled={disabled}
+                seek={seek}
+              />
+            </div>
+          </div>
+          <div className="timeline-clip-viewport">
+            {' '}
+            <div
+              className="timeline-track timeline-lane"
+              style={{ width: `${zoom * 100}%`, transform: `translateX(${-scrollLeft}px)` }}
+              {...scrubProps}
+            >
+              <div className="track-baseline" />
+              {groups.map((group) => {
+                const clip = group.clips[0],
+                  i = group.index;
+                return (
+                  <TimelineClip
+                    pieces={group.clips}
+                    openEffect={openEffect}
+                    key={clip.id}
+                    notify={notify}
+                    effectCount={effectCounts[i]}
+                    clip={clip}
+                    index={i}
+                    edit={edit}
+                    asset={asset}
+                    duration={total}
+                    position={group}
+                    speed={group.speed}
+                    disabled={disabled}
+                    selected={group.clips.some(
+                      (piece) =>
+                        selectedClip === piece.id || (!selectedClip && active?.id === piece.id),
+                    )}
+                    select={selectClip}
+                    seek={seek}
+                    update={update}
+                    waveform={waveform}
+                    dropIndex={(x) => {
+                      const bounds = content.current!.getBoundingClientRect(),
+                        value = Math.max(
+                          0,
+                          Math.min(total, ((x - bounds.left) / bounds.width) * total),
+                        );
+                      const index = positions.findIndex((item) => value < item.end);
+                      return index < 0 ? clips.length - 1 : index;
+                    }}
+                  />
+                );
+              })}
+              <div className="playhead" style={{ left: `${(position / total) * 100}%` }}>
+                <span />
+              </div>
+              <input
+                data-preview-playback
+                ref={slider}
+                className="seek-slider"
+                type="range"
+                aria-label="Seek playhead"
+                aria-valuetext={`${current.toFixed(2)} of ${asset.duration.toFixed(2)} seconds`}
+                min={0}
+                max={asset.duration}
+                step={0.01}
+                value={current}
+                disabled={disabled}
+                onChange={(event) => seek(Number(event.target.value))}
+              />
+            </div>
+          </div>
+          <div className="timeline-summary">
+            <span>
+              <CornerDownLeft size={13} /> Drag library media here · clip edges to trim.
+            </span>
+            <strong>
+              {time(editedDuration(edit))} <span>output</span>
+            </strong>
+          </div>
+        </section>
+        {contextMenu.menu && (
+          <TimelineContextMenu
+            x={contextMenu.menu.x}
+            y={contextMenu.menu.y}
+            title={contextMenu.title}
+            actions={contextMenu.actions}
+            close={contextMenu.close}
+          />
+        )}
+      </TimelineSnapContext>
+    </TimelineMenuContext>
+  );
 }

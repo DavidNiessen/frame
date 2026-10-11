@@ -22,35 +22,63 @@ test('follows system theme, switches themes, and fits a mobile viewport', async 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.getByRole('button', { name: 'Add media' })).toBeVisible();
 });
-test('imports, previews, edits, undoes, and exports a real GIF in the browser', async ({ page }, testInfo) => {
-  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+test('imports, previews, edits, undoes, and exports a real GIF in the browser', async ({
+  page,
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
   await importTestMedia(page);
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible({ timeout: 45000 });
-  await expect.poll(() => page.locator('video').evaluate(node => {
-    const video = node as HTMLVideoElement;
-    return { readyState: video.readyState, error: video.error?.message ?? null };
-  }), { timeout: 15000 }).toEqual({ readyState: 4, error: null });
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 3);
-  await openEffect(page, 'Crop'); await page.getByRole('button', { name: '1:1', exact: true }).click();
-  await openEffect(page, 'Crop'); await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await expect
+    .poll(
+      () =>
+        page.locator('video').evaluate((node) => {
+          const video = node as HTMLVideoElement;
+          return { readyState: video.readyState, error: video.error?.message ?? null };
+        }),
+      { timeout: 15000 },
+    )
+    .toEqual({ readyState: 4, error: null });
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await trim(page, 'start', 1);
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await trim(page, 'end', 3);
+  await openEffect(page, 'Crop');
+  await page.getByRole('button', { name: '1:1', exact: true }).click();
+  await openEffect(page, 'Crop');
+  await expect(page.getByLabel('Crop width')).toHaveValue('360');
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await expect(page.getByLabel('Crop width')).toHaveCount(0);
   await page.getByRole('button', { name: 'Redo edit', exact: true }).click();
-  await openEffect(page, 'Crop'); await expect(page.getByLabel('Crop width')).toHaveValue('360');
-  await closeEffect(page); await page.getByLabel('Output format').selectOption('gif');
-  await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();
+  await openEffect(page, 'Crop');
+  await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await closeEffect(page);
+  await page.getByLabel('Output format').selectOption('gif');
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Export', exact: true }).click();
+  await page.getByText('Advanced settings', { exact: true }).click();
   await page.getByLabel('GIF frame rate').fill('10');
-  await closeEffect(page); await page.getByRole('button', { name: 'Export GIF', exact: true }).click();
+  await closeEffect(page);
+  await page.getByRole('button', { name: 'Export GIF', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 45000 });
   const pending = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Save file' }).click();
   const download = await pending;
   const output = testInfo.outputPath(download.suggestedFilename());
   await download.saveAs(output);
-  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', output]);
+  const { stdout } = await exec(ffprobe.path, [
+    '-v',
+    'error',
+    '-show_streams',
+    '-show_format',
+    '-of',
+    'json',
+    output,
+  ]);
   const info = JSON.parse(stdout);
   expect(info.streams[0].codec_name).toBe('gif');
   expect(info.streams[0].width).toBe(360);
@@ -61,10 +89,15 @@ test('imports, previews, edits, undoes, and exports a real GIF in the browser', 
 test('exports every advertised browser output format', async ({ page }, testInfo) => {
   await page.goto('/');
   await importTestMedia(page);
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 0.5);
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await page.getByLabel('Trim start', { exact: true }).waitFor();
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await trim(page, 'end', 0.5);
   for (const format of ['mp4', 'webm', 'mov', 'mkv', 'mp3', 'wav', 'flac', 'ogg', 'm4a']) {
-    await closeEffect(page); await page.getByLabel('Output format').selectOption(format);
+    await closeEffect(page);
+    await page.getByLabel('Output format').selectOption(format);
     await page.getByRole('button', { name: `Export ${format.toUpperCase()}`, exact: true }).click();
     await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 45000 });
     const downloadPromise = page.waitForEvent('download');
@@ -72,20 +105,43 @@ test('exports every advertised browser output format', async ({ page }, testInfo
     const download = await downloadPromise;
     const output = testInfo.outputPath(download.suggestedFilename());
     await download.saveAs(output);
-    const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', output]);
+    const { stdout } = await exec(ffprobe.path, [
+      '-v',
+      'error',
+      '-show_streams',
+      '-show_format',
+      '-of',
+      'json',
+      output,
+    ]);
     const info = JSON.parse(stdout);
     expect(Number(info.format.duration)).toBeGreaterThan(0.3);
     expect(Number(info.format.duration)).toBeLessThan(0.9);
-    expect(info.streams.some((s: { codec_type: string }) => s.codec_type === (['mp4', 'mov', 'webm', 'mkv'].includes(format) ? 'video' : 'audio'))).toBe(true);
+    expect(
+      info.streams.some(
+        (s: { codec_type: string }) =>
+          s.codec_type === (['mp4', 'mov', 'webm', 'mkv'].includes(format) ? 'video' : 'audio'),
+      ),
+    ).toBe(true);
   }
 });
-test('splits, removes a section, and exports the remaining browser timeline', async ({ page }, testInfo) => {
+test('splits, removes a section, and exports the remaining browser timeline', async ({
+  page,
+}, testInfo) => {
   await page.goto('/');
   await importTestMedia(page);
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await page.getByLabel('Trim start', { exact: true }).waitFor();
   const seek = page.getByLabel('Seek playhead');
-  await seek.focus(); await seek.press('Home'); await seek.press('ArrowRight');
-  await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight'); await seek.press('ArrowRight');
+  await seek.focus();
+  await seek.press('Home');
+  await seek.press('ArrowRight');
+  await seek.press('ArrowRight');
+  await seek.press('ArrowRight');
+  await seek.press('ArrowRight');
+  await seek.press('ArrowRight');
+  await seek.press('ArrowRight');
   await page.getByRole('button', { name: 'Split', exact: true }).click();
   await expect(page.getByRole('button', { name: /Select section/ })).toHaveCount(2);
   // Keyboard selection remains accessible when a tiny section overlaps its neighbors' handles.
@@ -96,17 +152,34 @@ test('splits, removes a section, and exports the remaining browser timeline', as
   await expect(page.getByRole('button', { name: /Select section/ })).toHaveCount(2);
   await page.getByRole('button', { name: /Select section 2,/ }).click();
   await page.getByRole('button', { name: 'Remove selected section' }).click();
-  await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
+  await closeEffect(page);
+  await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
-  const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file' }).click();
-  const download = await pending; const output = testInfo.outputPath('split.mp4'); await download.saveAs(output);
-  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', output]);
+  const pending = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Save file' }).click();
+  const download = await pending;
+  const output = testInfo.outputPath('split.mp4');
+  await download.saveAs(output);
+  const { stdout } = await exec(ffprobe.path, [
+    '-v',
+    'error',
+    '-show_format',
+    '-of',
+    'json',
+    output,
+  ]);
   expect(Number(JSON.parse(stdout).format.duration)).toBeLessThan(0.3);
 });
 test('rejects corrupt imports and recovers with a valid file', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
-  await page.getByLabel('Choose media files').setInputFiles({ name: 'broken.mp4', mimeType: 'video/mp4', buffer: Buffer.from('not a media file') });
+  await page
+    .getByLabel('Choose media files')
+    .setInputFiles({
+      name: 'broken.mp4',
+      mimeType: 'video/mp4',
+      buffer: Buffer.from('not a media file'),
+    });
   await expect(page.getByRole('button', { name: 'Dismiss message' })).toBeVisible();
   await expect(page.getByLabel('Trim start', { exact: true })).toHaveCount(0);
   await importTestMedia(page);
@@ -115,18 +188,26 @@ test('rejects corrupt imports and recovers with a valid file', async ({ page }) 
 test('cancels browser processing and can export again', async ({ page }) => {
   await page.goto('/');
   await importTestMedia(page);
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await page.getByLabel('Trim start', { exact: true }).waitFor();
-  await closeEffect(page); await page.getByLabel('Output format').selectOption('gif');
-  await closeEffect(page); await page.getByRole('button', { name: 'Export GIF', exact: true }).click();
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await page.getByLabel('Trim start', { exact: true }).waitFor();
+  await closeEffect(page);
+  await page.getByLabel('Output format').selectOption('gif');
+  await closeEffect(page);
+  await page.getByRole('button', { name: 'Export GIF', exact: true }).click();
   const footer = page.getByRole('contentinfo', { name: 'Workspace status' });
   await expect(footer).toHaveAttribute('aria-busy', 'true');
   await expect(footer.getByRole('status')).toContainText('Exporting media');
   await expect(page.locator('.export-footer .export-progress')).toHaveCount(0);
   await footer.getByRole('button', { name: 'Cancel export' }).click();
   await expect(page.locator('.toast')).toContainText('Export cancelled.');
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 0.5);
-  await closeEffect(page); await page.getByLabel('Output format').selectOption('mp4');
-  await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await trim(page, 'end', 0.5);
+  await closeEffect(page);
+  await page.getByLabel('Output format').selectOption('mp4');
+  await closeEffect(page);
+  await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
 });
 test('imports WAV audio and converts it to FLAC', async ({ page }, testInfo) => {
@@ -138,65 +219,116 @@ test('imports WAV audio and converts it to FLAC', async ({ page }, testInfo) => 
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
   await expect(page.locator('audio')).toHaveJSProperty('readyState', 4);
   await expect(page.getByRole('button', { name: '1:1', exact: true })).toHaveCount(0);
-  await closeEffect(page); await page.getByLabel('Output format').selectOption('flac');
-  await closeEffect(page); await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+  await closeEffect(page);
+  await page.getByLabel('Output format').selectOption('flac');
+  await closeEffect(page);
+  await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
-  const pending = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file' }).click();
-  const output = testInfo.outputPath('tone.flac'); await (await pending).saveAs(output);
-  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', output]);
+  const pending = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Save file' }).click();
+  const output = testInfo.outputPath('tone.flac');
+  await (await pending).saveAs(output);
+  const { stdout } = await exec(ffprobe.path, [
+    '-v',
+    'error',
+    '-show_format',
+    '-show_streams',
+    '-of',
+    'json',
+    output,
+  ]);
   const info = JSON.parse(stdout);
-  expect(info.streams[0].codec_name).toBe('flac'); expect(Number(info.format.duration)).toBeCloseTo(2, 1);
+  expect(info.streams[0].codec_name).toBe('flac');
+  expect(Number(info.format.duration)).toBeCloseTo(2, 1);
 });
-test('saves a portable project, relinks media after reload, and restores edits with undo', async ({ page }, testInfo) => {
+test('saves a portable project, relinks media after reload, and restores edits with undo', async ({
+  page,
+}, testInfo) => {
   await page.goto('/');
   await importTestMedia(page);
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 3);
-  await openEffect(page, 'Crop'); await page.getByRole('button', { name: '1:1', exact: true }).click();
-  await closeEffect(page); await page.getByLabel('Output format').selectOption('gif');
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await trim(page, 'start', 1);
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await trim(page, 'end', 3);
+  await openEffect(page, 'Crop');
+  await page.getByRole('button', { name: '1:1', exact: true }).click();
+  await closeEffect(page);
+  await page.getByLabel('Output format').selectOption('gif');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save project', exact: true }).click();
   const download = await downloadPromise;
-  const saved = testInfo.outputPath(download.suggestedFilename()); await download.saveAs(saved);
+  const saved = testInfo.outputPath(download.suggestedFilename());
+  await download.saveAs(saved);
   const { readFile } = await import('node:fs/promises');
   const doc = JSON.parse(await readFile(saved, 'utf8'));
   expect(doc.sources[0].edit.start).toBe(1);
   expect(JSON.stringify(doc)).not.toMatch(/blob:|media:\/\//);
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Clear media library', exact: true })).toBeEnabled();
+  await expect(
+    page.getByRole('button', { name: 'Clear media library', exact: true }),
+  ).toBeEnabled();
   await page.getByRole('button', { name: 'Clear media library', exact: true }).click();
   await page.getByLabel('Choose project file').setInputFiles(saved);
   const dialog = page.getByRole('dialog', { name: 'Open project' });
   await expect(dialog.getByRole('button', { name: 'Restore edits' })).toBeDisabled();
   await dialog.getByRole('button', { name: 'Choose source files' }).click();
   await page.getByLabel('Choose media files').setInputFiles('tests/fixtures/sample.mp4');
-  await dialog.getByLabel(`Source for ${doc.sources[0].source.name}`).selectOption({ label: 'sample.mp4' });
-  await expect(dialog.getByRole('button', { name: 'Restore edits' })).toBeEnabled({ timeout: 45000 });
+  await dialog
+    .getByLabel(`Source for ${doc.sources[0].source.name}`)
+    .selectOption({ label: 'sample.mp4' });
+  await expect(dialog.getByRole('button', { name: 'Restore edits' })).toBeEnabled({
+    timeout: 45000,
+  });
   await dialog.getByRole('button', { name: 'Restore edits' }).click();
-  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+    'aria-valuenow',
+    '1',
+  );
   await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '3');
-  await openEffect(page, 'Crop'); await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await openEffect(page, 'Crop');
+  await expect(page.getByLabel('Crop width')).toHaveValue('360');
   await expect(page.getByLabel('Output format')).toHaveValue('gif');
   await page.getByRole('button', { name: 'Undo edit' }).click();
-  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+    'aria-valuenow',
+    '0',
+  );
   await expect(page.getByLabel('Crop width')).toHaveCount(0);
   await page.getByRole('button', { name: 'Redo edit' }).click();
-  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+    'aria-valuenow',
+    '1',
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test('reuses export presets across sessions while preserving source edits', async ({ page }) => {
   await page.goto('/');
   await importTestMedia(page);
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
-  await openEffect(page, 'Crop'); await page.getByRole('button', { name: '1:1', exact: true }).click();
-  await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByLabel('Export preset').selectOption('builtin:small');
-  await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click();
-  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
-  await openEffect(page, 'Crop'); await expect(page.getByLabel('Crop width')).toHaveValue('360');
-  await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await trim(page, 'start', 1);
+  await openEffect(page, 'Crop');
+  await page.getByRole('button', { name: '1:1', exact: true }).click();
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Export', exact: true }).click();
+  await page.getByLabel('Export preset').selectOption('builtin:small');
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+    'aria-valuenow',
+    '1',
+  );
+  await openEffect(page, 'Crop');
+  await expect(page.getByLabel('Crop width')).toHaveValue('360');
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Export', exact: true }).click();
+  await page.getByText('Advanced settings', { exact: true }).click();
   await expect(page.getByLabel('Audio bitrate')).toHaveValue('128');
-  await closeEffect(page); await page.getByLabel('Output format').selectOption('mp3');
+  await closeEffect(page);
+  await page.getByLabel('Output format').selectOption('mp3');
   await page.getByLabel('Audio bitrate').selectOption('256');
   await page.getByRole('button', { name: 'Save preset', exact: true }).click();
   await page.getByLabel('Preset name').fill('Podcast delivery');
@@ -205,13 +337,22 @@ test('reuses export presets across sessions while preserving source edits', asyn
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
   await page.reload();
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
-  await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByLabel('Export preset').selectOption({ label: 'Podcast delivery' });
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Export', exact: true }).click();
+  await page.getByLabel('Export preset').selectOption({ label: 'Podcast delivery' });
   await expect(page.getByLabel('Output format')).toHaveValue('mp3');
-  await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();
+  await closeEffect(page);
+  await page.getByRole('tab', { name: 'Export', exact: true }).click();
+  await page.getByText('Advanced settings', { exact: true }).click();
   await expect(page.getByLabel('Audio bitrate')).toHaveValue('256');
   await expect(page.getByLabel('Include artwork')).toBeChecked();
-  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+    'aria-valuenow',
+    '1',
+  );
   await page.getByRole('button', { name: 'Delete selected preset' }).click();
-  await expect(page.getByLabel('Export preset').locator('option').filter({ hasText: 'Podcast delivery' })).toHaveCount(0);
+  await expect(
+    page.getByLabel('Export preset').locator('option').filter({ hasText: 'Podcast delivery' }),
+  ).toHaveCount(0);
   await expect(page.getByLabel('Output format')).toHaveValue('mp3');
 });

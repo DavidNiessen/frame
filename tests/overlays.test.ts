@@ -15,15 +15,65 @@ it('renders literal text and a real image watermark without interpreting text as
   const directory = await mkdtemp(join(tmpdir(), 'frame-overlays-'));
   try {
     const paths = { ...resourcePaths(join(directory, 'clip')), fonts: resolve('public/fonts') };
-    const asset: MediaAsset = { id: 'clip', name: 'clip.mp4', size: 1, kind: 'video', duration: 6, width: 640, height: 360, hasAudio: true, previewUrl: '' };
-    const edit = defaultSettings(asset); edit.end = .5; edit.overlays.text = "Literal %{n}: 'quotes' [labels]";
+    const asset: MediaAsset = {
+      id: 'clip',
+      name: 'clip.mp4',
+      size: 1,
+      kind: 'video',
+      duration: 6,
+      width: 640,
+      height: 360,
+      hasAudio: true,
+      previewUrl: '',
+    };
+    const edit = defaultSettings(asset);
+    edit.end = 0.5;
+    edit.overlays.text = "Literal %{n}: 'quotes' [labels]";
     await writeFile(paths.text, textAss(edit, asset));
-    await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'color=red:s=64x64', '-frames:v', '1', '-threads', '1', paths.image]);
+    await exec(ffmpeg!, [
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      'color=red:s=64x64',
+      '-frames:v',
+      '1',
+      '-threads',
+      '1',
+      paths.image,
+    ]);
     edit.overlays.image = `data:image/png;base64,${(await readFile(paths.image)).toString('base64')}`;
-    const output = join(directory, 'marked.mp4'); await exec(ffmpeg!, buildExportArgs(asset, edit, resolve('tests/fixtures/sample.mp4'), output, paths));
-    const { stdout } = await exec(ffmpeg!, ['-v', 'error', '-ss', '0.1', '-i', output, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { encoding: 'buffer', maxBuffer: 2_000_000 });
-    const offset = (Math.round(360 * .8) * 640 + Math.round(640 * .9)) * 3;
-    expect(stdout[offset]).toBeGreaterThan(200); expect(stdout[offset + 1]).toBeLessThan(50);
-    expect(() => parseOverlays({ ...edit.overlays, image: 'https://example.com/image.png' })).toThrow();
-  } finally { await rm(directory, { recursive: true, force: true }); }
+    const output = join(directory, 'marked.mp4');
+    await exec(
+      ffmpeg!,
+      buildExportArgs(asset, edit, resolve('tests/fixtures/sample.mp4'), output, paths),
+    );
+    const { stdout } = await exec(
+      ffmpeg!,
+      [
+        '-v',
+        'error',
+        '-ss',
+        '0.1',
+        '-i',
+        output,
+        '-frames:v',
+        '1',
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-',
+      ],
+      { encoding: 'buffer', maxBuffer: 2_000_000 },
+    );
+    const offset = (Math.round(360 * 0.8) * 640 + Math.round(640 * 0.9)) * 3;
+    expect(stdout[offset]).toBeGreaterThan(200);
+    expect(stdout[offset + 1]).toBeLessThan(50);
+    expect(() =>
+      parseOverlays({ ...edit.overlays, image: 'https://example.com/image.png' }),
+    ).toThrow();
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

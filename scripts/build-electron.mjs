@@ -8,9 +8,21 @@ await ensureYoutubeTools();
 await prepareWindowsShell();
 await build({
   entryPoints: ['electron/main.ts', 'electron/preload.ts'],
-  outdir: 'dist-electron', outExtension: { '.js': '.cjs' },
-  bundle: true, platform: 'node', format: 'cjs', target: 'node22',
-  external: ['electron', '@ffprobe-installer/ffprobe'], sourcemap: true,
+  outdir: 'dist-electron',
+  outExtension: { '.js': '.cjs' },
+  bundle: true,
+  platform: 'node',
+  format: 'cjs',
+  target: 'node22',
+  external: ['electron', '@ffprobe-installer/ffprobe'],
+  sourcemap: true,
 });
-await build({ entryPoints: ['scripts/prepare-shell-actions.ts'], outfile: 'build/generated/prepare-shell-actions.cjs', bundle: true, platform: 'node', format: 'cjs', target: 'node22' });
+await build({
+  entryPoints: ['scripts/prepare-shell-actions.ts'],
+  outfile: 'build/generated/prepare-shell-actions.cjs',
+  bundle: true,
+  platform: 'node',
+  format: 'cjs',
+  target: 'node22',
+});
 execFileSync(process.execPath, ['build/generated/prepare-shell-actions.cjs'], { stdio: 'inherit' });

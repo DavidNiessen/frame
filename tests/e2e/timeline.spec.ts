@@ -1,7 +1,9 @@
 import { importTestMedia } from '../helpers/import-media';
 import { test, expect } from '@playwright/test';
 
-test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard seeking', async ({ page }) => {
+test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard seeking', async ({
+  page,
+}) => {
   await page.goto('/');
   await importTestMedia(page);
   const playhead = page.getByLabel('Seek playhead');
@@ -11,8 +13,12 @@ test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard se
   const y = bounds.y + bounds.height / 2;
   async function clickAt(fraction: number, start = 0, duration = 6) {
     await page.mouse.click(bounds.x + bounds.width * fraction, y);
-    await expect.poll(async () => Number(await playhead.inputValue())).toBeCloseTo(start + duration * fraction, 1);
-    await expect.poll(() => page.locator('video').evaluate(v => (v as HTMLVideoElement).currentTime)).toBeCloseTo(start + duration * fraction, 1);
+    await expect
+      .poll(async () => Number(await playhead.inputValue()))
+      .toBeCloseTo(start + duration * fraction, 1);
+    await expect
+      .poll(() => page.locator('video').evaluate((v) => (v as HTMLVideoElement).currentTime))
+      .toBeCloseTo(start + duration * fraction, 1);
   }
   await clickAt(0.15);
   await clickAt(0.85);
@@ -23,9 +29,9 @@ test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard se
   // Trimming preserves the scale; Fit explicitly frames the retained output sequence.
   await expect(page.locator('.timeline-range.timeline-clip')).toHaveAttribute('data-duration', '6');
   await page.getByRole('button', { name: 'Fit', exact: true }).click();
-  await clickAt(0.1, 5.1, .9);
+  await clickAt(0.1, 5.1, 0.9);
   await expect(page.getByRole('button', { name: 'Remove selected section' })).toBeDisabled();
-  await clickAt(0.95, 5.1, .9);
+  await clickAt(0.95, 5.1, 0.9);
   await page.mouse.click(bounds.x + bounds.width * 0.5, y, { button: 'right' });
   await expect.poll(async () => Number(await playhead.inputValue())).toBeCloseTo(5.955, 1);
   await page.mouse.move(bounds.x + bounds.width * 0.9, y);
@@ -54,7 +60,8 @@ test('seeks at the pointer, scrubs beyond track edges, and preserves keyboard se
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
   await clickAt(0.9);
   await page.getByRole('button', { name: 'Remove selected section' }).click();
-  await playhead.focus(); await playhead.press('End');
+  await playhead.focus();
+  await playhead.press('End');
   await expect(page.locator('.timeline-clip.active')).toHaveCount(0);
   await playhead.fill('5');
   await expect(page.locator('.timeline-clip.active')).toHaveCount(1);

@@ -17,43 +17,115 @@ import { MediaJobs } from './jobs';
 import { runFfmpeg } from './native';
 
 /** Independent job owner: background preview work cannot interrupt exports or analysis. */
-export function createJoinedPreviews(assets: SessionAssets, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc) {
-  const jobs = new MediaJobs(), entries = new Map<string, { source: string; path: string; directory: string }>();
-  let active: Promise<PreviewProxy> | null = null, sourceId = '', generation = 0, closed = false;
-  const cancel = () => { generation++; jobs.cancel(); };
-  async function generate(event: IpcMainInvokeEvent, id: string, ranges: TimeRange[], settings?: EditSettings) {
-    trusted(event); const source = assets.get(id); if (!source) throw new Error('Import the source again.');
+export function createJoinedPreviews(
+  assets: SessionAssets,
+  trusted: (event: IpcMainInvokeEvent) => void,
+  ipc: WindowIpc,
+) {
+  const jobs = new MediaJobs(),
+    entries = new Map<string, { source: string; path: string; directory: string }>();
+  let active: Promise<PreviewProxy> | null = null,
+    sourceId = '',
+    generation = 0,
+    closed = false;
+  const cancel = () => {
+    generation++;
+    jobs.cancel();
+  };
+  async function generate(
+    event: IpcMainInvokeEvent,
+    id: string,
+    ranges: TimeRange[],
+    settings?: EditSettings,
+  ) {
+    trusted(event);
+    const source = assets.get(id);
+    if (!source) throw new Error('Import the source again.');
     validatePreviewRanges(source.asset, ranges);
-    const edit = settings ? effectPreviewRecipe(source.asset, parseEdit(settings, source.asset)) : undefined;
+    const edit = settings
+      ? effectPreviewRecipe(source.asset, parseEdit(settings, source.asset))
+      : undefined;
     const layers = edit ? resolveAudioLayers(edit, [...assets.values()]) : [];
     const message = edit ? 'Preparing effects preview…' : 'Preparing continuous preview…';
-    const ticket = ++generation; jobs.cancel(); await active?.catch(() => {});
+    const ticket = ++generation;
+    jobs.cancel();
+    await active?.catch(() => {});
     if (closed || ticket !== generation) throw new Error('Continuous preview cancelled.');
     sourceId = id;
-    const task = jobs.run(async execute => {
-      const directory = await mkdtemp(join(tmpdir(), 'frame-joined-')), path = join(directory, source.asset.kind === 'video' ? 'preview.mp4' : 'preview.mp3');
+    const task = jobs.run(async (execute) => {
+      const directory = await mkdtemp(join(tmpdir(), 'frame-joined-')),
+        path = join(directory, source.asset.kind === 'video' ? 'preview.mp4' : 'preview.mp3');
       try {
-        const duration = edit ? editedDuration(edit) : ranges.reduce((sum, range) => sum + range.end - range.start, 0);
-        const render = (plan: string[]) => execute(runFfmpeg(plan, duration, ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:joined-preview-progress', { ratio, message }); }));
-        if (edit) await withResources([edit], paths => render(effectPreviewArgs(source.asset, edit, source.path, path, paths[0], layers)), [source.asset]);
+        const duration = edit
+          ? editedDuration(edit)
+          : ranges.reduce((sum, range) => sum + range.end - range.start, 0);
+        const render = (plan: string[]) =>
+          execute(
+            runFfmpeg(plan, duration, (ratio) => {
+              if (!event.sender.isDestroyed())
+                event.sender.send('media:joined-preview-progress', { ratio, message });
+            }),
+          );
+        if (edit)
+          await withResources(
+            [edit],
+            (paths) =>
+              render(effectPreviewArgs(source.asset, edit, source.path, path, paths[0], layers)),
+            [source.asset],
+          );
         else await render(joinedPreviewArgs(source.asset, ranges, source.path, path));
-        if (closed || ticket !== generation || !assets.has(id)) throw new Error('Continuous preview cancelled.');
-        const token = randomUUID(), size = (await stat(path)).size;
-        entries.set(token, { source: id, directory, path }); return { id: token, url: `media://proxy/${token}`, size };
-      } catch (error) { await rm(directory, { recursive: true, force: true }); throw error; }
+        if (closed || ticket !== generation || !assets.has(id))
+          throw new Error('Continuous preview cancelled.');
+        const token = randomUUID(),
+          size = (await stat(path)).size;
+        entries.set(token, { source: id, directory, path });
+        return { id: token, url: `media://proxy/${token}`, size };
+      } catch (error) {
+        await rm(directory, { recursive: true, force: true });
+        throw error;
+      }
     });
     active = task;
-    try { return await task; } finally { if (active === task) { active = null; sourceId = ''; } }
+    try {
+      return await task;
+    } finally {
+      if (active === task) {
+        active = null;
+        sourceId = '';
+      }
+    }
   }
-  ipc.handle('media:joined-preview', (event, id: string, ranges: TimeRange[]) => generate(event, id, ranges));
-  ipc.handle('media:effect-preview', (event, id: string, edit: EditSettings) => generate(event, id, [{ start: 0, end: assets.get(id)?.asset.duration ?? 0 }], edit));
-  ipc.handle('media:cancel-joined-preview', event => { trusted(event); cancel(); });
+  ipc.handle('media:joined-preview', (event, id: string, ranges: TimeRange[]) =>
+    generate(event, id, ranges),
+  );
+  ipc.handle('media:effect-preview', (event, id: string, edit: EditSettings) =>
+    generate(event, id, [{ start: 0, end: assets.get(id)?.asset.duration ?? 0 }], edit),
+  );
+  ipc.handle('media:cancel-joined-preview', (event) => {
+    trusted(event);
+    cancel();
+  });
   async function release(id: string) {
-    const entry = entries.get(id); if (!entry) return;
-    entries.delete(id); await rm(entry.directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    const entry = entries.get(id);
+    if (!entry) return;
+    entries.delete(id);
+    await rm(entry.directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   }
-  return { path: (id: string) => entries.get(id)?.path, release,
-    async releaseAsset(id: string) { if (sourceId === id) { cancel(); await active?.catch(() => {}); } for (const [token, entry] of entries) if (entry.source === id) await release(token); },
-    async clear() { closed = true; cancel(); await active?.catch(() => {}); await Promise.all([...entries.keys()].map(id => release(id).catch(() => {}))); },
+  return {
+    path: (id: string) => entries.get(id)?.path,
+    release,
+    async releaseAsset(id: string) {
+      if (sourceId === id) {
+        cancel();
+        await active?.catch(() => {});
+      }
+      for (const [token, entry] of entries) if (entry.source === id) await release(token);
+    },
+    async clear() {
+      closed = true;
+      cancel();
+      await active?.catch(() => {});
+      await Promise.all([...entries.keys()].map((id) => release(id).catch(() => {})));
+    },
   };
 }

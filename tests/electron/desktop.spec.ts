@@ -15,8 +15,16 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
   test.setTimeout(120000);
   const directory = await mkdtemp(join(tmpdir(), 'frame-desktop-test-'));
   const executablePath = process.env.FRAME_TEST_EXECUTABLE;
-  const args = [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])];
-  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args, env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  const args = [
+    `--user-data-dir=${join(directory, 'profile')}`,
+    ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []),
+    ...(executablePath ? [] : ['.']),
+  ];
+  const app = await _electron.launch({
+    executablePath: executablePath ? resolve(executablePath) : undefined,
+    args,
+    env: { ...process.env, PATH: '', FRAME_DEV_URL: '' },
+  });
   try {
     const page = await app.firstWindow();
     expect(await page.evaluate(() => Boolean(window.frameDesktop))).toBe(true);
@@ -24,15 +32,33 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
     await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
     const track = (await page.locator('.timeline-track').boundingBox())!;
-    await page.locator('.timeline-track').click({ position: { x: track.width * 0.2, y: track.height / 2 } });
-    await expect.poll(() => page.locator('video').evaluate(v => (v as HTMLVideoElement).currentTime)).toBeCloseTo(1.2, 1);
-    const edge = (await page.getByRole('slider', { name: 'Trim start', exact: true }).boundingBox())!;
-    await page.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2); await page.mouse.down();
-    await page.mouse.move(edge.x + edge.width / 2 + track.width / 6, edge.y + edge.height / 2, { steps: 8 }); await page.mouse.up();
-    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
+    await page
+      .locator('.timeline-track')
+      .click({ position: { x: track.width * 0.2, y: track.height / 2 } });
+    await expect
+      .poll(() => page.locator('video').evaluate((v) => (v as HTMLVideoElement).currentTime))
+      .toBeCloseTo(1.2, 1);
+    const edge = (await page
+      .getByRole('slider', { name: 'Trim start', exact: true })
+      .boundingBox())!;
+    await page.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(edge.x + edge.width / 2 + track.width / 6, edge.y + edge.height / 2, {
+      steps: 8,
+    });
+    await page.mouse.up();
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+      'aria-valuenow',
+      '1',
+    );
     await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
-    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
-    await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Desktop performance', { exact: true }).click();
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+      'aria-valuenow',
+      '0',
+    );
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Export', exact: true }).click();
+    await page.getByText('Desktop performance', { exact: true }).click();
     await page.getByLabel('Desktop export encoder').selectOption('auto');
     await page.getByRole('button', { name: 'Check hardware encoders' }).click();
     await expect(page.getByText(/Usable encoders:|No usable hardware encoder found/)).toBeVisible();
@@ -43,143 +69,303 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/asset\//);
     await expect(page.getByRole('button', { name: 'Generate waveform' })).toHaveCount(0);
     await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible();
-    await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Normalize loudness');
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+    await openEffect(page, 'Normalize loudness');
 
     await page.getByRole('button', { name: 'Preview audio effects', exact: true }).click();
-    await expect(page.getByLabel('Processed audio preview', { exact: true })).toHaveJSProperty('readyState', 4);
-    await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Remove silence');
+    await expect(page.getByLabel('Processed audio preview', { exact: true })).toHaveJSProperty(
+      'readyState',
+      4,
+    );
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+    await openEffect(page, 'Remove silence');
     await page.getByLabel('Silence threshold').fill('-10');
     await page.getByRole('button', { name: 'Find silent sections' }).click();
     await expect(page.getByLabel('Remove silent section 1')).toBeVisible();
-    await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Captions');
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+    await openEffect(page, 'Captions');
 
     await page.getByLabel('Caption text', { exact: true }).fill('Portable caption');
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.fonts.check('12px "Frame Captions"'))).toBe(true);
     const caption = page.getByRole('button', { name: 'Move caption 1', exact: true });
     const captionBox = (await caption.boundingBox())!;
-    await page.mouse.move(captionBox.x + captionBox.width / 2, captionBox.y + captionBox.height / 2); await page.mouse.down();
-    await page.mouse.move(captionBox.x + captionBox.width / 2 + 40, captionBox.y + captionBox.height / 2 - 30, { steps: 8 }); await page.mouse.up();
+    await page.mouse.move(
+      captionBox.x + captionBox.width / 2,
+      captionBox.y + captionBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      captionBox.x + captionBox.width / 2 + 40,
+      captionBox.y + captionBox.height / 2 - 30,
+      { steps: 8 },
+    );
+    await page.mouse.up();
     await expect(caption).toHaveClass(/positioned/);
-    await page.getByRole('button', { name: 'Undo edit', exact: true }).click(); await expect(caption).not.toHaveClass(/positioned/);
-    await page.getByRole('button', { name: 'Redo edit', exact: true }).click(); await expect(caption).toHaveClass(/positioned/);
-    await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Watermark');
+    await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
+    await expect(caption).not.toHaveClass(/positioned/);
+    await page.getByRole('button', { name: 'Redo edit', exact: true }).click();
+    await expect(caption).toHaveClass(/positioned/);
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+    await openEffect(page, 'Watermark');
     await page.getByLabel('Overlay text', { exact: true }).fill('Desktop title');
-    await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await openEffect(page, 'Color & LUTs');
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+    await openEffect(page, 'Color & LUTs');
     await page.getByLabel('Color brightness').fill('0.1');
-    await page.getByLabel('Seek playhead').fill('0'); await expect(page.locator('video')).toHaveJSProperty('seeking', false);
+    await page.getByLabel('Seek playhead').fill('0');
+    await expect(page.locator('video')).toHaveJSProperty('seeking', false);
     await page.getByRole('button', { name: 'Render edited frame' }).click();
     await expect(page.getByAltText('Rendered edited frame')).toBeVisible({ timeout: 45000 });
     const captionPath = join(directory, 'caption.mp4');
-    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, captionPath);
-    await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({ timeout: 45000 });
+    await app.evaluate(({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+    }, captionPath);
+    await closeEffect(page);
+    await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({
+      timeout: 45000,
+    });
     await expect(page.locator('.export-result')).toHaveCount(0);
-    await openEffect(page, 'Captions'); await page.getByLabel('Caption export').selectOption('none');
-    await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 1);
-    await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'end', 2);
+    await openEffect(page, 'Captions');
+    await page.getByLabel('Caption export').selectOption('none');
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+    await trim(page, 'start', 1);
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+    await trim(page, 'end', 2);
     const projectPath = join(directory, 'edit.frame.json');
-    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, projectPath);
+    await app.evaluate(({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+    }, projectPath);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect(page.locator('.toast')).toContainText('Project saved');
     const project = JSON.parse(await readFile(projectPath, 'utf8'));
     expect(project.sources[0].edit.start).toBe(1);
-    expect(project.sources[0].edit.effectInstances.find((instance: { effect: string }) => instance.effect === 'captions').settings.subtitles.cues[0].position.x).toBeGreaterThan(50);
+    expect(
+      project.sources[0].edit.effectInstances.find(
+        (instance: { effect: string }) => instance.effect === 'captions',
+      ).settings.subtitles.cues[0].position.x,
+    ).toBeGreaterThan(50);
     expect(JSON.stringify(project)).not.toContain('media://');
-    await closeEffect(page); await page.getByRole('tab', { name: 'Effects', exact: true }).click(); await trim(page, 'start', 0);
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click();
+    await trim(page, 'start', 0);
     await page.getByLabel('Choose project file').setInputFiles(projectPath);
     await page.getByRole('button', { name: 'Restore edits' }).click();
-    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '1');
-    await closeEffect(page); await page.getByLabel('Output format').selectOption('flac');
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+      'aria-valuenow',
+      '1',
+    );
+    await closeEffect(page);
+    await page.getByLabel('Output format').selectOption('flac');
     const output = join(directory, 'output.flac');
-    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output);
-    await closeEffect(page); await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Export FLAC', exact: true })).toBeEnabled({ timeout: 45000 });
-    const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', output], { env: { ...process.env, PATH: '' } });
+    await app.evaluate(({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+    }, output);
+    await closeEffect(page);
+    await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Export FLAC', exact: true })).toBeEnabled({
+      timeout: 45000,
+    });
+    const { stdout } = await exec(
+      ffprobe.path,
+      ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', output],
+      { env: { ...process.env, PATH: '' } },
+    );
     const info = JSON.parse(stdout);
     expect(info.streams[0].codec_name).toBe('flac');
     expect(Number(info.format.duration)).toBeCloseTo(1, 1);
-    expect((await readdir(directory)).some(name => name.startsWith('.frame-'))).toBe(false);
+    expect((await readdir(directory)).some((name) => name.startsWith('.frame-'))).toBe(false);
     await importTestMedia(page, app);
-    await app.evaluate(({ dialog }, directory) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] }); }, directory);
-    await closeEffect(page); await page.getByLabel('Output format').selectOption('flac');
-    await page.getByLabel('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Batch export', exact: true }).click();
+    await app.evaluate(({ dialog }, directory) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] });
+    }, directory);
+    await closeEffect(page);
+    await page.getByLabel('Output format').selectOption('flac');
+    await page.getByLabel('Project tools', { exact: true }).click();
+    await page.getByRole('button', { name: 'Batch export', exact: true }).click();
     const batch = page.getByRole('dialog', { name: 'Batch export', exact: true });
     await batch.getByLabel('Batch settings').selectOption('output');
     await batch.getByRole('button', { name: 'Start batch export' }).click();
     await expect(batch.getByText('done', { exact: true })).toHaveCount(2, { timeout: 45000 });
-    expect((await readdir(directory)).filter(name => name.startsWith('sample-edited') && name.endsWith('.flac'))).toHaveLength(2);
+    expect(
+      (await readdir(directory)).filter(
+        (name) => name.startsWith('sample-edited') && name.endsWith('.flac'),
+      ),
+    ).toHaveLength(2);
     await batch.getByRole('button', { name: 'Close batch export' }).click();
     const mergedPath = join(directory, 'native-merged.flac');
-    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, mergedPath);
-    await page.getByLabel('Project tools', { exact: true }).click(); await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
+    await app.evaluate(({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+    }, mergedPath);
+    await page.getByLabel('Project tools', { exact: true }).click();
+    await page.getByRole('button', { name: 'Merge clips', exact: true }).click();
     const merge = page.getByRole('dialog', { name: 'Merge clips', exact: true });
     await merge.getByLabel('Merge format').selectOption('flac');
     await merge.getByLabel('Merge transition').selectOption('fade');
     await merge.getByRole('button', { name: 'Export merged file' }).click();
     await expect(merge.getByText('Saved to', { exact: false })).toBeVisible();
-    const mergedInfo = await exec(ffprobe.path, ['-v', 'error', '-show_format', '-of', 'json', mergedPath]);
+    const mergedInfo = await exec(ffprobe.path, [
+      '-v',
+      'error',
+      '-show_format',
+      '-of',
+      'json',
+      mergedPath,
+    ]);
     expect(Number(JSON.parse(mergedInfo.stdout).format.duration)).toBeCloseTo(6.7, 1);
     await merge.getByRole('button', { name: 'Close merge' }).click();
     const source = resolve('tests/fixtures/sample.mp4');
-    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, source);
+    await app.evaluate(({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+    }, source);
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     await expect(page.locator('.toast')).toContainText('Choose a different project path');
-    await closeEffect(page); await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+    await closeEffect(page);
+    await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
     await expect(page.locator('.toast')).toContainText('Choose a different output path');
-    await app.evaluate(({ dialog }) => { dialog.showSaveDialog = async () => ({ canceled: true, filePath: '' }); });
-    await closeEffect(page); await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
+    await app.evaluate(({ dialog }) => {
+      dialog.showSaveDialog = async () => ({ canceled: true, filePath: '' });
+    });
+    await closeEffect(page);
+    await page.getByRole('button', { name: 'Export FLAC', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Export FLAC', exact: true })).toBeEnabled();
-  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+  } finally {
+    await app.close();
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test('previews an unsupported source through a temporary proxy and exports from the original', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'frame-proxy-test-')), input = join(directory, 'lossless.mkv'), output = join(directory, 'converted.mp4');
-  await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'testsrc2=s=320x180:d=1', '-c:v', 'ffv1', '-threads', '1', input]); const original = await readFile(input);
-  const previous = new Set((await readdir(tmpdir())).filter(name => name.startsWith('frame-proxy-'))); const executablePath = process.env.FRAME_TEST_EXECUTABLE;
-  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  const directory = await mkdtemp(join(tmpdir(), 'frame-proxy-test-')),
+    input = join(directory, 'lossless.mkv'),
+    output = join(directory, 'converted.mp4');
+  await exec(ffmpeg!, [
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc2=s=320x180:d=1',
+    '-c:v',
+    'ffv1',
+    '-threads',
+    '1',
+    input,
+  ]);
+  const original = await readFile(input);
+  const previous = new Set(
+    (await readdir(tmpdir())).filter((name) => name.startsWith('frame-proxy-')),
+  );
+  const executablePath = process.env.FRAME_TEST_EXECUTABLE;
+  const app = await _electron.launch({
+    executablePath: executablePath ? resolve(executablePath) : undefined,
+    args: [
+      `--user-data-dir=${join(directory, 'profile')}`,
+      ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []),
+      ...(executablePath ? [] : ['.']),
+    ],
+    env: { ...process.env, PATH: '', FRAME_DEV_URL: '' },
+  });
   try {
-    const page = await app.firstWindow(); await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, input);
-    await page.getByRole('button', { name: 'Add media', exact: true }).click(); await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '1');
-    await closeEffect(page); await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Desktop performance', { exact: true }).click(); await page.getByRole('button', { name: 'Create lightweight preview' }).click(); await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/proxy\//); await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
-    await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, output); await closeEffect(page); await page.getByRole('button', { name: 'Export MP4', exact: true }).click(); await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({ timeout: 45000 });
-    const probe = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', output]); const video = JSON.parse(probe.stdout).streams[0]; expect([video.width, video.height]).toEqual([320, 180]); expect((await readFile(input)).equals(original)).toBe(true);
-  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
-  expect((await readdir(tmpdir())).filter(name => name.startsWith('frame-proxy-') && !previous.has(name))).toEqual([]);
+    const page = await app.firstWindow();
+    await app.evaluate(({ dialog }, path) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] });
+    }, input);
+    await page.getByRole('button', { name: 'Add media', exact: true }).click();
+    await expect(page.getByLabel('Trim end')).toHaveAttribute('aria-valuenow', '1');
+    await closeEffect(page);
+    await page.getByRole('tab', { name: 'Export', exact: true }).click();
+    await page.getByText('Desktop performance', { exact: true }).click();
+    await page.getByRole('button', { name: 'Create lightweight preview' }).click();
+    await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/proxy\//);
+    await expect(page.locator('video')).toHaveJSProperty('readyState', 4);
+    await app.evaluate(({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+    }, output);
+    await closeEffect(page);
+    await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Export MP4', exact: true })).toBeEnabled({
+      timeout: 45000,
+    });
+    const probe = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', output]);
+    const video = JSON.parse(probe.stdout).streams[0];
+    expect([video.width, video.height]).toEqual([320, 180]);
+    expect((await readFile(input)).equals(original)).toBe(true);
+  } finally {
+    await app.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+  expect(
+    (await readdir(tmpdir())).filter(
+      (name) => name.startsWith('frame-proxy-') && !previous.has(name),
+    ),
+  ).toEqual([]);
 });
 
 test('automatically renders native audio waveforms inside trimmed and split clips', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'frame-audio-waveform-')), input = join(directory, 'audio.wav');
+  const directory = await mkdtemp(join(tmpdir(), 'frame-audio-waveform-')),
+    input = join(directory, 'audio.wav');
   await exec(ffmpeg!, ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=4', input]);
   const executablePath = process.env.FRAME_TEST_EXECUTABLE;
-  const app = await _electron.launch({ executablePath: executablePath ? resolve(executablePath) : undefined, args: [`--user-data-dir=${join(directory, 'profile')}`, ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []), ...(executablePath ? [] : ['.'])], env: { ...process.env, PATH: '', FRAME_DEV_URL: '' } });
+  const app = await _electron.launch({
+    executablePath: executablePath ? resolve(executablePath) : undefined,
+    args: [
+      `--user-data-dir=${join(directory, 'profile')}`,
+      ...(process.env.FRAME_TEST_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-gpu'] : []),
+      ...(executablePath ? [] : ['.']),
+    ],
+    env: { ...process.env, PATH: '', FRAME_DEV_URL: '' },
+  });
   try {
     const page = await app.firstWindow();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    const preference = page.getByRole('checkbox', { name: 'Generate audio waveforms automatically' });
+    const preference = page.getByRole('checkbox', {
+      name: 'Generate audio waveforms automatically',
+    });
     await expect(preference).toBeChecked();
     await preference.uncheck();
     await page.getByRole('button', { name: 'Back to workspace' }).click();
-    await app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, input);
+    await app.evaluate(({ dialog }, path) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] });
+    }, input);
     await page.getByRole('button', { name: 'Add media', exact: true }).click();
     const waves = page.getByRole('img', { name: 'Audio waveform', exact: true });
-    await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Generate waveform', exact: true })).toHaveCount(
+      0,
+    );
     await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
     await expect(waves).toHaveCount(0);
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await preference.check();
     await page.getByRole('button', { name: 'Back to workspace' }).click();
-    await expect(waves).toBeVisible(); await expect(page.getByLabel('Trim start', { exact: true })).toBeEnabled();
-    await expect.poll(() => page.locator('audio').evaluate(node => (node as HTMLAudioElement).duration)).toBeCloseTo(4, 2);
+    await expect(waves).toBeVisible();
+    await expect(page.getByLabel('Trim start', { exact: true })).toBeEnabled();
+    await expect
+      .poll(() => page.locator('audio').evaluate((node) => (node as HTMLAudioElement).duration))
+      .toBeCloseTo(4, 2);
     await expect(page.getByRole('button', { name: 'Generate waveform' })).toHaveCount(0);
-    await trim(page, 'start', .5); await trim(page, 'end', 3.5);
+    await trim(page, 'start', 0.5);
+    await trim(page, 'end', 3.5);
     await page.getByLabel('Seek playhead').fill('2');
     await expect(page.getByLabel('Seek playhead')).toHaveValue('2');
     await page.getByRole('button', { name: 'Split', exact: true }).click();
     await expect(waves).toHaveCount(2);
-    await expect(waves.nth(0)).toHaveAttribute('data-start', '0.5'); await expect(waves.nth(0)).toHaveAttribute('data-end', '2');
-    await expect(waves.nth(1)).toHaveAttribute('data-start', '2'); await expect(waves.nth(1)).toHaveAttribute('data-end', '3.5');
+    await expect(waves.nth(0)).toHaveAttribute('data-start', '0.5');
+    await expect(waves.nth(0)).toHaveAttribute('data-end', '2');
+    await expect(waves.nth(1)).toHaveAttribute('data-start', '2');
+    await expect(waves.nth(1)).toHaveAttribute('data-end', '3.5');
     await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
-    await expect(waves).toHaveCount(1); await expect(waves).toHaveAttribute('data-start', '0.5'); await expect(waves).toHaveAttribute('data-end', '3.5');
-  } finally { await app.close(); await rm(directory, { recursive: true, force: true }); }
+    await expect(waves).toHaveCount(1);
+    await expect(waves).toHaveAttribute('data-start', '0.5');
+    await expect(waves).toHaveAttribute('data-end', '3.5');
+  } finally {
+    await app.close();
+    await rm(directory, { recursive: true, force: true });
+  }
 });

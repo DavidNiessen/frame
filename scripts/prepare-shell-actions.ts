@@ -14,4 +14,7 @@ async function prepare() {
     await writeFile(join(directory, 'document.wflow'), document);
   }
 }
-prepare().catch(error => { console.error(error); process.exitCode = 1; });
+prepare().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

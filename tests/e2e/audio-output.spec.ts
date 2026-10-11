@@ -5,27 +5,50 @@ import { promisify } from 'node:util';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { trim } from '../helpers/timeline';
 const exec = promisify(execFile);
-test('exports requested audio precision and keeps the controls in conversion mode', async ({ page }, info) => {
-  await page.goto('/'); await importTestMedia(page);
+test('exports requested audio precision and keeps the controls in conversion mode', async ({
+  page,
+}, info) => {
+  await page.goto('/');
+  await importTestMedia(page);
   await trim(page, 'end', 1);
   await page.getByLabel('Output format', { exact: true }).selectOption('wav');
-  await page.getByRole('tab', { name: 'Export', exact: true }).click(); await page.getByText('Advanced settings', { exact: true }).click();
+  await page.getByRole('tab', { name: 'Export', exact: true }).click();
+  await page.getByText('Advanced settings', { exact: true }).click();
   await page.getByLabel('Audio sample rate', { exact: true }).selectOption('16000');
   await page.getByLabel('Audio channels', { exact: true }).selectOption('1');
   await page.getByLabel('WAV bit depth', { exact: true }).selectOption('24');
   await page.getByRole('button', { name: 'Export WAV', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({ timeout: 45000 });
-  const download = page.waitForEvent('download'); await page.getByRole('link', { name: 'Save file', exact: true }).click();
-  const output = info.outputPath('mono.wav'); await (await download).saveAs(output);
-  const { stdout } = await exec(ffprobe.path, ['-v', 'error', '-show_streams', '-of', 'json', output]);
-  expect(JSON.parse(stdout).streams[0]).toMatchObject({ codec_name: 'pcm_s24le', channels: 1, sample_rate: '16000' });
-  await page.getByRole('navigation', { name: 'Workflow' }).getByRole('button', { name: 'Convert', exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Save file', exact: true })).toBeVisible({
+    timeout: 45000,
+  });
+  const download = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Save file', exact: true }).click();
+  const output = info.outputPath('mono.wav');
+  await (await download).saveAs(output);
+  const { stdout } = await exec(ffprobe.path, [
+    '-v',
+    'error',
+    '-show_streams',
+    '-of',
+    'json',
+    output,
+  ]);
+  expect(JSON.parse(stdout).streams[0]).toMatchObject({
+    codec_name: 'pcm_s24le',
+    channels: 1,
+    sample_rate: '16000',
+  });
+  await page
+    .getByRole('navigation', { name: 'Workflow' })
+    .getByRole('button', { name: 'Convert', exact: true })
+    .click();
   await page.getByText('Advanced options', { exact: true }).click();
   await page.getByLabel('Conversion format', { exact: true }).selectOption('flac');
   await page.getByLabel('Audio sample rate', { exact: true }).selectOption('96000');
   await page.getByLabel('Conversion format', { exact: true }).selectOption('mp3');
   await expect(page.getByLabel('Audio sample rate', { exact: true })).toHaveValue('');
   await page.getByLabel('Audio channels', { exact: true }).selectOption('1');
-  await page.reload(); await page.getByText('Advanced options', { exact: true }).click();
+  await page.reload();
+  await page.getByText('Advanced options', { exact: true }).click();
   await expect(page.getByLabel('Audio channels', { exact: true })).toHaveValue('1');
 });

@@ -116,7 +116,6 @@ Keyboard shortcuts: Ctrl/Cmd+O imports, Space plays/pauses (including when timel
 
 Audio files and videos with audio automatically generate a **waveform** when selected, and inserted audio layers generate theirs automatically too. Disable generation in Settings → Editing. Peaks are cached per source and drawn inside each retained clip: trims and split-section edges crop the matching source peaks live, and removed sections leave empty gaps. Processing runs locally, can be cancelled, and offers a retry if interrupted.
 
-
 **Insert library media** builds an editable sequence: select a video, then use another video’s Insert button or drag it onto the timeline. The video appends as a named clip, preserving the current trims, effects and audio layers. Original sources remain in the library, and insertion supports undo/redo. Preparation is local, shows progress and can be cancelled. Frame prepares a high-quality MP4 working source at the first video’s frame size and frame rate; insertion re-encodes video rather than making a lossless copy. Generated sources are included in automatic workspace recovery.
 
 **Project tools → Extract audio** creates a separate FLAC library source from a video’s original audio stream without changing the video. Layer that file over another sequence or convert it to an audio format. This extracts the full source audio, before editor effects and trims.
@@ -135,22 +134,22 @@ Open **Batch export**, select library files, and choose each file’s recipe, cu
 
 ## Capabilities
 
-| Capability | Desktop | Web |
-| --- | --- | --- |
-| MP4, MOV, MKV, WebM, GIF export | Native FFmpeg | FFmpeg WebAssembly |
-| MP3, WAV, FLAC, OGG, M4A export | Native FFmpeg | FFmpeg WebAssembly |
-| Trim, split/remove, crop, volume | Yes | Yes |
-| Metadata and artwork retention | Compatible formats | Compatible formats |
-| Recursive folder import and conversion queue | Native folder picker / drop | Supported directory picker / drop |
-| Bulk conversion downloads | One destination, organized subfolders | ZIP and individual files |
-| Native open/save dialogs and filesystem paths | Yes | Browser picker/download |
-| Large-file processing | Reads directly from disk | 500 MB/file, 800 MB library guard |
-| Progress and export cancellation | Yes | Yes |
-| Library video insertion, audio layers and audio extraction | Yes | Yes |
-| Scenes and contact sheets | Yes | Yes |
-| Watch-folder conversion | While Frame is open | Desktop only |
-| Background completion notifications | Yes, OS support permitting | Desktop only |
-| Media preview | Chromium codec support | Browser codec support |
+| Capability                                                 | Desktop                               | Web                               |
+| ---------------------------------------------------------- | ------------------------------------- | --------------------------------- |
+| MP4, MOV, MKV, WebM, GIF export                            | Native FFmpeg                         | FFmpeg WebAssembly                |
+| MP3, WAV, FLAC, OGG, M4A export                            | Native FFmpeg                         | FFmpeg WebAssembly                |
+| Trim, split/remove, crop, volume                           | Yes                                   | Yes                               |
+| Metadata and artwork retention                             | Compatible formats                    | Compatible formats                |
+| Recursive folder import and conversion queue               | Native folder picker / drop           | Supported directory picker / drop |
+| Bulk conversion downloads                                  | One destination, organized subfolders | ZIP and individual files          |
+| Native open/save dialogs and filesystem paths              | Yes                                   | Browser picker/download           |
+| Large-file processing                                      | Reads directly from disk              | 500 MB/file, 800 MB library guard |
+| Progress and export cancellation                           | Yes                                   | Yes                               |
+| Library video insertion, audio layers and audio extraction | Yes                                   | Yes                               |
+| Scenes and contact sheets                                  | Yes                                   | Yes                               |
+| Watch-folder conversion                                    | While Frame is open                   | Desktop only                      |
+| Background completion notifications                        | Yes, OS support permitting            | Desktop only                      |
+| Media preview                                              | Chromium codec support                | Browser codec support             |
 
 Common input extensions include MP4, MOV, MKV, WebM, AVI, M4V, GIF, MP3, WAV, FLAC, OGG, M4A, AAC, OPUS, and AIFF. A container alone does not guarantee a decodable stream. Unsupported preview codecs can still be converted when FFmpeg can decode them. GIF previews loop the source; trim/split edits are applied on export. Volume boosts, EQ, noise reduction, loudness normalization, color/LUTs and mixed audio automatically update a processed playback preview in the background. Boosts can clip.
 
@@ -234,7 +233,6 @@ Conversion naming: Advanced options accept a filename pattern with `{name}`, `{i
 Source information is available from the preview header and each conversion row. It shows the original codecs, frame rate, dimensions, sample rate, channels, artwork and common embedded metadata without changing the file.
 
 Use the preview transport or comma/period keys to step video frames (audio moves one output second). Clicking the timecode opens precise sequence navigation with seconds, m:ss or h:mm:ss input. Stepping pauses playback and follows reordered clips across cuts.
-
 
 Right-click a timeline section for Set start/end here, Split, Join with neighbour, Restore trimmed edges, Copy, Cut, Duplicate and Paste here. Effects, captions and audio layers also offer settings, timing and clipboard actions; choose Delete explicitly to remove an item. Paste inserts copied footage at the clicked position, splitting the section there when needed. Section copies stay within their original source; use library Insert to combine different media. Repeatable effects get independent settings, while single-instance effects cannot be duplicated. With the timeline focused, use Ctrl/Cmd+C, X, V or D; Shift+F10 opens the menu and arrows navigate it.
 

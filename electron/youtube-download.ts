@@ -9,10 +9,27 @@ import { portableToolPath } from './tool-paths';
 export function youtubeToolPath() {
   return portableToolPath('yt-dlp');
 }
-export async function downloadYoutube(url: string, directory: string, input: unknown, signal: AbortSignal, progress: (value: ExportProgress) => void) {
+export async function downloadYoutube(
+  url: string,
+  directory: string,
+  input: unknown,
+  signal: AbortSignal,
+  progress: (value: ExportProgress) => void,
+) {
   signal.throwIfAborted();
-  const options = youtubeOptions(input), binary = youtubeToolPath();
-  if (!(await stat(binary).catch(() => null))?.isFile()) throw new Error('The bundled YouTube downloader is missing. Reinstall Frame, or run pnpm setup:desktop in a development checkout.');
+  const options = youtubeOptions(input),
+    binary = youtubeToolPath();
+  if (!(await stat(binary).catch(() => null))?.isFile())
+    throw new Error(
+      'The bundled YouTube downloader is missing. Reinstall Frame, or run pnpm setup:desktop in a development checkout.',
+    );
   progress({ ratio: 0, message: 'Reading YouTube video…' });
-  return runYoutubeDownloader(binary, youtubeArgs(url, directory, ffmpegPath(), process.execPath, options), directory, options.mode, signal, progress);
+  return runYoutubeDownloader(
+    binary,
+    youtubeArgs(url, directory, ffmpegPath(), process.execPath, options),
+    directory,
+    options.mode,
+    signal,
+    progress,
+  );
 }

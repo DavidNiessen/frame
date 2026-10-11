@@ -4,6 +4,12 @@ export function useTimelineScale(assetId: string, sourceDuration: number, output
   const [axis, setAxis] = useState({ assetId, duration: sourceDuration });
   const extent = axis.assetId === assetId ? axis.duration : sourceDuration;
   const total = Math.max(extent, outputDuration);
-  useEffect(() => { setAxis(previous => previous.assetId !== assetId || previous.duration !== total ? { assetId, duration: total } : previous); }, [assetId, total]);
+  useEffect(() => {
+    setAxis((previous) =>
+      previous.assetId !== assetId || previous.duration !== total
+        ? { assetId, duration: total }
+        : previous,
+    );
+  }, [assetId, total]);
   return { total, fit: () => setAxis({ assetId, duration: outputDuration }) };
 }

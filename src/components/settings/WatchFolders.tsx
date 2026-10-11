@@ -12,37 +12,446 @@ import { GifOutputControls } from '../GifOutputControls';
 
 export function WatchFolders() {
   const mutating = useRef(false);
-  const bridge = window.frameDesktop, [status, setStatus] = useState<WatchStatus>({ watches: [], activity: [], error: '' }), [error, setError] = useState(''), [busy, setBusy] = useState(false), [paths, setPaths] = useState<{ input: string; output: string } | null>(null);
+  const bridge = window.frameDesktop,
+    [status, setStatus] = useState<WatchStatus>({ watches: [], activity: [], error: '' }),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false),
+    [paths, setPaths] = useState<{ input: string; output: string } | null>(null);
   useLoadingActivity(busy, 'Updating watch folders…');
   useEffect(() => {
-    if (!bridge?.watchFoldersStatus) return; let active = true;
-    const refresh = () => { void bridge.watchFoldersStatus().then(value => { if (active && !mutating.current) setStatus(value); }).catch(issue => { if (active) setError((issue as Error).message); }); };
-    refresh(); const timer = setInterval(refresh, 2000); return () => { active = false; clearInterval(timer); };
+    if (!bridge?.watchFoldersStatus) return;
+    let active = true;
+    const refresh = () => {
+      void bridge
+        .watchFoldersStatus()
+        .then((value) => {
+          if (active && !mutating.current) setStatus(value);
+        })
+        .catch((issue) => {
+          if (active) setError((issue as Error).message);
+        });
+    };
+    refresh();
+    const timer = setInterval(refresh, 2000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
   }, [bridge]);
-  async function action(work: () => Promise<WatchStatus | void>) { mutating.current = true; setBusy(true); setError(''); try { const result = await work(); if (result) setStatus(result); } catch (issue) { setError((issue as Error).message); } finally { mutating.current = false; setBusy(false); if (bridge?.watchFoldersStatus) void bridge.watchFoldersStatus().then(setStatus).catch(() => {}); } }
-  return <section className="settings-card" aria-labelledby="watch-heading"><div className="settings-section-heading"><FolderSync size={19} /><div><h2 id="watch-heading">Watch folders</h2><p>Convert new files automatically while Frame is open.</p></div><span className="integration-badge">{bridge ? 'Desktop' : 'Desktop only'}</span></div>
-    <p className="integration-detail">Choose separate input and output folders. Originals stay in place. Files must finish copying before conversion starts.</p>
-    <div className="watch-folder-list">{status.watches.map(watch => <article className="watch-folder" key={watch.id}><div className="watch-folder-heading"><strong>{watch.name}</strong><span>{watch.settings.format.toUpperCase()}</span><label className="switch-row"><span className="sr-only">Enable {watch.name}</span><input type="checkbox" aria-label={`Enable ${watch.name}`} checked={watch.enabled} disabled={busy} onChange={event => { const enabled = event.target.checked; setStatus(value => ({ ...value, watches: value.watches.map(item => item.id === watch.id ? { ...item, enabled } : item) })); void action(() => bridge!.setWatchFolderEnabled(watch.id, enabled)); }} /></label><button className="icon-button" aria-label={`Remove watch ${watch.name}`} disabled={busy} onClick={() => void action(() => bridge!.removeWatchFolder(watch.id))}><Trash2 size={15} /></button></div><p title={watch.input}>{watch.input}</p><p title={watch.output}>→ {watch.output}</p><div className="watch-folder-actions"><button className="button subtle" disabled={busy} onClick={() => void action(() => bridge!.openWatchFolderOutput(watch.id))}><FolderOpen size={13} />Open output</button><button className="button subtle" disabled={busy} onClick={() => void action(() => bridge!.retryWatchFolder(watch.id))}><RefreshCw size={13} />Retry failures</button><small>{watch.enabled ? 'Watching' : 'Paused'}{watch.recursive ? ' · includes subfolders' : ''}</small></div></article>)}</div>
-    <button className="button primary" disabled={!bridge?.chooseWatchFolders || busy || status.watches.length >= 10} onClick={() => void action(async () => { setPaths(await bridge!.chooseWatchFolders()); })}><Plus size={14} />Add watch folder</button>
-    {!!status.activity.length && <details className="watch-activity"><summary>Recent activity · {status.activity.filter(item => item.status === 'done').length} saved</summary><ul>{status.activity.slice(-20).reverse().map(item => <li key={item.id}><span title={item.name}>{item.name}</span><small>{item.status === 'converting' ? 'Converting' : item.status === 'done' ? 'Saved' : item.status}</small>{item.error && <p>{item.error}</p>}</li>)}</ul></details>}
-    {(error || status.error) && <TransientMessage className="settings-error" role="alert">{error || status.error}</TransientMessage>}
-    <p className="settings-note">{bridge ? 'Up to 10 folders. Pausing cancels the current conversion; resuming retries it. Closing Frame stops watching.' : 'Folder monitoring needs access to your filesystem and is available in the desktop app.'}</p>
-    {paths && <WatchFolderDialog paths={paths} close={() => setPaths(null)} save={async draft => { setStatus(await bridge!.addWatchFolder(draft)); setPaths(null); }} />}
-  </section>;
+  async function action(work: () => Promise<WatchStatus | void>) {
+    mutating.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await work();
+      if (result) setStatus(result);
+    } catch (issue) {
+      setError((issue as Error).message);
+    } finally {
+      mutating.current = false;
+      setBusy(false);
+      if (bridge?.watchFoldersStatus)
+        void bridge
+          .watchFoldersStatus()
+          .then(setStatus)
+          .catch(() => {});
+    }
+  }
+  return (
+    <section className="settings-card" aria-labelledby="watch-heading">
+      <div className="settings-section-heading">
+        <FolderSync size={19} />
+        <div>
+          <h2 id="watch-heading">Watch folders</h2>
+          <p>Convert new files automatically while Frame is open.</p>
+        </div>
+        <span className="integration-badge">{bridge ? 'Desktop' : 'Desktop only'}</span>
+      </div>
+      <p className="integration-detail">
+        Choose separate input and output folders. Originals stay in place. Files must finish copying
+        before conversion starts.
+      </p>
+      <div className="watch-folder-list">
+        {status.watches.map((watch) => (
+          <article className="watch-folder" key={watch.id}>
+            <div className="watch-folder-heading">
+              <strong>{watch.name}</strong>
+              <span>{watch.settings.format.toUpperCase()}</span>
+              <label className="switch-row">
+                <span className="sr-only">Enable {watch.name}</span>
+                <input
+                  type="checkbox"
+                  aria-label={`Enable ${watch.name}`}
+                  checked={watch.enabled}
+                  disabled={busy}
+                  onChange={(event) => {
+                    const enabled = event.target.checked;
+                    setStatus((value) => ({
+                      ...value,
+                      watches: value.watches.map((item) =>
+                        item.id === watch.id ? { ...item, enabled } : item,
+                      ),
+                    }));
+                    void action(() => bridge!.setWatchFolderEnabled(watch.id, enabled));
+                  }}
+                />
+              </label>
+              <button
+                className="icon-button"
+                aria-label={`Remove watch ${watch.name}`}
+                disabled={busy}
+                onClick={() => void action(() => bridge!.removeWatchFolder(watch.id))}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+            <p title={watch.input}>{watch.input}</p>
+            <p title={watch.output}>→ {watch.output}</p>
+            <div className="watch-folder-actions">
+              <button
+                className="button subtle"
+                disabled={busy}
+                onClick={() => void action(() => bridge!.openWatchFolderOutput(watch.id))}
+              >
+                <FolderOpen size={13} />
+                Open output
+              </button>
+              <button
+                className="button subtle"
+                disabled={busy}
+                onClick={() => void action(() => bridge!.retryWatchFolder(watch.id))}
+              >
+                <RefreshCw size={13} />
+                Retry failures
+              </button>
+              <small>
+                {watch.enabled ? 'Watching' : 'Paused'}
+                {watch.recursive ? ' · includes subfolders' : ''}
+              </small>
+            </div>
+          </article>
+        ))}
+      </div>
+      <button
+        className="button primary"
+        disabled={!bridge?.chooseWatchFolders || busy || status.watches.length >= 10}
+        onClick={() =>
+          void action(async () => {
+            setPaths(await bridge!.chooseWatchFolders());
+          })
+        }
+      >
+        <Plus size={14} />
+        Add watch folder
+      </button>
+      {!!status.activity.length && (
+        <details className="watch-activity">
+          <summary>
+            Recent activity · {status.activity.filter((item) => item.status === 'done').length}{' '}
+            saved
+          </summary>
+          <ul>
+            {status.activity
+              .slice(-20)
+              .reverse()
+              .map((item) => (
+                <li key={item.id}>
+                  <span title={item.name}>{item.name}</span>
+                  <small>
+                    {item.status === 'converting'
+                      ? 'Converting'
+                      : item.status === 'done'
+                        ? 'Saved'
+                        : item.status}
+                  </small>
+                  {item.error && <p>{item.error}</p>}
+                </li>
+              ))}
+          </ul>
+        </details>
+      )}
+      {(error || status.error) && (
+        <TransientMessage className="settings-error" role="alert">
+          {error || status.error}
+        </TransientMessage>
+      )}
+      <p className="settings-note">
+        {bridge
+          ? 'Up to 10 folders. Pausing cancels the current conversion; resuming retries it. Closing Frame stops watching.'
+          : 'Folder monitoring needs access to your filesystem and is available in the desktop app.'}
+      </p>
+      {paths && (
+        <WatchFolderDialog
+          paths={paths}
+          close={() => setPaths(null)}
+          save={async (draft) => {
+            setStatus(await bridge!.addWatchFolder(draft));
+            setPaths(null);
+          }}
+        />
+      )}
+    </section>
+  );
 }
-function WatchFolderDialog({ paths, save, close }: { paths: { input: string; output: string }; save: (draft: WatchFolderDraft) => Promise<void>; close: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null), [name, setName] = useState(paths.input.replace(/\\/g, '/').split('/').pop() || 'New watch'), [settings, setSettings] = useState<OutputSettings>(builtInPresets.find(item => item.id === 'builtin:lossless')!.settings), [recursive, setRecursive] = useState(true), [keepFolders, setKeepFolders] = useState(true), [includeExisting, setIncludeExisting] = useState(false), [template, setTemplate] = useState('{name}'), [busy, setBusy] = useState(false), [error, setError] = useState('');
+function WatchFolderDialog({
+  paths,
+  save,
+  close,
+}: {
+  paths: { input: string; output: string };
+  save: (draft: WatchFolderDraft) => Promise<void>;
+  close: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null),
+    [name, setName] = useState(paths.input.replace(/\\/g, '/').split('/').pop() || 'New watch'),
+    [settings, setSettings] = useState<OutputSettings>(
+      builtInPresets.find((item) => item.id === 'builtin:lossless')!.settings,
+    ),
+    [recursive, setRecursive] = useState(true),
+    [keepFolders, setKeepFolders] = useState(true),
+    [includeExisting, setIncludeExisting] = useState(false),
+    [template, setTemplate] = useState('{name}'),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
   useLoadingActivity(busy, 'Saving watch folder…');
-  const [presets] = useState(() => { try { return [...builtInPresets, ...readPresets(localStorage.getItem('frame-export-presets'))]; } catch { return builtInPresets; } });
-  useEffect(() => { dialog.current?.showModal(); }, []);
-  const update = (patch: Partial<OutputSettings>) => setSettings(value => ({ ...value, ...patch }));
-  return <dialog ref={dialog} className="shortcuts-dialog watch-dialog" aria-label="Add watch folder" onCancel={event => { if (busy) event.preventDefault(); else close(); }}><div className="dialog-heading"><h2><FolderSync size={18} />Add watch folder</h2><button className="icon-button" aria-label="Close watch setup" disabled={busy} onClick={close}><X size={18} /></button></div><form onSubmit={event => { event.preventDefault(); setBusy(true); setError(''); void save({ name, ...paths, settings, recursive, keepFolders, includeExisting, namingTemplate: template }).catch(issue => { setError((issue as Error).message); setBusy(false); }); }}><fieldset disabled={busy}>
-    <label className="stacked-label">Watch name<input type="text" aria-label="Watch name" value={name} maxLength={60} required onChange={event => setName(event.target.value)} /></label><p className="watch-path">From: {paths.input}<br />To: {paths.output}</p>
-    <label className="stacked-label">Start from a preset<select aria-label="Watch output preset" defaultValue="builtin:lossless" onChange={event => setSettings(presets.find(item => item.id === event.target.value)!.settings)}>{presets.map(preset => <option key={preset.id} value={preset.id}>{preset.name}</option>)}</select></label>
-    <label className="stacked-label">Output format<select aria-label="Watch output format" value={settings.format} onChange={event => { const format = event.target.value as OutputSettings['format']; update({ format, audioSampleRate: settings.audioSampleRate && !sampleRates(format).includes(settings.audioSampleRate) ? null : settings.audioSampleRate }); }}>{formats.map(format => <option key={format.id} value={format.id}>{format.label}</option>)}</select></label>
-    <label className="stacked-label">Quality<select aria-label="Watch quality" value={settings.quality} onChange={event => update({ quality: event.target.value as OutputSettings['quality'] })}><option value="small">Smaller files</option><option value="balanced">Balanced</option><option value="high">High quality</option></select></label>
-    <details><summary>Advanced output options</summary>{settings.format === 'gif' ? <GifOutputControls settings={settings} update={update} /> : <><AudioOutputControls settings={settings} update={update} /><label className="stacked-label">Audio bitrate (kbps)<input type="number" aria-label="Watch audio bitrate" min={32} max={320} value={settings.audioBitrate} onChange={event => update({ audioBitrate: Number(event.target.value) })} /></label><label className="stacked-label">Video bitrate (kbps, blank for automatic)<input type="number" aria-label="Watch video bitrate" min={100} max={100000} value={settings.videoBitrate ?? ''} onChange={event => update({ videoBitrate: event.target.value ? Number(event.target.value) : null })} /></label></>}<label className="switch-row"><span>Include artwork</span><input type="checkbox" checked={settings.includeArtwork} onChange={event => update({ includeArtwork: event.target.checked })} /></label><label className="switch-row"><span>Keep metadata</span><input type="checkbox" checked={settings.keepMetadata} onChange={event => update({ keepMetadata: event.target.checked })} /></label>{settings.format !== 'gif' && <MetadataControls tags={settings.outputTags} update={outputTags => update({ outputTags })} bulk />}<label className="stacked-label">Filename template<input type="text" aria-label="Watch filename template" value={template} maxLength={160} onChange={event => setTemplate(event.target.value)} /></label><small>Tokens: {'{name}, {format}, {folder}, {title}, {artist}, {album}, {track}'} · duplicate names receive a numbered suffix.</small></details>
-    <label className="switch-row"><span>Include subfolders</span><input type="checkbox" checked={recursive} onChange={event => setRecursive(event.target.checked)} /></label><label className="switch-row"><span>Keep folder structure in output</span><input type="checkbox" checked={keepFolders} onChange={event => setKeepFolders(event.target.checked)} /></label><label className="switch-row"><span>Also convert files already in the folder</span><input type="checkbox" aria-label="Also convert existing files" checked={includeExisting} onChange={event => setIncludeExisting(event.target.checked)} /></label>
-    <p className="field-note">Audio-only sources cannot become video. Incompatible or unreadable files appear in recent activity.</p>{error && <TransientMessage className="settings-error" role="alert">{error}</TransientMessage>}<button className="button primary" type="submit">{busy ? 'Starting…' : 'Start watching'}</button>
-  </fieldset></form></dialog>;
+  const [presets] = useState(() => {
+    try {
+      return [...builtInPresets, ...readPresets(localStorage.getItem('frame-export-presets'))];
+    } catch {
+      return builtInPresets;
+    }
+  });
+  useEffect(() => {
+    dialog.current?.showModal();
+  }, []);
+  const update = (patch: Partial<OutputSettings>) =>
+    setSettings((value) => ({ ...value, ...patch }));
+  return (
+    <dialog
+      ref={dialog}
+      className="shortcuts-dialog watch-dialog"
+      aria-label="Add watch folder"
+      onCancel={(event) => {
+        if (busy) event.preventDefault();
+        else close();
+      }}
+    >
+      <div className="dialog-heading">
+        <h2>
+          <FolderSync size={18} />
+          Add watch folder
+        </h2>
+        <button
+          className="icon-button"
+          aria-label="Close watch setup"
+          disabled={busy}
+          onClick={close}
+        >
+          <X size={18} />
+        </button>
+      </div>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          setBusy(true);
+          setError('');
+          void save({
+            name,
+            ...paths,
+            settings,
+            recursive,
+            keepFolders,
+            includeExisting,
+            namingTemplate: template,
+          }).catch((issue) => {
+            setError((issue as Error).message);
+            setBusy(false);
+          });
+        }}
+      >
+        <fieldset disabled={busy}>
+          <label className="stacked-label">
+            Watch name
+            <input
+              type="text"
+              aria-label="Watch name"
+              value={name}
+              maxLength={60}
+              required
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
+          <p className="watch-path">
+            From: {paths.input}
+            <br />
+            To: {paths.output}
+          </p>
+          <label className="stacked-label">
+            Start from a preset
+            <select
+              aria-label="Watch output preset"
+              defaultValue="builtin:lossless"
+              onChange={(event) =>
+                setSettings(presets.find((item) => item.id === event.target.value)!.settings)
+              }
+            >
+              {presets.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="stacked-label">
+            Output format
+            <select
+              aria-label="Watch output format"
+              value={settings.format}
+              onChange={(event) => {
+                const format = event.target.value as OutputSettings['format'];
+                update({
+                  format,
+                  audioSampleRate:
+                    settings.audioSampleRate &&
+                    !sampleRates(format).includes(settings.audioSampleRate)
+                      ? null
+                      : settings.audioSampleRate,
+                });
+              }}
+            >
+              {formats.map((format) => (
+                <option key={format.id} value={format.id}>
+                  {format.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="stacked-label">
+            Quality
+            <select
+              aria-label="Watch quality"
+              value={settings.quality}
+              onChange={(event) =>
+                update({ quality: event.target.value as OutputSettings['quality'] })
+              }
+            >
+              <option value="small">Smaller files</option>
+              <option value="balanced">Balanced</option>
+              <option value="high">High quality</option>
+            </select>
+          </label>
+          <details>
+            <summary>Advanced output options</summary>
+            {settings.format === 'gif' ? (
+              <GifOutputControls settings={settings} update={update} />
+            ) : (
+              <>
+                <AudioOutputControls settings={settings} update={update} />
+                <label className="stacked-label">
+                  Audio bitrate (kbps)
+                  <input
+                    type="number"
+                    aria-label="Watch audio bitrate"
+                    min={32}
+                    max={320}
+                    value={settings.audioBitrate}
+                    onChange={(event) => update({ audioBitrate: Number(event.target.value) })}
+                  />
+                </label>
+                <label className="stacked-label">
+                  Video bitrate (kbps, blank for automatic)
+                  <input
+                    type="number"
+                    aria-label="Watch video bitrate"
+                    min={100}
+                    max={100000}
+                    value={settings.videoBitrate ?? ''}
+                    onChange={(event) =>
+                      update({
+                        videoBitrate: event.target.value ? Number(event.target.value) : null,
+                      })
+                    }
+                  />
+                </label>
+              </>
+            )}
+            <label className="switch-row">
+              <span>Include artwork</span>
+              <input
+                type="checkbox"
+                checked={settings.includeArtwork}
+                onChange={(event) => update({ includeArtwork: event.target.checked })}
+              />
+            </label>
+            <label className="switch-row">
+              <span>Keep metadata</span>
+              <input
+                type="checkbox"
+                checked={settings.keepMetadata}
+                onChange={(event) => update({ keepMetadata: event.target.checked })}
+              />
+            </label>
+            {settings.format !== 'gif' && (
+              <MetadataControls
+                tags={settings.outputTags}
+                update={(outputTags) => update({ outputTags })}
+                bulk
+              />
+            )}
+            <label className="stacked-label">
+              Filename template
+              <input
+                type="text"
+                aria-label="Watch filename template"
+                value={template}
+                maxLength={160}
+                onChange={(event) => setTemplate(event.target.value)}
+              />
+            </label>
+            <small>
+              Tokens: {'{name}, {format}, {folder}, {title}, {artist}, {album}, {track}'} ·
+              duplicate names receive a numbered suffix.
+            </small>
+          </details>
+          <label className="switch-row">
+            <span>Include subfolders</span>
+            <input
+              type="checkbox"
+              checked={recursive}
+              onChange={(event) => setRecursive(event.target.checked)}
+            />
+          </label>
+          <label className="switch-row">
+            <span>Keep folder structure in output</span>
+            <input
+              type="checkbox"
+              checked={keepFolders}
+              onChange={(event) => setKeepFolders(event.target.checked)}
+            />
+          </label>
+          <label className="switch-row">
+            <span>Also convert files already in the folder</span>
+            <input
+              type="checkbox"
+              aria-label="Also convert existing files"
+              checked={includeExisting}
+              onChange={(event) => setIncludeExisting(event.target.checked)}
+            />
+          </label>
+          <p className="field-note">
+            Audio-only sources cannot become video. Incompatible or unreadable files appear in
+            recent activity.
+          </p>
+          {error && (
+            <TransientMessage className="settings-error" role="alert">
+              {error}
+            </TransientMessage>
+          )}
+          <button className="button primary" type="submit">
+            {busy ? 'Starting…' : 'Start watching'}
+          </button>
+        </fieldset>
+      </form>
+    </dialog>
+  );
 }

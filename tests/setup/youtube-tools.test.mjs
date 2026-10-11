@@ -19,7 +19,7 @@ test('verifies tool downloads before publishing and removes corrupt partial file
   const directory = await mkdtemp(join(tmpdir(), 'frame-tool-test-'));
   const content = Buffer.from('a portable tool fixture');
   const server = createServer((_request, response) => response.end(content));
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   try {
     const url = `http://127.0.0.1:${server.address().port}/tool`;
     const path = join(directory, 'tool');
@@ -28,5 +28,9 @@ test('verifies tool downloads before publishing and removes corrupt partial file
     await downloadTool(url, path, createHash('sha256').update(content).digest('hex'));
     assert.deepEqual(await readFile(path), content);
     assert.deepEqual(await readdir(directory), ['tool']);
-  } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await rm(directory, { recursive: true, force: true }); }
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    await rm(directory, { recursive: true, force: true });
+  }
 });

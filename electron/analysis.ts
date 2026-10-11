@@ -16,73 +16,170 @@ import { waveformArgs, WaveformCollector } from '../src/core/waveform';
 import { thumbnailArgs } from '../src/core/thumbnails';
 import { runFfmpeg } from './native';
 import { MediaJobs } from './jobs';
-export function registerAnalysis(assets: Map<string, { path: string; asset: MediaAsset }>, jobs: MediaJobs, trusted: (event: IpcMainInvokeEvent) => void, ipc: WindowIpc = ipcMain) {
+export function registerAnalysis(
+  assets: Map<string, { path: string; asset: MediaAsset }>,
+  jobs: MediaJobs,
+  trusted: (event: IpcMainInvokeEvent) => void,
+  ipc: WindowIpc = ipcMain,
+) {
   function source(event: IpcMainInvokeEvent, id: string) {
-    trusted(event); const item = assets.get(id); if (!item) throw new Error('Import the source file again.'); return item;
+    trusted(event);
+    const item = assets.get(id);
+    if (!item) throw new Error('Import the source file again.');
+    return item;
   }
   const progress = (event: IpcMainInvokeEvent, message: string) => (ratio: number) => {
     if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
   };
   ipc.handle('media:silence', (event, id: string, options: unknown) => {
-    const item = source(event, id); const settings = parseSilence(options);
-    return jobs.run(async execute => {
+    const item = source(event, id);
+    const settings = parseSilence(options);
+    return jobs.run(async (execute) => {
       const collector = new SilenceCollector();
-      await execute(runFfmpeg(silenceArgs(item.asset, item.path, settings), item.asset.duration, progress(event, 'Detecting silent sections…'), line => collector.push(line)));
+      await execute(
+        runFfmpeg(
+          silenceArgs(item.asset, item.path, settings),
+          item.asset.duration,
+          progress(event, 'Detecting silent sections…'),
+          (line) => collector.push(line),
+        ),
+      );
       return collector.finish(item.asset.duration);
     });
   });
   const waveformJobs = new MediaJobs();
-  let waveformSource: string | null = null, waveformTask: Promise<WaveformPoint[]> | null = null;
-  ipc.handle('media:cancel-waveform', event => { trusted(event); waveformJobs.cancel(); });
+  let waveformSource: string | null = null,
+    waveformTask: Promise<WaveformPoint[]> | null = null;
+  ipc.handle('media:cancel-waveform', (event) => {
+    trusted(event);
+    waveformJobs.cancel();
+  });
   ipc.handle('media:waveform', async (event, id: string) => {
     const item = source(event, id);
     if (waveformJobs.busy) throw new Error('Wait for waveform generation to finish.');
     waveformSource = id;
-    const task = waveformTask = waveformJobs.run(async execute => {
+    const task = (waveformTask = waveformJobs.run(async (execute) => {
       const collector = new WaveformCollector();
-      await execute(runFfmpeg(waveformArgs(item.asset, item.path), item.asset.duration, ratio => { if (!event.sender.isDestroyed()) event.sender.send('media:waveform-progress', { ratio, message: 'Reading audio peaks…' }); }, line => collector.push(line)));
-      if (!collector.points.length) throw new Error('No audio peaks could be read.'); return collector.points;
-    });
-    try { return await task; } finally { if (waveformTask === task) { waveformTask = null; waveformSource = null; } }
+      await execute(
+        runFfmpeg(
+          waveformArgs(item.asset, item.path),
+          item.asset.duration,
+          (ratio) => {
+            if (!event.sender.isDestroyed())
+              event.sender.send('media:waveform-progress', {
+                ratio,
+                message: 'Reading audio peaks…',
+              });
+          },
+          (line) => collector.push(line),
+        ),
+      );
+      if (!collector.points.length) throw new Error('No audio peaks could be read.');
+      return collector.points;
+    }));
+    try {
+      return await task;
+    } finally {
+      if (waveformTask === task) {
+        waveformTask = null;
+        waveformSource = null;
+      }
+    }
   });
   ipc.handle('media:frame-preview', (event, id: string, value: unknown, time: number) => {
-    const item = source(event, id); const edit = parseEdit(value, item.asset);
-    return jobs.run(execute => withResources([edit], async (paths, directory) => {
-      const output = join(directory, 'frame.png');
-      await execute(runFfmpeg(framePreviewArgs(item.asset, edit, time, item.path, output, paths[0]), 1, progress(event, 'Rendering edited frame…')));
-      return new Uint8Array(await readFile(output));
-    }, [item.asset]));
+    const item = source(event, id);
+    const edit = parseEdit(value, item.asset);
+    return jobs.run((execute) =>
+      withResources(
+        [edit],
+        async (paths, directory) => {
+          const output = join(directory, 'frame.png');
+          await execute(
+            runFfmpeg(
+              framePreviewArgs(item.asset, edit, time, item.path, output, paths[0]),
+              1,
+              progress(event, 'Rendering edited frame…'),
+            ),
+          );
+          return new Uint8Array(await readFile(output));
+        },
+        [item.asset],
+      ),
+    );
   });
   ipc.handle('media:audio-preview', (event, id: string, value: unknown) => {
-    const item = source(event, id); const edit = parseEdit(value, item.asset);
-    return jobs.run(async execute => {
-      const directory = await mkdtemp(join(tmpdir(), 'frame-audio-preview-')); const output = join(directory, 'preview.wav');
+    const item = source(event, id);
+    const edit = parseEdit(value, item.asset);
+    return jobs.run(async (execute) => {
+      const directory = await mkdtemp(join(tmpdir(), 'frame-audio-preview-'));
+      const output = join(directory, 'preview.wav');
       try {
-        await execute(runFfmpeg(previewAudioArgs(item.asset, edit, item.path, output, resolveAudioLayers(edit, [...assets.values()])), 10, progress(event, 'Preparing audio effects preview…')));
+        await execute(
+          runFfmpeg(
+            previewAudioArgs(
+              item.asset,
+              edit,
+              item.path,
+              output,
+              resolveAudioLayers(edit, [...assets.values()]),
+            ),
+            10,
+            progress(event, 'Preparing audio effects preview…'),
+          ),
+        );
         return new Uint8Array(await readFile(output));
-      } finally { await rm(directory, { recursive: true, force: true }); }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
     });
   });
   ipc.handle('media:contact-sheet', (event, id: string, value: unknown, options: unknown) => {
-    const item = source(event, id), edit = parseEdit(value, item.asset), settings = parseContactSheet(options);
-    return jobs.run(execute => withResources([edit], async (paths, directory) => {
-      const output = join(directory, 'sheet.png');
-      await execute(runFfmpeg(contactSheetArgs(item.asset, edit, settings, item.path, output, paths[0]), item.asset.duration, progress(event, 'Building contact sheet…')));
-      return new Uint8Array(await readFile(output));
-    }, [item.asset]));
+    const item = source(event, id),
+      edit = parseEdit(value, item.asset),
+      settings = parseContactSheet(options);
+    return jobs.run((execute) =>
+      withResources(
+        [edit],
+        async (paths, directory) => {
+          const output = join(directory, 'sheet.png');
+          await execute(
+            runFfmpeg(
+              contactSheetArgs(item.asset, edit, settings, item.path, output, paths[0]),
+              item.asset.duration,
+              progress(event, 'Building contact sheet…'),
+            ),
+          );
+          return new Uint8Array(await readFile(output));
+        },
+        [item.asset],
+      ),
+    );
   });
-  ipc.handle('media:thumbnails' , (event, id: string) => {
+  ipc.handle('media:thumbnails', (event, id: string) => {
     const item = source(event, id);
-    return jobs.run(async execute => {
-      const directory = await mkdtemp(join(tmpdir(), 'frame-thumbnails-')); const output = join(directory, 'strip.png');
+    return jobs.run(async (execute) => {
+      const directory = await mkdtemp(join(tmpdir(), 'frame-thumbnails-'));
+      const output = join(directory, 'strip.png');
       try {
-        await execute(runFfmpeg(thumbnailArgs(item.asset, item.path, output), item.asset.duration, progress(event, 'Reading video frames…')));
+        await execute(
+          runFfmpeg(
+            thumbnailArgs(item.asset, item.path, output),
+            item.asset.duration,
+            progress(event, 'Reading video frames…'),
+          ),
+        );
         return new Uint8Array(await readFile(output));
-      } finally { await rm(directory, { recursive: true, force: true }); }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
     });
   });
-  return { cancel: () => waveformJobs.cancel(), release: async (id: string) => {
-    if (waveformSource !== id) return;
-    waveformJobs.cancel(); await waveformTask?.catch(() => {});
-  } };
+  return {
+    cancel: () => waveformJobs.cancel(),
+    release: async (id: string) => {
+      if (waveformSource !== id) return;
+      waveformJobs.cancel();
+      await waveformTask?.catch(() => {});
+    },
+  };
 }

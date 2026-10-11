@@ -9,14 +9,19 @@ export function configureWindowControls(window: BrowserWindow, ipc: WindowIpc) {
   ipc.handle('desktop:window-chrome', (_event, value: unknown) => chrome.expand(value));
   ipc.handle('desktop:window-action', (_event, action: unknown) => {
     switch (action) {
-      case 'minimize': window.minimize(); break;
+      case 'minimize':
+        window.minimize();
+        break;
       case 'toggle-maximize':
         if (chrome.state().fullscreen) window.setFullScreen(false);
         else if (window.isMaximized()) window.unmaximize();
         else window.maximize();
         break;
-      case 'close': window.close(); break;
-      default: throw new Error('Unknown window action.');
+      case 'close':
+        window.close();
+        break;
+      default:
+        throw new Error('Unknown window action.');
     }
   });
 }

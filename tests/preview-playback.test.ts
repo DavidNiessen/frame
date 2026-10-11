@@ -3,11 +3,14 @@ import { previewPlaybackStep } from '../src/core/preview-playback';
 import { nextPlayableTime } from '../src/core/timeline';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
 
-const edit = { ...defaultSettings({ duration: 6, kind: 'video' } as MediaAsset), clips: [
-  { id: 'a', start: 0, end: 2, effects: {} },
-  { id: 'b', start: 2, end: 4, effects: {} },
-  { id: 'c', start: 4, end: 6, effects: {} },
-] };
+const edit = {
+  ...defaultSettings({ duration: 6, kind: 'video' } as MediaAsset),
+  clips: [
+    { id: 'a', start: 0, end: 2, effects: {} },
+    { id: 'b', start: 2, end: 4, effects: {} },
+    { id: 'c', start: 4, end: 6, effects: {} },
+  ],
+};
 
 it('keeps the source clock unchanged across contiguous splits, including frame overshoot', () => {
   expect(previewPlaybackStep(edit, 1.99, 'a')).toEqual({ time: 1.99, clipId: 'a' });
@@ -26,5 +29,7 @@ it('seeks across trimmed gaps and reordered clips and stops at the final boundar
 });
 
 it('continues to skip removed regions in legacy recipes', () => {
-  expect(previewPlaybackStep({ ...edit, clips: undefined, cuts: [{ start: 2, end: 4 }] }, 2.1, null)).toEqual({ time: 4, clipId: null });
+  expect(
+    previewPlaybackStep({ ...edit, clips: undefined, cuts: [{ start: 2, end: 4 }] }, 2.1, null),
+  ).toEqual({ time: 4, clipId: null });
 });

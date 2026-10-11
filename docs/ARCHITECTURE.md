@@ -83,7 +83,6 @@ The window uses context isolation, renderer sandboxing, disabled Node integratio
 
 Waveforms generate automatically for the selected audio/video source and linked audio layers when the default-on setting is enabled. Sources without audio are skipped. Manual generation controls are removed; cancelled or failed main-source analysis retains retry, and disabling the preference cancels automatic work. Cached peaks survive selection changes. Waveform generation uses FFmpeg `astats` and bounded peak windows across all channels. Both engines use the same arguments and peak-log collector, returning source-time peak data for an SVG timeline. Source waveform analysis uses its own cancellable background job coordinator, so it does not block editing or exports. Native FFmpeg processes report progress through the narrow bridge; the renderer never chooses input paths. Web analysis explicitly sets the information log level because a preceding FFprobe call changes shared logging state.
 
-
 ## Web boundary
 
 The FFmpeg WebAssembly adapter and its worker load on first use. Core files are copied from the lockfile-installed package and hosted by the application. Files remain in a renderer-owned map; temporary worker filesystem files are removed after probing/export. Blob URLs are released when library items or export results are removed. Cancellation terminates the worker; a later job reloads the engine without losing imported source Files.

@@ -7,10 +7,16 @@ afterEach(() => vi.useRealTimers());
 test('forces a stalled encoder to stop after graceful cancellation times out', async () => {
   vi.useFakeTimers();
   let reject!: (error: Error) => void;
-  const done = new Promise<void>((_resolve, fail) => { reject = fail; });
-  const kill = vi.fn((signal?: string) => { if (signal === 'SIGKILL') reject(new Error('Cancelled')); return true; });
+  const done = new Promise<void>((_resolve, fail) => {
+    reject = fail;
+  });
+  const kill = vi.fn((signal?: string) => {
+    if (signal === 'SIGKILL') reject(new Error('Cancelled'));
+    return true;
+  });
   const child = { kill, exitCode: null, signalCode: null } as unknown as ChildProcess;
-  const jobs = new MediaJobs(), result = jobs.run(execute => execute({ child, done }));
+  const jobs = new MediaJobs(),
+    result = jobs.run((execute) => execute({ child, done }));
   const stopped = expect(result).rejects.toThrow('Cancelled');
   jobs.cancel();
   expect(kill).toHaveBeenCalledWith();
@@ -23,12 +29,19 @@ test('forces a stalled encoder to stop after graceful cancellation times out', a
 test('clears the forced-stop timer when graceful cancellation completes', async () => {
   vi.useFakeTimers();
   let reject!: (error: Error) => void;
-  const done = new Promise<void>((_resolve, fail) => { reject = fail; });
-  const kill = vi.fn(() => { reject(new Error('Cancelled')); return true; });
+  const done = new Promise<void>((_resolve, fail) => {
+    reject = fail;
+  });
+  const kill = vi.fn(() => {
+    reject(new Error('Cancelled'));
+    return true;
+  });
   const child = { kill, exitCode: null, signalCode: null } as unknown as ChildProcess;
-  const jobs = new MediaJobs(), result = jobs.run(execute => execute({ child, done }));
+  const jobs = new MediaJobs(),
+    result = jobs.run((execute) => execute({ child, done }));
   const stopped = expect(result).rejects.toThrow('Cancelled');
-  jobs.cancel(); await stopped;
+  jobs.cancel();
+  await stopped;
   await vi.advanceTimersByTimeAsync(1000);
   expect(kill).not.toHaveBeenCalledWith('SIGKILL');
   expect(vi.getTimerCount()).toBe(0);
@@ -37,13 +50,25 @@ test('clears the forced-stop timer when graceful cancellation completes', async 
 test('also stops a stalled process attached after cancellation during preparation', async () => {
   vi.useFakeTimers();
   let reject!: (error: Error) => void, prepared!: () => void;
-  const ready = new Promise<void>(resolve => { prepared = resolve; });
-  const done = new Promise<void>((_resolve, fail) => { reject = fail; });
-  const kill = vi.fn((signal?: string) => { if (signal === 'SIGKILL') reject(new Error('Cancelled')); return true; });
+  const ready = new Promise<void>((resolve) => {
+    prepared = resolve;
+  });
+  const done = new Promise<void>((_resolve, fail) => {
+    reject = fail;
+  });
+  const kill = vi.fn((signal?: string) => {
+    if (signal === 'SIGKILL') reject(new Error('Cancelled'));
+    return true;
+  });
   const child = { kill, exitCode: null, signalCode: null } as unknown as ChildProcess;
-  const jobs = new MediaJobs(), result = jobs.run(async execute => { await ready; await execute({ child, done }); });
+  const jobs = new MediaJobs(),
+    result = jobs.run(async (execute) => {
+      await ready;
+      await execute({ child, done });
+    });
   const stopped = expect(result).rejects.toThrow('Processing cancelled');
-  jobs.cancel(); prepared();
+  jobs.cancel();
+  prepared();
   await vi.advanceTimersByTimeAsync(1000);
   await stopped;
   expect(kill).toHaveBeenCalledWith('SIGKILL');

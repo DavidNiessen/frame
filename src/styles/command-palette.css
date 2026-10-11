@@ -1,24 +1,144 @@
-.command-palette { width: min(580px, calc(100vw - 28px)); padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: 0 24px 80px #0006; }
-.command-palette .dialog-heading { margin-bottom: 14px; }
-.command-search { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 0 12px; }
-.command-search svg { color: var(--muted); flex-shrink: 0; }
-.command-search:focus-within { border-color: var(--accent); }
-.command-search input { flex: 1; min-width: 0; height: 46px; border: 0; background: transparent; outline: 0; color: var(--text); font: inherit; }
-.command-options { max-height: min(52dvh, 380px); overflow-y: auto; overscroll-behavior: contain; margin-top: 10px; }
-.command-group { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 10px 7px; }
-.command-options button { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid transparent; background: transparent; color: var(--text); border-radius: 9px; padding: 11px 10px; cursor: pointer; }
-.command-options button[aria-selected='true'] { background: var(--accent-dim); border-color: var(--accent); }
-.command-options button > span { flex: 1; min-width: 0; }
-.command-options strong, .command-options small { display: block; overflow-wrap: anywhere; }
-.command-options strong { font-size: 12px; font-weight: 500; }
-.command-options small { font-size: 10px; line-height: 1.6; color: var(--muted); margin-top: 2px; }
-.command-options button:disabled { opacity: .5; cursor: default; }
-.command-options svg { color: var(--muted); flex-shrink: 0; }
-.command-options kbd { color: var(--muted); font: inherit; font-size: 10px; white-space: nowrap; }
-.command-help { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; font-size: 10px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 14px; margin: 14px 0 0; }
-.command-empty { padding: 22px 10px; font-size: 12px; color: var(--muted); }
-@media (max-width: 600px) { .command-palette { padding: 16px; } .command-options { max-height: 48dvh; } }
+.command-palette {
+  width: min(580px, calc(100vw - 28px));
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 80px #0006;
+}
+.command-palette .dialog-heading {
+  margin-bottom: 14px;
+}
+.command-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0 12px;
+}
+.command-search svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.command-search:focus-within {
+  border-color: var(--accent);
+}
+.command-search input {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  color: var(--text);
+  font: inherit;
+}
+.command-options {
+  max-height: min(52dvh, 380px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-top: 10px;
+}
+.command-group {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 16px 10px 7px;
+}
+.command-options button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  border-radius: 9px;
+  padding: 11px 10px;
+  cursor: pointer;
+}
+.command-options button[aria-selected='true'] {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.command-options button > span {
+  flex: 1;
+  min-width: 0;
+}
+.command-options strong,
+.command-options small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.command-options strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.command-options small {
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.command-options button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.command-options svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.command-options kbd {
+  color: var(--muted);
+  font: inherit;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.command-help {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  font-size: 10px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin: 14px 0 0;
+}
+.command-empty {
+  padding: 22px 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  .command-palette {
+    padding: 16px;
+  }
+  .command-options {
+    max-height: 48dvh;
+  }
+}
 
-.command-palette[open] { animation: command-enter 160ms ease-out; }
-@keyframes command-enter { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .command-palette[open] { animation: none; } }
+.command-palette[open] {
+  animation: command-enter 160ms ease-out;
+}
+@keyframes command-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .command-palette[open] {
+    animation: none;
+  }
+}

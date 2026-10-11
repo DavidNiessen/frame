@@ -18,8 +18,15 @@ import type { LaunchInbox } from './launch-inbox';
 import { trustWindow, type WindowIpc } from './window-ipc';
 
 export type SessionAssets = Map<string, { path: string; asset: MediaAsset }>;
-export function createMediaSession(window: BrowserWindow, launches: LaunchInbox, ipc: WindowIpc, workspaceEnabled = true) {
-  const assets: SessionAssets = new Map(), jobs = new MediaJobs(), trusted = trustWindow(window);
+export function createMediaSession(
+  window: BrowserWindow,
+  launches: LaunchInbox,
+  ipc: WindowIpc,
+  workspaceEnabled = true,
+) {
+  const assets: SessionAssets = new Map(),
+    jobs = new MediaJobs(),
+    trusted = trustWindow(window);
   registerAcceleration(jobs, trusted, ipc);
   const joined = createJoinedPreviews(assets, trusted, ipc);
   const proxies = createProxies(assets, jobs, trusted, ipc, joined.release);
@@ -31,13 +38,40 @@ export function createMediaSession(window: BrowserWindow, launches: LaunchInbox,
   registerSceneAnalysis(assets, jobs, trusted, ipc);
   const analysis = registerAnalysis(assets, jobs, trusted, ipc);
   registerMerge(assets, jobs, () => window, trusted, ipc);
-  registerProjectSaving(() => window, trusted, () => Array.from(assets.values(), item => item.path), ipc);
+  registerProjectSaving(
+    () => window,
+    trusted,
+    () => Array.from(assets.values(), (item) => item.path),
+    ipc,
+  );
   registerExports(window, assets, jobs, folders, ipc);
   ipc.handle('media:release', async (_event, id: string) => {
-    if (!jobs.busy) { await analysis.release(id); await joined.releaseAsset(id); await proxies.releaseAsset(id); await downloads.release(id); assets.delete(id); }
+    if (!jobs.busy) {
+      await analysis.release(id);
+      await joined.releaseAsset(id);
+      await proxies.releaseAsset(id);
+      await downloads.release(id);
+      assets.delete(id);
+    }
   });
-  const clear = () => { analysis.cancel(); jobs.cancel(); void joined.clear(); proxies.clear(); downloads.clear(); assets.clear(); };
+  const clear = () => {
+    analysis.cancel();
+    jobs.cancel();
+    void joined.clear();
+    proxies.clear();
+    downloads.clear();
+    assets.clear();
+  };
   window.once('closed', clear);
-  return { jobs, clear, path: (host: string, id: string) => host === 'asset' ? assets.get(id)?.path : host === 'proxy' ? joined.path(id) ?? proxies.path(id) : undefined };
+  return {
+    jobs,
+    clear,
+    path: (host: string, id: string) =>
+      host === 'asset'
+        ? assets.get(id)?.path
+        : host === 'proxy'
+          ? (joined.path(id) ?? proxies.path(id))
+          : undefined,
+  };
 }
 export type MediaSession = ReturnType<typeof createMediaSession>;

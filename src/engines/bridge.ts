@@ -7,7 +7,15 @@ import type { ContactSheetOptions } from '../core/contact-sheet';
 import type { UrlImportOptions } from '../core/youtube';
 import type { DesktopCapabilities, PreviewProxy } from '../core/hardware';
 import type { SilenceOptions } from '../core/silence';
-import type { BatchOptions, EditSettings, ExportProgress, ExportResult, ImportReport, MediaAsset, TimeRange } from '../core/types';
+import type {
+  BatchOptions,
+  EditSettings,
+  ExportProgress,
+  ExportResult,
+  ImportReport,
+  MediaAsset,
+  TimeRange,
+} from '../core/types';
 import type { ProjectDocument } from '../core/project';
 import type { WaveformPoint } from '../core/waveform';
 import type { OutputSettings } from '../core/presets';
@@ -17,7 +25,10 @@ import type { ShellIntegrationStatus } from '../core/system-integration';
 import type { WindowAction, WindowState } from '../core/window-controls';
 export interface DesktopBridge extends ExportHistoryBridge {
   installedFonts(): Promise<string[]>;
-  saveWorkspace(document: import('../core/autosave').AutosaveDocument, assetIds: string[]): Promise<void>;
+  saveWorkspace(
+    document: import('../core/autosave').AutosaveDocument,
+    assetIds: string[],
+  ): Promise<void>;
   recoverWorkspace(): Promise<import('../core/workspace-recovery').WorkspaceRecovery | null>;
   discardWorkspace(): Promise<void>;
   watchFoldersStatus(): Promise<WatchStatus>;
@@ -56,7 +67,11 @@ export interface DesktopBridge extends ExportHistoryBridge {
   importFolder(): Promise<ImportReport>;
   export(id: string, settings: EditSettings, batchToken?: string): Promise<ExportResult | null>;
   saveProject(project: ProjectDocument): Promise<boolean>;
-  merge(clips: { id: string; edit: EditSettings }[], settings: OutputSettings, transition?: TransitionSettings): Promise<ExportResult | null>;
+  merge(
+    clips: { id: string; edit: EditSettings }[],
+    settings: OutputSettings,
+    transition?: TransitionSettings,
+  ): Promise<ExportResult | null>;
   appendVideo(id: string, addedId: string): Promise<MediaAsset>;
   extractAudio(id: string): Promise<MediaAsset>;
   detectSilence(id: string, options: SilenceOptions): Promise<TimeRange[]>;
@@ -76,4 +91,8 @@ export interface DesktopBridge extends ExportHistoryBridge {
   release(id: string): Promise<void>;
   onProgress(callback: (progress: ExportProgress) => void): () => void;
 }
-declare global { interface Window { frameDesktop?: DesktopBridge } }
+declare global {
+  interface Window {
+    frameDesktop?: DesktopBridge;
+  }
+}

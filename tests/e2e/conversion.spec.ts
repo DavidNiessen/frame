@@ -3,7 +3,9 @@ import { readFile, rm, writeFile } from 'node:fs/promises';
 import { unzipSync } from 'fflate';
 import { conversionLibrary, probeConversion } from '../helpers/conversion-library';
 
-test('converts nested song folders and downloads a ZIP with complete media and metadata', async ({ page }, testInfo) => {
+test('converts nested song folders and downloads a ZIP with complete media and metadata', async ({
+  page,
+}, testInfo) => {
   const library = await conversionLibrary();
   try {
     await page.goto('/');
@@ -11,9 +13,13 @@ test('converts nested song folders and downloads a ZIP with complete media and m
     await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Add folder', exact: true })).toBeEnabled();
     await page.getByLabel('Choose media folder').setInputFiles(library.root);
-    await expect(page.getByRole('heading', { name: 'Files to convert' })).toBeVisible({ timeout: 45000 });
+    await expect(page.getByRole('heading', { name: 'Files to convert' })).toBeVisible({
+      timeout: 45000,
+    });
     await expect(page.locator('.conversion-table tbody tr')).toHaveCount(2);
-    await expect(page.locator('.conversion-import-report')).toContainText('1 file could not be read');
+    await expect(page.locator('.conversion-import-report')).toContainText(
+      '1 file could not be read',
+    );
     await expect(page.locator('audio, video, .timeline-track')).toHaveCount(0);
     await page.getByLabel('Conversion format').selectOption('mp4');
     await expect(page.getByRole('button', { name: 'Convert 2 files', exact: true })).toBeDisabled();
@@ -39,7 +45,8 @@ test('converts nested song folders and downloads a ZIP with complete media and m
     const archive = unzipSync(await readFile((await download.path())!));
     expect(Object.keys(archive).sort()).toEqual(['Album One/Song.flac', 'Album Two/Song.flac']);
     for (const [index, data] of Object.values(archive).entries()) {
-      const path = testInfo.outputPath(`converted-${index}.flac`); await writeFile(path, data);
+      const path = testInfo.outputPath(`converted-${index}.flac`);
+      await writeFile(path, data);
       const info = await probeConversion(path);
       expect(info.streams[0].codec_name).toBe('flac');
       expect(Number(info.format.duration)).toBeCloseTo(2, 2);
@@ -52,16 +59,32 @@ test('converts nested song folders and downloads a ZIP with complete media and m
     await page.getByRole('button', { name: 'Clear results', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Convert 2 files', exact: true })).toBeEnabled();
     await workflow.getByRole('button', { name: 'Editor', exact: true }).click();
-    await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({ timeout: 45000 });
-    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', '0');
-    await expect(page.getByLabel('Trim end', { exact: true })).toHaveAttribute('aria-valuenow', '2');
-  } finally { await rm(library.directory, { recursive: true, force: true }); }
+    await expect(page.getByRole('img', { name: 'Audio waveform', exact: true })).toBeVisible({
+      timeout: 45000,
+    });
+    await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+      'aria-valuenow',
+      '0',
+    );
+    await expect(page.getByLabel('Trim end', { exact: true })).toHaveAttribute(
+      'aria-valuenow',
+      '2',
+    );
+  } finally {
+    await rm(library.directory, { recursive: true, force: true });
+  }
 });
 
 test('remembers the conversion workflow and leaves editor drafts unchanged', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
-  await page.getByLabel('Choose media files').setInputFiles({ name: 'study.mp4', mimeType: 'video/mp4', buffer: await readFile('tests/fixtures/sample.mp4') });
+  await page
+    .getByLabel('Choose media files')
+    .setInputFiles({
+      name: 'study.mp4',
+      mimeType: 'video/mp4',
+      buffer: await readFile('tests/fixtures/sample.mp4'),
+    });
   await expect(page.getByLabel('Trim start', { exact: true })).toBeVisible();
   await page.getByLabel('Trim start', { exact: true }).press('ArrowRight');
   const start = await page.getByLabel('Trim start', { exact: true }).getAttribute('aria-valuenow');
@@ -69,12 +92,21 @@ test('remembers the conversion workflow and leaves editor drafts unchanged', asy
   await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
   await expect(page.locator('.timeline-track')).toHaveCount(0);
   await workflow.getByRole('button', { name: 'Editor', exact: true }).click();
-  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', start!);
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+    'aria-valuenow',
+    start!,
+  );
   await expect(page.getByLabel('Autosave status')).toHaveText('Workspace autosaved');
   await workflow.getByRole('button', { name: 'Convert', exact: true }).click();
   await page.reload();
-  await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(workflow.getByRole('button', { name: 'Convert', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await expect(page.locator('.conversion-table tbody tr')).toHaveCount(1, { timeout: 30000 });
   await workflow.getByRole('button', { name: 'Editor', exact: true }).click();
-  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute('aria-valuenow', start!);
+  await expect(page.getByLabel('Trim start', { exact: true })).toHaveAttribute(
+    'aria-valuenow',
+    start!,
+  );
 });

@@ -8,8 +8,22 @@ export const shellActions = [
 export { extensions };
 
 export function windowsInstaller(): string {
-  const install = extensions.flatMap(extension => shellActions.map(action => `  !insertmacro FrameContextVerb "${extension}" "${action.verb}" "${action.label}" "${action.workflow}"`)).join('\n');
-  const uninstall = extensions.flatMap(extension => shellActions.map(action => `  !insertmacro FrameRemoveContextVerb "${extension}" "${action.verb}" "${action.workflow}"`)).join('\n');
+  const install = extensions
+    .flatMap((extension) =>
+      shellActions.map(
+        (action) =>
+          `  !insertmacro FrameContextVerb "${extension}" "${action.verb}" "${action.label}" "${action.workflow}"`,
+      ),
+    )
+    .join('\n');
+  const uninstall = extensions
+    .flatMap((extension) =>
+      shellActions.map(
+        (action) =>
+          `  !insertmacro FrameRemoveContextVerb "${extension}" "${action.verb}" "${action.workflow}"`,
+      ),
+    )
+    .join('\n');
   return `; Generated from Frame's supported media extensions. Never replace default file associations.
 !include LogicLib.nsh
 !include FileFunc.nsh
@@ -120,13 +134,25 @@ ${uninstall}
 `;
 }
 
-function xml(value: string) { return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-const plist = (body: string) => `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict>${body}</dict></plist>\n`;
-export function finderAction(action: typeof shellActions[number], launch?: ShellLaunch) {
+function xml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+const plist = (body: string) =>
+  `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict>${body}</dict></plist>\n`;
+export function finderAction(action: (typeof shellActions)[number], launch?: ShellLaunch) {
   // Launch the executable so workflow arguments also reach an already running app.
-  const command = launch ? `${posixShellCommand(launch)} --frame-workflow=${action.workflow} -- "$@" >/dev/null 2>&1 &` : `frame_app=$(/usr/bin/osascript -e 'POSIX path of (path to application id "io.frame.mediaeditor")') || exit 1\n"\${frame_app%/}/Contents/MacOS/Frame" --frame-workflow=${action.workflow} -- "$@" >/dev/null 2>&1 &`;
-  const info = plist(`<key>CFBundleIdentifier</key><string>io.frame.mediaeditor.${action.workflow}.service</string><key>CFBundleName</key><string>${action.label}</string><key>NSServices</key><array><dict><key>NSMenuItem</key><dict><key>default</key><string>${action.label}</string></dict><key>NSMessage</key><string>runWorkflowAsService</string><key>NSPortName</key><string>Automator Runner</string><key>NSSendTypes</key><array><string>NSFilenamesPboardType</string></array><key>NSReturnTypes</key><array/><key>NSRequiredContext</key><dict><key>NSApplicationIdentifier</key><string>com.apple.finder</string></dict></dict></array>`);
-  const document = plist(`<key>AMDocumentVersion</key><string>2</string><key>actions</key><array><dict><key>action</key><dict>
+  const command = launch
+    ? `${posixShellCommand(launch)} --frame-workflow=${action.workflow} -- "$@" >/dev/null 2>&1 &`
+    : `frame_app=$(/usr/bin/osascript -e 'POSIX path of (path to application id "io.frame.mediaeditor")') || exit 1\n"\${frame_app%/}/Contents/MacOS/Frame" --frame-workflow=${action.workflow} -- "$@" >/dev/null 2>&1 &`;
+  const info = plist(
+    `<key>CFBundleIdentifier</key><string>io.frame.mediaeditor.${action.workflow}.service</string><key>CFBundleName</key><string>${action.label}</string><key>NSServices</key><array><dict><key>NSMenuItem</key><dict><key>default</key><string>${action.label}</string></dict><key>NSMessage</key><string>runWorkflowAsService</string><key>NSPortName</key><string>Automator Runner</string><key>NSSendTypes</key><array><string>NSFilenamesPboardType</string></array><key>NSReturnTypes</key><array/><key>NSRequiredContext</key><dict><key>NSApplicationIdentifier</key><string>com.apple.finder</string></dict></dict></array>`,
+  );
+  const document =
+    plist(`<key>AMDocumentVersion</key><string>2</string><key>actions</key><array><dict><key>action</key><dict>
 <key>AMAccepts</key><dict><key>Container</key><string>List</string><key>Optional</key><true/><key>Types</key><array><string>com.apple.cocoa.string</string></array></dict>
 <key>AMActionVersion</key><string>2.0.3</string><key>AMApplication</key><array><string>Automator</string></array>
 <key>AMProvides</key><dict><key>Container</key><string>List</string><key>Types</key><array><string>com.apple.cocoa.string</string></array></dict>
@@ -139,8 +165,26 @@ export function finderAction(action: typeof shellActions[number], launch?: Shell
 }
 
 export function dolphinActions(executable: string, args: string[] = []): string {
-  if ([executable, ...args].some(value => /[%\x00-\x1f]/.test(value))) throw new Error('Move Frame to a path without control characters or % before installing Dolphin actions.');
+  if ([executable, ...args].some((value) => /[%\x00-\x1f]/.test(value)))
+    throw new Error(
+      'Move Frame to a path without control characters or % before installing Dolphin actions.',
+    );
   // Desktop Entry string unescaping runs before the Exec argument unescaping.
-  const quoted = [executable, ...args].map(value => '"' + value.replace(/[\\"`$]/g, character => '\\\\' + character.replace(/\\/g, '\\\\')) + '"').join(' ');
-  return `[Desktop Entry]\nType=Service\nMimeType=audio/*;video/*;image/gif;\nX-KDE-ServiceTypes=KonqPopupMenu/Plugin\nActions=FrameEdit;FrameConvert;\nX-KDE-Priority=TopLevel\nX-KDE-Protocol=file\nX-KDE-MinNumberOfUrls=1\nX-KDE-MaxNumberOfUrls=2000\n\n` + shellActions.map(action => `[Desktop Action ${action.workflow === 'edit' ? 'FrameEdit' : 'FrameConvert'}]\nName=${action.label}\nIcon=video-x-generic\nExec=${quoted} --frame-workflow=${action.workflow} -- %F\n`).join('\n');
+  const quoted = [executable, ...args]
+    .map(
+      (value) =>
+        '"' +
+        value.replace(/[\\"`$]/g, (character) => '\\\\' + character.replace(/\\/g, '\\\\')) +
+        '"',
+    )
+    .join(' ');
+  return (
+    `[Desktop Entry]\nType=Service\nMimeType=audio/*;video/*;image/gif;\nX-KDE-ServiceTypes=KonqPopupMenu/Plugin\nActions=FrameEdit;FrameConvert;\nX-KDE-Priority=TopLevel\nX-KDE-Protocol=file\nX-KDE-MinNumberOfUrls=1\nX-KDE-MaxNumberOfUrls=2000\n\n` +
+    shellActions
+      .map(
+        (action) =>
+          `[Desktop Action ${action.workflow === 'edit' ? 'FrameEdit' : 'FrameConvert'}]\nName=${action.label}\nIcon=video-x-generic\nExec=${quoted} --frame-workflow=${action.workflow} -- %F\n`,
+      )
+      .join('\n')
+  );
 }
