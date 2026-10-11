@@ -138,6 +138,11 @@ test('clears the conversion library on a phone without overflowing its heading',
     timeout: 30000,
   });
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
+  await expect(page.getByLabel('Conversion format')).toBeVisible();
+  await page
+    .getByRole('navigation', { name: 'Conversion panels' })
+    .getByRole('button', { name: /^Files/ })
+    .click();
   const clear = page.getByRole('button', { name: 'Clear library', exact: true });
   await expect(clear).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
