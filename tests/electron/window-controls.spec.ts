@@ -93,14 +93,18 @@ test('reveals frameless controls without moving panels, supports keyboard access
       .evaluate((node) => Promise.all(node.getAnimations().map((animation) => animation.finished)));
     await expect.poll(() => native.evaluate((window) => window.getBounds())).toEqual(initialNative);
     expect(await contentBounds()).toEqual(before);
-    await page.getByRole('button', { name: 'Add media', exact: true }).focus();
+    await expect(page.getByLabel('Autosave status')).toHaveText('Autosave ready');
+    const addMedia = page.getByRole('button', { name: 'Add media', exact: true });
+    await expect(addMedia).toBeEnabled();
+    await addMedia.focus();
+    await expect(addMedia).toBeFocused();
     await page.keyboard.press('Control+Shift+Space');
     await expect(page.getByRole('button', { name: 'Minimize window' })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: 'Maximize window' })).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(bar).toBeHidden();
-    await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeFocused();
+    await expect(addMedia).toBeFocused();
     // Fullscreen pins the controls even when the pointer leaves the top edge.
     if (process.platform === 'linux') {
       // Xvfb has no window manager; emit the fullscreen signal through the real native bridge.
