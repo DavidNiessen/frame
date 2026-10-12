@@ -7,7 +7,7 @@ import { sourceFingerprint } from '../core/source-fingerprint';
 import { mergedChapters, serializeChapters } from '../core/chapters';
 import { writeBrowserLayers } from './browser-audio-layers';
 import { conversionIndex, validateBatchOptions } from '../core/output-naming';
-import { youtubeVideo } from '../core/youtube';
+import { onlineMedia, desktopImportMessage } from '../core/online-media';
 import { browserAnalysis } from './browser-analysis';
 import { serializeSrt } from '../core/subtitles';
 import { browserResources } from './browser-resources';
@@ -50,10 +50,8 @@ export function createBrowserEngine(): MediaEngine {
     cancelJoinedPreview: joined.cancel,
     releaseProxy: joined.release,
     async importUrl(url, onProgress) {
-      if (youtubeVideo(url))
-        throw new Error(
-          'YouTube imports are available in the Frame desktop app. On web, paste a direct audio or video file link.',
-        );
+      const source = onlineMedia(url);
+      if (source) throw new Error(desktopImportMessage(source));
       if (files.size >= MAX_IMPORT_FILES)
         throw new Error('The library is full. Remove some files before importing another URL.');
       const remaining =

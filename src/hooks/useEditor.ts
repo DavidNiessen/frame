@@ -5,7 +5,7 @@ import { recoveredEdits } from '../core/workspace-recovery';
 import { audioLayerSource } from '../core/audio-layers';
 import { notifyCompletion } from '../core/completion-notifications';
 import { sampleRates } from '../core/audio-output';
-import type { UrlImportOptions } from '../core/youtube';
+import type { UrlImportOptions } from '../core/online-media';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createEngine } from '../engines';
 import { trackedEngine } from '../engines/tracked-engine';

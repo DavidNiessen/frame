@@ -11,6 +11,7 @@ A cross-platform media editor and converter for video and audio. Edit a clip, la
 - **Playback:** independent monitoring volume, five-second skips that keep playback running, precise frame stepping and an audio-reactive background.
 - **Captions:** independent text effects with on-frame editing, positioning and resizing; fonts, colors and styling; SRT import/export and burned-in subtitles.
 - **Convert:** files or recursive folders, a dedicated batch queue, presets, custom filenames, metadata and artwork, plus advanced encoding options.
+- **URL imports:** direct files on desktop/web; public YouTube, Instagram Reels, TikTok, SoundCloud, Vimeo, Dailymotion and Bandcamp links on desktop, with video/audio and quality choices.
 - **Desktop downloads:** an animated Install App button opens a platform picker, with automatic detection and an optional latest prerelease.
 - **Updates:** installed apps check GitHub at startup and every six hours, download verified updates in the background, and install on restart. Opt into prereleases in Settings; a settings badge highlights available updates.
 - **Workspace:** undo/redo, portable `.frame.json` projects, automatic local recovery, resizable panels, keyboard shortcuts and a command palette.
@@ -27,7 +28,7 @@ Output formats: **MP4, MOV, MKV, WebM, GIF, MP3, WAV, FLAC, OGG and M4A**. Input
 | Local file-manager actions                   | Windows Explorer, Finder Quick Actions, Dolphin | Unavailable                                         |
 | Compact context-menu converter               | Yes                                             | Unavailable                                         |
 | Direct media URLs                            | Yes                                             | Requires the media host to allow CORS               |
-| Public YouTube video URLs                    | Bundled yt-dlp; no backend                      | Unavailable                                         |
+| Public video / music service URLs            | Bundled yt-dlp; no backend                      | Unavailable                                         |
 | Installed system fonts                       | Yes                                             | Bundled fonts only                                  |
 | Hardware encoding, proxies and watch folders | Yes, subject to hardware/platform support       | Unavailable                                         |
 

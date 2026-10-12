@@ -42,6 +42,19 @@ export async function youtubeFixture() {
     audio,
   ]);
   files.set('/audio.m4a', await readFile(audio));
+  const muxed = join(directory, 'muxed.mp4');
+  await promisify(execFile)(ffmpeg!, [
+    '-v',
+    'error',
+    '-i',
+    join(directory, 'video360.mp4'),
+    '-i',
+    audio,
+    '-c',
+    'copy',
+    muxed,
+  ]);
+  files.set('/muxed.mp4', await readFile(muxed));
   const requests: string[] = [];
   const server = createServer((request, response) => {
     const route = request.url || '';

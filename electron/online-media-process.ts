@@ -4,15 +4,17 @@ import { realpath, stat } from 'node:fs/promises';
 import { isMediaFilename } from '../src/core/imports';
 import type { ExportProgress } from '../src/core/types';
 import { stopProcessTree } from './process-tree';
-import { youtubeFailure } from './youtube-plan';
+import { onlineMediaFailure } from './online-media-plan';
+import type { OnlineMedia } from '../src/core/online-media';
 
-export async function runYoutubeDownloader(
+export async function runOnlineMediaDownloader(
   binary: string,
   args: string[],
   directory: string,
   mode: 'video' | 'audio',
   signal: AbortSignal,
   progress: (value: ExportProgress) => void,
+  source: Pick<OnlineMedia, 'name' | 'kind'>,
 ) {
   signal.throwIfAborted();
   const child = spawn(binary, args, {
@@ -77,8 +79,8 @@ export async function runYoutubeDownloader(
                   value.status === 'finished'
                     ? 'Preparing downloaded media…'
                     : mode === 'audio'
-                      ? 'Downloading YouTube audio…'
-                      : 'Downloading YouTube video…',
+                      ? `Downloading ${source.name} audio…`
+                      : `Downloading ${source.name} video…`,
               });
             } catch {
               /* Other downloader output is never sent to the renderer. */
@@ -94,28 +96,30 @@ export async function runYoutubeDownloader(
       child.once('error', () =>
         reject(
           new Error(
-            'The bundled YouTube downloader could not start. Reinstall Frame or run pnpm setup:desktop.',
+            'The bundled media downloader could not start. Reinstall Frame or run pnpm setup:desktop.',
           ),
         ),
       );
       child.once('close', (code) =>
-        code === 0 ? accept() : reject(new Error(youtubeFailure(errors))),
+        code === 0 ? accept() : reject(new Error(onlineMediaFailure(errors, source))),
       );
     });
-    if (signal.aborted || timedOut) throw new Error('YouTube import cancelled.');
-    if (typeof downloaded !== 'string' || !downloaded) throw new Error(youtubeFailure(errors));
+    if (signal.aborted || timedOut) throw new Error('URL import cancelled.');
+    if (typeof downloaded !== 'string' || !downloaded)
+      throw new Error(onlineMediaFailure(errors, source));
     const path = await realpath(resolve(directory, downloaded));
     if (
       dirname(path) !== (await realpath(directory)) ||
       !isMediaFilename(basename(path)) ||
       !(await stat(path)).isFile()
     )
-      throw new Error('The YouTube downloader did not return a supported media file.');
+      throw new Error('The media downloader did not return a supported media file.');
     progress({ ratio: 0.98, message: 'Download complete. Reading media…' });
     return path;
   } catch (error) {
-    if (signal.aborted) throw new Error('YouTube import cancelled.', { cause: error });
-    if (timedOut) throw new Error('YouTube stopped responding. Try again later.', { cause: error });
+    if (signal.aborted) throw new Error('URL import cancelled.', { cause: error });
+    if (timedOut)
+      throw new Error(`${source.name} stopped responding. Try again later.`, { cause: error });
     throw error;
   } finally {
     clearTimeout(timer!);

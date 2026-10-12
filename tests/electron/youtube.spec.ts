@@ -78,10 +78,10 @@ test('uses bundled YouTube tools, shows video/audio choices, and cancels native 
     await expect(
       page.evaluate(() =>
         window.frameDesktop!.importUrl('https://youtu.be/BaW_jenozKc', {
-          youtube: { mode: 'audio', quality: '360' },
+          media: { mode: 'audio', quality: '360' },
         } as never),
       ),
-    ).rejects.toThrow('Invalid YouTube import options');
+    ).rejects.toThrow('Invalid media import options');
     await page
       .locator('.empty-stage')
       .getByRole('button', { name: 'Load from URL', exact: true })

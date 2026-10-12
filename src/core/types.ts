@@ -8,7 +8,7 @@ import type { SceneOptions, SceneScan } from './scenes';
 import type { ContactSheetOptions } from './contact-sheet';
 import type { LegacyChapterPoint } from './legacy-chapters';
 import type { TimelineClip } from './clips';
-import type { UrlImportOptions } from './youtube';
+import type { UrlImportOptions } from './online-media';
 import {
   parseAcceleration,
   type Acceleration,

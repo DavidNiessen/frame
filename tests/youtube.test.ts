@@ -1,7 +1,8 @@
 import { expect, it } from 'vitest';
-import { youtubeOptions, youtubeVideo } from '../src/core/youtube';
-import { youtubeArgs, youtubeFailure } from '../electron/youtube-plan';
-import { runYoutubeDownloader } from '../electron/youtube-process';
+import { youtubeVideo } from '../src/core/youtube';
+import { downloadOptions, onlineMedia } from '../src/core/online-media';
+import { onlineMediaArgs, onlineMediaFailure } from '../electron/online-media-plan';
+import { runOnlineMediaDownloader } from '../electron/online-media-process';
 import { youtubeFixture } from './helpers/youtube-fixture';
 import { probeFile, ffmpegPath } from '../electron/native';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -29,10 +30,18 @@ it('recognizes only individual YouTube videos, strips playlist/tracking options,
   ])
     expect(() => youtubeVideo(url)).toThrow('individual');
   expect(youtubeVideo('https://youtube.com.evil.test/watch?v=BaW_jenozKc')).toBeNull();
-  expect(youtubeOptions(undefined)).toEqual({ mode: 'video', quality: '1080' });
-  expect(() => youtubeOptions({ youtube: { mode: 'video', quality: '9999' } })).toThrow();
+  expect(downloadOptions(undefined, onlineMedia(expected)!)).toEqual({
+    mode: 'video',
+    quality: '1080',
+  });
+  expect(() =>
+    downloadOptions({ media: { mode: 'video', quality: '9999' } }, onlineMedia(expected)!),
+  ).toThrow();
   expect(
-    youtubeFailure('ERROR: Sign in to confirm you are not a bot. https://secret?token=123'),
+    onlineMediaFailure(
+      'ERROR: Sign in to confirm you are not a bot. https://secret?token=123',
+      onlineMedia(expected)!,
+    ),
   ).not.toContain('secret');
 });
 it('uses the portable downloader and Electron runtime to download, limit quality, merge, and import audio-only streams', async () => {
@@ -51,7 +60,7 @@ it('uses the portable downloader and Electron runtime to download, limit quality
       fixture.requests.length = 0;
       const directory = join(fixture.directory, `${mode}-${quality}`);
       await mkdir(directory);
-      const args = youtubeArgs(
+      const args = onlineMediaArgs(
         'https://www.youtube.com/watch?v=BaW_jenozKc',
         directory,
         ffmpegPath(),
@@ -61,13 +70,14 @@ it('uses the portable downloader and Electron runtime to download, limit quality
         .slice(0, -2)
         .concat('--load-info-json', fixture.info);
       const progress: string[] = [];
-      const path = await runYoutubeDownloader(
+      const path = await runOnlineMediaDownloader(
         binary,
         args,
         directory,
         mode,
         new AbortController().signal,
         (value) => progress.push(value.message),
+        onlineMedia('https://youtu.be/BaW_jenozKc')!,
       );
       const media = await probeFile(path, { rawOnly: true });
       expect(media.kind).toBe(mode === 'audio' ? 'audio' : 'video');
@@ -96,13 +106,14 @@ it('cancels the downloader process tree and rejects outputs outside its temporar
     const script = `const {spawn}=require('child_process');const child=spawn(process.execPath,['-e',${JSON.stringify(grandchild)}],{stdio:['ignore','ignore','ignore','ipc']});process.on('SIGTERM',()=>{});child.once('message',()=>console.log('FRAME_PROGRESS:{"downloaded":1,"total":10}'));setInterval(()=>{},100)`;
     const controller = new AbortController();
     await expect(
-      runYoutubeDownloader(
+      runOnlineMediaDownloader(
         process.execPath,
         ['-e', script],
         directory,
         'video',
         controller.signal,
         () => controller.abort(),
+        onlineMedia('https://youtu.be/BaW_jenozKc')!,
       ),
     ).rejects.toThrow('cancelled');
     const before = await readFile(tick, 'utf8');
@@ -113,13 +124,14 @@ it('cancels the downloader process tree and rejects outputs outside its temporar
     const owned = join(directory, 'owned');
     await mkdir(owned);
     await expect(
-      runYoutubeDownloader(
+      runOnlineMediaDownloader(
         process.execPath,
         ['-e', `console.log('FRAME_FILE:'+JSON.stringify(${JSON.stringify(outside)}))`],
         owned,
         'video',
         new AbortController().signal,
         () => {},
+        onlineMedia('https://youtu.be/BaW_jenozKc')!,
       ),
     ).rejects.toThrow('supported media file');
   } finally {

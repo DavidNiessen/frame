@@ -5,7 +5,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Download, Link, X } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import { mediaUrl } from '../core/remote-media';
-import { youtubeVideo, type UrlImportOptions } from '../core/youtube';
+import {
+  onlineMedia,
+  desktopImportMessage,
+  type DownloadOptions,
+  type OnlineMedia,
+} from '../core/online-media';
+import { UrlMediaOptions } from './UrlMediaOptions';
 
 export function UrlImportDialog({
   open,
@@ -21,13 +27,13 @@ export function UrlImportDialog({
   const [url, setUrl] = useState(''),
     [error, setError] = useState(''),
     [running, setRunning] = useState(false);
-  const [youtube, setYoutube] = useState<Required<UrlImportOptions>['youtube']>({
+  const [options, setOptions] = useState<DownloadOptions>({
     mode: 'video',
     quality: '1080',
   });
-  let isYoutube = false;
+  let source: OnlineMedia | null = null;
   try {
-    isYoutube = !!youtubeVideo(url);
+    source = onlineMedia(url);
   } catch {
     /* Validate unfinished links on submit. */
   }
@@ -48,10 +54,8 @@ export function UrlImportDialog({
     let address: string;
     try {
       address = mediaUrl(url).href;
-      if (youtubeVideo(address) && editor.platform === 'web')
-        throw new Error(
-          'YouTube imports are available in the Frame desktop app. On web, paste a direct audio or video file link.',
-        );
+      const link = onlineMedia(address);
+      if (link && editor.platform === 'web') throw new Error(desktopImportMessage(link));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
       input.current?.focus();
@@ -60,7 +64,7 @@ export function UrlImportDialog({
     submitting.current = true;
     setRunning(true);
     try {
-      if (await editor.importUrl(address, isYoutube ? { youtube } : undefined)) close();
+      if (await editor.importUrl(address, source ? { media: options } : undefined)) close();
       else setError('Wait for processing to finish, then try again.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load this media URL.');
@@ -112,7 +116,7 @@ export function UrlImportDialog({
         </div>
         <p className="project-intro">
           {editor.platform === 'desktop'
-            ? 'Paste a direct media file link or a YouTube video link.'
+            ? 'Paste a file link, video post or music track.'
             : 'Paste a direct link to a video or audio file.'}{' '}
           Frame downloads it, then opens it in your current workflow.
         </p>
@@ -139,56 +143,18 @@ export function UrlImportDialog({
             aria-describedby="url-import-note"
             aria-invalid={!!error}
           />
-          {isYoutube && editor.platform === 'desktop' && (
-            <div className="youtube-import-options">
-              <label className="stacked-label">
-                Import as
-                <select
-                  aria-label="YouTube import type"
-                  value={youtube.mode}
-                  disabled={running}
-                  onChange={(event) =>
-                    setYoutube((value) => ({
-                      ...value,
-                      mode: event.target.value as 'video' | 'audio',
-                    }))
-                  }
-                >
-                  <option value="video">Video with audio</option>
-                  <option value="audio">Audio only</option>
-                </select>
-              </label>
-              {youtube.mode === 'video' && (
-                <label className="stacked-label">
-                  Video quality
-                  <select
-                    aria-label="YouTube video quality"
-                    value={youtube.quality}
-                    disabled={running}
-                    onChange={(event) =>
-                      setYoutube((value) => ({
-                        ...value,
-                        quality: event.target.value as typeof value.quality,
-                      }))
-                    }
-                  >
-                    <option value="1080">Up to 1080p</option>
-                    <option value="720">Up to 720p</option>
-                    <option value="480">Up to 480p</option>
-                    <option value="best">Best available</option>
-                  </select>
-                </label>
-              )}
-              <p className="field-note">
-                Downloads the original streams without re-encoding. Choose your output format after
-                import. Individual, publicly accessible videos only; live streams are not supported.
-              </p>
-            </div>
+          {source && editor.platform === 'desktop' && (
+            <UrlMediaOptions
+              source={source}
+              options={options}
+              setOptions={setOptions}
+              running={running}
+            />
           )}
           <p id="url-import-note" className="field-note">
             {editor.platform === 'desktop'
-              ? 'Direct files and individual YouTube videos are supported. Other page links and playlist-only links are not supported.'
-              : 'Direct files only; page links and streaming playlists are not supported. YouTube imports require the desktop app. The host must allow cross-origin downloads (CORS).'}{' '}
+              ? 'Supports YouTube, Instagram Reels, TikTok, SoundCloud, Vimeo, Dailymotion, Bandcamp and direct files. Playlists and profiles are not supported.'
+              : 'Direct files only; page links and streaming playlists are not supported. Social video and music links require the desktop app. The host must allow cross-origin downloads (CORS).'}{' '}
             Export a copy to keep downloaded media after this session.
           </p>
           {error && (

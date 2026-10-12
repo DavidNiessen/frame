@@ -165,16 +165,36 @@ test('reports invalid links, CORS, pages, corrupt files and oversized downloads,
     await server.close();
   }
 });
-test('explains that YouTube import requires desktop without contacting YouTube', async ({
+test('explains that social video and music imports require desktop without contacting services', async ({
   page,
 }) => {
   const requests: string[] = [];
   page.on('request', (request) => requests.push(request.url()));
   await page.goto('/');
-  await load(page, 'https://youtu.be/BaW_jenozKc?t=4');
-  await expect(
-    page.getByRole('dialog', { name: 'Load from URL' }).getByRole('alert'),
-  ).toContainText('Frame desktop app');
-  await expect(page.getByLabel('YouTube import type')).toHaveCount(0);
-  expect(requests.some((url) => /youtu(?:\.be|be\.com)/.test(url))).toBe(false);
+  await page
+    .locator('.empty-stage')
+    .getByRole('button', { name: 'Load from URL', exact: true })
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Load from URL' });
+  for (const [url, name] of [
+    ['https://youtu.be/BaW_jenozKc?t=4', 'YouTube'],
+    ['https://instagram.com/reel/abc/', 'Instagram'],
+    ['https://tiktok.com/@artist/video/123', 'TikTok'],
+    ['https://soundcloud.com/artist/song', 'SoundCloud'],
+    ['https://vimeo.com/12345', 'Vimeo'],
+    ['https://dai.ly/x123abc', 'Dailymotion'],
+    ['https://artist.bandcamp.com/track/song', 'Bandcamp'],
+  ]) {
+    await page.getByLabel('Media URL', { exact: true }).fill(url);
+    await dialog.getByRole('button', { name: 'Load media', exact: true }).click();
+    await expect(dialog.getByRole('alert')).toContainText(
+      name + ' imports are available in the Frame desktop app',
+    );
+    await expect(page.locator('.online-media-import-options')).toHaveCount(0);
+  }
+  expect(
+    requests.some((url) =>
+      /youtu(?:\.be|be\.com)|instagram|tiktok|soundcloud|vimeo|dailymotion|bandcamp/.test(url),
+    ),
+  ).toBe(false);
 });

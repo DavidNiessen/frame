@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { MAX_IMPORT_FILES } from '../src/core/imports';
 import { mediaUrl } from '../src/core/remote-media';
-import { youtubeOptions, youtubeVideo } from '../src/core/youtube';
-import { downloadYoutube } from './youtube-download';
+import { downloadOptions, onlineMedia } from '../src/core/online-media';
+import { downloadOnlineMedia } from './online-media-download';
 import { downloadRemoteMedia } from '../src/engines/remote-download';
 import type { ExportProgress, ImportReport, MediaAsset } from '../src/core/types';
 import type { MediaJobs } from './jobs';
@@ -24,8 +24,8 @@ export function registerUrlImports(
   ipc.handle('media:import-url', (event, input: unknown, options: unknown) => {
     trusted(event);
     const url = mediaUrl(input).href;
-    const youtube = youtubeVideo(url);
-    if (youtube) youtubeOptions(options);
+    const source = onlineMedia(url);
+    if (source) downloadOptions(options, source);
     return jobs.run(async () => {
       if (assets.size >= MAX_IMPORT_FILES)
         throw new Error('The library is full. Remove files before loading another URL.');
@@ -40,7 +40,7 @@ export function registerUrlImports(
         const progress = (value: ExportProgress) => {
           if (!event.sender.isDestroyed()) event.sender.send('media:progress', value);
         };
-        if (youtube) path = await downloadYoutube(youtube, directory, options, signal, progress);
+        if (source) path = await downloadOnlineMedia(source, directory, options, signal, progress);
         else {
           await downloadRemoteMedia(url, {
             signal,

@@ -41,7 +41,7 @@ Each job owns a cancellation path and temporary outputs. Release replaced previe
 
 `src/engines/browser.ts` lazily creates FFmpeg WebAssembly workers. Binary assets are self-hosted under `public/ffmpeg/`; generated notices ship with the build. The engine owns its virtual filesystem and Blob URLs. Separate background preparation prevents preview work from holding the foreground processing lock.
 
-Imports and retained outputs have memory guards. Folder readers consume all browser directory-entry batches and preserve root-relative paths. ZIP conversion downloads validate paths and number collisions. Direct URL imports require CORS. There is no backend, filesystem bridge or YouTube downloader in the web app.
+Imports and retained outputs have memory guards. Folder readers consume all browser directory-entry batches and preserve root-relative paths. ZIP conversion downloads validate paths and number collisions. Direct URL imports require CORS. There is no backend, filesystem bridge or service downloader in the web app. Desktop URL imports use a shared provider registry for link validation and a bundled yt-dlp runner for video/music services. New services reuse quality selection, audio extraction, cancellation, progress and temporary-file ownership.
 
 HTTPS hosting needs cross-origin isolation for SharedArrayBuffer. Vite supplies development headers. GitHub Pages uses `browser-isolation` and `public/isolation-worker.js` to add headers to same-origin responses after a bootstrap reload; the worker does not cache media. Its static-host integration test performs an actual conversion.
 

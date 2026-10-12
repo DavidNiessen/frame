@@ -5,7 +5,7 @@ import type { WatchFolderDraft, WatchStatus } from '../core/watch-folders';
 import type { SceneOptions, SceneScan } from '../core/scenes';
 import type { CompletionSummary, NotificationPreference } from '../core/completion-notifications';
 import type { ContactSheetOptions } from '../core/contact-sheet';
-import type { UrlImportOptions } from '../core/youtube';
+import type { UrlImportOptions } from '../core/online-media';
 import type { DesktopCapabilities, PreviewProxy } from '../core/hardware';
 import type { SilenceOptions } from '../core/silence';
 import type {
