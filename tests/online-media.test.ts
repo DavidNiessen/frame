@@ -214,3 +214,56 @@ it('downloads silent videos and extracts audio from muxed social videos using th
     await fixture.close();
   }
 }, 60000);
+it('selects the requested short-edge quality for portrait Reels using the bundled downloader', async () => {
+  const fixture = await youtubeFixture();
+  const original = JSON.parse(await readFile(fixture.info, 'utf8'));
+  const binary = resolve(
+    'build/media-tools',
+    process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
+  );
+  try {
+    const info = join(fixture.directory, 'portrait.json');
+    await writeFile(info, JSON.stringify({ ...original, formats: fixture.portraitFormats }));
+    const source = onlineMedia('https://instagram.com/reel/abc/')!;
+    for (const quality of ['720', '1080'] as const) {
+      const directory = join(fixture.directory, 'portrait-' + quality);
+      await mkdir(directory);
+      const args = onlineMediaArgs(source.url, directory, ffmpegPath(), require('electron'), {
+        mode: 'video',
+        quality,
+      })
+        .slice(0, -2)
+        .concat('--load-info-json', info);
+      const path = await runOnlineMediaDownloader(
+        binary,
+        args,
+        directory,
+        'video',
+        new AbortController().signal,
+        () => {},
+        source,
+      );
+      const result = await probeFile(path, { rawOnly: true });
+      expect(result.width).toBe(Number(quality));
+      expect(result.height).toBe((Number(quality) * 16) / 9);
+    }
+  } finally {
+    await fixture.close();
+  }
+}, 60000);
+it('uses the terminal download error instead of recoverable warning text', () => {
+  const source = onlineMedia('https://soundcloud.com/artist/song')!;
+  expect(
+    onlineMediaFailure(
+      'WARNING: hls_mp3 format not found\nERROR: This video is DRM protected',
+      source,
+    ),
+  ).toContain('DRM protection');
+  expect(
+    onlineMediaFailure(
+      'WARNING: cookies unavailable\nERROR: Requested format is not available',
+      source,
+    ),
+  ).toContain('Try Best available');
+  expect(onlineMediaFailure('ERROR: HTTP Error 404', source)).toContain('unavailable');
+});

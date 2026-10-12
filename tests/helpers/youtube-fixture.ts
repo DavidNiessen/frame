@@ -55,6 +55,38 @@ export async function youtubeFixture() {
     muxed,
   ]);
   files.set('/muxed.mp4', await readFile(muxed));
+  const portraitFormats = [];
+  for (const width of [720, 1080]) {
+    const path = join(directory, `portrait${width}.mp4`);
+    await promisify(execFile)(ffmpeg!, [
+      '-v',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      `color=c=blue:s=${width}x${(width * 16) / 9}:r=1:d=1`,
+      '-an',
+      '-c:v',
+      'libx264',
+      '-threads',
+      '1',
+      path,
+    ]);
+    const content = await readFile(path);
+    files.set(`/portrait${width}.mp4`, content);
+    portraitFormats.push({
+      format_id: `portrait${width}`,
+      path: `/portrait${width}.mp4`,
+      ext: 'mp4',
+      protocol: 'http',
+      width,
+      height: (width * 16) / 9,
+      fps: 1,
+      vcodec: 'avc1.64001f',
+      acodec: 'none',
+      filesize: content.length,
+    });
+  }
   const requests: string[] = [];
   const server = createServer((request, response) => {
     const route = request.url || '';
@@ -114,6 +146,7 @@ export async function youtubeFixture() {
     directory,
     info,
     requests,
+    portraitFormats: portraitFormats.map(({ path, ...format }) => ({ ...format, url: url + path })),
     async close() {
       server.closeAllConnections();
       await new Promise<void>((accept) => server.close(() => accept()));

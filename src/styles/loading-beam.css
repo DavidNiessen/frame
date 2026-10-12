@@ -85,7 +85,7 @@
 }
 .footer-task .footer-activity {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 7px;
 }
 .footer-task-label {
@@ -105,6 +105,7 @@
   flex-shrink: 0;
 }
 .footer-task .status-dot {
+  align-self: center;
   flex-shrink: 0;
 }
 .footer-cancel {
@@ -156,11 +157,11 @@
   font-weight: 600;
 }
 [aria-busy='true'] .footer-task-percent {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 [aria-busy='true'] .footer-task-detail {
-  font-size: 11px;
+  font-size: 12px;
 }
 [aria-busy='true'] .footer-task .status-dot {
   width: 6px;
@@ -236,7 +237,7 @@ body:has(dialog:modal) .footer-cancel {
   max-width: 100%;
 }
 .app-footer[aria-busy='true'] > .footer-task {
-  grid-column: 1 / -1;
+  grid-area: auto;
 }
 .app-footer > button {
   grid-column: 2;

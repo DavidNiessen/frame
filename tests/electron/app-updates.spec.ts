@@ -128,6 +128,15 @@ test('checks releases, cancels and verifies downloads, and shows verified downlo
           (globalThis as typeof globalThis & { updateRequests: string[] }).updateRequests.length,
       ),
     ).toBe(1);
+    for (let repeat = 0; repeat < 2; repeat++) {
+      await updates.getByRole('button', { name: 'Check for updates', exact: true }).click();
+      const checking = updates.getByRole('button', { name: 'Checking…', exact: true });
+      await expect(checking).toBeDisabled();
+      await expect(checking.locator('svg')).toHaveCSS('animation-name', 'spin');
+      await expect(
+        updates.getByRole('button', { name: 'Check for updates', exact: true }),
+      ).toBeEnabled();
+    }
     await updates.getByRole('button', { name: 'Install update' }).click();
     await expect(updates.getByRole('button', { name: 'Cancel download' })).toBeVisible();
     await updates.getByRole('button', { name: 'Cancel download' }).click();

@@ -80,7 +80,10 @@ test('keeps export progress and cancellation in the bottom island at desktop and
     await expect(footer.getByRole('button', { name: 'Cancel export' })).toBeInViewport();
     await expect(footer.locator('.footer-task-percent')).toBeInViewport();
     const island = (await footer.boundingBox())!,
-      activity = (await footer.getByRole('status').boundingBox())!;
+      activity = (await footer.getByRole('status').boundingBox())!,
+      cancel = (await footer.getByRole('button', { name: 'Cancel export' }).boundingBox())!;
+    expect(Math.abs(cancel.y + cancel.height / 2 - island.y - island.height / 2)).toBeLessThan(1.5);
+    expect(cancel.height).toBeLessThan(island.height - 6);
     expect(Math.abs(activity.x + activity.width / 2 - island.x - island.width / 2)).toBeLessThan(
       1.5,
     );

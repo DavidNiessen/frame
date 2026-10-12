@@ -8,6 +8,7 @@ export function AppUpdates() {
   const bridge = window.frameDesktop;
   const { status, setStatus, error, setError } = useUpdateStatus();
   const [pending, setPending] = useState(false);
+  const [manualChecking, setManualChecking] = useState(false);
   const [draft, setDraft] = useState<{ automatic: boolean; includePrereleases: boolean } | null>(
     null,
   );
@@ -17,6 +18,7 @@ export function AppUpdates() {
     status?.phase === 'downloading' ||
     status?.phase === 'installing';
   const available = !!bridge && !!status?.supported;
+  const checking = manualChecking || status?.phase === 'checking';
   const attention =
     !!status?.release &&
     ['available', 'downloading', 'downloaded', 'installing'].includes(status.phase);
@@ -43,6 +45,22 @@ export function AppUpdates() {
     await run(async () => setStatus(await bridge.setUpdatePreferences(value)));
     setDraft(null);
   }
+  async function check() {
+    if (!bridge || busy) return;
+    setManualChecking(true);
+    const started = performance.now();
+    await run(async () => {
+      try {
+        setStatus(await bridge.checkForUpdates());
+      } finally {
+        // Cached responses can finish before a frame is painted on repeat checks.
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.max(0, 600 - (performance.now() - started))),
+        );
+      }
+    });
+    setManualChecking(false);
+  }
   async function install() {
     const tasks: Promise<unknown>[] = [];
     window.dispatchEvent(new CustomEvent('frame:prepare-update', { detail: { tasks } }));
@@ -55,7 +73,7 @@ export function AppUpdates() {
       ? 'Loading update settings…'
       : !status.supported
         ? 'An installer is not available for this platform. Visit GitHub releases.'
-        : status.phase === 'checking'
+        : checking
           ? 'Checking GitHub releases…'
           : status.phase === 'downloading'
             ? `Downloading ${status.release?.tag.slice(1)} · ${Math.round((status.ratio ?? 0) * 100)}%`
@@ -100,10 +118,10 @@ export function AppUpdates() {
         <button
           className="button subtle"
           disabled={!available || busy}
-          onClick={() => void run(async () => setStatus(await bridge!.checkForUpdates()))}
+          onClick={() => void check()}
         >
-          <RefreshCw size={14} className={status?.phase === 'checking' ? 'spinner' : ''} />
-          {status?.phase === 'checking' ? 'Checking…' : 'Check for updates'}
+          <RefreshCw size={14} className={checking ? 'spinner' : ''} />
+          {checking ? 'Checking…' : 'Check for updates'}
         </button>
         {status?.release &&
           status.phase !== 'downloaded' &&

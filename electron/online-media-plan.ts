@@ -7,9 +7,18 @@ export function onlineMediaArgs(
   runtime: string,
   options: DownloadOptions,
 ) {
-  const height = options.quality === 'best' ? '' : `[height<=${options.quality}]`;
+  // A portrait 1080p Reel is 1080×1920: cap its width, not its height.
+  const dimensions =
+    options.quality === 'best'
+      ? ['']
+      : [
+          `[aspect_ratio<?1][width<=?${options.quality}]`,
+          `[aspect_ratio>=?1][height<=?${options.quality}]`,
+        ];
   const format =
-    options.mode === 'audio' ? 'ba[ext=m4a]/ba/b' : `bv*${height}+ba/b${height}/bv*${height}`;
+    options.mode === 'audio'
+      ? 'ba[ext=m4a]/ba/b'
+      : dimensions.map((filter) => `bv*${filter}+ba/b${filter}/bv*${filter}`).join('/');
   return [
     '--ignore-config',
     '--no-plugin-dirs',
@@ -67,6 +76,16 @@ export function onlineMediaFailure(
   source: Pick<OnlineMedia, 'name' | 'kind'>,
 ): string {
   const item = source.kind === 'audio' ? 'track' : 'video';
+  // A recoverable warning (e.g. one missing format) must not override the final error.
+  log =
+    log
+      .split(/\r?\n/)
+      .filter((line) => /^\s*ERROR:/.test(line))
+      .at(-1) || log;
+  if (/drm(?:[- ]protected| protection)|protected (?:stream|content)/i.test(log))
+    return `The downloader reported DRM protection for this ${source.name} ${item}. Frame cannot import protected streams.`;
+  if (/requested format.*not available/i.test(log))
+    return 'This quality or media type is not available. Try Best available, video mode, or another link.';
   if (
     /private video|private track|sign in|age.?restrict|members.only|login|cookies|password|subscription|purchase|paid/i.test(
       log,
@@ -84,7 +103,5 @@ export function onlineMediaFailure(
     return 'Live streams, playlists and collections are not supported. Paste an individual completed video or track link.';
   if (/is_live|live video|live stream/i.test(log))
     return 'Live streams are not supported. Try a completed video.';
-  if (/requested format.*not available/i.test(log))
-    return 'This quality or media type is not available. Try Best available, video mode, or another link.';
   return `Could not download this ${source.name} ${item}. Check the link, try again, or update Frame if the service has changed.`;
 }
