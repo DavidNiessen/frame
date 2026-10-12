@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { onlineMedia, downloadOptions } from '../src/core/online-media';
 import { onlineMediaArgs, onlineMediaFailure } from '../electron/online-media-plan';
@@ -173,7 +173,7 @@ it('downloads silent videos and extracts audio from muxed social videos using th
       const result = await probeFile(path, { rawOnly: true });
       expect(result.kind).toBe(mode);
       expect(result.hasAudio).toBe(hasAudio);
-      expect(path).toContain(directory);
+      expect(dirname(path)).toBe(await realpath(directory));
     }
     fixture.requests.length = 0;
     const directory = join(fixture.directory, 'playlist');
