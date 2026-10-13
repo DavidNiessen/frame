@@ -1,3 +1,7 @@
+import { parsePainting } from './painting';
+import { parseVisual } from './visual-settings';
+import { imageOutputArgs } from './image-output';
+import { parseImageOutput } from './image-settings';
 import { parseEffectRanges } from './timed-adjustments';
 import { parseClipSource } from './clip-source';
 import { parseEffectInstances } from './effect-instance-validation';
@@ -66,6 +70,9 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragme
   validateAudioOutput(edit);
   parseAcceleration(edit.acceleration);
   validateSizeTarget(edit.targetSizeMb);
+  parseImageOutput(edit.imageOutput);
+  parseVisual(edit.visual);
+  parsePainting(edit.painting);
   parseColor(edit.color);
   parseGeometry(edit.geometry);
   parseOverlays(edit.overlays);
@@ -202,6 +209,8 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragme
     throw new Error('GIF frame rate must be between 1 and 60 fps.');
   if (!['high', 'balanced', 'small'].includes(edit.quality))
     throw new Error('Choose a valid quality preset.');
+  if (format.kind === 'image' && asset.kind !== 'image')
+    throw new Error('Choose an image source for image export.');
   if (format.kind === 'video' && asset.kind !== 'video')
     throw new Error('Audio cannot be exported as video.');
   if (format.kind === 'audio' && !hasEditedAudio(asset, edit))
@@ -250,6 +259,8 @@ export function buildExportArgs(
   gifPass?: GifPass,
 ): string[] {
   validateEdit(asset, edit);
+  if (getFormat(edit.format).kind === 'image')
+    return imageOutputArgs(asset, edit, input, output, resources);
   edit = resolveSizeTarget(asset, {
     ...edit,
     audioLayers: allAudioLayers(edit),

@@ -81,3 +81,13 @@ Development checkouts support file-manager actions through `npm run desktop` / `
 **Ctrl/Cmd + K** opens the command palette; the footer lists keyboard shortcuts. **Space** toggles playback when focused on controls or the timeline; text fields still accept spaces. **I/O** sets the selected clip's start/end at the playhead, and **comma/period** steps backward/forward.
 
 Settings includes theme previews, automatic waveforms, mini-timeline visibility, autosave, desktop watch folders, completion notifications, recent exports and file-manager integration. System theme follows your device by default.
+
+## Images
+
+Import PNG, JPEG, WebP, BMP, TIFF or AVIF files. GIF remains an animated video source. Images open in a dedicated canvas; no playback controls or timeline are shown. Use **Fit** to frame the image, **1:1** for actual pixels, the zoom buttons to inspect detail, and drag a zoomed canvas to pan. **Before / after** shows the original file.
+
+Add an effect with **+** or a double-click. Its settings open over the right panel. Each adjustment, text item and drawing appears in **Layers** below the canvas; click it to edit or use its trash button to remove it. Crop and transform have one shared instance. Color adjustments and painting support independent layers. Brush layers offer color, size, opacity, an eraser, undo stroke and clear. Text can be moved and resized directly on the canvas.
+
+Choose PNG, JPEG, WebP, BMP or TIFF for output. PNG is lossless, and WebP offers a lossless switch. JPEG and BMP flatten transparency onto your chosen background color. PNG, WebP and TIFF retain transparency, including through vignette and sketch adjustments. Image quality is separate from video bitrate settings. Use **Convert** to process a folder of images with one setup. The browser performs image processing locally using the same engine as other media. AVIF decoding depends on the engine; desktop handles codecs absent from the browser build.
+
+Inputs support up to 32 megapixels and 16,384 pixels per side. Paint layers are rasterized up to 4,096 pixels per side and scaled to the output frame. Original files are preserved. Saved projects and workspace recovery retain image settings, text and paint layers.

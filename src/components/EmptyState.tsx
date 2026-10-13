@@ -66,7 +66,7 @@ export function EmptyState({
               Load from URL
             </button>
           </div>
-          <span className="drop-hint">or drop video & audio files anywhere</span>
+          <span className="drop-hint">or drop images, video & audio anywhere</span>
           <div className="feature-strip">
             <span>
               <Scissors size={15} /> Trim & cut

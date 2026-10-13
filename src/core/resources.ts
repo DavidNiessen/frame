@@ -76,6 +76,19 @@ export const embeddedCaptionPath = (edit: EditSettings, paths: RecipeResources) 
     : paths.captions;
 export function recipeImages(edit: EditSettings, paths: RecipeResources) {
   return [
+    ...(edit.painting?.image
+      ? [{ path: `${paths.image}-paint.png`, data: edit.painting.image }]
+      : []),
+    ...extraInstances(edit, 'painting').flatMap((instance) =>
+      instance.settings.painting?.image
+        ? [
+            {
+              path: `${instancePaths(paths, instance).image}-paint.png`,
+              data: instance.settings.painting.image,
+            },
+          ]
+        : [],
+    ),
     ...(edit.overlays.image ? [{ path: paths.image, data: edit.overlays.image }] : []),
     ...extraInstances(edit, 'watermark').flatMap((instance) =>
       instance.settings.overlays?.image

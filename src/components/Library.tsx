@@ -1,4 +1,14 @@
-import { Film, Music2, Plus, Trash2, FolderOpen, Link, ListPlus, AudioLines } from 'lucide-react';
+import {
+  ImageIcon,
+  Film,
+  Music2,
+  Plus,
+  Trash2,
+  FolderOpen,
+  Link,
+  ListPlus,
+  AudioLines,
+} from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import { mediaDragType } from '../core/media-insertion';
 import { bytes, time } from '../core/format';
@@ -53,7 +63,7 @@ export function Library({
             <FolderOpen size={28} strokeWidth={1.3} />
             <p>Your starting point.</p>
             <span>
-              Bring in a video or audio file.
+              Bring in images, video or audio.
               <br />
               Everything stays on your device.
             </span>
@@ -77,34 +87,46 @@ export function Library({
                   aria-pressed={asset.id === editor.selected}
                 >
                   <span className={`asset-icon ${asset.kind}`}>
-                    {asset.kind === 'video' ? <Film size={20} /> : <Music2 size={20} />}
+                    {asset.kind === 'image' ? (
+                      <ImageIcon size={20} />
+                    ) : asset.kind === 'video' ? (
+                      <Film size={20} />
+                    ) : (
+                      <Music2 size={20} />
+                    )}
                   </span>
                   <span className="asset-info">
                     <strong title={asset.name}>{asset.name}</strong>
                     <span>
-                      {time(asset.duration)} <i>·</i> {bytes(asset.size)}
+                      {asset.kind === 'image'
+                        ? `${asset.width} × ${asset.height}`
+                        : time(asset.duration)}{' '}
+                      <i>·</i> {bytes(asset.size)}
                     </span>
                   </span>
                 </button>
-                {editor.asset && asset.id !== editor.selected && (
-                  <button
-                    className="icon-button asset-insert"
-                    aria-label={`${asset.kind === 'video' ? 'Insert' : 'Layer'} ${asset.name} ${asset.kind === 'video' ? 'into' : 'over'} timeline`}
-                    title={
-                      asset.kind === 'video'
-                        ? editor.asset.kind === 'video'
-                          ? 'Insert at the end of the current sequence'
-                          : 'Select a video sequence first'
-                        : 'Add an audio layer at the playhead'
-                    }
-                    disabled={
-                      !!editor.busy || (asset.kind === 'video' && editor.asset.kind !== 'video')
-                    }
-                    onClick={() => onInsert(asset.id)}
-                  >
-                    {asset.kind === 'video' ? <ListPlus size={14} /> : <AudioLines size={14} />}
-                  </button>
-                )}
+                {editor.asset &&
+                  editor.asset.kind !== 'image' &&
+                  asset.kind !== 'image' &&
+                  asset.id !== editor.selected && (
+                    <button
+                      className="icon-button asset-insert"
+                      aria-label={`${asset.kind === 'video' ? 'Insert' : 'Layer'} ${asset.name} ${asset.kind === 'video' ? 'into' : 'over'} timeline`}
+                      title={
+                        asset.kind === 'video'
+                          ? editor.asset.kind === 'video'
+                            ? 'Insert at the end of the current sequence'
+                            : 'Select a video sequence first'
+                          : 'Add an audio layer at the playhead'
+                      }
+                      disabled={
+                        !!editor.busy || (asset.kind === 'video' && editor.asset.kind !== 'video')
+                      }
+                      onClick={() => onInsert(asset.id)}
+                    >
+                      {asset.kind === 'video' ? <ListPlus size={14} /> : <AudioLines size={14} />}
+                    </button>
+                  )}
                 <button
                   className="icon-button asset-remove"
                   aria-label={`Remove ${asset.name}`}

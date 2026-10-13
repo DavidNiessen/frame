@@ -1,3 +1,4 @@
+import { isImageFilename } from './imports';
 import type { MediaAsset } from './types';
 interface Stream {
   index: number;
@@ -46,15 +47,26 @@ function metadata(tags?: Record<string, unknown>) {
 }
 export function parseProbe(
   data: ProbeData,
+  sourceName?: string,
 ): Omit<MediaAsset, 'id' | 'name' | 'size' | 'previewUrl'> {
   if (data.error) throw new Error(data.error.string || 'Unable to read this media file.');
   const streams = data.streams ?? [];
   const video = streams.find((s) => s.codec_type === 'video' && !s.disposition?.attached_pic);
   const audio = streams.find((s) => s.codec_type === 'audio');
-  const duration = Number(data.format?.duration ?? video?.duration ?? audio?.duration);
+  const image = !!video && !!sourceName && isImageFilename(sourceName);
+  const duration = image ? 1 : Number(data.format?.duration ?? video?.duration ?? audio?.duration);
   if (!video && !audio) throw new Error('No supported video or audio stream found.');
   if (!Number.isFinite(duration) || duration <= 0)
     throw new Error('This file has no readable duration. Try another file.');
+  if (
+    image &&
+    (!video?.width ||
+      !video.height ||
+      video.width * video.height > 33_554_432 ||
+      video.width > 16384 ||
+      video.height > 16384)
+  )
+    throw new Error('Use an image with up to 32 megapixels and 16,384 pixels per side.');
   // FFmpeg and media elements autorotate phone footage; crop in that displayed frame.
   const rotation = Number(
     video?.side_data_list?.find((s) => s.rotation !== undefined)?.rotation ??
@@ -63,7 +75,7 @@ export function parseProbe(
   );
   const swapped = Math.abs(rotation) % 180 === 90;
   return {
-    kind: video ? 'video' : 'audio',
+    kind: image ? 'image' : video ? 'video' : 'audio',
     duration,
     width: swapped ? video?.height : video?.width,
     height: swapped ? video?.width : video?.height,
@@ -71,7 +83,9 @@ export function parseProbe(
     audioChannels: audio?.channels,
     audioSampleRate: audio?.sample_rate ? Number(audio.sample_rate) : undefined,
     artworkIndex: streams.find((s) => s.disposition?.attached_pic)?.index,
-    frameRate: parseFrameRate(video?.avg_frame_rate) ?? parseFrameRate(video?.r_frame_rate),
+    frameRate: image
+      ? undefined
+      : (parseFrameRate(video?.avg_frame_rate) ?? parseFrameRate(video?.r_frame_rate)),
     videoCodec: video?.codec_name?.slice(0, 60),
     audioCodec: audio?.codec_name?.slice(0, 60),
     metadata: metadata(data.format?.tags),

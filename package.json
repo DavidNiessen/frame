@@ -2,7 +2,7 @@
   "name": "frame-media-editor",
   "version": "0.1.0",
   "private": true,
-  "description": "A cross-platform video and audio editor and batch converter, with local media processing.",
+  "description": "A cross-platform image, video and audio editor and batch converter, with local media processing.",
   "author": "David Niessen",
   "main": "dist-electron/main.cjs",
   "scripts": {

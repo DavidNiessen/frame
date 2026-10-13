@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Check,
   Download,
+  ImageIcon,
   Film,
   LoaderCircle,
   Music2,
@@ -148,7 +149,13 @@ export function ConversionQueue({
                   <td>
                     <div className="conversion-source">
                       <span className={`conversion-file-icon ${asset.kind}`}>
-                        {asset.kind === 'audio' ? <Music2 size={19} /> : <Film size={19} />}
+                        {asset.kind === 'image' ? (
+                          <ImageIcon size={19} />
+                        ) : asset.kind === 'audio' ? (
+                          <Music2 size={19} />
+                        ) : (
+                          <Film size={19} />
+                        )}
                       </span>
                       <div>
                         <strong title={asset.name}>{asset.name}</strong>
@@ -162,7 +169,11 @@ export function ConversionQueue({
                       </div>
                     </div>
                   </td>
-                  <td className="conversion-length">{time(asset.duration)}</td>
+                  <td className="conversion-length">
+                    {asset.kind === 'image'
+                      ? `${asset.width} × ${asset.height}`
+                      : time(asset.duration)}
+                  </td>
                   <td>
                     <span
                       className="conversion-target"

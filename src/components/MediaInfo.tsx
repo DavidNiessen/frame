@@ -27,12 +27,23 @@ function MediaInfoDialog({ asset, close }: { asset: MediaAsset; close: () => voi
   const rows: [string, string][] = [
     ['File', asset.name],
     ['Size', bytes(asset.size)],
-    ['Duration', `${time(asset.duration)} (${asset.duration.toFixed(3)} seconds)`],
+    ...(asset.kind === 'image'
+      ? []
+      : [
+          ['Duration', `${time(asset.duration)} (${asset.duration.toFixed(3)} seconds)`] as [
+            string,
+            string,
+          ],
+        ]),
   ];
   if (asset.relativePath) rows.push(['Folder path', asset.relativePath]);
   if (asset.width && asset.height) rows.push(['Dimensions', `${asset.width} × ${asset.height}`]);
   if (asset.frameRate) rows.push(['Frame rate', `${Number(asset.frameRate.toFixed(3))} fps`]);
-  if (asset.videoCodec) rows.push(['Video codec', asset.videoCodec.toUpperCase()]);
+  if (asset.videoCodec)
+    rows.push([
+      asset.kind === 'image' ? 'Image codec' : 'Video codec',
+      asset.videoCodec.toUpperCase(),
+    ]);
   if (asset.audioCodec) rows.push(['Audio codec', asset.audioCodec.toUpperCase()]);
   if (asset.hasAudio) {
     if (asset.audioChannels)

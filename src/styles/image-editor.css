@@ -1,0 +1,227 @@
+.editor-layout[data-image] .editor-center.has-media {
+  grid-template-rows: minmax(240px, 1fr) auto;
+  gap: 12px;
+}
+.image-preview {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.image-toolbar,
+.image-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+.image-toolbar {
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.image-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toolbar-separator {
+  height: 18px;
+  width: 1px;
+  background: var(--border);
+  margin: 0 5px;
+}
+.image-viewport {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  padding: 24px;
+  background: var(--background);
+  touch-action: none;
+}
+.image-canvas-frame {
+  position: relative;
+  flex-shrink: 0;
+  transform-origin: center;
+  box-shadow: 0 8px 36px #0004;
+  background-color: #d7d7db;
+  background-image:
+    linear-gradient(45deg, #b6b6bd 25%, transparent 25%),
+    linear-gradient(-45deg, #b6b6bd 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #b6b6bd 75%),
+    linear-gradient(-45deg, transparent 75%, #b6b6bd 75%);
+  background-size: 20px 20px;
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0;
+}
+.image-canvas-frame > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+.image-status {
+  color: var(--muted);
+  font-size: 11px;
+  border-top: 1px solid var(--border);
+}
+.image-status-dot {
+  padding: 0 6px;
+}
+.image-original-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+}
+.image-render-error {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--danger);
+  font-size: 11px;
+}
+.image-layers {
+  max-height: 160px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.image-layers .panel-heading {
+  padding: 10px 16px;
+  min-height: 42px;
+}
+.image-layer-list {
+  overflow: auto;
+  min-height: 0;
+  padding: 8px 12px;
+  display: grid;
+  gap: 5px;
+}
+.image-layer-list > p {
+  margin: 4px;
+}
+.image-layer {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.image-layer > button:first-child {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 9px 10px;
+}
+.image-layer > button:first-child > span {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.image-layer strong {
+  font-size: 11px;
+}
+.image-layer small {
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10px;
+}
+.image-layer .icon-button {
+  margin-right: 6px;
+}
+.painting-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 6;
+  cursor: crosshair;
+  touch-action: none;
+}
+.painting-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.image-output-controls {
+  margin-top: 14px;
+}
+.image-output-controls input[type='color'] {
+  width: 100%;
+  height: 36px;
+  padding: 4px;
+}
+@media (max-width: 700px) {
+  .image-toolbar,
+  .image-status {
+    padding: 8px;
+    gap: 8px;
+  }
+  .image-toolbar .button {
+    font-size: 10px;
+  }
+  .image-viewport {
+    padding: 12px;
+    min-height: 250px;
+  }
+  .editor-layout[data-image] .editor-center.has-media {
+    grid-template-rows: minmax(340px, 60dvh) auto;
+  }
+  .image-layers {
+    max-height: 180px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .image-layer {
+    transition:
+      background 0.18s,
+      border-color 0.18s;
+  }
+}
+
+.editor-layout[data-expanded][data-image] .image-preview {
+  flex: 1;
+  height: 100%;
+}
+.editor-layout[data-expanded][data-image] .image-layers {
+  display: none;
+}
+
+.media-frame > .paint-layer-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.image-layer.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}

@@ -146,7 +146,7 @@ export function createBrowserEngine(): MediaEngine {
             throw new Error(`Cannot read “${file.name}”. Try a different media file.`);
           const data = await ff.readFile(metadata, 'utf8');
           const asset = {
-            ...parseProbe(JSON.parse(String(data))),
+            ...parseProbe(JSON.parse(String(data)), file.name),
             id,
             name: file.name,
             size: file.size,

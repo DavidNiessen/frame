@@ -1,3 +1,6 @@
+import { parsePainting } from './painting';
+import { parseVisual } from './visual-settings';
+import { parseImageOutput } from './image-settings';
 import { parseEffectRanges } from './timed-adjustments';
 import { parseEffectInstances } from './effect-instance-validation';
 import { individualCaptionEffects } from './caption-effects';
@@ -72,6 +75,9 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const c = e.crop === null ? null : record(e.crop);
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
+    painting: parsePainting(e.painting),
+    visual: parseVisual(e.visual),
+    imageOutput: parseImageOutput(e.imageOutput),
     addedEffects: parseAddedEffects(e.addedEffects),
     effectRanges: parseEffectRanges(e.effectRanges),
     effectInstances: parseEffectInstances(e.effectInstances, asset, (recipe) =>
@@ -207,7 +213,7 @@ export function parseProject(value: unknown): ProjectDocument {
   const sources = doc.sources.map((value) => {
     const entry = record(value);
     const s = record(entry.source);
-    if (s.kind !== 'audio' && s.kind !== 'video') return fail();
+    if (s.kind !== 'audio' && s.kind !== 'video' && s.kind !== 'image') return fail();
     const source: SourceIdentity = {
       name: text(s.name, 255),
       size: number(s.size),
@@ -226,7 +232,7 @@ export function parseProject(value: unknown): ProjectDocument {
         source[key] = number(s[key]);
         if (!Number.isInteger(source[key]) || source[key]! < 2) return fail();
       }
-    if (source.kind === 'video' && (!source.width || !source.height)) return fail();
+    if (source.kind !== 'audio' && (!source.width || !source.height)) return fail();
     const asset: MediaAsset = { ...source, id: '', previewUrl: '' };
     return { source, edit: parseEdit(entry.edit, asset) };
   });

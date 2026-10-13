@@ -47,7 +47,8 @@ export async function browserResources(ff: FFmpeg, edits: EditSettings[], assets
                 throw error;
               }),
           );
-        await ff.writeFile(`fonts/${name}`, await fonts.get(name)!);
+        // The worker transfers buffers. Keep the cached font intact for later exports and preview workers.
+        await ff.writeFile(`fonts/${name}`, new Uint8Array(await fonts.get(name)!));
         names.push(`fonts/${name}`);
       }
     }

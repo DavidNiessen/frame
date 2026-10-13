@@ -23,7 +23,7 @@ export async function probeFile(
           '-protocol_whitelist',
           'file,pipe',
           '-format_whitelist',
-          'mov,matroska,avi,gif,mp3,wav,flac,ogg,aac,aiff',
+          'mov,matroska,avi,gif,mp3,wav,flac,ogg,aac,aiff,image2,png_pipe,jpeg_pipe,webp_pipe,bmp_pipe,tiff_pipe',
         ]
       : [];
     const child = spawn(
@@ -67,7 +67,7 @@ export async function probeFile(
   const info = await stat(path);
   if (!info.isFile()) throw new Error('Select a media file.');
   return {
-    ...parseProbe(JSON.parse(metadata)),
+    ...parseProbe(JSON.parse(metadata), path),
     size: info.size,
     fingerprint: await nativeSourceFingerprint(path, info.size),
   };

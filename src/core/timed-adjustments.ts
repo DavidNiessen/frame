@@ -1,8 +1,16 @@
+import { visualIds } from './visual-settings';
 import type { EffectId } from './effect-ids';
 import type { EditSettings, TimeRange } from './types';
 import { outputCues } from './subtitles';
 
-const timedAdjustments = ['volume', 'equalizer', 'noise', 'color'] as const;
+const timedAdjustments = [
+  'volume',
+  'equalizer',
+  'noise',
+  'color',
+  'painting',
+  ...visualIds,
+] as const;
 export type TimedAdjustment = (typeof timedAdjustments)[number];
 export type EffectRanges = Partial<Record<TimedAdjustment, TimeRange>>;
 export const isTimedAdjustment = (id: EffectId): id is TimedAdjustment =>
@@ -52,5 +60,5 @@ export function timedFilter(
     (outputSpace ? [range] : adjustmentIntervals(edit, range))
       .map((r) => `gte(t,${r.start})*lt(t,${r.end})`)
       .join('+') || '0';
-  return `${filter}:enable='${expression}'`;
+  return `${filter}${filter.includes('=') ? ':' : '='}enable='${expression}'`;
 }

@@ -22,6 +22,8 @@ export const clipEffectKeys = [
   'audioFadeOut',
   'videoFadeIn',
   'videoFadeOut',
+  'painting',
+  'visual',
   'color',
   'geometry',
   'crop',

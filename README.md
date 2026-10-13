@@ -1,11 +1,13 @@
 # Frame
 
-A cross-platform media editor and converter for video and audio. Edit a clip, layer audio, or convert an entire folder—all processed locally on your device.
+A cross-platform media editor and converter for images, video and audio. Edit a clip, layer audio, or convert an entire folder—all processed locally on your device.
 
 [Try the web app](https://davidniessen.github.io/frame/) · [Download desktop builds](https://github.com/DavidNiessen/frame/releases) · [Report a bug](https://github.com/DavidNiessen/frame/issues)
 
 ## Features
 
+- **Images:** a dedicated canvas with zoom, pan, before/after comparison, crop handles, rotation, text and editable brush layers. Export PNG, JPEG, WebP, BMP or TIFF; convert entire image folders.
+- **Visual adjustments:** exposure, gamma, shadows, highlights, vibrance, hue, tint, vignette, blur, sharpen, black & white, sepia, invert, pixelate, posterize, film grain, sketch and emboss. These also work as timed video effects with live previews.
 - **Edit:** trim, split, reorder and join clips; insert videos from the library; replace or layer audio; extract audio from video.
 - **Effects:** crop, rotate, resize, speed, fades, color adjustments, LUTs, volume, EQ, noise reduction and loudness normalization. Timed effects have draggable timeline bars and live previews.
 - **Playback:** independent monitoring volume, five-second skips that keep playback running, precise frame stepping and an audio-reactive background.

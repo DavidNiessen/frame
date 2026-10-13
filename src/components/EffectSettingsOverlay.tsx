@@ -60,19 +60,21 @@ export function EffectSettingsOverlay({
     (item) => item.id === instanceId && item.timeSpace === 'output',
   );
   const target =
-    id === 'captions'
-      ? `Caption ${(caption?.index ?? 0) + 1}`
-      : timelineInstance
-        ? 'Timeline track'
-        : id === 'mix'
-          ? 'Output timeline'
-          : effect.scope === 'source'
-            ? 'Original source'
-            : clipIndex >= 0
-              ? `Clip ${clipIndex + 1}`
-              : sequenceFade
-                ? 'Whole sequence'
-                : 'All clips';
+    asset.kind === 'image'
+      ? 'Image layer'
+      : id === 'captions'
+        ? `Caption ${(caption?.index ?? 0) + 1}`
+        : timelineInstance
+          ? 'Timeline track'
+          : id === 'mix'
+            ? 'Output timeline'
+            : effect.scope === 'source'
+              ? 'Original source'
+              : clipIndex >= 0
+                ? `Clip ${clipIndex + 1}`
+                : sequenceFade
+                  ? 'Whole sequence'
+                  : 'All clips';
   const shared = effect.scope === 'clip' && !editor.selectedClip;
   const settingsFor = (recipe: typeof edit) => {
     const item = instanceId
@@ -173,7 +175,7 @@ export function EffectSettingsOverlay({
             {target}
           </span>
           <h2 id={heading}>
-            {id === 'captions' ? 'Caption' : effect.name}
+            {id === 'captions' ? (asset.kind === 'image' ? 'Text' : 'Caption') : effect.name}
             <span className="sr-only"> settings</span>
           </h2>
           <p title={asset.name}>
@@ -232,7 +234,7 @@ export function EffectSettingsOverlay({
         <button
           className="button subtle small"
           disabled={!!editor.busy}
-          aria-label={`Reset ${id === 'captions' ? 'Caption' : effect.name}`}
+          aria-label={`Reset ${id === 'captions' ? (asset.kind === 'image' ? 'Text' : 'Caption') : effect.name}`}
           onClick={() => {
             if (id === 'captions') change({ subtitles: resetCaption(view.subtitles) });
             else
@@ -256,7 +258,7 @@ export function EffectSettingsOverlay({
         <button
           className="button subtle small danger"
           disabled={!!editor.busy}
-          aria-label={`Remove ${id === 'captions' ? 'Caption' : effect.name}`}
+          aria-label={`Remove ${id === 'captions' ? (asset.kind === 'image' ? 'Text' : 'Caption') : effect.name}`}
           onClick={() => {
             editor.update(
               instanceId

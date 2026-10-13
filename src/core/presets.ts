@@ -1,9 +1,11 @@
 import { parseTagOverrides } from './media-tags';
-import { availableFormats } from './formats';
+import { parseImageOutput } from './image-settings';
+import { availableFormats, getFormat } from './formats';
 import { parseEdit } from './project';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 export type OutputSettings = Pick<
   EditSettings,
+  | 'imageOutput'
   | 'gifLoop'
   | 'gifColors'
   | 'gifDither'
@@ -61,6 +63,7 @@ export function outputSettings(edit: OutputSettings): OutputSettings {
     keepMetadata,
   } = edit;
   return {
+    imageOutput: parseImageOutput(edit.imageOutput),
     gifLoop: gifLoop ?? 0,
     gifColors: gifColors ?? 256,
     gifDither: gifDither ?? 'sierra2_4a',
@@ -85,11 +88,16 @@ export function parseOutputSettings(value: unknown): OutputSettings {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Invalid export preset.');
   const s = value as Record<string, unknown>;
+  const presetAsset =
+    getFormat(s.format as EditSettings['format']).kind === 'image'
+      ? { ...sample, kind: 'image' as const, hasAudio: false }
+      : sample;
   // Read output fields explicitly: saved presets cannot replace source-specific editing data.
   return outputSettings(
     parseEdit(
       {
-        ...defaultSettings(sample),
+        ...defaultSettings(presetAsset),
+        imageOutput: s.imageOutput,
         format: s.format,
         quality: s.quality,
         gifLoop: s.gifLoop,
@@ -109,7 +117,7 @@ export function parseOutputSettings(value: unknown): OutputSettings {
         includeArtwork: s.includeArtwork,
         keepMetadata: s.keepMetadata,
       },
-      sample,
+      presetAsset,
     ),
   );
 }
@@ -119,6 +127,9 @@ const preset = (id: string, name: string, patch: Partial<OutputSettings>): Expor
   settings: outputSettings({ ...defaultSettings(sample), ...patch }),
 });
 export const builtInPresets: ExportPreset[] = [
+  preset('builtin:png', 'Lossless image • PNG', { format: 'png' }),
+  preset('builtin:jpeg', 'Photo • JPEG', { format: 'jpeg' }),
+  preset('builtin:webp', 'Web image • WebP', { format: 'webp' }),
   preset('builtin:balanced', 'Balanced video • MP4', {}),
   preset('builtin:small', 'Smaller video • MP4', { quality: 'small', audioBitrate: 128 }),
   preset('builtin:high', 'High quality video • MP4', { quality: 'high', audioBitrate: 256 }),

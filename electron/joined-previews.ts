@@ -54,7 +54,14 @@ export function createJoinedPreviews(
     sourceId = id;
     const task = jobs.run(async (execute) => {
       const directory = await mkdtemp(join(tmpdir(), 'frame-joined-')),
-        path = join(directory, source.asset.kind === 'video' ? 'preview.mp4' : 'preview.mp3');
+        path = join(
+          directory,
+          source.asset.kind === 'image'
+            ? 'preview.png'
+            : source.asset.kind === 'video'
+              ? 'preview.mp4'
+              : 'preview.mp3',
+        );
       try {
         const duration = edit
           ? editedDuration(edit)

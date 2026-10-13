@@ -1,3 +1,6 @@
+import { PaintLayersPreview } from './PaintLayersPreview';
+import { PaintingCanvas } from './PaintingCanvas';
+import { instanceRecipe } from '../core/effect-instances';
 import { useAudioBackdrop } from '../hooks/useAudioBackdrop';
 import { MonitorVolume } from './MonitorVolume';
 import { useLatest } from '../hooks/useLatest';
@@ -68,7 +71,9 @@ export function Preview({
   assets,
   openEffect,
   selectedEffect,
+  notify,
 }: {
+  notify: (message: string) => void;
   openEffect: (id: EffectId, instanceId?: string) => void;
   selectedEffect: { id: EffectId; instanceId?: string } | null;
   assets: MediaAsset[];
@@ -367,6 +372,36 @@ export function Preview({
                 preload="metadata"
               />
             )}
+            {selectedEffect?.id === 'painting' &&
+              (() => {
+                const instance = edit.effectInstances?.find(
+                  (item) => item.id === selectedEffect.instanceId,
+                );
+                const recipe = instance ? instanceRecipe(edit, instance) : edit;
+                return (
+                  <PaintingCanvas
+                    showExisting
+                    edit={recipe}
+                    update={(patch) =>
+                      update(instance ? changeInstance(edit, instance.id, null, patch) : patch)
+                    }
+                    width={dimensions.width}
+                    height={dimensions.height}
+                    disabled={disabled}
+                    onError={notify}
+                  />
+                );
+              })()}
+            <PaintLayersPreview
+              edit={recipe}
+              current={current}
+              position={position}
+              selected={
+                selectedEffect?.id === 'painting'
+                  ? (selectedEffect.instanceId ?? 'primary')
+                  : undefined
+              }
+            />
             <OverlayPreview
               outputPosition={position}
               current={current}

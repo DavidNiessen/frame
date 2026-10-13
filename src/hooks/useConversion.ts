@@ -63,7 +63,11 @@ export function useConversion(editor: Editor) {
     if (!manualFormat.current && editor.assets.length)
       setOutput((output) => ({
         ...output,
-        format: editor.assets.every((asset) => asset.kind === 'video') ? 'mp4' : 'mp3',
+        format: editor.assets.every((asset) => asset.kind === 'image')
+          ? 'png'
+          : editor.assets.every((asset) => asset.kind === 'video')
+            ? 'mp4'
+            : 'mp3',
       }));
   }, [editor.assets]);
   useEffect(() => {

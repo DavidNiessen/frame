@@ -22,3 +22,7 @@ export function orderBrowserFiles(files: File[]): File[] {
   // Preserve the chosen order of individual files, including mixed folder drops.
   return files.map((file) => (file.webkitRelativePath ? folders[index++] : file));
 }
+
+export const imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tif', 'tiff', 'avif'];
+export const isImageFilename = (name: string) =>
+  imageExtensions.includes(name.split('.').at(-1)?.toLowerCase() ?? '');

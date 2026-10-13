@@ -100,11 +100,31 @@ test('adds multiple captions at the playhead and adjusts their own text and posi
 test('reuses corrections and creates independent captions and watermarks from the catalogue', async ({
   page,
 }) => {
+  test.setTimeout(180000); // Exercise the expanded catalogue, including each independent visual effect.
   const labels = await page
     .locator('.effect-card .effect-apply')
     .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')!));
   for (const name of labels) {
     const repeatable = [
+      'Add Painting',
+      'Add Exposure',
+      'Add Gamma',
+      'Add Shadows',
+      'Add Highlights',
+      'Add Vibrance',
+      'Add Hue',
+      'Add Tint',
+      'Add Vignette',
+      'Add Blur',
+      'Add Sharpen',
+      'Add Black & white',
+      'Add Sepia',
+      'Add Invert',
+      'Add Pixelate',
+      'Add Posterize',
+      'Add Film grain',
+      'Add Sketch',
+      'Add Emboss',
       'Add Captions',
       'Add Watermark',
       'Add Volume',

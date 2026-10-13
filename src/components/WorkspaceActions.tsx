@@ -25,7 +25,9 @@ export function WorkspaceActions({
   scenes,
   extractAudio,
   canExtractAudio,
+  image = false,
 }: {
+  image?: boolean;
   extractAudio: () => void;
   canExtractAudio: boolean;
   projectName: string;
@@ -84,22 +86,26 @@ export function WorkspaceActions({
             <FolderOpen size={16} />
             Open project
           </button>
-          <button disabled={!hasMedia || busy} onClick={() => run(merge)}>
-            <Combine size={16} />
-            Merge clips
-          </button>
-          <button disabled={!canExtractAudio || busy} onClick={() => run(extractAudio)}>
-            <AudioLines size={16} />
-            Extract audio
-          </button>
-          <button disabled={!hasVideo || busy} onClick={() => run(scenes)}>
-            <ScanLine size={16} />
-            Find scene changes
-          </button>
-          <button disabled={!hasVideo || busy} onClick={() => run(contactSheet)}>
-            <Grid2X2 size={16} />
-            Video contact sheet
-          </button>
+          {!image && (
+            <>
+              <button disabled={!hasMedia || busy} onClick={() => run(merge)}>
+                <Combine size={16} />
+                Merge clips
+              </button>
+              <button disabled={!canExtractAudio || busy} onClick={() => run(extractAudio)}>
+                <AudioLines size={16} />
+                Extract audio
+              </button>
+              <button disabled={!hasVideo || busy} onClick={() => run(scenes)}>
+                <ScanLine size={16} />
+                Find scene changes
+              </button>
+              <button disabled={!hasVideo || busy} onClick={() => run(contactSheet)}>
+                <Grid2X2 size={16} />
+                Video contact sheet
+              </button>
+            </>
+          )}
           <button disabled={!hasMedia || busy} onClick={() => run(batch)}>
             <Layers size={16} />
             Batch export

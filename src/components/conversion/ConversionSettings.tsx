@@ -1,3 +1,4 @@
+import { ImageOutputControls } from '../ImageOutputControls';
 import { TransientMessage } from '../TransientMessage';
 import { CoverArtworkControls } from '../CoverArtworkControls';
 import { MetadataControls } from '../MetadataControls';
@@ -49,8 +50,17 @@ export function ConversionSettings({
           value={s.format}
           onChange={(event) => c.update({ format: event.target.value as FormatId })}
         >
-          {(['audio', 'video'] as const).map((kind) => (
-            <optgroup key={kind} label={kind === 'audio' ? 'Audio formats' : 'Video formats'}>
+          {(['image', 'audio', 'video'] as const).map((kind) => (
+            <optgroup
+              key={kind}
+              label={
+                kind === 'image'
+                  ? 'Image formats'
+                  : kind === 'audio'
+                    ? 'Audio formats'
+                    : 'Video formats'
+              }
+            >
               {formats
                 .filter((format) => format.kind === kind)
                 .map((format) => (
@@ -70,7 +80,9 @@ export function ConversionSettings({
               : ''}
           </span>
         </div>
-        {lossless ? (
+        {format.kind === 'image' ? (
+          <ImageOutputControls edit={s} update={c.update} />
+        ) : lossless ? (
           <p className="conversion-quality-note">
             <Check size={15} />
             {s.format === 'flac'
@@ -178,7 +190,7 @@ export function ConversionSettings({
                 />
               </label>
             )}
-            {!lossless && s.format !== 'gif' && (
+            {format.kind !== 'image' && !lossless && s.format !== 'gif' && (
               <label className="stacked-label">
                 Audio bitrate
                 <select
@@ -195,25 +207,29 @@ export function ConversionSettings({
               </label>
             )}
             {s.format === 'gif' && <GifOutputControls settings={s} update={c.update} />}
-            {s.format !== 'gif' && <AudioOutputControls settings={s} update={c.update} />}
-            <label className="switch-row">
-              <span>
-                Include artwork
-                <small>
-                  {format.artwork
-                    ? 'Keep embedded album covers when present.'
-                    : 'This format does not support cover artwork.'}
-                </small>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                aria-label="Conversion include artwork"
-                checked={format.artwork && s.includeArtwork}
-                disabled={!format.artwork}
-                onChange={(event) => c.update({ includeArtwork: event.target.checked })}
-              />
-            </label>
+            {format.kind !== 'image' && s.format !== 'gif' && (
+              <AudioOutputControls settings={s} update={c.update} />
+            )}
+            {format.kind !== 'image' && (
+              <label className="switch-row">
+                <span>
+                  Include artwork
+                  <small>
+                    {format.artwork
+                      ? 'Keep embedded album covers when present.'
+                      : 'This format does not support cover artwork.'}
+                  </small>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label="Conversion include artwork"
+                  checked={format.artwork && s.includeArtwork}
+                  disabled={!format.artwork}
+                  onChange={(event) => c.update({ includeArtwork: event.target.checked })}
+                />
+              </label>
+            )}
             <label className="switch-row">
               <span>
                 Keep metadata<small>Titles, artists, albums and other source tags.</small>
@@ -226,7 +242,7 @@ export function ConversionSettings({
                 onChange={(event) => c.update({ keepMetadata: event.target.checked })}
               />
             </label>
-            {s.format !== 'gif' && (
+            {format.kind !== 'image' && s.format !== 'gif' && (
               <MetadataControls
                 tags={s.outputTags}
                 update={(outputTags) => c.update({ outputTags })}

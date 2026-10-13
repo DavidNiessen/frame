@@ -117,7 +117,7 @@ export function UrlImportDialog({
         <p className="project-intro">
           {editor.platform === 'desktop'
             ? 'Paste a file link, video post or music track.'
-            : 'Paste a direct link to a video or audio file.'}{' '}
+            : 'Paste a direct link to an image, video or audio file.'}{' '}
           Frame downloads it, then opens it in your current workflow.
         </p>
         <form onSubmit={(event) => void submit(event)} noValidate>

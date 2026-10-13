@@ -31,7 +31,7 @@ export function MergeDialog({
   useEffect(() => {
     const editor = latestEditor.current;
     if (open && editor.asset && editor.edit) {
-      setIds(editor.assets.map((a) => a.id));
+      setIds(editor.assets.filter((a) => a.kind !== 'image').map((a) => a.id));
       setTransition({ ...defaultTransition });
       setSettings(outputSettings(editor.edit));
       dialog.current?.showModal();
@@ -138,11 +138,13 @@ export function MergeDialog({
             }}
           >
             <option value="">Choose imported media…</option>
-            {editor.assets.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
+            {editor.assets
+              .filter((a) => a.kind !== 'image')
+              .map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
           </select>
         </label>
         <label className="stacked-label">

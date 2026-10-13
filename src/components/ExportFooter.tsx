@@ -1,3 +1,4 @@
+import { frameDimensions } from '../core/geometry';
 import { hasEditedAudio } from '../core/audio-layers';
 import { ArrowUpRight, Download } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
@@ -13,7 +14,11 @@ export function ExportFooter({ editor }: { editor: Editor }) {
     <div className="export-footer">
       <div className="export-summary">
         <label htmlFor="output-format">Output format</label>
-        <span>{time(editedDuration(edit))}</span>
+        <span>
+          {asset.kind === 'image'
+            ? `${frameDimensions(asset, edit).width} × ${frameDimensions(asset, edit).height}`
+            : time(editedDuration(edit))}
+        </span>
       </div>
       <select
         id="output-format"

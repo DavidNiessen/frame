@@ -15,6 +15,7 @@ interface Props {
   empty: ReactNode;
   hasMedia: boolean;
   expanded?: boolean;
+  image?: boolean;
 }
 export function EditorWorkspace({
   ref,
@@ -25,6 +26,7 @@ export function EditorWorkspace({
   empty,
   hasMedia,
   expanded = false,
+  image = false,
 }: Props) {
   const root = useRef<HTMLElement>(null),
     center = useRef<HTMLDivElement>(null);
@@ -46,6 +48,7 @@ export function EditorWorkspace({
     <main
       ref={root}
       className="workspace editor-layout"
+      data-image={image || undefined}
       data-layout={layout.mode}
       data-expanded={expanded || undefined}
       style={style}
@@ -67,17 +70,19 @@ export function EditorWorkspace({
         {hasMedia ? (
           <>
             {preview}
-            <PanelDivider
-              label="Resize timeline"
-              controls="media-timeline"
-              axis="y"
-              reverse
-              value={layout.timeline}
-              min={layout.timelineMin}
-              max={layout.timelineMax}
-              defaultValue={layout.timelineDefault}
-              resize={(value) => resize('timeline', value)}
-            />
+            {!image && (
+              <PanelDivider
+                label="Resize timeline"
+                controls="media-timeline"
+                axis="y"
+                reverse
+                value={layout.timeline}
+                min={layout.timelineMin}
+                max={layout.timelineMax}
+                defaultValue={layout.timelineDefault}
+                resize={(value) => resize('timeline', value)}
+              />
+            )}
             {timeline}
           </>
         ) : (

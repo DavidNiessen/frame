@@ -33,6 +33,7 @@ export interface SizeEstimate {
   bitrate?: string;
 }
 export function estimateSize(asset: MediaAsset, recipe: EditSettings): SizeEstimate | null {
+  if (asset.kind === 'image') return null;
   const edit = resolveSizeTarget(asset, recipe);
   const duration = editedDuration(edit);
   if (duration <= 0 || edit.format === 'gif') return null;

@@ -116,7 +116,7 @@ export function ConversionWorkspace({
             <span className="eyebrow">Your collection, a new format</span>
             <h2>Bring your media together.</h2>
             <p>
-              Add a folder of songs, a set of videos, or both.
+              Add a folder of photos, songs or videos.
               <br />
               Choose the output once. Convert them all.
             </p>
@@ -147,7 +147,7 @@ export function ConversionWorkspace({
                 ? 'or drop files and folders here'
                 : 'or drop media files here. Folder selection is unavailable in this browser.'}
             </span>
-            <div className="conversion-supported">MP3 · WAV · FLAC · MP4 · GIF · and more</div>
+            <div className="conversion-supported">PNG · JPG · WebP · MP3 · WAV · MP4 · GIF</div>
           </section>
         )}
         <p className="conversion-privacy">

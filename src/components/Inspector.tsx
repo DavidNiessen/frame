@@ -43,8 +43,10 @@ export function Inspector({
             <i />
           </span>
           <h3>A few thoughtful adjustments.</h3>
-          <p>Choose a file to trim, crop, adjust its volume, or make it something new.</p>
+          <p>Choose an image, video or audio file to edit or convert.</p>
           <div className="supported-formats">
+            <span>IMAGES</span>
+            <p>PNG · JPEG · WebP · TIFF · BMP · AVIF</p>
             <span>VIDEO</span>
             <p>MP4 · MOV · WebM · MKV · GIF</p>
             <span>AUDIO</span>
@@ -53,7 +55,7 @@ export function Inspector({
         </div>
       ) : (
         <>
-          <EffectScope editor={editor} seek={seek} />
+          {asset.kind !== 'image' && <EffectScope editor={editor} seek={seek} />}
           <InspectorTabs selected={tab} select={setTab}>
             {{
               effects: (
@@ -70,7 +72,7 @@ export function Inspector({
               export: (
                 <fieldset disabled={!!busy}>
                   <ExportControls asset={asset} edit={edit} update={editor.update} />
-                  <DesktopControls editor={editor} proxies={proxies} />
+                  {asset.kind !== 'image' && <DesktopControls editor={editor} proxies={proxies} />}
                 </fieldset>
               ),
             }}

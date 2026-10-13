@@ -1,3 +1,4 @@
+import { ImageOutputControls } from './ImageOutputControls';
 import { CoverArtworkControls } from './CoverArtworkControls';
 import { MetadataControls } from './MetadataControls';
 import { hasEditedAudio } from '../core/audio-layers';
@@ -31,7 +32,11 @@ export function ExportControls({
           edit={edit}
           update={update}
         />
-        <SizeControls asset={asset} edit={edit} update={update} />
+        {asset.kind !== 'image' ? (
+          <SizeControls asset={asset} edit={edit} update={update} />
+        ) : (
+          <ImageOutputControls edit={edit} update={update} />
+        )}
         {format.kind === 'video' && edit.format !== 'gif' && (
           <>
             <label className="stacked-label quality-label">Quality</label>
@@ -126,28 +131,30 @@ export function ExportControls({
           {hasEditedAudio(asset, edit) && edit.format !== 'gif' && (
             <AudioOutputControls settings={edit} update={update} />
           )}
-          <label className="switch-row">
-            <span>
-              Include artwork
-              <small>
-                {format.artwork
-                  ? edit.customArtwork
-                    ? 'Use the custom cover image'
-                    : asset.artworkIndex === undefined
-                      ? 'No embedded artwork in this file'
-                      : 'Keep the embedded cover image'
-                  : 'Not supported by this output format'}
-              </small>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              aria-label="Include artwork"
-              checked={edit.includeArtwork}
-              disabled={!format.artwork}
-              onChange={(event) => update({ includeArtwork: event.target.checked })}
-            />
-          </label>
+          {asset.kind !== 'image' && (
+            <label className="switch-row">
+              <span>
+                Include artwork
+                <small>
+                  {format.artwork
+                    ? edit.customArtwork
+                      ? 'Use the custom cover image'
+                      : asset.artworkIndex === undefined
+                        ? 'No embedded artwork in this file'
+                        : 'Keep the embedded cover image'
+                    : 'Not supported by this output format'}
+                </small>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                aria-label="Include artwork"
+                checked={edit.includeArtwork}
+                disabled={!format.artwork}
+                onChange={(event) => update({ includeArtwork: event.target.checked })}
+              />
+            </label>
+          )}
           {format.artwork && (
             <CoverArtworkControls
               artwork={edit.customArtwork}
@@ -171,7 +178,7 @@ export function ExportControls({
               onChange={(event) => update({ keepMetadata: event.target.checked })}
             />
           </label>
-          {edit.format !== 'gif' && (
+          {asset.kind !== 'image' && edit.format !== 'gif' && (
             <MetadataControls
               tags={edit.outputTags}
               source={asset}

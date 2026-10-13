@@ -1,3 +1,5 @@
+import { defaultVisual } from './visual-settings';
+import { defaultPainting } from './painting';
 import { definitionFor, effectiveSpeed, extraInstances } from './effect-instances';
 import { clipStageEffect } from './timeline-effects';
 import { clipRecipe } from './clips';
@@ -74,6 +76,8 @@ export function clipFilterGraph(
     crop: null,
     geometry: defaultGeometry(),
     color: defaultColor(),
+    visual: defaultVisual(),
+    painting: defaultPainting(),
     volume: 1,
     normalizeLoudness: false,
     reduceNoise: false,

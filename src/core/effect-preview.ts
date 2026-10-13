@@ -1,3 +1,6 @@
+import { defaultPainting } from './painting';
+import { hasVisualAdjustments } from './visual-settings';
+import { framePreviewArgs } from './frame-preview';
 import { editClips, clipRecipe } from './clips';
 import { allAudioLayers, effectiveSpeed, extraInstances, instanceRecipe } from './effect-instances';
 import { defaultGeometry } from './geometry';
@@ -16,6 +19,7 @@ export function needsEffectPreview(edit: EditSettings) {
     recipes.some((recipe) =>
       [recipe, ...extraInstances(recipe).map((instance) => instanceRecipe(recipe, instance))].some(
         (view) =>
+          hasVisualAdjustments(view.visual) ||
           view.normalizeLoudness ||
           view.reduceNoise ||
           view.volume > 1 ||
@@ -30,6 +34,7 @@ export function needsEffectPreview(edit: EditSettings) {
   );
 }
 const liveVisual = new Set([
+  'painting',
   'crop',
   'transform',
   'captions',
@@ -39,8 +44,10 @@ const liveVisual = new Set([
 ]);
 /** Keep frame objects/geometry/fades interactive; bake exact color and the complete audio mix. */
 export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): EditSettings {
+  if (asset.kind === 'image') return { ...edit, format: 'png' };
   const strip = (recipe: EditSettings): EditSettings => ({
     ...recipe,
+    painting: defaultPainting(),
     crop: null,
     geometry: defaultGeometry(),
     subtitles: { mode: 'none', cues: [] },
@@ -81,6 +88,7 @@ export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): Edit
       end: clip.end,
       effects: {
         ...clip.effects,
+        painting: defaultPainting(),
         crop: null,
         geometry: defaultGeometry(),
         videoFadeIn: 0,
@@ -109,6 +117,7 @@ export function effectPreviewArgs(
   resources: RecipeResources,
   layers: AudioLayerInput[] = [],
 ) {
+  if (asset.kind === 'image') return framePreviewArgs(asset, edit, 0, input, output, resources);
   const args = buildExportArgs(asset, edit, input, output, resources, layers);
   if (asset.kind === 'video') {
     const scale =

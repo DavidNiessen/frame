@@ -1,3 +1,6 @@
+import { PaintingControls } from './PaintingControls';
+import { isVisualEffect } from '../core/visual-settings';
+import { VisualEffectControls } from './VisualEffectControls';
 import { VolumeControls } from './VolumeControls';
 import type { EffectDefinition } from '../core/effect-library';
 import type { Editor } from '../hooks/useEditor';
@@ -26,7 +29,11 @@ export function EffectControls({
     asset = editor.asset!;
   return (
     <div className="effect-editor">
-      {effect.scope === 'source' && effect.id !== 'captions' && (
+      {effect.id === 'painting' && <PaintingControls editor={scoped} />}
+      {isVisualEffect(effect.id) && (
+        <VisualEffectControls id={effect.id} edit={edit} update={scoped.update} />
+      )}
+      {asset.kind !== 'image' && effect.scope === 'source' && effect.id !== 'captions' && (
         <p className="effect-target-note">
           {effect.id === 'mix'
             ? 'Output timeline · tracks stay in place when clips move.'
@@ -72,7 +79,13 @@ export function EffectControls({
       {effect.id === 'transform' && (
         <GeometryControls asset={asset} edit={edit} update={scoped.update} expanded />
       )}
-      {effect.id === 'captions' && <SubtitleControls edit={editor.edit!} update={editor.update} />}
+      {effect.id === 'captions' && (
+        <SubtitleControls
+          image={asset.kind === 'image'}
+          edit={editor.edit!}
+          update={editor.update}
+        />
+      )}
       {effect.id === 'watermark' && (
         <OverlayControls expanded edit={editor.edit!} update={editor.update} />
       )}

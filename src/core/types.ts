@@ -1,3 +1,6 @@
+import { defaultPainting, type PaintingSettings } from './painting';
+import { defaultVisual, type VisualSettings } from './visual-settings';
+import { defaultImageOutput, type ImageOutput } from './image-settings';
 import type { EffectRanges } from './timed-adjustments';
 import type { EffectInstance } from './effect-instances';
 import type { EffectId } from './effect-ids';
@@ -26,9 +29,23 @@ import type { MediaClip } from './composition';
 import type { OutputSettings } from './presets';
 import type { TransitionSettings } from './transitions';
 import supportedExtensions from './media-extensions.json';
-export type MediaKind = 'video' | 'audio';
+export type MediaKind = 'video' | 'audio' | 'image';
 export type FormatId =
-  'mp4' | 'webm' | 'mov' | 'mkv' | 'gif' | 'mp3' | 'wav' | 'flac' | 'ogg' | 'm4a';
+  | 'mp4'
+  | 'webm'
+  | 'mov'
+  | 'mkv'
+  | 'gif'
+  | 'mp3'
+  | 'wav'
+  | 'flac'
+  | 'ogg'
+  | 'm4a'
+  | 'png'
+  | 'jpeg'
+  | 'webp'
+  | 'bmp'
+  | 'tiff';
 export interface MediaAsset {
   id: string;
   name: string;
@@ -76,6 +93,9 @@ export interface TimeRange {
   end: number;
 }
 export interface EditSettings {
+  imageOutput?: ImageOutput;
+  visual?: VisualSettings;
+  painting?: PaintingSettings;
   addedEffects?: EffectId[];
   effectInstances?: EffectInstance[];
   effectRanges?: EffectRanges;
@@ -233,6 +253,9 @@ export { supportedExtensions };
 export const acceptMedia = supportedExtensions.map((ext) => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return {
+    imageOutput: defaultImageOutput(),
+    visual: defaultVisual(),
+    painting: defaultPainting(),
     effectInstances: [],
     silenceOptions: { threshold: -35, minimum: 0.5, padding: 0.1 },
     audioLayers: [],
@@ -262,7 +285,7 @@ export function defaultSettings(asset: MediaAsset): EditSettings {
     cuts: [],
     splits: [],
     crop: null,
-    format: asset.kind === 'audio' ? 'mp3' : 'mp4',
+    format: asset.kind === 'image' ? 'png' : asset.kind === 'audio' ? 'mp3' : 'mp4',
     quality: 'balanced',
     acceleration: parseAcceleration(undefined),
     targetSizeMb: null,

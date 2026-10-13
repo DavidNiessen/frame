@@ -1,3 +1,4 @@
+import { visualControls, visualIds, isVisualEffect, parseVisual } from './visual-settings';
 import { extraInstances } from './effect-instances';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 import { clipRecipe, editClips } from './clips';
@@ -22,6 +23,24 @@ export const legacyMixEffect: EffectDefinition = {
   keys: ['audioLayers'],
 };
 export const effectLibrary: EffectDefinition[] = [
+  {
+    id: 'painting',
+    name: 'Painting',
+    description: 'Draw with a brush or erase your strokes',
+    group: 'Video',
+    scope: 'clip',
+    repeatable: true,
+    keys: ['painting'],
+  },
+  ...visualIds.map((id): EffectDefinition => ({
+    id,
+    name: visualControls[id].name,
+    description: visualControls[id].description,
+    group: 'Video',
+    scope: 'clip',
+    repeatable: true,
+    keys: ['visual'],
+  })),
   {
     id: 'volume',
     repeatable: true,
@@ -161,10 +180,22 @@ export function effectPlacement(effect: EffectDefinition): 'source' | 'layer' | 
 }
 export function availableEffects(asset: MediaAsset) {
   return effectLibrary
-    .filter((effect) => effect.group !== 'Video' || asset.kind === 'video')
-    .filter((effect) => effect.group !== 'Audio' || asset.hasAudio || effect.id === 'mix');
+    .filter(
+      (effect) =>
+        asset.kind !== 'image' || (effect.group === 'Video' && !effect.id.includes('Fade')),
+    )
+    .filter((effect) => effect.group !== 'Video' || asset.kind !== 'audio')
+    .filter((effect) => effect.group !== 'Audio' || asset.hasAudio || effect.id === 'mix')
+    .map((effect) =>
+      asset.kind === 'image' && effect.id === 'captions'
+        ? { ...effect, name: 'Text', description: 'Place styled text on the image' }
+        : effect,
+    );
 }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
+  if (effect.id === 'painting') return !!edit.painting?.image;
+  if (isVisualEffect(effect.id))
+    return parseVisual(edit.visual)[effect.id] !== visualControls[effect.id].neutral;
   if (effect.id === 'volume') return edit.volume !== 1;
   if (effect.id === 'normalize') return edit.normalizeLoudness;
   if (effect.id === 'noise') return edit.reduceNoise;
@@ -246,6 +277,10 @@ export function resetEffect(effect: EffectDefinition, asset: MediaAsset): Partia
   return Object.fromEntries(effect.keys.map((key) => [key, defaults[key]]));
 }
 export function enableEffect(effect: EffectDefinition, edit: EditSettings): Partial<EditSettings> {
+  if (isVisualEffect(effect.id))
+    return {
+      visual: { ...parseVisual(undefined), [effect.id]: visualControls[effect.id].initial },
+    };
   if (effect.id === 'normalize') return { normalizeLoudness: true };
   if (effect.id === 'noise') return { reduceNoise: true };
   if (effect.id.endsWith('FadeIn') || effect.id.endsWith('FadeOut'))

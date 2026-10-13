@@ -12,6 +12,51 @@ export interface OutputFormat {
 // Register new output formats here; engines share the same export planner.
 export const formats: OutputFormat[] = [
   {
+    id: 'png',
+    label: 'PNG',
+    kind: 'image',
+    mime: 'image/png',
+    description: 'Lossless with transparency',
+    videoCodec: 'png',
+    artwork: false,
+  },
+  {
+    id: 'jpeg',
+    label: 'JPEG',
+    kind: 'image',
+    mime: 'image/jpeg',
+    description: 'Compact photos',
+    videoCodec: 'mjpeg',
+    artwork: false,
+  },
+  {
+    id: 'webp',
+    label: 'WebP',
+    kind: 'image',
+    mime: 'image/webp',
+    description: 'Small, modern images',
+    videoCodec: 'libwebp',
+    artwork: false,
+  },
+  {
+    id: 'bmp',
+    label: 'BMP',
+    kind: 'image',
+    mime: 'image/bmp',
+    description: 'Uncompressed bitmap',
+    videoCodec: 'bmp',
+    artwork: false,
+  },
+  {
+    id: 'tiff',
+    label: 'TIFF',
+    kind: 'image',
+    mime: 'image/tiff',
+    description: 'Lossless image archive',
+    videoCodec: 'tiff',
+    artwork: false,
+  },
+  {
     id: 'mp4',
     label: 'MP4',
     kind: 'video',
@@ -111,4 +156,10 @@ export const getFormat = (id: FormatId) => {
   return result;
 };
 export const availableFormats = (asset: { kind: MediaKind; hasAudio: boolean }) =>
-  formats.filter((f) => (f.kind === 'video' ? asset.kind === 'video' : asset.hasAudio));
+  formats.filter((f) =>
+    f.kind === 'image'
+      ? asset.kind === 'image'
+      : f.kind === 'video'
+        ? asset.kind === 'video'
+        : asset.hasAudio,
+  );

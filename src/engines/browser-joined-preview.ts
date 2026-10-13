@@ -34,7 +34,12 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
     const task = (async () => {
       const ff = await runtime.ready(),
         input = 'joined-source',
-        output = asset.kind === 'video' ? 'joined.mp4' : 'joined.mp3';
+        output =
+          asset.kind === 'image'
+            ? 'joined.png'
+            : asset.kind === 'video'
+              ? 'joined.mp4'
+              : 'joined.mp3';
       const edit = settings ? effectPreviewRecipe(asset, settings) : undefined;
       const layers = edit
         ? resolveAudioLayers(
@@ -79,7 +84,12 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
         const id = crypto.randomUUID(),
           url = URL.createObjectURL(
             new Blob([new Uint8Array(data)], {
-              type: asset.kind === 'video' ? 'video/mp4' : 'audio/mpeg',
+              type:
+                asset.kind === 'image'
+                  ? 'image/png'
+                  : asset.kind === 'video'
+                    ? 'video/mp4'
+                    : 'audio/mpeg',
             }),
           );
         urls.set(id, { source: asset.id, url });

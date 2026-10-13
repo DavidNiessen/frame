@@ -1,3 +1,7 @@
+import { preserveImageAlpha } from './image-alpha';
+import { visualFilters } from './visual-filters';
+import { defaultOverlays } from './overlays';
+import { isVisualEffect } from './visual-settings';
 import { timedFilter } from './timed-adjustments';
 import { timelineFadeFilter } from './timeline-effects';
 import { colorFilters } from './color';
@@ -30,6 +34,9 @@ export function videoFilters(
   if (c) filters.push(`crop=${c.width}:${c.height}:${c.x}:${c.y}`);
   filters.push(
     ...geometryFilters(edit),
+    ...(asset.kind === 'image'
+      ? preserveImageAlpha(visualFilters(edit.visual), 'primary')
+      : visualFilters(edit.visual)),
     ...colorFilters(edit.color, resources).map((filter) =>
       timedFilter(filter, timing, edit.effectRanges?.color),
     ),
@@ -42,6 +49,14 @@ export function videoFilters(
       filters.push(`crop=${c.width}:${c.height}:${c.x}:${c.y}`);
     }
     if (instance.effect === 'transform') filters.push(...geometryFilters(recipe));
+    if (isVisualEffect(instance.effect))
+      filters.push(
+        ...(asset.kind === 'image'
+          ? preserveImageAlpha(visualFilters(recipe.visual), instance.id)
+          : visualFilters(recipe.visual).map((filter) =>
+              timedFilter(filter, timing, instance.range, instance.timeSpace === 'output'),
+            )),
+      );
     if (instance.effect === 'color')
       filters.push(
         ...colorFilters(recipe.color, paths).map((filter) =>
@@ -49,14 +64,65 @@ export function videoFilters(
         ),
       );
   }
-  if (burnedCues(timing).length)
+  if (asset.kind !== 'image' && burnedCues(timing).length)
     filters.push(
       `subtitles=filename=${filterPath(burnedCaptionPath(timing, resources))}:fontsdir=${filterPath(resources.fonts)}`,
+    );
+  if (edit.painting?.image)
+    filters.push(
+      ...overlayFilters(
+        asset,
+        {
+          ...edit,
+          overlays: {
+            ...defaultOverlays(),
+            image: edit.painting.image,
+            imageWidth: 100,
+            x: 0,
+            y: 0,
+          },
+        },
+        { ...resources, image: `${resources.image}-paint.png` },
+        timing,
+      ),
     );
   filters.push(...overlayFilters(asset, edit, resources, timing), ...fadeFilters(edit, 'video'));
   for (const instance of extraInstances(edit)) {
     const recipe = instanceRecipe(edit, instance),
       paths = instancePaths(resources, instance);
+    if (instance.effect === 'painting' && recipe.painting?.image) {
+      const dims = frameDimensions(asset, edit);
+      const paint: EditSettings = {
+        ...recipe,
+        crop: null,
+        geometry: {
+          ...recipe.geometry,
+          rotation: 0,
+          flipHorizontal: false,
+          flipVertical: false,
+          resize: { ...dims, fit: 'stretch' as const },
+        },
+        overlays: {
+          ...defaultOverlays(),
+          image: recipe.painting.image,
+          imageWidth: 100,
+          x: 0,
+          y: 0,
+        },
+      };
+      filters.push(
+        ...overlayFilters(
+          asset,
+          paint,
+          { ...paths, image: `${paths.image}-paint.png` },
+          timing,
+        ).map((filter) =>
+          instance.range
+            ? filter + `:enable='gte(t,${instance.range.start})*lt(t,${instance.range.end})'`
+            : filter,
+        ),
+      );
+    }
     if (instance.effect === 'watermark')
       filters.push(
         ...overlayFilters(
@@ -83,6 +149,10 @@ export function videoFilters(
             )),
       );
   }
+  if (asset.kind === 'image' && burnedCues(timing).length)
+    filters.push(
+      `subtitles=filename=${filterPath(burnedCaptionPath(timing, resources))}:fontsdir=${filterPath(resources.fonts)}`,
+    );
   return filters;
 }
 function speedFilters(speed: number, preservePitch: boolean): string[] {

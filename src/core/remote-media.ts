@@ -8,6 +8,12 @@ const mediaTypes: Record<string, string> = {
   'video/x-msvideo': 'avi',
   'video/x-m4v': 'm4v',
   'image/gif': 'gif',
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/bmp': 'bmp',
+  'image/tiff': 'tiff',
+  'image/avif': 'avif',
   'audio/mpeg': 'mp3',
   'audio/mp3': 'mp3',
   'audio/wav': 'wav',
@@ -26,7 +32,7 @@ const mediaTypes: Record<string, string> = {
 };
 export function mediaUrl(value: unknown): URL {
   if (typeof value !== 'string' || !value.trim() || value.length > 8192)
-    throw new Error('Enter a direct HTTP or HTTPS link to a video or audio file.');
+    throw new Error('Enter a direct HTTP or HTTPS link to an image, video or audio file.');
   let url: URL;
   try {
     url = new URL(value.trim());

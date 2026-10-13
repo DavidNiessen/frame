@@ -13,7 +13,7 @@ export function framePreviewArgs(
   paths: RecipeResources = resourcePaths(),
 ): string[] {
   validateEdit(asset, edit);
-  if (asset.kind !== 'video' || !Number.isFinite(time) || time < 0 || time >= asset.duration)
+  if (asset.kind === 'audio' || !Number.isFinite(time) || time < 0 || time >= asset.duration)
     throw new Error('Choose a frame inside the video.');
   const clip = clipAtSource(edit, time),
     scoped = edit.clips && clip ? clipRecipe(edit, clip) : edit;
@@ -43,7 +43,9 @@ export function framePreviewArgs(
       edit,
     ),
     ...fadeFilters(scoped, 'video'),
-    'scale=720:720:force_original_aspect_ratio=decrease',
+    asset.kind === 'image'
+      ? "scale=w='min(2048,iw)':h='min(2048,ih)':force_original_aspect_ratio=decrease"
+      : 'scale=720:720:force_original_aspect_ratio=decrease',
   ];
   return [
     '-y',

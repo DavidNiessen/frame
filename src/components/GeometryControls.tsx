@@ -36,7 +36,7 @@ export function GeometryControls({
         <label className="stacked-label">
           Rotation
           <select
-            aria-label="Video rotation"
+            aria-label={asset.kind === 'image' ? 'Image rotation' : 'Video rotation'}
             value={g.rotation}
             onChange={(e) => change({ rotation: Number(e.target.value) as typeof g.rotation })}
           >

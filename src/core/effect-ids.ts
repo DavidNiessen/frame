@@ -1,4 +1,7 @@
+import { visualIds } from './visual-settings';
 export const effectIds = [
+  ...visualIds,
+  'painting',
   'mix',
   'volume',
   'speed',

@@ -1,9 +1,11 @@
 import type { EditSettings } from '../core/types';
 import { CaptionStyleControls } from './CaptionStyleControls';
 export function SubtitleControls({
+  image = false,
   edit,
   update,
 }: {
+  image?: boolean;
   edit: EditSettings;
   update: (patch: Partial<EditSettings>) => void;
 }) {
@@ -15,35 +17,39 @@ export function SubtitleControls({
   return (
     <section className="control-section caption-settings">
       <label className="stacked-label">
-        Caption text
+        {image ? 'Text' : 'Caption text'}
         <textarea
-          aria-label="Caption text"
+          aria-label={image ? 'Text content' : 'Caption text'}
           maxLength={2000}
           value={cue.text}
           onChange={(event) => change({ text: event.target.value })}
         />
       </label>
-      <span className="cue-timing">
-        {cue.start.toFixed(2)}–{cue.end.toFixed(2)}s
-      </span>
-      <p className="field-note">
-        Drag this caption’s bar or its edges in the timeline to adjust timing.
-      </p>
-      <label className="stacked-label">
-        Caption export
-        <select
-          value={subtitles.mode}
-          onChange={(event) =>
-            update({
-              subtitles: { ...subtitles, mode: event.target.value as typeof subtitles.mode },
-            })
-          }
-        >
-          <option value="none">Off</option>
-          <option value="burn">Burn into video</option>
-          <option value="embed">Embed selectable captions</option>
-        </select>
-      </label>
+      {!image && (
+        <>
+          <span className="cue-timing">
+            {cue.start.toFixed(2)}–{cue.end.toFixed(2)}s
+          </span>
+          <p className="field-note">
+            Drag this caption’s bar or its edges in the timeline to adjust timing.
+          </p>
+          <label className="stacked-label">
+            Caption export
+            <select
+              value={subtitles.mode}
+              onChange={(event) =>
+                update({
+                  subtitles: { ...subtitles, mode: event.target.value as typeof subtitles.mode },
+                })
+              }
+            >
+              <option value="none">Off</option>
+              <option value="burn">Burn into video</option>
+              <option value="embed">Embed selectable captions</option>
+            </select>
+          </label>
+        </>
+      )}
       {cue.position && (
         <button
           className="button subtle small caption-reset-position"
@@ -58,8 +64,9 @@ export function SubtitleControls({
         selectable={subtitles.mode === 'embed'}
       />
       <p className="field-note">
-        Drag this caption in the preview to place it. Arrow keys nudge; Shift moves faster.
-        Selectable captions use the player’s layout and require MP4, MOV, MKV or WebM.
+        {image
+          ? 'Text is included in the exported image.'
+          : 'Drag this caption in the preview to place it. Arrow keys nudge; Shift moves faster. Selectable captions use the player’s layout and require MP4, MOV, MKV or WebM.'}
       </p>
     </section>
   );

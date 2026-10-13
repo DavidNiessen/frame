@@ -99,7 +99,15 @@ export function recipePatch(
 ): ClipEffects {
   const settings = structuredClone(parseEffectRecipe(recipe).settings);
   if (asset.kind === 'audio')
-    for (const key of ['color', 'geometry', 'crop', 'videoFadeIn', 'videoFadeOut'] as const)
+    for (const key of [
+      'color',
+      'visual',
+      'painting',
+      'geometry',
+      'crop',
+      'videoFadeIn',
+      'videoFadeOut',
+    ] as const)
       delete settings[key];
   else if (recipe.cropBasis && asset.width && asset.height) {
     const { width, height } = asset,

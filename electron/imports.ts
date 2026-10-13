@@ -123,7 +123,7 @@ export function registerImports(
       if (!paths) {
         const choice = await dialog.showOpenDialog(window(), {
           properties: ['openFile', 'multiSelections'],
-          filters: [{ name: 'Video and audio', extensions: supportedExtensions }],
+          filters: [{ name: 'Images, video and audio', extensions: supportedExtensions }],
         });
         paths = choice.canceled ? [] : choice.filePaths;
       }

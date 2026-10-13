@@ -58,8 +58,8 @@ it('discovers nested media with stable relative paths and ignores non-media and 
     await writeFile(join(outside, 'Private.mp3'), 'source');
     await symlink(outside, join(root, 'linked'), 'junction');
     const found = await collectFolderMedia(root);
-    expect(found.files.map((file) => file.relativePath)).toEqual(['Album/Song.WAV']);
-    expect(found.skipped).toBe(2);
+    expect(found.files.map((file) => file.relativePath)).toEqual(['cover.jpg', 'Album/Song.WAV']);
+    expect(found.skipped).toBe(1);
     expect((await collectFolderMedia(outside)).files.map((file) => file.relativePath)).toEqual([
       'Private.mp3',
     ]);

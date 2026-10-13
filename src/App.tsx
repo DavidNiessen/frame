@@ -1,3 +1,5 @@
+import { ImagePreview } from './components/ImagePreview';
+import { ImageLayers } from './components/ImageLayers';
 import { AppFooter } from './components/LoadingBeam';
 import { useAppUpdateActivity } from './hooks/useAppUpdates';
 import { useLoadingActivity } from './hooks/useLoadingActivity';
@@ -79,12 +81,19 @@ export default function App() {
   } = usePreferences();
   const conversion = useConversion(editor);
   const proxies = useProxies(editor);
-  const joinedPreview = useJoinedPreview(editor, !settingsOpen && workflow === 'edit');
+  const joinedPreview = useJoinedPreview(
+    editor,
+    !settingsOpen && workflow === 'edit' && editor.asset?.kind !== 'image',
+  );
   const [sheetOpen, setSheetOpen] = useState(false),
     [scenesOpen, setScenesOpen] = useState(false);
   const merge = useMerge(editor);
   const [mergeOpen, setMergeOpen] = useState(false);
-  const waves = useWaveforms(editor, !settingsOpen && workflow === 'edit', autoWaveforms);
+  const waves = useWaveforms(
+    editor,
+    !settingsOpen && workflow === 'edit' && editor.asset?.kind !== 'image',
+    autoWaveforms,
+  );
   const batch = useBatch(editor);
   const [batchOpen, setBatchOpen] = useState(false);
   const projects = useProjects(editor);
@@ -110,7 +119,7 @@ export default function App() {
     editor.platform === 'desktop' || 'webkitdirectory' in document.createElement('input');
   const mediaRef = useRef<HTMLMediaElement | null>(null);
   const preview = useExpandedPreview(
-    !settingsOpen && workflow === 'edit' && editor.asset?.kind === 'video',
+    !settingsOpen && workflow === 'edit' && !!editor.asset && editor.asset.kind !== 'audio',
   );
   useDesktopChrome(preview.expanded);
   const layoutRef = useRef<WorkspaceLayout>(null);
@@ -205,7 +214,7 @@ export default function App() {
     scenes: () => setScenesOpen(true),
     merge: () => setMergeOpen(true),
     batch: () => setBatchOpen(true),
-    timelineAvailable: !settingsOpen && workflow === 'edit',
+    timelineAvailable: !settingsOpen && workflow === 'edit' && editor.asset?.kind !== 'image',
     resetLayout: () => layoutRef.current?.reset(),
     shortcuts: () => setShortcuts(true),
   });
@@ -331,6 +340,7 @@ export default function App() {
       >
         {!settingsOpen && workflow === 'edit' && (
           <WorkspaceActions
+            image={editor.asset?.kind === 'image'}
             extractAudio={() => {
               mediaRef.current?.pause();
               void insertion.extractAudio();
@@ -382,6 +392,7 @@ export default function App() {
         />
       ) : (
         <EditorWorkspace
+          image={editor.asset?.kind === 'image'}
           ref={layoutRef}
           expanded={preview.expanded}
           hasMedia={!!editor.asset && !!editor.edit}
@@ -418,75 +429,96 @@ export default function App() {
           }
           preview={
             editor.asset && editor.edit ? (
-              <Preview
-                selectedEffect={openEffect}
-                openEffect={(id, instanceId) => {
-                  mediaRef.current?.pause();
-                  setOpenLayer(null);
-                  setOpenEffect({ id, instanceId, keepView: true });
-                }}
-                assets={editor.assets}
-                selectedClip={editor.selectedClip}
-                expanded={preview.expanded}
-                toggleExpanded={preview.toggle}
-                panelRef={preview.panel}
-                previewUrl={joinedPreview.proxy?.url ?? proxies.proxy?.url}
-                previewRanges={joinedPreview.ranges}
-                previewProcessed={joinedPreview.processed}
-                effectsRequested={joinedPreview.effects}
-                previewStale={joinedPreview.stale}
-                preparing={joinedPreview.preparing}
-                previewError={joinedPreview.error}
-                retryPreview={joinedPreview.retry}
-                asset={editor.asset}
-                edit={editor.edit}
-                mediaRef={mediaRef}
-                current={current}
-                setCurrent={setCurrent}
-                update={editor.update}
-                disabled={!!editor.busy}
-              />
+              editor.asset.kind === 'image' ? (
+                <ImagePreview
+                  panelRef={preview.panel}
+                  key={editor.asset.id}
+                  editor={editor}
+                  openEffect={(id, instanceId) => setOpenEffect({ id, instanceId, keepView: true })}
+                  selectedEffect={openEffect}
+                  expanded={preview.expanded}
+                  toggleExpanded={preview.toggle}
+                />
+              ) : (
+                <Preview
+                  notify={editor.setNotice}
+                  selectedEffect={openEffect}
+                  openEffect={(id, instanceId) => {
+                    mediaRef.current?.pause();
+                    setOpenLayer(null);
+                    setOpenEffect({ id, instanceId, keepView: true });
+                  }}
+                  assets={editor.assets}
+                  selectedClip={editor.selectedClip}
+                  expanded={preview.expanded}
+                  toggleExpanded={preview.toggle}
+                  panelRef={preview.panel}
+                  previewUrl={joinedPreview.proxy?.url ?? proxies.proxy?.url}
+                  previewRanges={joinedPreview.ranges}
+                  previewProcessed={joinedPreview.processed}
+                  effectsRequested={joinedPreview.effects}
+                  previewStale={joinedPreview.stale}
+                  preparing={joinedPreview.preparing}
+                  previewError={joinedPreview.error}
+                  retryPreview={joinedPreview.retry}
+                  asset={editor.asset}
+                  edit={editor.edit}
+                  mediaRef={mediaRef}
+                  current={current}
+                  setCurrent={setCurrent}
+                  update={editor.update}
+                  disabled={!!editor.busy}
+                />
+              )
             ) : null
           }
           timeline={
             editor.asset && editor.edit ? (
-              <Timeline
-                outputPosition={outputPosition}
-                onInsert={insertMedia}
-                openAudioLayer={(id, keepView) => {
-                  setOpenEffect(null);
-                  setOpenLayer({ id, keepView });
-                }}
-                timelinePreview={timelinePreview}
-                openEffect={(id, instanceId, keepView) => {
-                  mediaRef.current?.pause();
-                  setOpenLayer(null);
-                  setOpenEffect({ id, instanceId, keepView });
-                }}
-                generatingId={waves.generatingId}
-                assets={editor.assets}
-                waveforms={waves.all}
-                selectedClip={editor.selectedClip}
-                selectClip={editor.selectClip}
-                autoWaveforms={autoWaveforms}
-                waveformLoading={waves.loading}
-                waveformError={waves.error}
-                cancelAnalysis={waves.loading ? waves.cancel : editor.cancel}
-                waveform={waves.points}
-                retryWaveform={() => void waves.generate()}
-                analysisProgress={waves.progress}
-                asset={editor.asset}
-                edit={editor.edit}
-                current={current}
-                seek={seek}
-                update={editor.update}
-                undo={editor.undo}
-                redo={editor.redo}
-                canUndo={editor.canUndo}
-                canRedo={editor.canRedo}
-                disabled={!!editor.busy}
-                notify={editor.setNotice}
-              />
+              editor.asset.kind === 'image' ? (
+                <ImageLayers
+                  selectedEffect={openEffect}
+                  editor={editor}
+                  openEffect={(id, instanceId) => setOpenEffect({ id, instanceId, keepView: true })}
+                />
+              ) : (
+                <Timeline
+                  outputPosition={outputPosition}
+                  onInsert={insertMedia}
+                  openAudioLayer={(id, keepView) => {
+                    setOpenEffect(null);
+                    setOpenLayer({ id, keepView });
+                  }}
+                  timelinePreview={timelinePreview}
+                  openEffect={(id, instanceId, keepView) => {
+                    mediaRef.current?.pause();
+                    setOpenLayer(null);
+                    setOpenEffect({ id, instanceId, keepView });
+                  }}
+                  generatingId={waves.generatingId}
+                  assets={editor.assets}
+                  waveforms={waves.all}
+                  selectedClip={editor.selectedClip}
+                  selectClip={editor.selectClip}
+                  autoWaveforms={autoWaveforms}
+                  waveformLoading={waves.loading}
+                  waveformError={waves.error}
+                  cancelAnalysis={waves.loading ? waves.cancel : editor.cancel}
+                  waveform={waves.points}
+                  retryWaveform={() => void waves.generate()}
+                  analysisProgress={waves.progress}
+                  asset={editor.asset}
+                  edit={editor.edit}
+                  current={current}
+                  seek={seek}
+                  update={editor.update}
+                  undo={editor.undo}
+                  redo={editor.redo}
+                  canUndo={editor.canUndo}
+                  canRedo={editor.canRedo}
+                  disabled={!!editor.busy}
+                  notify={editor.setNotice}
+                />
+              )
             ) : null
           }
           empty={
