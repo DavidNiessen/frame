@@ -7,6 +7,9 @@ A cross-platform media editor and converter for images, video and audio. Edit a 
 ## Features
 
 - **Images:** a dedicated canvas with zoom, pan, before/after comparison, crop handles, rotation, text and editable brush layers. Export PNG, JPEG, WebP, BMP or TIFF; convert entire image folders.
+- **Image layers:** reorder, rename, hide, lock and group adjustments and frame objects. Nine blend modes, layer opacity, and editable rectangle, ellipse or brush masks with feathering and inversion.
+- **Color curves:** RGB and separate red/green/blue tone curves, a frame histogram, draggable points, numerical controls and tonal presets. Also available as timed video effects.
+- **Batch image sizes:** resize by longest edge, dimensions or percentage; preserve proportions, crop to fill or stretch. Avoid enlargement and save custom size presets.
 - **Visual adjustments:** exposure, gamma, shadows, highlights, vibrance, hue, tint, vignette, blur, sharpen, black & white, sepia, invert, pixelate, posterize, film grain, sketch and emboss. These also work as timed video effects with live previews.
 - **Edit:** trim, split, reorder and join clips; insert videos from the library; replace or layer audio; extract audio from video.
 - **Effects:** crop, rotate, resize, speed, fades, color adjustments, LUTs, volume, EQ, noise reduction and loudness normalization. Timed effects have draggable timeline bars and live previews.
@@ -19,7 +22,7 @@ A cross-platform media editor and converter for images, video and audio. Edit a 
 - **Workspace:** undo/redo, portable `.frame.json` projects, automatic local recovery, resizable panels, keyboard shortcuts and a command palette.
 - **Appearance:** system light/dark detection, Light, Dark and High contrast themes, responsive layouts and reduced-motion support.
 
-Output formats: **MP4, MOV, MKV, WebM, GIF, MP3, WAV, FLAC, OGG and M4A**. Input support depends on FFmpeg and the playback capabilities of your platform; desktop proxies help preview formats that the browser cannot play directly.
+Output formats: **PNG, JPEG, WebP, BMP, TIFF, MP4, MOV, MKV, WebM, GIF, MP3, WAV, FLAC, OGG and M4A**. Input support depends on FFmpeg and the playback capabilities of your platform; desktop proxies help preview formats that the browser cannot play directly.
 
 ## Desktop and web
 

@@ -435,3 +435,94 @@
 .image-layer-compositing .stacked-label + .stacked-label {
   margin-top: 12px;
 }
+.image-mask-controls {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.image-mask-controls h3 {
+  margin: 0 0 14px;
+}
+.image-mask-controls .stacked-label {
+  margin-top: 12px;
+}
+.image-mask-region {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.image-mask-frame,
+.image-mask-brush {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+.image-mask-selection {
+  position: absolute;
+  border: 1px dashed var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.image-mask-selection.ellipse {
+  border-radius: 50%;
+}
+.image-mask-move {
+  border: none;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  cursor: move;
+  pointer-events: auto;
+  touch-action: none;
+}
+.image-mask-handle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
+}
+.image-mask-handle::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  position: absolute;
+  inset: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+  border: 1px solid var(--surface);
+}
+.image-mask-handle.nw {
+  left: -12px;
+  top: -12px;
+  cursor: nwse-resize;
+}
+.image-mask-handle.ne {
+  right: -12px;
+  top: -12px;
+  cursor: nesw-resize;
+}
+.image-mask-handle.sw {
+  left: -12px;
+  bottom: -12px;
+  cursor: nesw-resize;
+}
+.image-mask-handle.se {
+  right: -12px;
+  bottom: -12px;
+  cursor: nwse-resize;
+}
+.image-mask-brush .painting-canvas {
+  pointer-events: auto;
+  opacity: 0.3;
+}
+@media (max-width: 700px) {
+  .image-mask-handle {
+    width: 36px;
+    height: 36px;
+    transform: translate(-6px, -6px);
+  }
+}

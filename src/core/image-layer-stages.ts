@@ -1,3 +1,4 @@
+import { imageMaskPath } from './image-masks';
 import { imageLayerRows } from './image-layers';
 import { extraInstances } from './effect-instances';
 import { frameDimensions } from './geometry';
@@ -15,7 +16,10 @@ export function imageLayerStages(
     .filter((row) => !row.hidden)
     .map((row) => {
       const instance = row.id ? extraInstances(edit).find((item) => item.id === row.id) : undefined;
-      const paths = instance ? instancePaths(resources, instance) : resources;
+      const paths = {
+        ...(instance ? instancePaths(resources, instance) : resources),
+        mask: imageMaskPath(resources, row.key),
+      };
       const recipe: EditSettings = {
         ...defaultSettings(canvas),
         ...Object.fromEntries(row.effect.keys.map((key) => [key, row.recipe[key]])),

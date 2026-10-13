@@ -1,3 +1,4 @@
+import { ImageMaskOverlay } from './ImageMaskOverlay';
 import { imageLayerKey, imageLayerRows } from '../core/image-layers';
 import { effectAction } from '../core/effect-actions';
 import { ImageToolbar } from './ImageToolbar';
@@ -156,6 +157,17 @@ export function ImagePreview({
               editor={editor}
               selectedEffect={selectedEffect}
               openEffect={openEffect}
+            />
+          )}
+          {!cropping && !before && (
+            <ImageMaskOverlay
+              key={
+                selectedEffect
+                  ? imageLayerKey(selectedEffect.id, selectedEffect.instanceId)
+                  : 'none'
+              }
+              editor={editor}
+              selectedEffect={selectedEffect}
             />
           )}
           {cropping && !before && (

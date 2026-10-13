@@ -1,8 +1,10 @@
+import { parseImageMask, type ImageMask } from './image-masks';
 import { imageBlendModes, type ImageBlendMode } from './image-compositing';
 import { appliedEffects, type EffectId } from './effect-library';
 import { definitionFor, extraInstances, instanceRecipe } from './effect-instances';
 import type { EditSettings, MediaAsset } from './types';
 export interface ImageLayerState {
+  mask?: ImageMask;
   blend?: ImageBlendMode;
   opacity?: number;
   name?: string;
@@ -73,6 +75,7 @@ export function parseImageLayers(value: unknown): ImageLayerStack | undefined {
       (e.group !== undefined && !groups.has(e.group))
     )
       throw new Error('Invalid image layer.');
+    if (e.mask !== undefined) parseImageMask(e.mask);
   }
   return structuredClone(s);
 }

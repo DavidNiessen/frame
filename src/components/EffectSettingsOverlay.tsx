@@ -1,3 +1,4 @@
+import { ImageMaskControls } from './ImageMaskControls';
 import { ImageLayerCompositing } from './ImageLayerCompositing';
 import { imageLayerKey, imageLayerRows } from '../core/image-layers';
 import { useInspectorOverlay } from '../hooks/useInspectorOverlay';
@@ -238,6 +239,10 @@ export function EffectSettingsOverlay({
             current={current}
             seek={seek}
           />
+          {asset.kind === 'image' &&
+            !['crop', 'transform', 'captions', 'painting', 'watermark'].includes(id) && (
+              <ImageMaskControls editor={editor} id={id} instanceId={instanceId} />
+            )}
           {['normalize', 'noise', 'equalizer'].includes(id) && (
             <AudioEffectsPreview
               editor={{

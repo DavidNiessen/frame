@@ -181,7 +181,16 @@ export function videoFilters(
     const steps = rawVideoFilters(stage.source, stage.recipe, stage.paths, stage.recipe).map(
       (filter) => filter.replace(/(visual|masksource|mask|adjusted)primary/g, `$1layer${index}`),
     );
-    filters.push(...compositeImageLayer(steps, stage.state, stage.object, `composite${index}`));
+    filters.push(
+      ...compositeImageLayer(
+        steps,
+        stage.state,
+        stage.object,
+        `composite${index}`,
+        { width: stage.source.width ?? 640, height: stage.source.height ?? 360 },
+        stage.paths.mask,
+      ),
+    );
   }
   return filters;
 }

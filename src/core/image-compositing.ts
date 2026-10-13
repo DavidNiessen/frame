@@ -1,3 +1,4 @@
+import { imageMaskGraph } from './image-masks';
 import type { ImageLayerState } from './image-layers';
 export const imageBlendModes = [
   'normal',
@@ -30,20 +31,42 @@ export function compositeImageLayer(
   state: ImageLayerState,
   object: boolean,
   prefix: string,
+  canvas = { width: 640, height: 360 },
+  maskPath = '',
 ): string[] {
   if (!filters.length) return [];
   const mode = state.blend ?? 'normal',
-    opacity = state.opacity ?? 1;
+    opacity = state.opacity ?? 1,
+    mask = state.mask?.mode !== 'none' ? state.mask : undefined;
   if (opacity === 0) return [];
-  if (mode === 'normal' && opacity === 1) return filters;
+  if (mode === 'normal' && opacity === 1 && !mask) return filters;
   const id = prefix.replace(/[^a-z0-9]/gi, ''),
     f = filters.join(','),
     blend = `blend=all_mode=${mode}:all_opacity=${object ? 1 : opacity}`;
-  if (object)
+  const selection = mask
+    ? imageMaskGraph(
+        `selectionSource${id}`,
+        `selection${id}`,
+        mask,
+        canvas.width,
+        canvas.height,
+        maskPath,
+      )
+    : '';
+  if (object) {
+    const maskSource = mask ? `[selectionSource${id}]` : '',
+      alpha = mask
+        ? `;${selection};[alpha${id}][selection${id}]blend=all_mode=multiply[coverage${id}]`
+        : '';
     return [
-      `format=rgba,split[bottom${id}][layerinput${id}];[layerinput${id}]lutrgb=r=0:g=0:b=0:a=0,${f},format=rgba,split[top${id}][alpha${id}];[alpha${id}]alphaextract,lut=y='val*${opacity}'[mask${id}];[bottom${id}]split[base${id}][blendbase${id}];[top${id}][blendbase${id}]${blend},format=rgb24[color${id}];[color${id}][mask${id}]alphamerge[over${id}];[base${id}][over${id}]overlay=format=auto`,
+      `format=rgba,split=${mask ? 3 : 2}[bottom${id}][layerinput${id}]${maskSource};[layerinput${id}]lutrgb=r=0:g=0:b=0:a=0,${f},format=rgba,split[top${id}][alphaSource${id}];[alphaSource${id}]alphaextract,lut=y='val*${opacity}'[alpha${id}]${alpha};[bottom${id}]split[base${id}][blendbase${id}];[top${id}][blendbase${id}]${blend},format=rgb24[color${id}];[color${id}][${mask ? 'coverage' : 'alpha'}${id}]alphamerge[over${id}];[base${id}][over${id}]overlay=format=auto`,
+    ];
+  }
+  if (mask)
+    return [
+      `format=rgba,split=5[base${id}][blendbase${id}][layerinput${id}][alpha${id}][selectionSource${id}];[alpha${id}]alphaextract[alphaMask${id}];[layerinput${id}]${f}[top${id}];[top${id}][blendbase${id}]${blend},format=rgb24[color${id}];${selection};[base${id}]format=rgb24[original${id}];[selection${id}]format=gbrp[selectionRGB${id}];[original${id}][color${id}][selectionRGB${id}]maskedmerge[masked${id}];[masked${id}][alphaMask${id}]alphamerge`,
     ];
   return [
-    `format=rgba,split=3[bottom${id}][layerinput${id}][alpha${id}];[alpha${id}]alphaextract[mask${id}];[layerinput${id}]${f}[top${id}];[top${id}][bottom${id}]${blend},format=rgb24[color${id}];[color${id}][mask${id}]alphamerge`,
+    `format=rgba,split=3[bottom${id}][layerinput${id}][alpha${id}];[alpha${id}]alphaextract[alphaMask${id}];[layerinput${id}]${f}[top${id}];[top${id}][bottom${id}]${blend},format=rgb24[color${id}];[color${id}][alphaMask${id}]alphamerge`,
   ];
 }

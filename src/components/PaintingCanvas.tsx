@@ -10,8 +10,10 @@ export function PaintingCanvas({
   disabled,
   onError,
   showExisting = false,
+  label = 'Paint on frame',
 }: {
   showExisting?: boolean;
+  label?: string;
   edit: EditSettings;
   update: (patch: Partial<EditSettings>) => void;
   width: number;
@@ -73,7 +75,7 @@ export function PaintingCanvas({
     <canvas
       ref={ref}
       className="painting-canvas"
-      aria-label="Paint on frame"
+      aria-label={label}
       width={Math.max(1, Math.round(width * ratio))}
       height={Math.max(1, Math.round(height * ratio))}
       onPointerDown={(e) => {

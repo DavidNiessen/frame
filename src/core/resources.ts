@@ -1,3 +1,4 @@
+import { imageMaskPath } from './image-masks';
 import {
   definitionFor,
   extraInstances,
@@ -11,6 +12,7 @@ import { outputCues, serializeCaptionAss, serializeSrt } from './subtitles';
 import { frameDimensions } from './geometry';
 import type { EditSettings, MediaAsset } from './types';
 export interface RecipeResources {
+  mask?: string;
   artwork: string;
   chapters: string;
   captions: string;
@@ -76,6 +78,11 @@ export const embeddedCaptionPath = (edit: EditSettings, paths: RecipeResources) 
     : paths.captions;
 export function recipeImages(edit: EditSettings, paths: RecipeResources) {
   return [
+    ...Object.entries(edit.imageLayers?.entries ?? {}).flatMap(([key, state]) =>
+      state.mask?.brush.image
+        ? [{ path: imageMaskPath(paths, key), data: state.mask.brush.image }]
+        : [],
+    ),
     ...(edit.painting?.image
       ? [{ path: `${paths.image}-paint.png`, data: edit.painting.image }]
       : []),

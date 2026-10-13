@@ -37,11 +37,17 @@ test('edits a TIFF in the desktop canvas and exports an image with bundled tools
     await before.click();
     await expect(page.locator('.image-canvas-frame>img')).toHaveJSProperty('naturalWidth', 320);
     await page.getByRole('button', { name: 'Original', exact: true }).click();
+    await page.getByRole('button', { name: 'Add Curves', exact: true }).click();
+    await page.getByRole('button', { name: 'Lift shadows', exact: true }).click();
+    await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
     await page.getByRole('button', { name: 'Add Vignette', exact: true }).click();
     await page.getByLabel('Vignette value').fill('0.8');
+    await page.getByLabel('Effect mask type', { exact: true }).selectOption('ellipse');
+    await page.getByLabel('Mask width', { exact: true }).fill('40');
     await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
     await expect(page.getByLabel('Image layers')).toContainText('Vignette');
     await page.getByRole('button', { name: 'Add Painting', exact: true }).click();
+    await page.getByLabel('Layer blend mode', { exact: true }).selectOption('multiply');
     const canvas = page.getByLabel('Paint on frame', { exact: true }),
       bounds = (await canvas.boundingBox())!;
     await page.mouse.move(bounds.x + bounds.width * 0.2, bounds.y + bounds.height * 0.3);
