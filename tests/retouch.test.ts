@@ -1,3 +1,5 @@
+import { effectAction } from '../src/core/effect-actions';
+import { definitionFor, extraInstances } from '../src/core/effect-instances';
 import { expect, it } from 'vitest';
 import { defaultRetouch, parseRetouch, type RetouchStroke } from '../src/core/retouch';
 import { retouchPixels } from '../src/core/retouch-raster';
@@ -97,4 +99,19 @@ it('rejects invalid source points, brushes and embedded rasters', () => {
     parseRetouch({ ...defaultRetouch(), strokes: [{ ...stroke, opacity: NaN }] }),
   ).toThrow();
   expect(() => parseRetouch({ ...defaultRetouch(), image: 'data:text/plain,anything' })).toThrow();
+});
+
+it('persists repeated image retouch instances and rejects them on video sources', () => {
+  const effect = definitionFor('retouch');
+  let edit = defaultSettings(asset);
+  edit = { ...edit, ...effectAction(edit, asset, effect, null, 'add') };
+  edit = { ...edit, ...effectAction(edit, asset, effect, null, 'add') };
+  expect(extraInstances(edit, 'retouch')).toHaveLength(1);
+  expect(
+    parseProject(createProject('Retouch layers', [asset], () => edit, asset.id)).sources[0].edit
+      .effectInstances?.[0].effect,
+  ).toBe('retouch');
+  expect(() =>
+    parseProject(createProject('Wrong media', [{ ...asset, kind: 'video' }], () => edit, asset.id)),
+  ).toThrow('This effect is not supported');
 });

@@ -62,7 +62,9 @@ const legacyAdd = (
   };
 };
 it('preserves independent, persistable parameters in legacy effect stacks', () => {
-  for (const effect of effectLibrary) {
+  for (const effect of effectLibrary.filter(
+    (effect) => !effect.mediaKinds || effect.mediaKinds.includes(asset.kind),
+  )) {
     let edit = legacyAdd(legacyAdd(defaultSettings(asset), effect.id), effect.id);
     expect(extraInstances(edit, effect.id)).toHaveLength(1);
     const instance = extraInstances(edit)[0];
