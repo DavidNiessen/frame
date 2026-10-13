@@ -1,3 +1,4 @@
+import { FrameInteractionContext } from './frame-interaction';
 import { cssBlendMode } from '../core/image-compositing';
 import { imageLayerRows } from '../core/image-layers';
 import { CaptionPreview } from './CaptionPreview';
@@ -12,7 +13,13 @@ export function ImageFrameLayers({
   editor,
   selectedEffect,
   openEffect,
+  interactionKey,
+  startInteraction,
+  finishInteraction,
 }: {
+  interactionKey: string;
+  startInteraction: (key: string) => void;
+  finishInteraction: (key: string) => void;
   editor: Editor;
   selectedEffect: { id: EffectId; instanceId?: string } | null;
   openEffect: (id: EffectId, instanceId?: string) => void;
@@ -35,59 +42,69 @@ export function ImageFrameLayers({
           !layer.locked;
         const disabled =
           !!editor.busy || layer.locked || (painting && layer.effect.id !== 'painting');
+        const live = active && interactionKey === layer.key;
         return (
-          <div
-            className="image-frame-layer"
-            data-live={active || undefined}
-            style={{
-              zIndex: index + 1,
-              mixBlendMode: active ? cssBlendMode(layer.state.blend) : undefined,
-              opacity: active ? (layer.state.opacity ?? 1) : undefined,
-            }}
+          <FrameInteractionContext.Provider
             key={layer.key}
+            value={{
+              active: live,
+              start: () => startInteraction(layer.key),
+              finish: () => finishInteraction(layer.key),
+            }}
           >
-            {layer.effect.id === 'painting' ? (
-              active ? (
-                <PaintingCanvas
-                  showExisting
-                  edit={layer.recipe}
-                  update={(patch) =>
-                    editor.update(layer.id ? changeInstance(edit, layer.id, null, patch) : patch)
-                  }
-                  width={dims.width}
-                  height={dims.height}
+            <div
+              className="image-frame-layer"
+              data-live={live || undefined}
+              style={{
+                zIndex: index + 1,
+                mixBlendMode: live ? cssBlendMode(layer.state.blend) : undefined,
+                opacity: live ? (layer.state.opacity ?? 1) : undefined,
+              }}
+              key={layer.key}
+            >
+              {layer.effect.id === 'painting' ? (
+                active ? (
+                  <PaintingCanvas
+                    showExisting={live}
+                    edit={layer.recipe}
+                    update={(patch) =>
+                      editor.update(layer.id ? changeInstance(edit, layer.id, null, patch) : patch)
+                    }
+                    width={dims.width}
+                    height={dims.height}
+                    disabled={disabled}
+                    onError={editor.setNotice}
+                  />
+                ) : null
+              ) : layer.effect.id === 'watermark' ? (
+                <OverlayPreview
+                  onlyInstance={layer.id ?? null}
+                  outputPosition={0}
+                  current={0}
+                  asset={asset}
+                  edit={edit}
                   disabled={disabled}
-                  onError={editor.setNotice}
+                  pause={() => {}}
+                  update={editor.update}
+                  openEffect={openEffect}
+                  selectedEffect={selectedEffect}
                 />
-              ) : null
-            ) : layer.effect.id === 'watermark' ? (
-              <OverlayPreview
-                onlyInstance={layer.id ?? null}
-                outputPosition={0}
-                current={0}
-                asset={asset}
-                edit={edit}
-                disabled={disabled}
-                pause={() => {}}
-                update={editor.update}
-                openEffect={openEffect}
-                selectedEffect={selectedEffect}
-              />
-            ) : (
-              <CaptionPreview
-                onlyInstance={layer.id ?? null}
-                outputPosition={0}
-                current={0}
-                asset={asset}
-                edit={edit}
-                disabled={disabled}
-                pause={() => {}}
-                update={editor.update}
-                openEffect={openEffect}
-                selectedEffect={selectedEffect}
-              />
-            )}
-          </div>
+              ) : (
+                <CaptionPreview
+                  onlyInstance={layer.id ?? null}
+                  outputPosition={0}
+                  current={0}
+                  asset={asset}
+                  edit={edit}
+                  disabled={disabled}
+                  pause={() => {}}
+                  update={editor.update}
+                  openEffect={openEffect}
+                  selectedEffect={selectedEffect}
+                />
+              )}
+            </div>
+          </FrameInteractionContext.Provider>
         );
       })}
     </div>

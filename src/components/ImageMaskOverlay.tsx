@@ -18,7 +18,13 @@ export function ImageMaskOverlay({
     row = imageLayerRows(editor.asset!, edit).find((row) => row.key === key),
     mask = parseImageMask(row?.state.mask),
     [draft, setDraft] = useState<typeof mask | null>(null),
-    drag = useRef<{ x: number; y: number; mask: typeof mask; corner: string } | null>(null);
+    drag = useRef<{
+      x: number;
+      y: number;
+      mask: typeof mask;
+      next: typeof mask;
+      corner: string;
+    } | null>(null);
   if (!row || row.hidden || row.locked || mask.mode === 'none') return null;
   const change = (mask: typeof draft) => {
     if (mask) editor.update(changeImageLayer(edit, key, { mask }));
@@ -46,7 +52,7 @@ export function ImageMaskOverlay({
     e.preventDefault();
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, y: e.clientY, mask, corner };
+    drag.current = { x: e.clientX, y: e.clientY, mask, next: mask, corner };
     setDraft(mask);
   }
   function move(e: PointerEvent<HTMLButtonElement>) {
@@ -71,10 +77,11 @@ export function ImageMaskOverlay({
       m.width = right - m.x;
       m.height = bottom - m.y;
     }
+    g.next = m;
     setDraft(m);
   }
   const finish = () => {
-    if (drag.current) change(draft);
+    if (drag.current) change(drag.current.next);
     drag.current = null;
     setDraft(null);
   };

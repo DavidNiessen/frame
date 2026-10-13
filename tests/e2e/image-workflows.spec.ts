@@ -273,3 +273,43 @@ test('browser masks preserve source colors outside every selection type', async 
   }, bytes.toString('base64'));
   expect(failures).toEqual([]);
 });
+
+test('selecting a lower text layer keeps the exact idle composite visible', async ({ page }) => {
+  await page.goto('/');
+  const choosing = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Add media', exact: true }).click();
+  await (await choosing).setFiles({ name: 'photo.png', mimeType: 'image/png', buffer: bytes });
+  await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Add Text', exact: true }).click();
+  await page.getByLabel('Text content', { exact: true }).fill('Layer below invert');
+  await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Invert', exact: true }).click();
+  await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
+  const frame = page.locator('.image-canvas-frame');
+  await expect(frame).toHaveAttribute('aria-busy', 'false', { timeout: 45000 });
+  const checksum = () =>
+    page.locator('.image-canvas-frame>img').evaluate(async (image) => {
+      const bitmap = await createImageBitmap(
+          await (await fetch((image as HTMLImageElement).src)).blob(),
+        ),
+        canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let hash = 2166136261;
+      for (const pixel of pixels) hash = Math.imul(hash ^ pixel, 16777619);
+      return hash;
+    });
+  const before = await checksum();
+  await page
+    .getByLabel('Image layers', { exact: true })
+    .locator('.image-layer-open')
+    .filter({ hasText: 'Layer below invert' })
+    .click();
+  await expect(frame).toHaveAttribute('aria-busy', 'false', { timeout: 45000 });
+  await expect(page.locator('.image-frame-layer[data-live]')).toHaveCount(0);
+  expect(await checksum()).toBe(before);
+});

@@ -1,5 +1,7 @@
+import { FrameInteractionContext } from './frame-interaction';
 import {
   useEffect,
+  useContext,
   useRef,
   useState,
   type CSSProperties,
@@ -49,6 +51,9 @@ export function FrameObject<T>({
   resize,
   saveText,
 }: Props<T>) {
+  const interaction = useContext(FrameInteractionContext);
+  const latestInteraction = useRef(interaction);
+  latestInteraction.current = interaction;
   const ref = useRef<HTMLDivElement>(null),
     suppressClick = useRef(false);
   const gesture = useRef<{
@@ -66,7 +71,10 @@ export function FrameObject<T>({
   const shown = draft ?? value,
     positioned = positionClass?.(shown) ?? '';
   function cancel() {
-    if (gesture.current) suppressClick.current = true;
+    if (gesture.current) {
+      suppressClick.current = true;
+      latestInteraction.current?.finish();
+    }
     gesture.current = null;
     setDraft(null);
   }
@@ -92,6 +100,10 @@ export function FrameObject<T>({
     event.stopPropagation();
     pause();
     if (!movable) return;
+    if (interaction) {
+      select();
+      interaction.start();
+    }
     event.preventDefault();
     event.currentTarget.focus({ preventScroll: true });
     gesture.current = {
@@ -131,6 +143,7 @@ export function FrameObject<T>({
     suppressClick.current = g.moved;
     if (g.moved && !disabled) commit(g.next);
     setDraft(null);
+    interaction?.finish();
   }
   const events = {
     onPointerMove: drag,
@@ -153,8 +166,12 @@ export function FrameObject<T>({
           save={(text) => {
             saveText(text);
             setEditing(null);
+            interaction?.finish();
           }}
-          cancel={() => setEditing(null)}
+          cancel={() => {
+            setEditing(null);
+            interaction?.finish();
+          }}
         />
       ) : (
         <button
@@ -175,6 +192,8 @@ export function FrameObject<T>({
             event.stopPropagation();
             if (saveText && !suppressClick.current) {
               pause();
+              select();
+              interaction?.start();
               setEditing(ref.current!.getBoundingClientRect().width);
             }
           }}
@@ -189,6 +208,7 @@ export function FrameObject<T>({
               event.preventDefault();
               pause();
               select();
+              interaction?.start();
               setEditing(ref.current!.getBoundingClientRect().width);
               return;
             }

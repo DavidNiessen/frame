@@ -55,16 +55,34 @@ export function ImagePreview({
     !activeLayer.hidden &&
     !activeLayer.locked &&
     ['captions', 'painting', 'watermark'].includes(activeLayer.effect.id);
-  // Render the entire stack. Only the active frame object stays live for direct manipulation.
-  const renderEdit = liveObject
+  // Cache an exact composite and an object-free base for responsive gestures.
+  const interactionEdit = liveObject
     ? activeLayer.id
       ? {
           ...base,
           effectInstances: base.effectInstances?.filter((item) => item.id !== activeLayer.id),
         }
       : { ...base, ...effectAction(base, asset, activeLayer.effect, null, 'remove') }
-    : base;
-  const render = useImageRender({ ...editor, edit: renderEdit });
+    : undefined;
+  const renderEdit = base;
+  const render = useImageRender(
+    { ...editor, edit: renderEdit },
+    interactionEdit,
+    liveObject ? activeLayer.key : '',
+  );
+  const [interaction, setInteraction] = useState({
+    key: '',
+    phase: 'idle' as 'idle' | 'active' | 'settling',
+  });
+  const interacting =
+    !!liveObject && interaction.key === activeLayer?.key && interaction.phase !== 'idle';
+  useEffect(() => {
+    if (
+      (interaction.key && interaction.key !== activeLayer?.key) ||
+      (interaction.phase === 'settling' && !render.preparing)
+    )
+      setInteraction({ key: '', phase: 'idle' });
+  }, [interaction, activeLayer?.key, render.preparing]);
   const [zoom, setZoom] = useState(1),
     [pan, setPan] = useState({ x: 0, y: 0 }),
     [before, setBefore] = useState(false);
@@ -136,6 +154,7 @@ export function ImagePreview({
       >
         <div
           className="image-canvas-frame"
+          aria-busy={render.preparing}
           style={{
             width: displayWidth,
             aspectRatio: `${dims.width}/${dims.height}`,
@@ -143,7 +162,7 @@ export function ImagePreview({
           }}
         >
           <img
-            src={before ? render.original : render.url}
+            src={before ? render.original : interacting && render.base ? render.base : render.url}
             alt={before ? 'Original image' : asset.name}
             draggable={false}
             onError={() => {
@@ -157,6 +176,13 @@ export function ImagePreview({
               editor={editor}
               selectedEffect={selectedEffect}
               openEffect={openEffect}
+              interactionKey={interacting ? interaction.key : ''}
+              startInteraction={(key) => setInteraction({ key, phase: 'active' })}
+              finishInteraction={(key) =>
+                setInteraction((current) =>
+                  current.key === key ? { ...current, phase: 'settling' } : current,
+                )
+              }
             />
           )}
           {!cropping && !before && (

@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { FrameInteractionContext } from './frame-interaction';
+import {
+  useContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+} from 'react';
 import { drawStroke, parsePainting, type PaintStroke } from '../core/painting';
 import { rasterPainting } from '../engines/painting-raster';
 import type { EditSettings } from '../core/types';
@@ -21,6 +30,7 @@ export function PaintingCanvas({
   disabled: boolean;
   onError: (message: string) => void;
 }) {
+  const interaction = useContext(FrameInteractionContext);
   const ref = useRef<HTMLCanvasElement>(null),
     stroke = useRef<PaintStroke | null>(null),
     [saving, setSaving] = useState(false);
@@ -61,9 +71,13 @@ export function PaintingCanvas({
     try {
       const strokes = [...value.strokes, next],
         image = await rasterPainting(strokes, width, height);
-      if (alive.current) update({ painting: { ...value, strokes, image } });
+      if (alive.current) {
+        update({ painting: { ...value, strokes, image } });
+        interaction?.finish();
+      }
     } catch (error) {
       onError((error as Error).message);
+      interaction?.finish();
     } finally {
       if (alive.current) {
         setSaving(false);
@@ -83,6 +97,7 @@ export function PaintingCanvas({
         e.preventDefault();
         e.stopPropagation();
         e.currentTarget.setPointerCapture(e.pointerId);
+        interaction?.start();
         stroke.current = {
           points: [point(e)],
           color: value.color,
@@ -107,6 +122,7 @@ export function PaintingCanvas({
       onPointerUp={() => void finish()}
       onPointerCancel={() => {
         stroke.current = null;
+        interaction?.finish();
         redraw();
       }}
     />
