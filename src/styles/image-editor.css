@@ -418,3 +418,20 @@
   font-size: 11px;
   margin: 10px 0;
 }
+.image-canvas-frame {
+  isolation: isolate;
+}
+.image-frame-layer {
+  isolation: auto;
+}
+.image-layer-compositing {
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.image-layer-compositing h3 {
+  margin: 0 0 14px;
+}
+.image-layer-compositing .stacked-label + .stacked-label {
+  margin-top: 12px;
+}

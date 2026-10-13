@@ -1,3 +1,4 @@
+import { compositeImageLayer } from './image-compositing';
 import { curvesFilter } from './curves';
 import { imageLayerStages } from './image-layer-stages';
 import { preserveImageAlpha } from './image-alpha';
@@ -176,12 +177,11 @@ export function videoFilters(
 ): string[] {
   if (asset.kind !== 'image') return rawVideoFilters(asset, edit, resources, timing);
   const filters: string[] = [];
-  for (const stage of imageLayerStages(asset, edit, resources)) {
-    filters.push(
-      ...rawVideoFilters(stage.source, stage.recipe, stage.paths, stage.recipe).map((filter) =>
-        filter.replace(/(visual|masksource|mask|adjusted)primary/g, `$1layer${filters.length}`),
-      ),
+  for (const [index, stage] of imageLayerStages(asset, edit, resources).entries()) {
+    const steps = rawVideoFilters(stage.source, stage.recipe, stage.paths, stage.recipe).map(
+      (filter) => filter.replace(/(visual|masksource|mask|adjusted)primary/g, `$1layer${index}`),
     );
+    filters.push(...compositeImageLayer(steps, stage.state, stage.object, `composite${index}`));
   }
   return filters;
 }

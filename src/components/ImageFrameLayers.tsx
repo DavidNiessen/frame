@@ -1,3 +1,4 @@
+import { cssBlendMode } from '../core/image-compositing';
 import { imageLayerRows } from '../core/image-layers';
 import { CaptionPreview } from './CaptionPreview';
 import { OverlayPreview } from './OverlayPreview';
@@ -38,7 +39,11 @@ export function ImageFrameLayers({
           <div
             className="image-frame-layer"
             data-live={active || undefined}
-            style={{ zIndex: index + 1 }}
+            style={{
+              zIndex: index + 1,
+              mixBlendMode: active ? cssBlendMode(layer.state.blend) : undefined,
+              opacity: active ? (layer.state.opacity ?? 1) : undefined,
+            }}
             key={layer.key}
           >
             {layer.effect.id === 'painting' ? (

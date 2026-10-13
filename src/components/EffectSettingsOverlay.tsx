@@ -1,3 +1,4 @@
+import { ImageLayerCompositing } from './ImageLayerCompositing';
 import { imageLayerKey, imageLayerRows } from '../core/image-layers';
 import { useInspectorOverlay } from '../hooks/useInspectorOverlay';
 import { frameDimensions } from '../core/geometry';
@@ -227,6 +228,9 @@ export function EffectSettingsOverlay({
       )}
       <div className="effect-overlay-body">
         <fieldset disabled={!!editor.busy || layerLocked}>
+          {asset.kind === 'image' && !['crop', 'transform'].includes(id) && (
+            <ImageLayerCompositing editor={editor} id={id} instanceId={instanceId} />
+          )}
           <EffectControls
             frameSize={frameDimensions(asset, editor.scopedEdit!)}
             effect={effect}

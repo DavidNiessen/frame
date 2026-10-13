@@ -111,7 +111,7 @@ export function overlayFilters(
       ? `:enable='${intervals.map((r) => `gte(t,${r.start})*lt(t,${r.end})`).join('+')}'`
       : '';
     filters.push(
-      `null[base${id}];movie=filename=${filterPath(paths.image)}:dec_threads=1,scale=${width}:${imageHeight ?? -1},format=rgba,colorchannelmixer=aa=${o.opacity}[mark${id}];[base${id}][mark${id}]overlay=x=(W-w)*${o.x / 100}:y=(H-h)*${o.y / 100}:eof_action=repeat${enable}`,
+      `null[base${id}];movie=filename=${filterPath(paths.image)}:dec_threads=1,scale=${width}:${imageHeight ?? -1},format=rgba,colorchannelmixer=aa=${o.opacity}[mark${id}];[base${id}][mark${id}]overlay=x=(W-w)*${o.x / 100}:y=(H-h)*${o.y / 100}:eof_action=repeat${asset.kind === 'image' ? ':format=auto' : ''}${enable}`,
     );
   }
   return filters;

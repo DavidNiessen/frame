@@ -86,3 +86,54 @@ test('edits curve points on an image and exports the browser result', async ({ p
     timeout: 45000,
   });
 });
+
+test('browser composites every image blend mode through real exports', async ({ page }) => {
+  await page.goto('/');
+  const results = await page.evaluate(async (data) => {
+    const path = '/src/engines/browser.ts',
+      typesPath = '/src/core/types.ts',
+      visualPath = '/src/core/visual-settings.ts',
+      blendsPath = '/src/core/image-compositing.ts',
+      paintPath = '/src/core/painting.ts';
+    const { createBrowserEngine } = await import(/* @vite-ignore */ path),
+      { defaultSettings } = await import(/* @vite-ignore */ typesPath),
+      { defaultVisual } = await import(/* @vite-ignore */ visualPath),
+      { imageBlendModes } = await import(/* @vite-ignore */ blendsPath),
+      { defaultPainting } = await import(/* @vite-ignore */ paintPath);
+    const engine = createBrowserEngine(),
+      report = await engine.importFiles([
+        new File([Uint8Array.from(atob(data), (c) => c.charCodeAt(0))], 'photo.png'),
+      ]),
+      asset = report.assets[0],
+      failures: string[] = [];
+    for (const mode of imageBlendModes) {
+      try {
+        const output = await engine.export(
+          asset,
+          {
+            ...defaultSettings(asset),
+            format: 'jpeg',
+            painting: { ...defaultPainting(), image: 'data:image/png;base64,' + data },
+            visual: { ...defaultVisual(), invert: 1 },
+            imageLayers: {
+              order: [],
+              groups: [],
+              entries: {
+                'primary:painting': { blend: mode, opacity: 0.5 },
+                'primary:invert': { blend: mode, opacity: 0.5 },
+              },
+            },
+          },
+          () => {},
+        );
+        if (!output.size) throw new Error('Empty output');
+        URL.revokeObjectURL(output.url);
+      } catch (error) {
+        failures.push(mode + ': ' + (error as Error).message);
+      }
+    }
+    await engine.release(asset);
+    return failures;
+  }, bytes.toString('base64'));
+  expect(results).toEqual([]);
+});

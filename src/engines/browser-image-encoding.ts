@@ -1,3 +1,4 @@
+import { imageLayerKey } from '../core/image-layers';
 import { imageLayerStages } from '../core/image-layer-stages';
 import { videoFilters } from '../core/filters';
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
@@ -37,7 +38,15 @@ export async function browserImageEncoding(
         (_pass, path) =>
           buildExportArgs(
             stage.source,
-            { ...stage.recipe, format: 'png' },
+            {
+              ...stage.recipe,
+              format: 'png',
+              imageLayers: {
+                order: [],
+                groups: [],
+                entries: { [imageLayerKey(stage.effect)]: stage.state },
+              },
+            },
             source,
             path,
             stage.paths,
@@ -51,6 +60,7 @@ export async function browserImageEncoding(
             message: `Rendering image layer ${index + 1} of ${stages.length}…`,
           }),
       );
+      if (source !== input) await ff.deleteFile(source).catch(() => {});
       source = destination;
     }
     if (source === input) return { asset, settings, input };

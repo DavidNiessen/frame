@@ -29,6 +29,14 @@ export function imageLayerStages(
         };
       const source = canvas;
       if (row.fixed) canvas = { ...canvas, ...frameDimensions(canvas, recipe) };
-      return { source, recipe, paths, key: row.key };
+      return {
+        source,
+        recipe,
+        paths,
+        key: row.key,
+        effect: row.effect.id,
+        state: row.state,
+        object: ['painting', 'watermark', 'captions'].includes(row.effect.id),
+      };
     });
 }

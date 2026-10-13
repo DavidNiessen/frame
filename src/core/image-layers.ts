@@ -1,7 +1,10 @@
+import { imageBlendModes, type ImageBlendMode } from './image-compositing';
 import { appliedEffects, type EffectId } from './effect-library';
 import { definitionFor, extraInstances, instanceRecipe } from './effect-instances';
 import type { EditSettings, MediaAsset } from './types';
 export interface ImageLayerState {
+  blend?: ImageBlendMode;
+  opacity?: number;
   name?: string;
   hidden?: boolean;
   locked?: boolean;
@@ -61,6 +64,9 @@ export function parseImageLayers(value: unknown): ImageLayerStack | undefined {
       typeof e !== 'object' ||
       Array.isArray(e) ||
       (e.name !== undefined && !name(e.name)) ||
+      (e.blend !== undefined && !imageBlendModes.includes(e.blend)) ||
+      (e.opacity !== undefined &&
+        (!Number.isFinite(e.opacity) || e.opacity < 0 || e.opacity > 1)) ||
       ['hidden', 'locked'].some(
         (k) => e[k as 'hidden'] !== undefined && typeof e[k as 'hidden'] !== 'boolean',
       ) ||
