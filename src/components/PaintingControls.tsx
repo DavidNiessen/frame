@@ -2,7 +2,13 @@ import { parsePainting } from '../core/painting';
 import { rasterPainting } from '../engines/painting-raster';
 import { frameDimensions } from '../core/geometry';
 import type { Editor } from '../hooks/useEditor';
-export function PaintingControls({ editor }: { editor: Editor }) {
+export function PaintingControls({
+  editor,
+  dimensions,
+}: {
+  editor: Editor;
+  dimensions?: { width: number; height: number };
+}) {
   const value = parsePainting(editor.edit!.painting),
     change = (patch: Partial<typeof value>) => editor.update({ painting: { ...value, ...patch } });
   return (
@@ -63,7 +69,7 @@ export function PaintingControls({ editor }: { editor: Editor }) {
             void (async () => {
               try {
                 const strokes = value.strokes.slice(0, -1),
-                  dims = frameDimensions(editor.asset!, editor.edit!),
+                  dims = dimensions ?? frameDimensions(editor.asset!, editor.edit!),
                   image = await rasterPainting(strokes, dims.width, dims.height);
                 change({ strokes, image });
               } catch (e) {

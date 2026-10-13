@@ -16,7 +16,9 @@ export function OverlayPreview({
   pause,
   openEffect,
   selectedEffect,
+  onlyInstance,
 }: {
+  onlyInstance?: string | null;
   outputPosition?: number;
   edit: EditSettings;
   asset: MediaAsset;
@@ -31,7 +33,9 @@ export function OverlayPreview({
     <div className="overlay-preview" data-frame-area>
       {sourceRecipes(edit, 'watermark')
         .filter(({ recipe }) => recipe.overlays.text || recipe.overlays.image)
-        .map(({ id, recipe }, index) => {
+        .map((source, index) => ({ ...source, index }))
+        .filter(({ id }) => onlyInstance === undefined || (id ?? null) === onlyInstance)
+        .map(({ id, recipe, index }) => {
           const o = recipe.overlays;
           const time = extraInstances(edit).some(
             (instance) => instance.id === id && instance.timeSpace === 'output',

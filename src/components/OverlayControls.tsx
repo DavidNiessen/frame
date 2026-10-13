@@ -6,8 +6,10 @@ export function OverlayControls({
   edit,
   update,
   expanded = false,
+  image = false,
 }: {
   expanded?: boolean;
+  image?: boolean;
   edit: EditSettings;
   update: (patch: Partial<EditSettings>) => void;
 }) {
@@ -112,12 +114,15 @@ export function OverlayControls({
             onChange={(e) => change({ opacity: Number(e.target.value) })}
           />
         </label>
+        {!image && (
+          <p className="field-note">
+            Drag the watermark bar or its edges in the timeline to adjust timing.
+          </p>
+        )}
         <p className="field-note">
-          Drag the watermark bar or its edges in the timeline to adjust timing.
-        </p>
-        <p className="field-note">
-          Text and images are baked into video exports and merged clips. Position controls apply to
-          both. Preview shows placement; font sizing is finalized on export.
+          {image
+            ? 'Drag text or artwork on the canvas to place it. Select it to resize, or double-click text to edit. Layers are included in your exported image.'
+            : 'Text and images are baked into video exports and merged clips. Position controls apply to both. Preview shows placement; font sizing is finalized on export.'}
         </p>
         {error && <TransientMessage role="alert">{error}</TransientMessage>}
       </div>

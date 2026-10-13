@@ -91,6 +91,7 @@ export function overlayFilters(
   edit: EditSettings,
   paths: RecipeResources,
   timing = edit,
+  imageHeight?: number,
 ): string[] {
   const o = edit.overlays;
   const filters: string[] = [],
@@ -98,7 +99,7 @@ export function overlayFilters(
   if (o.range && !intervals.length) return filters;
   if (o.text)
     filters.push(
-      `subtitles=filename=${filterPath(paths.text)}:fontsdir=${filterPath(paths.fonts)}`,
+      `subtitles=filename=${filterPath(paths.text)}:fontsdir=${filterPath(paths.fonts)}${asset.kind === 'image' ? ':alpha=1' : ''}`,
     );
   if (o.image) {
     const id = paths.image.replace(/[^a-z0-9]/gi, '');
@@ -110,7 +111,7 @@ export function overlayFilters(
       ? `:enable='${intervals.map((r) => `gte(t,${r.start})*lt(t,${r.end})`).join('+')}'`
       : '';
     filters.push(
-      `null[base${id}];movie=filename=${filterPath(paths.image)}:dec_threads=1,scale=${width}:-1,format=rgba,colorchannelmixer=aa=${o.opacity}[mark${id}];[base${id}][mark${id}]overlay=x=(W-w)*${o.x / 100}:y=(H-h)*${o.y / 100}:eof_action=repeat${enable}`,
+      `null[base${id}];movie=filename=${filterPath(paths.image)}:dec_threads=1,scale=${width}:${imageHeight ?? -1},format=rgba,colorchannelmixer=aa=${o.opacity}[mark${id}];[base${id}][mark${id}]overlay=x=(W-w)*${o.x / 100}:y=(H-h)*${o.y / 100}:eof_action=repeat${enable}`,
     );
   }
   return filters;

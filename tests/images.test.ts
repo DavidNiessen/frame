@@ -1,14 +1,15 @@
+import { defaultCaptionStyle } from '../src/core/caption-style';
 import { beforeAll, afterAll, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { ffmpegPath, ffprobePath, probeFile } from '../electron/native';
 import { buildExportArgs } from '../src/core/export-plan';
 import { defaultSettings, type FormatId, type MediaAsset } from '../src/core/types';
 import { effectPreviewArgs, effectPreviewRecipe } from '../src/core/effect-preview';
-import { resourcePaths, recipeImages } from '../src/core/resources';
+import { resourcePaths, recipeImages, recipeFiles } from '../src/core/resources';
 import { addTimelineEffect } from '../src/core/timeline-effects';
 import { visualIds, visualControls, defaultVisual } from '../src/core/visual-settings';
 import { parseProject, createProject } from '../src/core/project';
@@ -145,6 +146,7 @@ it('composites independent paint layers into exported pixels', async () => {
     ...defaultPainting(),
     image: `data:image/png;base64,${(await readFile(paint)).toString('base64')}`,
   };
+  edit.geometry.rotation = 90;
   const paths = resourcePaths(join(directory, 'paint'));
   for (const resource of recipeImages(edit, paths))
     await writeFile(resource.path, Buffer.from(resource.data.split(',')[1], 'base64'));
@@ -182,4 +184,46 @@ it('keeps original image detail available for actual-size canvas zoom', async ()
     edit = defaultSettings(source);
   await exec(ffmpeg, effectPreviewArgs(source, edit, input, output, resourcePaths()));
   expect((await probeFile(output)).width).toBe(2560);
+});
+
+it('renders readable text over a transparent image without filling its background', async () => {
+  const input = join(directory, 'transparent.png'),
+    output = join(directory, 'transparent-text.png');
+  await exec(ffmpeg, [
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'color=red@0:s=64x48,format=rgba',
+    '-frames:v',
+    '1',
+    '-threads',
+    '1',
+    input,
+  ]);
+  const source = {
+      ...(await probeFile(input)),
+      id: 'transparent',
+      name: 'transparent.png',
+      previewUrl: '',
+    },
+    edit = defaultSettings(source);
+  edit.subtitles = {
+    mode: 'burn',
+    cues: [{ start: 0, end: 1, text: 'Hi', style: { ...defaultCaptionStyle, size: 12 } }],
+  };
+  const paths = {
+    ...resourcePaths(join(directory, 'transparent'), 'burn'),
+    fonts: resolve('public/fonts'),
+  };
+  for (const file of recipeFiles(edit, paths, source)) await writeFile(file.path, file.text);
+  await exec(ffmpeg, buildExportArgs(source, edit, input, output, paths));
+  const { stdout } = await exec(
+    ffmpeg,
+    ['-v', 'error', '-i', output, '-f', 'rawvideo', '-pix_fmt', 'rgba', '-threads', '1', '-'],
+    { encoding: 'buffer' },
+  );
+  const alpha = Array.from(stdout).filter((_value, index) => index % 4 === 3);
+  expect(Math.max(...alpha)).toBeGreaterThan(200);
+  expect(alpha).toContain(0);
 });

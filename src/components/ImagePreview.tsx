@@ -1,5 +1,6 @@
 import { ImageToolbar } from './ImageToolbar';
-import { CaptionPreview } from './CaptionPreview';
+import { ImageFrameLayers } from './ImageFrameLayers';
+import { defaultOverlays } from '../core/overlays';
 import { defaultGeometry } from '../core/geometry';
 import { useElementSize } from '../hooks/useElementSize';
 import { useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
@@ -10,7 +11,6 @@ import { frameDimensions } from '../core/geometry';
 import type { EffectId } from '../core/effect-library';
 import type { Editor } from '../hooks/useEditor';
 import { CropOverlay } from './CropOverlay';
-import { PaintingCanvas } from './PaintingCanvas';
 export function ImagePreview({
   editor,
   selectedEffect,
@@ -46,11 +46,10 @@ export function ImagePreview({
   const renderEdit = {
     ...base,
     subtitles: { mode: 'none' as const, cues: [] },
-    ...(selectedEffect?.id === 'painting' && !instance ? { painting: undefined } : {}),
+    painting: undefined,
+    overlays: defaultOverlays(),
     effectInstances: base.effectInstances?.filter(
-      (item) =>
-        item.effect !== 'captions' &&
-        !(selectedEffect?.id === 'painting' && item.id === instance?.id),
+      (item) => !['captions', 'painting', 'watermark'].includes(item.effect),
     ),
   };
   const render = useImageRender({ ...editor, edit: renderEdit });
@@ -142,16 +141,10 @@ export function ImagePreview({
             }}
           />
           {!cropping && !before && (
-            <CaptionPreview
-              outputPosition={0}
-              current={0}
-              asset={asset}
-              edit={edit}
-              disabled={!!editor.busy}
-              pause={() => {}}
-              update={editor.update}
-              openEffect={openEffect}
+            <ImageFrameLayers
+              editor={editor}
               selectedEffect={selectedEffect}
+              openEffect={openEffect}
             />
           )}
           {cropping && !before && (
@@ -161,17 +154,6 @@ export function ImagePreview({
               height={dims.height}
               disabled={!!editor.busy}
               onChange={(crop) => change({ crop })}
-            />
-          )}
-          {selectedEffect?.id === 'painting' && !before && (
-            <PaintingCanvas
-              showExisting
-              edit={selected}
-              update={change}
-              width={dims.width}
-              height={dims.height}
-              disabled={!!editor.busy}
-              onError={editor.setNotice}
             />
           )}
         </div>

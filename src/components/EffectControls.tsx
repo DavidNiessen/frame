@@ -18,7 +18,9 @@ export function EffectControls({
   editor,
   current,
   seek,
+  frameSize,
 }: {
+  frameSize?: { width: number; height: number };
   effect: EffectDefinition;
   editor: Editor;
   current: number;
@@ -29,7 +31,7 @@ export function EffectControls({
     asset = editor.asset!;
   return (
     <div className="effect-editor">
-      {effect.id === 'painting' && <PaintingControls editor={scoped} />}
+      {effect.id === 'painting' && <PaintingControls editor={scoped} dimensions={frameSize} />}
       {isVisualEffect(effect.id) && (
         <VisualEffectControls id={effect.id} edit={edit} update={scoped.update} />
       )}
@@ -87,7 +89,12 @@ export function EffectControls({
         />
       )}
       {effect.id === 'watermark' && (
-        <OverlayControls expanded edit={editor.edit!} update={editor.update} />
+        <OverlayControls
+          image={asset.kind === 'image'}
+          expanded
+          edit={editor.edit!}
+          update={editor.update}
+        />
       )}
       {effect.id === 'silence' && <SilenceControls expanded editor={editor} seek={seek} />}
     </div>

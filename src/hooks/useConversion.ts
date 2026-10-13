@@ -1,3 +1,4 @@
+import { getFormat } from '../core/formats';
 import { taggedNamingAsset } from '../core/media-tags';
 import { validateNamingTemplate } from '../core/output-naming';
 import { sampleRates } from '../core/audio-output';
@@ -49,26 +50,30 @@ export function useConversion(editor: Editor) {
       localStorage.setItem('frame:conversion-naming', namingTemplate);
     } catch {}
   }, [namingTemplate]);
+  const outputRef = useRef(output);
+  outputRef.current = output;
   const known = useRef(new Set<string>()),
     manualFormat = useRef(!!saved);
   const batch = useBatch(editor);
   const archive = useDownloadArchive(batch.jobs);
   useEffect(() => {
     const current = new Set(editor.assets.map((asset) => asset.id));
+    const format =
+      !manualFormat.current && editor.assets.length
+        ? editor.assets.every((asset) => asset.kind === 'image')
+          ? 'png'
+          : editor.assets.every((asset) => asset.kind === 'video')
+            ? 'mp4'
+            : 'mp3'
+        : outputRef.current.format;
+    const target = { ...outputRef.current, format } as OutputSettings;
     const added = editor.assets
-      .filter((asset) => !known.current.has(asset.id))
+      .filter((asset) => !known.current.has(asset.id) && canConvert(asset, target))
       .map((asset) => asset.id);
     setIds((ids) => [...new Set([...ids.filter((id) => current.has(id)), ...added])]);
     known.current = current;
     if (!manualFormat.current && editor.assets.length)
-      setOutput((output) => ({
-        ...output,
-        format: editor.assets.every((asset) => asset.kind === 'image')
-          ? 'png'
-          : editor.assets.every((asset) => asset.kind === 'video')
-            ? 'mp4'
-            : 'mp3',
-      }));
+      setOutput((output) => ({ ...output, format }));
   }, [editor.assets]);
   useEffect(() => {
     try {
@@ -101,7 +106,17 @@ export function useConversion(editor: Editor) {
   const unfinished = batch.jobs.filter((job) => ['failed', 'cancelled'].includes(job.status));
   const busy = !!editor.busy || archive.busy;
   function update(patch: Partial<OutputSettings>) {
-    if (patch.format) manualFormat.current = true;
+    if (patch.format) {
+      manualFormat.current = true;
+      const imageSwitch =
+        (getFormat(patch.format).kind === 'image') !== (getFormat(output.format).kind === 'image');
+      if (imageSwitch)
+        setIds(
+          editor.assets
+            .filter((asset) => canConvert(asset, { ...output, format: patch.format! }))
+            .map((asset) => asset.id),
+        );
+    }
     setOutput((output) => {
       const next = { ...output, ...patch };
       if (

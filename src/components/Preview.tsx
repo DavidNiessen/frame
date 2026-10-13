@@ -372,36 +372,50 @@ export function Preview({
                 preload="metadata"
               />
             )}
-            {selectedEffect?.id === 'painting' &&
-              (() => {
-                const instance = edit.effectInstances?.find(
-                  (item) => item.id === selectedEffect.instanceId,
-                );
-                const recipe = instance ? instanceRecipe(edit, instance) : edit;
-                return (
-                  <PaintingCanvas
-                    showExisting
-                    edit={recipe}
-                    update={(patch) =>
-                      update(instance ? changeInstance(edit, instance.id, null, patch) : patch)
+            <div
+              className="paint-preview-area"
+              style={
+                visual.crop && !stackedVisual
+                  ? {
+                      left: `${(visual.crop.x / asset.width!) * 100}%`,
+                      top: `${(visual.crop.y / asset.height!) * 100}%`,
+                      width: `${(visual.crop.width / asset.width!) * 100}%`,
+                      height: `${(visual.crop.height / asset.height!) * 100}%`,
                     }
-                    width={dimensions.width}
-                    height={dimensions.height}
-                    disabled={disabled}
-                    onError={notify}
-                  />
-                );
-              })()}
-            <PaintLayersPreview
-              edit={recipe}
-              current={current}
-              position={position}
-              selected={
-                selectedEffect?.id === 'painting'
-                  ? (selectedEffect.instanceId ?? 'primary')
                   : undefined
               }
-            />
+            >
+              {selectedEffect?.id === 'painting' &&
+                (() => {
+                  const instance = edit.effectInstances?.find(
+                    (item) => item.id === selectedEffect.instanceId,
+                  );
+                  const recipe = instance ? instanceRecipe(edit, instance) : edit;
+                  return (
+                    <PaintingCanvas
+                      showExisting
+                      edit={recipe}
+                      update={(patch) =>
+                        update(instance ? changeInstance(edit, instance.id, null, patch) : patch)
+                      }
+                      width={frameDimensions(asset, recipe).width}
+                      height={frameDimensions(asset, recipe).height}
+                      disabled={disabled}
+                      onError={notify}
+                    />
+                  );
+                })()}
+              <PaintLayersPreview
+                edit={recipe}
+                current={current}
+                position={position}
+                selected={
+                  selectedEffect?.id === 'painting'
+                    ? (selectedEffect.instanceId ?? 'primary')
+                    : undefined
+                }
+              />
+            </div>
             <OverlayPreview
               outputPosition={position}
               current={current}

@@ -1,3 +1,4 @@
+import { browserImageEncoding, renderedImagePath } from './browser-image-encoding';
 import { browserWorkspace } from './browser-workspace';
 import { browserPreparedMedia } from './browser-prepared-media';
 import { resolveAudioLayers } from '../core/audio-layers';
@@ -190,11 +191,27 @@ export function createBrowserEngine(): MediaEngine {
       try {
         await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
         await writeBrowserLayers(ff, layers, files, sources);
+        const encoding = await browserImageEncoding(
+          ff,
+          asset,
+          settings,
+          input,
+          resources.paths[0],
+          onProgress,
+        );
         await encodeBrowserOutput(
           ff,
           settings.format,
           (pass, destination) =>
-            buildExportArgs(asset, settings, input, destination, resources.paths[0], layers, pass),
+            buildExportArgs(
+              encoding.asset,
+              encoding.settings,
+              encoding.input,
+              destination,
+              resources.paths[0],
+              layers,
+              pass,
+            ),
           output,
           editedDuration(settings),
           onProgress,
@@ -236,6 +253,7 @@ export function createBrowserEngine(): MediaEngine {
         if (!cancelled) {
           await ff.deleteFile(input).catch(() => {});
           await ff.deleteFile(output).catch(() => {});
+          await ff.deleteFile(renderedImagePath).catch(() => {});
         }
       }
     },

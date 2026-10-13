@@ -50,6 +50,41 @@ test('edits image layers, paints and exports without a video timeline', async ({
   await page.getByLabel('Text content', { exact: true }).fill('Frame image editing');
   await closeEffect(page);
   await expect(page.locator('.caption-position')).toContainText('Frame image editing');
+  await page.getByRole('button', { name: 'Add Watermark', exact: true }).click();
+  await page.getByLabel('Overlay text', { exact: true }).fill('Photo credit');
+  const originalX = await page.getByLabel('Overlay x', { exact: true }).inputValue();
+  await closeEffect(page);
+  const mark = page.getByRole('button', { name: 'Move watermark 1 text', exact: true });
+  await expect(mark).toBeVisible();
+  const old = await mark.boundingBox();
+  await mark.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await closeEffect(page);
+  await page.mouse.move(old!.x + old!.width / 2, old!.y + old!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(old!.x + old!.width / 2 - 40, old!.y + old!.height / 2 - 40, { steps: 8 });
+  await page.mouse.up();
+  await mark.click();
+  await expect(page.getByLabel('Overlay x', { exact: true })).not.toHaveValue(originalX);
+  await page
+    .getByLabel('Watermark image file', { exact: true })
+    .setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: bytes });
+  await expect(
+    page.getByRole('button', { name: 'Move watermark 1 image', exact: true }),
+  ).toBeVisible();
+  const handle = page.getByRole('button', {
+      name: 'Resize Move watermark 1 image nw',
+      exact: true,
+    }),
+    handleBox = (await handle.boundingBox())!;
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBox.x - 30, handleBox.y - 30, { steps: 8 });
+  await page.mouse.up();
+  expect(
+    Number(await page.getByLabel('Overlay imageWidth', { exact: true }).inputValue()),
+  ).toBeGreaterThan(20);
+  await closeEffect(page);
   await page.getByRole('button', { name: 'Expand image canvas', exact: true }).click();
   await expect(page.locator('.image-layers')).toBeHidden();
   await page.getByRole('button', { name: 'Restore image canvas', exact: true }).click();
@@ -147,4 +182,25 @@ test('browser FFmpeg exports every image format and renders every new visual fil
     return failures;
   }, bytes.toString('base64'));
   expect(result).toEqual([]);
+});
+
+test('selects compatible media when converting a mixed image and video library', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Convert', exact: true }).click();
+  await page.getByLabel('Choose media files', { exact: true }).setInputFiles([
+    { name: 'photo.png', mimeType: 'image/png', buffer: bytes },
+    {
+      name: 'movie.mp4',
+      mimeType: 'video/mp4',
+      buffer: readFileSync(resolve('tests/fixtures/sample.mp4')),
+    },
+  ]);
+  await expect(page.getByLabel('Conversion format', { exact: true })).toHaveValue('mp3');
+  await expect(page.getByLabel('Convert movie.mp4', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('Convert photo.png', { exact: true })).not.toBeChecked();
+  await page.getByLabel('Conversion format', { exact: true }).selectOption('jpeg');
+  await expect(page.getByLabel('Convert photo.png', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('Convert movie.mp4', { exact: true })).not.toBeChecked();
 });

@@ -84,6 +84,7 @@ export function videoFilters(
         },
         { ...resources, image: `${resources.image}-paint.png` },
         timing,
+        frameDimensions(asset, edit).height,
       ),
     );
   filters.push(...overlayFilters(asset, edit, resources, timing), ...fadeFilters(edit, 'video'));
@@ -116,6 +117,7 @@ export function videoFilters(
           paint,
           { ...paths, image: `${paths.image}-paint.png` },
           timing,
+          dims.height,
         ).map((filter) =>
           instance.range
             ? filter + `:enable='gte(t,${instance.range.start})*lt(t,${instance.range.end})'`
@@ -151,7 +153,7 @@ export function videoFilters(
   }
   if (asset.kind === 'image' && burnedCues(timing).length)
     filters.push(
-      `subtitles=filename=${filterPath(burnedCaptionPath(timing, resources))}:fontsdir=${filterPath(resources.fonts)}`,
+      `subtitles=filename=${filterPath(burnedCaptionPath(timing, resources))}:fontsdir=${filterPath(resources.fonts)}:alpha=1`,
     );
   return filters;
 }

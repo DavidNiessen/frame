@@ -218,7 +218,13 @@ export function EffectSettingsOverlay({
       )}
       <div className="effect-overlay-body">
         <fieldset disabled={!!editor.busy}>
-          <EffectControls effect={effect} editor={controlsEditor} current={current} seek={seek} />
+          <EffectControls
+            frameSize={frameDimensions(asset, editor.scopedEdit!)}
+            effect={effect}
+            editor={controlsEditor}
+            current={current}
+            seek={seek}
+          />
           {['normalize', 'noise', 'equalizer'].includes(id) && (
             <AudioEffectsPreview
               editor={{

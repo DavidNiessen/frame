@@ -225,3 +225,47 @@
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+
+.image-canvas-frame {
+  container-type: inline-size;
+}
+.image-frame-layers,
+.image-frame-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.image-frame-layer {
+  isolation: isolate;
+}
+.image-frame-layer > .image-paint-layer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+.image-frame-layers .painting-canvas {
+  pointer-events: auto;
+}
+.image-frame-layers[data-painting] .watermark-object,
+.image-frame-layers[data-painting] .caption-position {
+  pointer-events: none;
+}
+
+.paint-preview-area {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.paint-preview-area .painting-canvas {
+  pointer-events: auto;
+}
+.paint-preview-area > .paint-layer-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
