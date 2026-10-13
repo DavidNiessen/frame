@@ -43,9 +43,7 @@ export function framePreviewArgs(
       edit,
     ),
     ...fadeFilters(scoped, 'video'),
-    asset.kind === 'image'
-      ? "scale=w='min(2048,iw)':h='min(2048,ih)':force_original_aspect_ratio=decrease"
-      : 'scale=720:720:force_original_aspect_ratio=decrease',
+    ...(asset.kind === 'image' ? [] : ['scale=720:720:force_original_aspect_ratio=decrease']),
   ];
   return [
     '-y',

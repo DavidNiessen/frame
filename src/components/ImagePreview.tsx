@@ -2,7 +2,7 @@ import { ImageToolbar } from './ImageToolbar';
 import { CaptionPreview } from './CaptionPreview';
 import { defaultGeometry } from '../core/geometry';
 import { useElementSize } from '../hooks/useElementSize';
-import { useRef, useState, type PointerEvent, type RefObject } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useImageRender } from '../hooks/useImageRender';
 import { changeInstance, instanceRecipe } from '../core/effect-instances';
@@ -65,10 +65,26 @@ export function ImagePreview({
       1,
       Math.min(bounds.width - 48, ((bounds.height - 48) * dims.width) / dims.height),
     ),
+    minimumZoom = Math.min(0.25, (dims.width / displayWidth) * 0.1),
+    maximumZoom = Math.max(8, (dims.width / displayWidth) * 8),
     fit = () => {
       setZoom(1);
       setPan({ x: 0, y: 0 });
     };
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    const wheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        setZoom((z) =>
+          Math.max(minimumZoom, Math.min(maximumZoom, z * (event.deltaY < 0 ? 1.1 : 0.9))),
+        );
+      }
+    };
+    element.addEventListener('wheel', wheel, { passive: false });
+    return () => element.removeEventListener('wheel', wheel);
+  }, [minimumZoom, maximumZoom]);
   function start(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0 || selectedEffect?.id === 'painting' || cropping || zoom === 1) return;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -105,12 +121,6 @@ export function ImagePreview({
         }}
         onPointerUp={() => {
           drag.current = null;
-        }}
-        onWheel={(e) => {
-          if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            setZoom((z) => Math.max(0.25, Math.min(8, z * (e.deltaY < 0 ? 1.1 : 0.9))));
-          }
         }}
       >
         <div
@@ -181,8 +191,8 @@ export function ImagePreview({
           <button
             className="icon-button"
             aria-label="Zoom out image"
-            disabled={zoom <= 0.25}
-            onClick={() => setZoom((z) => Math.max(0.25, z / 1.25))}
+            disabled={zoom <= minimumZoom}
+            onClick={() => setZoom((z) => Math.max(minimumZoom, z / 1.25))}
           >
             <ZoomOut size={15} />
           </button>
@@ -190,8 +200,8 @@ export function ImagePreview({
           <button
             className="icon-button"
             aria-label="Zoom in image"
-            disabled={zoom >= 8}
-            onClick={() => setZoom((z) => Math.min(8, z * 1.25))}
+            disabled={zoom >= maximumZoom}
+            onClick={() => setZoom((z) => Math.min(maximumZoom, z * 1.25))}
           >
             <ZoomIn size={15} />
           </button>

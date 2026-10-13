@@ -41,6 +41,17 @@ test('edits a TIFF in the desktop canvas and exports an image with bundled tools
     await page.getByLabel('Vignette value').fill('0.8');
     await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
     await expect(page.getByLabel('Image layers')).toContainText('Vignette');
+    await page.getByRole('button', { name: 'Add Painting', exact: true }).click();
+    const canvas = page.getByLabel('Paint on frame', { exact: true }),
+      bounds = (await canvas.boundingBox())!;
+    await page.mouse.move(bounds.x + bounds.width * 0.2, bounds.y + bounds.height * 0.3);
+    await page.mouse.down();
+    await page.mouse.move(bounds.x + bounds.width * 0.8, bounds.y + bounds.height * 0.7, {
+      steps: 12,
+    });
+    await page.mouse.up();
+    await expect(page.getByRole('button', { name: 'Undo stroke', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
     await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Export PNG', exact: true })).toBeEnabled({
       timeout: 30000,

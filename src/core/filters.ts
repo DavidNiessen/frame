@@ -41,7 +41,7 @@ export function videoFilters(
       timedFilter(filter, timing, edit.effectRanges?.color),
     ),
   );
-  for (const instance of extraInstances(edit)) {
+  for (const [instanceIndex, instance] of extraInstances(edit).entries()) {
     const recipe = instanceRecipe(edit, instance),
       paths = instancePaths(resources, instance);
     if (instance.effect === 'crop' && recipe.crop) {
@@ -52,7 +52,7 @@ export function videoFilters(
     if (isVisualEffect(instance.effect))
       filters.push(
         ...(asset.kind === 'image'
-          ? preserveImageAlpha(visualFilters(recipe.visual), instance.id)
+          ? preserveImageAlpha(visualFilters(recipe.visual), `effect${instanceIndex}`)
           : visualFilters(recipe.visual).map((filter) =>
               timedFilter(filter, timing, instance.range, instance.timeSpace === 'output'),
             )),

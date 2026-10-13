@@ -162,3 +162,24 @@ it('composites independent paint layers into exported pixels', async () => {
     }),
   ).toThrow();
 });
+
+it('keeps original image detail available for actual-size canvas zoom', async () => {
+  const input = join(directory, 'large.png'),
+    output = join(directory, 'large-preview.png');
+  await exec(ffmpeg, [
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=2560x1440',
+    '-frames:v',
+    '1',
+    '-threads',
+    '1',
+    input,
+  ]);
+  const source = { ...(await probeFile(input)), id: 'large', name: 'large.png', previewUrl: '' },
+    edit = defaultSettings(source);
+  await exec(ffmpeg, effectPreviewArgs(source, edit, input, output, resourcePaths()));
+  expect((await probeFile(output)).width).toBe(2560);
+});

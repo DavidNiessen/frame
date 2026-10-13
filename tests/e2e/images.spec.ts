@@ -54,6 +54,14 @@ test('edits image layers, paints and exports without a video timeline', async ({
   await expect(page.locator('.image-layers')).toBeHidden();
   await page.getByRole('button', { name: 'Restore image canvas', exact: true }).click();
   await expect(page.locator('.image-layers')).toBeVisible();
+  await page.getByRole('button', { name: 'Actual image size', exact: true }).click();
+  await expect(page.locator('.image-status')).toContainText('100%');
+  await page.locator('.image-viewport').hover();
+  await page.keyboard.down('Control');
+  await page.mouse.wheel(0, -100);
+  await page.keyboard.up('Control');
+  await expect(page.locator('.image-status')).toContainText('110%');
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath('image-editor.png') });
   await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 45000 });
@@ -119,6 +127,21 @@ test('browser FFmpeg exports every image format and renders every new visual fil
         if (output.url) URL.revokeObjectURL(output.url);
       } catch (error) {
         failures.push(`${id}: ${(error as Error).message}`);
+      }
+    const timelinePath = '/src/core/timeline-effects.ts';
+    const { addTimelineEffect } = (await import(
+      /* @vite-ignore */ timelinePath
+    )) as typeof import('../../src/core/timeline-effects');
+    const video = { ...asset, kind: 'video' as const };
+    for (const id of visual.visualIds)
+      try {
+        const recipe = types.defaultSettings(video);
+        Object.assign(recipe, addTimelineEffect(recipe, video, id));
+        const output = await engine.export(video, recipe, () => {});
+        if (!output?.size) throw new Error('Empty output');
+        if (output.url) URL.revokeObjectURL(output.url);
+      } catch (error) {
+        failures.push(`Timed ${id}: ${(error as Error).message}`);
       }
     await engine.release(asset);
     return failures;

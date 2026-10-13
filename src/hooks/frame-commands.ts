@@ -43,7 +43,7 @@ export function frameCommands(
     {
       id: 'import',
       label: 'Import media files',
-      description: 'Add videos and audio to the current workflow',
+      description: 'Add images, video and audio to the current workflow',
       group: 'Import',
       shortcut: 'Ctrl / ⌘ O',
       keywords: 'upload add songs',
@@ -55,7 +55,7 @@ export function frameCommands(
       label: 'Import a folder',
       description: 'Add an entire media collection',
       group: 'Import',
-      keywords: 'directory albums bulk songs',
+      keywords: 'directory albums bulk songs photos',
       disabled:
         busy ||
         (!actions.folderSupported ? 'Folder selection is unavailable in this browser' : undefined),
@@ -147,7 +147,7 @@ export function frameCommands(
     {
       id: 'effects',
       label: 'Show effects',
-      description: 'Browse and apply audio, video and timing effects',
+      description: 'Browse adjustments, layers and timed media effects',
       group: 'Editing',
       keywords:
         'editing controls crop volume speed voiceover ducking audio filters subtitles recipes',
@@ -164,7 +164,10 @@ export function frameCommands(
       run: editing(() => actions.extractAudio?.()),
     },
     ...editor.assets
-      .filter((asset) => asset.id !== editor.selected)
+      .filter(
+        (asset) =>
+          asset.id !== editor.selected && asset.kind !== 'image' && editor.asset?.kind !== 'image',
+      )
       .map((asset) => ({
         id: `insert-${asset.id}`,
         label: `${asset.kind === 'video' ? 'Insert' : 'Layer'} ${asset.name}`,
@@ -181,8 +184,12 @@ export function frameCommands(
             : undefined),
         run: editing(() => actions.insertMedia?.(asset.id)),
       })),
-    ...effectLibrary.map((effect) => {
-      const supported = !editor.asset || availableEffects(editor.asset).includes(effect);
+    ...effectLibrary.map((definition) => {
+      const variant = editor.asset
+        ? availableEffects(editor.asset).find((effect) => effect.id === definition.id)
+        : definition;
+      const supported = !!variant;
+      const effect = variant ?? definition;
       const existing =
         editor.asset && editor.edit
           ? existingEffectTarget(editor.edit, editor.asset, effect, null)
@@ -191,7 +198,7 @@ export function frameCommands(
         id: `effect-${effect.id}`,
         label: `${existing ? 'Edit' : 'Add'} ${effect.name}`,
         description: effect.description,
-        group: `${effect.group} effects`,
+        group: editor.asset?.kind === 'image' ? 'Image effects' : `${effect.group} effects`,
         keywords: `effect ${effect.id} ${effect.id === 'captions' ? 'subtitles text' : effect.id === 'equalizer' ? 'EQ bass mids treble' : ''}`,
         disabled:
           media ||
@@ -246,7 +253,9 @@ export function frameCommands(
       description: 'Arrange imported files into one output',
       group: 'Export',
       keywords: 'join combine concatenate',
-      disabled: media,
+      disabled:
+        media ||
+        (editor.asset?.kind === 'image' ? 'Select a video or audio source to merge' : undefined),
       run: editing(actions.merge),
     },
     {

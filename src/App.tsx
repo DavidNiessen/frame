@@ -214,7 +214,7 @@ export default function App() {
     scenes: () => setScenesOpen(true),
     merge: () => setMergeOpen(true),
     batch: () => setBatchOpen(true),
-    timelineAvailable: !settingsOpen && workflow === 'edit' && editor.asset?.kind !== 'image',
+    timelineAvailable: !settingsOpen && workflow === 'edit',
     resetLayout: () => layoutRef.current?.reset(),
     shortcuts: () => setShortcuts(true),
   });
