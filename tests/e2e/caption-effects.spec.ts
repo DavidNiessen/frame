@@ -79,6 +79,9 @@ test('keeps effect settings open for Space, play/pause, frame steps and time nav
   page,
 }) => {
   await openEffect(page, 'Volume');
+  // Keep the six-second fixture playing while asserting modal behavior on slower machines.
+  await page.getByLabel('Playback loop', { exact: true }).click();
+  await page.getByRole('button', { name: 'Loop sequence', exact: true }).click();
   const overlay = page.locator('.effect-settings-overlay'),
     video = page.locator('video');
   await page.keyboard.press('Space');

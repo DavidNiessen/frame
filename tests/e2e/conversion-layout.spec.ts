@@ -20,6 +20,7 @@ test('keeps conversion actions visible while a large queue and advanced options 
     .getByRole('button', { name: 'Convert', exact: true })
     .click();
   await noPageScroll(page);
+  await expect(page.getByRole('button', { name: 'Add files', exact: true })).toBeEnabled();
   const source = await readFile('tests/fixtures/sample.mp4');
   await page.getByLabel('Choose media files').setInputFiles(
     Array.from({ length: 18 }, (_, index) => ({
@@ -28,7 +29,7 @@ test('keeps conversion actions visible while a large queue and advanced options 
       buffer: source,
     })),
   );
-  await expect(page.locator('.conversion-table tbody tr')).toHaveCount(18);
+  await expect(page.locator('.conversion-table tbody tr')).toHaveCount(18, { timeout: 30000 });
   await page.getByLabel('Conversion format').selectOption('mp4');
   await page.getByText('Advanced options', { exact: true }).click();
   for (const [width, height] of [

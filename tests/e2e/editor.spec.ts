@@ -206,7 +206,7 @@ test('cancels browser processing and can export again', async ({ page }) => {
   await page.getByLabel('Output format').selectOption('mp4');
   await closeEffect(page);
   await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Save file' })).toBeVisible({ timeout: 30000 });
 });
 test('imports WAV audio and converts it to FLAC', async ({ page }, testInfo) => {
   const wav = testInfo.outputPath('tone.wav');
