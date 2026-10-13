@@ -1,6 +1,7 @@
+import { imageLayerKey, imageLayerRows } from '../core/image-layers';
+import { effectAction } from '../core/effect-actions';
 import { ImageToolbar } from './ImageToolbar';
 import { ImageFrameLayers } from './ImageFrameLayers';
-import { defaultOverlays } from '../core/overlays';
 import { defaultGeometry } from '../core/geometry';
 import { useElementSize } from '../hooks/useElementSize';
 import { useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
@@ -43,15 +44,25 @@ export function ImagePreview({
         }
       : { ...edit, crop: null, geometry: defaultGeometry(), effectInstances: [] }
     : edit;
-  const renderEdit = {
-    ...base,
-    subtitles: { mode: 'none' as const, cues: [] },
-    painting: undefined,
-    overlays: defaultOverlays(),
-    effectInstances: base.effectInstances?.filter(
-      (item) => !['captions', 'painting', 'watermark'].includes(item.effect),
-    ),
-  };
+  const activeLayer = selectedEffect
+    ? imageLayerRows(asset, edit).find(
+        (row) => row.key === imageLayerKey(selectedEffect.id, selectedEffect.instanceId),
+      )
+    : undefined;
+  const liveObject =
+    activeLayer &&
+    !activeLayer.hidden &&
+    !activeLayer.locked &&
+    ['captions', 'painting', 'watermark'].includes(activeLayer.effect.id);
+  // Render the entire stack. Only the active frame object stays live for direct manipulation.
+  const renderEdit = liveObject
+    ? activeLayer.id
+      ? {
+          ...base,
+          effectInstances: base.effectInstances?.filter((item) => item.id !== activeLayer.id),
+        }
+      : { ...base, ...effectAction(base, asset, activeLayer.effect, null, 'remove') }
+    : base;
   const render = useImageRender({ ...editor, edit: renderEdit });
   const [zoom, setZoom] = useState(1),
     [pan, setPan] = useState({ x: 0, y: 0 }),

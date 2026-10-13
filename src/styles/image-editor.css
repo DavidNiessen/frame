@@ -269,3 +269,81 @@
   object-fit: fill;
   pointer-events: none;
 }
+.image-layers {
+  max-height: 230px;
+}
+.image-layer {
+  display: block;
+}
+.image-layer-main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+}
+.image-layer-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 5px;
+}
+.image-layer-open > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.image-layer-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 0 8px 5px;
+}
+.image-layer-actions > input,
+.image-group-heading > input {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-width: 0;
+  flex: 1;
+  font: inherit;
+}
+.image-layer[data-hidden] .image-layer-open {
+  opacity: 0.45;
+}
+.image-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+}
+.image-layer-group {
+  border-left: 2px solid var(--accent);
+  padding-left: 6px;
+  display: grid;
+  gap: 5px;
+}
+/* Inactive objects remain hit targets over the exact composited preview. */
+.image-frame-layer:not([data-live]) .frame-object-content {
+  color: transparent;
+  -webkit-text-stroke-color: transparent;
+  background: transparent;
+}
+.image-frame-layer:not([data-live]) .frame-object-content > img {
+  opacity: 0;
+}
+.image-frame-layer:not([data-live]) .frame-object {
+  background: transparent !important;
+  color: transparent !important;
+  -webkit-text-stroke-color: transparent !important;
+}
+.image-frame-layer:not([data-live]) .frame-object.dragging,
+.image-frame-layer:not([data-live]) .frame-object:has(textarea) {
+  visibility: visible;
+}

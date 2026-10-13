@@ -98,7 +98,9 @@ export function CaptionPreview({
   update,
   openEffect,
   selectedEffect,
+  onlyInstance,
 }: {
+  onlyInstance?: string | null;
   openEffect: (id: EffectId, instanceId?: string) => void;
   selectedEffect: { id: EffectId; instanceId?: string } | null;
   outputPosition?: number;
@@ -112,6 +114,7 @@ export function CaptionPreview({
   const crop = edit.crop;
   const active = captionItems(edit)
     .filter((item) => {
+      if (onlyInstance !== undefined && (item.instanceId ?? null) !== onlyInstance) return false;
       const time =
         item.timeSpace === 'output'
           ? (outputPosition ?? outputTimeAtSource(edit, current))

@@ -1,3 +1,4 @@
+import { imageLayerStages } from './image-layer-stages';
 import { preserveImageAlpha } from './image-alpha';
 import { visualFilters } from './visual-filters';
 import { defaultOverlays } from './overlays';
@@ -20,7 +21,7 @@ import { fadeFilters } from './fades';
 import { editedDuration } from './timeline';
 import { effectiveSpeed, extraInstances, instanceRecipe } from './effect-instances';
 import type { EditSettings, MediaAsset } from './types';
-export function videoFilters(
+function rawVideoFilters(
   asset: MediaAsset,
   edit: EditSettings,
   resources: RecipeResources = resourcePaths(),
@@ -155,6 +156,23 @@ export function videoFilters(
     filters.push(
       `subtitles=filename=${filterPath(burnedCaptionPath(timing, resources))}:fontsdir=${filterPath(resources.fonts)}:alpha=1`,
     );
+  return filters;
+}
+export function videoFilters(
+  asset: MediaAsset,
+  edit: EditSettings,
+  resources: RecipeResources = resourcePaths(),
+  timing = edit,
+): string[] {
+  if (asset.kind !== 'image') return rawVideoFilters(asset, edit, resources, timing);
+  const filters: string[] = [];
+  for (const stage of imageLayerStages(asset, edit, resources)) {
+    filters.push(
+      ...rawVideoFilters(stage.source, stage.recipe, stage.paths, stage.recipe).map((filter) =>
+        filter.replace(/(visual|masksource|mask|adjusted)primary/g, `$1layer${filters.length}`),
+      ),
+    );
+  }
   return filters;
 }
 function speedFilters(speed: number, preservePitch: boolean): string[] {

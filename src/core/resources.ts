@@ -139,6 +139,17 @@ export function recipeFiles(
   for (const instance of extraInstances(edit)) {
     const recipe = instanceRecipe(edit, instance),
       resources = instancePaths(paths, instance);
+    if (instance.effect === 'captions' && recipe.subtitles.mode !== 'none')
+      files.push({
+        path: resources.captions,
+        text:
+          recipe.subtitles.mode === 'burn'
+            ? serializeCaptionAss(
+                outputCues(recipe),
+                asset ? frameDimensions(asset, edit) : { width: 640, height: 360 },
+              )
+            : serializeSrt(outputCues(recipe)),
+      });
     if (instance.effect === 'color' && recipe.color.lut)
       files.push({ path: resources.lut, text: recipe.color.lut });
     if (instance.effect === 'watermark' && recipe.overlays.text)

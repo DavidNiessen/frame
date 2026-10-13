@@ -1,3 +1,4 @@
+import type { ImageLayerStack } from './image-layers';
 import { defaultPainting, type PaintingSettings } from './painting';
 import { defaultVisual, type VisualSettings } from './visual-settings';
 import { defaultImageOutput, type ImageOutput } from './image-settings';
@@ -93,6 +94,7 @@ export interface TimeRange {
   end: number;
 }
 export interface EditSettings {
+  imageLayers?: ImageLayerStack;
   imageOutput?: ImageOutput;
   visual?: VisualSettings;
   painting?: PaintingSettings;

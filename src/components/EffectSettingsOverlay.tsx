@@ -1,3 +1,4 @@
+import { imageLayerKey, imageLayerRows } from '../core/image-layers';
 import { useInspectorOverlay } from '../hooks/useInspectorOverlay';
 import { frameDimensions } from '../core/geometry';
 import { useEffect, useId, useMemo, useRef } from 'react';
@@ -116,6 +117,11 @@ export function EffectSettingsOverlay({
         : editor.scopedEdit,
     [edit, editor.scopedEdit, instance, timelineInstance],
   );
+  const layerLocked =
+    asset.kind === 'image' &&
+    imageLayerRows(asset, edit).some(
+      (row) => row.key === imageLayerKey(id, instanceId) && row.locked,
+    );
   const change = (patch: Partial<typeof edit>) =>
     editor.update(
       instanceId ? changeInstance(edit, instanceId, editor.selectedClip, patch) : patch,
@@ -142,7 +148,9 @@ export function EffectSettingsOverlay({
         update: change,
         updateClip: change,
       }
-    : editor;
+    : layerLocked
+      ? { ...editor, update: () => {}, updateClip: () => {} }
+      : editor;
   const instanceIds = [
     ...new Set(
       [
@@ -199,7 +207,7 @@ export function EffectSettingsOverlay({
             <input
               type="checkbox"
               checked={shared}
-              disabled={!!editor.busy}
+              disabled={!!editor.busy || layerLocked}
               onChange={(event) =>
                 editor.selectClip(event.target.checked ? null : originClip.current)
               }
@@ -217,7 +225,7 @@ export function EffectSettingsOverlay({
         </div>
       )}
       <div className="effect-overlay-body">
-        <fieldset disabled={!!editor.busy}>
+        <fieldset disabled={!!editor.busy || layerLocked}>
           <EffectControls
             frameSize={frameDimensions(asset, editor.scopedEdit!)}
             effect={effect}
@@ -239,7 +247,7 @@ export function EffectSettingsOverlay({
       <footer className="effect-overlay-footer">
         <button
           className="button subtle small"
-          disabled={!!editor.busy}
+          disabled={!!editor.busy || layerLocked}
           aria-label={`Reset ${id === 'captions' ? (asset.kind === 'image' ? 'Text' : 'Caption') : effect.name}`}
           onClick={() => {
             if (id === 'captions') change({ subtitles: resetCaption(view.subtitles) });
@@ -263,7 +271,7 @@ export function EffectSettingsOverlay({
         </button>
         <button
           className="button subtle small danger"
-          disabled={!!editor.busy}
+          disabled={!!editor.busy || layerLocked}
           aria-label={`Remove ${id === 'captions' ? (asset.kind === 'image' ? 'Text' : 'Caption') : effect.name}`}
           onClick={() => {
             editor.update(

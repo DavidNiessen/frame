@@ -1,7 +1,8 @@
+import { imageLayerRows } from '../core/image-layers';
 import { CaptionPreview } from './CaptionPreview';
 import { OverlayPreview } from './OverlayPreview';
 import { PaintingCanvas } from './PaintingCanvas';
-import { changeInstance, extraInstances, instanceRecipe } from '../core/effect-instances';
+import { changeInstance } from '../core/effect-instances';
 import { frameDimensions } from '../core/geometry';
 import type { EffectId } from '../core/effect-library';
 import type { Editor } from '../hooks/useEditor';
@@ -17,80 +18,73 @@ export function ImageFrameLayers({
 }) {
   const edit = editor.edit!,
     asset = editor.asset!,
-    painting = selectedEffect?.id === 'painting',
     dims = frameDimensions(asset, edit);
-  const layers = [
-    ...(edit.painting?.image || (painting && !selectedEffect.instanceId)
-      ? [{ id: undefined, effect: 'painting' as const, recipe: edit }]
-      : []),
-    ...(edit.overlays.text || edit.overlays.image
-      ? [{ id: undefined, effect: 'watermark' as const, recipe: edit }]
-      : []),
-    ...extraInstances(edit)
-      .filter((item) => ['painting', 'watermark'].includes(item.effect))
-      .map((item) => ({ id: item.id, effect: item.effect, recipe: instanceRecipe(edit, item) })),
-  ];
+  const rows = imageLayerRows(asset, edit).filter(
+    (row) => !row.hidden && ['painting', 'watermark', 'captions'].includes(row.effect.id),
+  );
+  const painting =
+    selectedEffect?.id === 'painting' &&
+    rows.some((row) => row.id === selectedEffect.instanceId && !row.locked);
   return (
     <div className="image-frame-layers" data-painting={painting || undefined}>
-      {layers.map((layer, index) => (
-        <div
-          className="image-frame-layer"
-          style={{ zIndex: index + 1 }}
-          key={layer.id ?? layer.effect}
-        >
-          {layer.effect === 'painting' ? (
-            painting && selectedEffect.instanceId === layer.id ? (
-              <PaintingCanvas
-                showExisting
-                edit={layer.recipe}
-                update={(patch) =>
-                  editor.update(layer.id ? changeInstance(edit, layer.id, null, patch) : patch)
-                }
-                width={dims.width}
-                height={dims.height}
-                disabled={!!editor.busy}
-                onError={editor.setNotice}
+      {rows.map((layer, index) => {
+        const active =
+          selectedEffect?.id === layer.effect.id &&
+          selectedEffect.instanceId === layer.id &&
+          !layer.locked;
+        const disabled =
+          !!editor.busy || layer.locked || (painting && layer.effect.id !== 'painting');
+        return (
+          <div
+            className="image-frame-layer"
+            data-live={active || undefined}
+            style={{ zIndex: index + 1 }}
+            key={layer.key}
+          >
+            {layer.effect.id === 'painting' ? (
+              active ? (
+                <PaintingCanvas
+                  showExisting
+                  edit={layer.recipe}
+                  update={(patch) =>
+                    editor.update(layer.id ? changeInstance(edit, layer.id, null, patch) : patch)
+                  }
+                  width={dims.width}
+                  height={dims.height}
+                  disabled={disabled}
+                  onError={editor.setNotice}
+                />
+              ) : null
+            ) : layer.effect.id === 'watermark' ? (
+              <OverlayPreview
+                onlyInstance={layer.id ?? null}
+                outputPosition={0}
+                current={0}
+                asset={asset}
+                edit={edit}
+                disabled={disabled}
+                pause={() => {}}
+                update={editor.update}
+                openEffect={openEffect}
+                selectedEffect={selectedEffect}
               />
             ) : (
-              layer.recipe.painting?.image && (
-                <img
-                  className="image-paint-layer"
-                  src={layer.recipe.painting.image}
-                  alt=""
-                  aria-hidden="true"
-                  draggable={false}
-                />
-              )
-            )
-          ) : (
-            <OverlayPreview
-              onlyInstance={layer.id ?? null}
-              outputPosition={0}
-              current={0}
-              asset={asset}
-              edit={edit}
-              disabled={!!editor.busy || painting}
-              pause={() => {}}
-              update={editor.update}
-              openEffect={openEffect}
-              selectedEffect={selectedEffect}
-            />
-          )}
-        </div>
-      ))}
-      <div className="image-frame-layer" style={{ zIndex: layers.length + 1 }}>
-        <CaptionPreview
-          outputPosition={0}
-          current={0}
-          asset={asset}
-          edit={edit}
-          disabled={!!editor.busy || painting}
-          pause={() => {}}
-          update={editor.update}
-          openEffect={openEffect}
-          selectedEffect={selectedEffect}
-        />
-      </div>
+              <CaptionPreview
+                onlyInstance={layer.id ?? null}
+                outputPosition={0}
+                current={0}
+                asset={asset}
+                edit={edit}
+                disabled={disabled}
+                pause={() => {}}
+                update={editor.update}
+                openEffect={openEffect}
+                selectedEffect={selectedEffect}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

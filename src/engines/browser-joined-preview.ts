@@ -1,3 +1,4 @@
+import { browserImageEncoding, renderedImagePath } from './browser-image-encoding';
 import { browserRuntime } from './browser-runtime';
 import { joinedPreviewArgs } from '../core/joined-preview';
 import { effectPreviewArgs, effectPreviewRecipe } from '../core/effect-preview';
@@ -66,9 +67,15 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
       try {
         await ff.writeFile(input, new Uint8Array(await file.arrayBuffer()));
         if (edit) await writeBrowserLayers(ff, layers, files, sources);
-        const plan = edit
-          ? effectPreviewArgs(asset, edit, input, output, resources!.paths[0], layers)
-          : joinedPreviewArgs(asset, ranges, input, output);
+        const image =
+          edit && asset.kind === 'image'
+            ? await browserImageEncoding(ff, asset, edit, input, resources!.paths[0], progress)
+            : undefined;
+        const plan = image
+          ? effectPreviewArgs(image.asset, image.settings, image.input, output, resources!.paths[0])
+          : edit
+            ? effectPreviewArgs(asset, edit, input, output, resources!.paths[0], layers)
+            : joinedPreviewArgs(asset, ranges, input, output);
         if ((await ff.exec(plan)) !== 0)
           throw new Error(
             `Could not prepare ${edit ? 'effects' : 'continuous'} preview. ${errors.slice(-4).join(' ')}`,
@@ -98,6 +105,7 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
         ff.off('progress', update);
         ff.off('log', log);
         await resources?.cleanup();
+        await ff.deleteFile(renderedImagePath).catch(() => {});
       }
     })();
     active = task;
