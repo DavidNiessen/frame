@@ -40,13 +40,19 @@ test('checks releases, cancels and verifies downloads, and shows verified downlo
         const state = globalThis as typeof globalThis & {
           updateRequests: string[];
           openedUpdate: string;
+          holdRelease?: boolean;
+          resolveRelease?: () => void;
         };
         state.updateRequests = [];
         state.openedUpdate = '';
         net.fetch = async (url, options) => {
           const path = String(url);
           state.updateRequests.push(path);
-          if (path.includes('/releases/latest'))
+          if (path.includes('/releases/latest')) {
+            if (state.holdRelease)
+              await new Promise<void>((resolve) => {
+                state.resolveRelease = resolve;
+              });
             return new Response(
               JSON.stringify({
                 tag_name: fixture.tag,
@@ -59,6 +65,7 @@ test('checks releases, cancels and verifies downloads, and shows verified downlo
                 })),
               }),
             );
+          }
           if (path.includes('/releases?')) {
             const tag = `${fixture.tag}-build.42`;
             return new Response(
@@ -129,10 +136,21 @@ test('checks releases, cancels and verifies downloads, and shows verified downlo
       ),
     ).toBe(1);
     for (let repeat = 0; repeat < 2; repeat++) {
+      await application.evaluate(() => {
+        (globalThis as typeof globalThis & { holdRelease: boolean }).holdRelease = true;
+      });
       await updates.getByRole('button', { name: 'Check for updates', exact: true }).click();
       const checking = updates.getByRole('button', { name: 'Checking…', exact: true });
       await expect(checking).toBeDisabled();
       await expect(checking.locator('svg')).toHaveCSS('animation-name', 'spin');
+      await application.evaluate(() => {
+        const state = globalThis as typeof globalThis & {
+          holdRelease: boolean;
+          resolveRelease?: () => void;
+        };
+        state.holdRelease = false;
+        state.resolveRelease?.();
+      });
       await expect(
         updates.getByRole('button', { name: 'Check for updates', exact: true }),
       ).toBeEnabled();
