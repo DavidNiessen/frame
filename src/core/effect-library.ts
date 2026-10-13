@@ -1,3 +1,4 @@
+import { defaultShape } from './shapes';
 import { hasCurves } from './curves';
 import { visualControls, visualIds, isVisualEffect, parseVisual } from './visual-settings';
 import { extraInstances } from './effect-instances';
@@ -24,6 +25,15 @@ export const legacyMixEffect: EffectDefinition = {
   keys: ['audioLayers'],
 };
 export const effectLibrary: EffectDefinition[] = [
+  {
+    id: 'shape',
+    name: 'Shape',
+    description: 'Add a rectangle, ellipse, line or arrow',
+    group: 'Video',
+    scope: 'clip',
+    repeatable: true,
+    keys: ['shape'],
+  },
   {
     id: 'curves',
     name: 'Curves',
@@ -203,6 +213,7 @@ export function availableEffects(asset: MediaAsset) {
     );
 }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
+  if (effect.id === 'shape') return !!edit.shape;
   if (effect.id === 'curves') return !!hasCurves(edit.curves);
   if (effect.id === 'painting') return !!edit.painting?.image;
   if (isVisualEffect(effect.id))
@@ -288,6 +299,7 @@ export function resetEffect(effect: EffectDefinition, asset: MediaAsset): Partia
   return Object.fromEntries(effect.keys.map((key) => [key, defaults[key]]));
 }
 export function enableEffect(effect: EffectDefinition, edit: EditSettings): Partial<EditSettings> {
+  if (effect.id === 'shape') return { shape: defaultShape() };
   if (isVisualEffect(effect.id))
     return {
       visual: { ...parseVisual(undefined), [effect.id]: visualControls[effect.id].initial },

@@ -1,3 +1,4 @@
+import { CanvasGuides } from './CanvasGuides';
 import { ImageMaskOverlay } from './ImageMaskOverlay';
 import { imageLayerKey, imageLayerRows } from '../core/image-layers';
 import { effectAction } from '../core/effect-actions';
@@ -54,7 +55,7 @@ export function ImagePreview({
     activeLayer &&
     !activeLayer.hidden &&
     !activeLayer.locked &&
-    ['captions', 'painting', 'watermark'].includes(activeLayer.effect.id);
+    ['captions', 'painting', 'watermark', 'shape'].includes(activeLayer.effect.id);
   // Cache an exact composite and an object-free base for responsive gestures.
   const interactionEdit = liveObject
     ? activeLayer.id
@@ -154,6 +155,7 @@ export function ImagePreview({
       >
         <div
           className="image-canvas-frame"
+          data-canvas-guides
           aria-busy={render.preparing}
           style={{
             width: displayWidth,
@@ -161,50 +163,52 @@ export function ImagePreview({
             transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
           }}
         >
-          <img
-            src={before ? render.original : interacting && render.base ? render.base : render.url}
-            alt={before ? 'Original image' : asset.name}
-            draggable={false}
-            onError={() => {
-              if (before) {
-                setBefore(false);
-              }
-            }}
-          />
-          {!cropping && !before && (
-            <ImageFrameLayers
-              editor={editor}
-              selectedEffect={selectedEffect}
-              openEffect={openEffect}
-              interactionKey={interacting ? interaction.key : ''}
-              startInteraction={(key) => setInteraction({ key, phase: 'active' })}
-              finishInteraction={(key) =>
-                setInteraction((current) =>
-                  current.key === key ? { ...current, phase: 'settling' } : current,
-                )
-              }
+          <CanvasGuides>
+            <img
+              src={before ? render.original : interacting && render.base ? render.base : render.url}
+              alt={before ? 'Original image' : asset.name}
+              draggable={false}
+              onError={() => {
+                if (before) {
+                  setBefore(false);
+                }
+              }}
             />
-          )}
-          {!cropping && !before && (
-            <ImageMaskOverlay
-              key={
-                selectedEffect
-                  ? imageLayerKey(selectedEffect.id, selectedEffect.instanceId)
-                  : 'none'
-              }
-              editor={editor}
-              selectedEffect={selectedEffect}
-            />
-          )}
-          {cropping && !before && (
-            <CropOverlay
-              crop={selected.crop ?? { x: 0, y: 0, width: dims.width, height: dims.height }}
-              width={dims.width}
-              height={dims.height}
-              disabled={!!editor.busy}
-              onChange={(crop) => change({ crop })}
-            />
-          )}
+            {!cropping && !before && (
+              <ImageFrameLayers
+                editor={editor}
+                selectedEffect={selectedEffect}
+                openEffect={openEffect}
+                interactionKey={interacting ? interaction.key : ''}
+                startInteraction={(key) => setInteraction({ key, phase: 'active' })}
+                finishInteraction={(key) =>
+                  setInteraction((current) =>
+                    current.key === key ? { ...current, phase: 'settling' } : current,
+                  )
+                }
+              />
+            )}
+            {!cropping && !before && (
+              <ImageMaskOverlay
+                key={
+                  selectedEffect
+                    ? imageLayerKey(selectedEffect.id, selectedEffect.instanceId)
+                    : 'none'
+                }
+                editor={editor}
+                selectedEffect={selectedEffect}
+              />
+            )}
+            {cropping && !before && (
+              <CropOverlay
+                crop={selected.crop ?? { x: 0, y: 0, width: dims.width, height: dims.height }}
+                width={dims.width}
+                height={dims.height}
+                disabled={!!editor.busy}
+                onChange={(crop) => change({ crop })}
+              />
+            )}
+          </CanvasGuides>
         </div>
         {before && <span className="image-original-badge">Original</span>}
       </div>

@@ -1,3 +1,4 @@
+import { ShapePreview } from './ShapePreview';
 import { FrameInteractionContext } from './frame-interaction';
 import { cssBlendMode } from '../core/image-compositing';
 import { imageLayerRows } from '../core/image-layers';
@@ -28,7 +29,7 @@ export function ImageFrameLayers({
     asset = editor.asset!,
     dims = frameDimensions(asset, edit);
   const rows = imageLayerRows(asset, edit).filter(
-    (row) => !row.hidden && ['painting', 'watermark', 'captions'].includes(row.effect.id),
+    (row) => !row.hidden && ['painting', 'watermark', 'captions', 'shape'].includes(row.effect.id),
   );
   const painting =
     selectedEffect?.id === 'painting' &&
@@ -76,6 +77,17 @@ export function ImageFrameLayers({
                     onError={editor.setNotice}
                   />
                 ) : null
+              ) : layer.effect.id === 'shape' ? (
+                <ShapePreview
+                  onlyInstance={layer.id ?? null}
+                  edit={edit}
+                  asset={asset}
+                  disabled={disabled}
+                  update={editor.update}
+                  pause={() => {}}
+                  openEffect={openEffect}
+                  selectedEffect={selectedEffect}
+                />
               ) : layer.effect.id === 'watermark' ? (
                 <OverlayPreview
                   onlyInstance={layer.id ?? null}

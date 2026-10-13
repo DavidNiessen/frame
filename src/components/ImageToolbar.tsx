@@ -1,3 +1,4 @@
+import { CanvasGuidesMenu } from './CanvasGuidesMenu';
 import {
   Expand,
   Eye,
@@ -103,6 +104,7 @@ export function ImageToolbar({
         </button>
       </div>
       <div className="image-toolbar-group">
+        <CanvasGuidesMenu />
         <button
           className="button subtle small"
           aria-pressed={before}

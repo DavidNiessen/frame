@@ -80,6 +80,7 @@ export function clipFilterGraph(
     curves: defaultCurves(),
     visual: defaultVisual(),
     painting: defaultPainting(),
+    shape: null,
     volume: 1,
     normalizeLoudness: false,
     reduceNoise: false,

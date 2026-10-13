@@ -1,3 +1,5 @@
+import { CanvasGuidesContext } from './CanvasGuides';
+import { snapFrameMovement } from '../core/canvas-guides';
 import { FrameInteractionContext } from './frame-interaction';
 import {
   useEffect,
@@ -51,7 +53,10 @@ export function FrameObject<T>({
   resize,
   saveText,
 }: Props<T>) {
-  const interaction = useContext(FrameInteractionContext);
+  const interaction = useContext(FrameInteractionContext),
+    guides = useContext(CanvasGuidesContext);
+  const latestGuides = useRef(guides);
+  latestGuides.current = guides;
   const latestInteraction = useRef(interaction);
   latestInteraction.current = interaction;
   const ref = useRef<HTMLDivElement>(null),
@@ -65,6 +70,8 @@ export function FrameObject<T>({
     bounds: FrameBounds;
     corner?: Corner;
     moved: boolean;
+    snapFrame?: Box;
+    snapTargets: Box[];
   } | null>(null);
   const [draft, setDraft] = useState<T | null>(null),
     [editing, setEditing] = useState<number | null>(null);
@@ -74,6 +81,7 @@ export function FrameObject<T>({
     if (gesture.current) {
       suppressClick.current = true;
       latestInteraction.current?.finish();
+      latestGuides.current?.clear();
     }
     gesture.current = null;
     setDraft(null);
@@ -106,7 +114,20 @@ export function FrameObject<T>({
     }
     event.preventDefault();
     event.currentTarget.focus({ preventScroll: true });
+    const canvas = ref.current?.closest('[data-canvas-guides]');
+    const rectBox = (rect: DOMRect): Box => ({
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    });
     gesture.current = {
+      snapFrame: canvas ? rectBox(canvas.getBoundingClientRect()) : undefined,
+      snapTargets: canvas
+        ? [...canvas.querySelectorAll('[data-frame-object]')]
+            .filter((node) => node !== ref.current)
+            .map((node) => rectBox(node.getBoundingClientRect()))
+        : [],
       pointer: event.pointerId,
       x: event.clientX,
       y: event.clientY,
@@ -121,10 +142,22 @@ export function FrameObject<T>({
   function drag(event: PointerEvent<HTMLButtonElement>) {
     const g = gesture.current;
     if (!g || g.pointer !== event.pointerId || disabled) return;
-    const dx = event.clientX - g.x,
+    let dx = event.clientX - g.x,
       dy = event.clientY - g.y;
     g.moved ||= Math.hypot(dx, dy) > 3;
     if (!g.moved) return;
+    if (!g.corner && guides?.enabled && !event.altKey) {
+      const snapped = snapFrameMovement(
+        g.bounds.object,
+        g.snapFrame ?? g.bounds.frame,
+        dx,
+        dy,
+        g.snapTargets,
+      );
+      dx = snapped.dx;
+      dy = snapped.dy;
+      guides.show({ x: snapped.x, y: snapped.y });
+    } else guides?.clear();
     g.next = g.corner
       ? resize(
           g.base,
@@ -144,6 +177,7 @@ export function FrameObject<T>({
     if (g.moved && !disabled) commit(g.next);
     setDraft(null);
     interaction?.finish();
+    guides?.clear();
   }
   const events = {
     onPointerMove: drag,

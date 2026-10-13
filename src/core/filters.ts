@@ -1,3 +1,4 @@
+import { shapeFilters } from './shapes';
 import { compositeImageLayer } from './image-compositing';
 import { curvesFilter } from './curves';
 import { imageLayerStages } from './image-layer-stages';
@@ -80,6 +81,13 @@ function rawVideoFilters(
     filters.push(
       `subtitles=filename=${filterPath(burnedCaptionPath(timing, resources))}:fontsdir=${filterPath(resources.fonts)}`,
     );
+  filters.push(
+    ...shapeFilters(
+      { ...asset, ...frameDimensions(asset, edit) },
+      edit.shape,
+      resources.image + 'primaryshape',
+    ).map((filter) => timedFilter(filter, timing, edit.effectRanges?.shape)),
+  );
   if (edit.painting?.image)
     filters.push(
       ...overlayFilters(
@@ -103,6 +111,16 @@ function rawVideoFilters(
   for (const instance of extraInstances(edit)) {
     const recipe = instanceRecipe(edit, instance),
       paths = instancePaths(resources, instance);
+    if (instance.effect === 'shape')
+      filters.push(
+        ...shapeFilters(
+          { ...asset, ...frameDimensions(asset, edit) },
+          recipe.shape,
+          paths.image + 'shape',
+        ).map((filter) =>
+          timedFilter(filter, timing, instance.range, instance.timeSpace === 'output'),
+        ),
+      );
     if (instance.effect === 'painting' && recipe.painting?.image) {
       const dims = frameDimensions(asset, edit);
       const paint: EditSettings = {

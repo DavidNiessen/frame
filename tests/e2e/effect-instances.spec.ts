@@ -108,6 +108,7 @@ test('reuses corrections and creates independent captions and watermarks from th
     const repeatable = [
       'Add Painting',
       'Add Curves',
+      'Add Shape',
       'Add Exposure',
       'Add Gamma',
       'Add Shadows',

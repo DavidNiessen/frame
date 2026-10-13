@@ -103,6 +103,7 @@ export function recipePatch(
       'color',
       'visual',
       'curves',
+      'shape',
       'painting',
       'geometry',
       'crop',

@@ -3,6 +3,7 @@ export const effectIds = [
   ...visualIds,
   'painting',
   'curves',
+  'shape',
   'mix',
   'volume',
   'speed',

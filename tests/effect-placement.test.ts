@@ -10,6 +10,7 @@ it('describes every effect by its current placement rather than legacy project s
       [
         'painting',
         'curves',
+        'shape',
         'exposure',
         'gamma',
         'shadows',

@@ -104,8 +104,8 @@ export function imageLayerRows(asset: MediaAsset, edit: EditSettings) {
       ? 1200 +
           (row.id
             ? 100 + rows.indexOf(row)
-            : ['painting', 'watermark', 'captions'].includes(row.effect.id)
-              ? 80 + ['painting', 'watermark', 'captions'].indexOf(row.effect.id)
+            : ['painting', 'watermark', 'captions', 'shape'].includes(row.effect.id)
+              ? 80 + ['painting', 'watermark', 'captions', 'shape'].indexOf(row.effect.id)
               : rows.indexOf(row))
       : index;
   };

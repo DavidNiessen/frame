@@ -7,6 +7,7 @@ A cross-platform media editor and converter for images, video and audio. Edit a 
 ## Features
 
 - **Images:** a dedicated canvas with zoom, pan, before/after comparison, crop handles, rotation, text and editable brush layers. Export PNG, JPEG, WebP, BMP or TIFF; convert entire image folders.
+- **Shapes & guides:** editable rectangles, rounded rectangles, ellipses, lines and arrows for images and videos; on-canvas handles, rotation, color and stroke controls. Center, thirds and safe-area guides, with snapping for shapes, text and artwork.
 - **Image layers:** reorder, rename, hide, lock and group adjustments and frame objects. Nine blend modes, layer opacity, and editable rectangle, ellipse or brush masks with feathering and inversion.
 - **Color curves:** RGB and separate red/green/blue tone curves, a frame histogram, draggable points, numerical controls and tonal presets. Also available as timed video effects.
 - **Batch image sizes:** resize by longest edge, dimensions or percentage; preserve proportions, crop to fill or stretch. Avoid enlargement and save custom size presets.

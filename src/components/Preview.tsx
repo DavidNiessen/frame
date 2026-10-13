@@ -1,3 +1,6 @@
+import { CanvasGuides } from './CanvasGuides';
+import { CanvasGuidesMenu } from './CanvasGuidesMenu';
+import { ShapePreview } from './ShapePreview';
 import { PaintLayersPreview } from './PaintLayersPreview';
 import { PaintingCanvas } from './PaintingCanvas';
 import { instanceRecipe } from '../core/effect-instances';
@@ -333,6 +336,7 @@ export function Preview({
         {asset.kind === 'video' ? (
           <div
             className="media-frame"
+            data-canvas-guides
             style={
               {
                 aspectRatio: `${dimensions.width} / ${dimensions.height}`,
@@ -340,129 +344,143 @@ export function Preview({
               } as CSSProperties
             }
           >
-            {gif ? (
-              <img
-                style={{
-                  ...geometry,
-                  filter: previewProcessed ? 'none' : colorPreview(visual, current, position),
-                }}
-                src={sourceUrl}
-                alt="Animated source preview"
-              />
-            ) : (
-              <video
-                data-frame-source={asset.id}
-                style={{
-                  ...geometry,
-                  filter: previewProcessed ? 'none' : colorPreview(visual, current, position),
-                }}
-                data-preview-effects={previewProcessed ? 'rendered' : undefined}
-                data-preview-preparing={preparing || undefined}
-                data-preview-stale={previewStale || undefined}
-                ref={(node) => {
-                  mediaRef.current = node;
-                  if (node) {
-                    configurePreviewClock(node, previewRanges);
-                    if (loadedSource.current !== sourceUrl) node.dataset.previewSwitching = 'true';
-                  }
-                }}
-                src={sourceUrl}
-                {...mediaEvents}
-                playsInline
-                preload="metadata"
-              />
-            )}
-            <div
-              className="paint-preview-area"
-              style={
-                visual.crop && !stackedVisual
-                  ? {
-                      left: `${(visual.crop.x / asset.width!) * 100}%`,
-                      top: `${(visual.crop.y / asset.height!) * 100}%`,
-                      width: `${(visual.crop.width / asset.width!) * 100}%`,
-                      height: `${(visual.crop.height / asset.height!) * 100}%`,
+            <CanvasGuides>
+              {gif ? (
+                <img
+                  style={{
+                    ...geometry,
+                    filter: previewProcessed ? 'none' : colorPreview(visual, current, position),
+                  }}
+                  src={sourceUrl}
+                  alt="Animated source preview"
+                />
+              ) : (
+                <video
+                  data-frame-source={asset.id}
+                  style={{
+                    ...geometry,
+                    filter: previewProcessed ? 'none' : colorPreview(visual, current, position),
+                  }}
+                  data-preview-effects={previewProcessed ? 'rendered' : undefined}
+                  data-preview-preparing={preparing || undefined}
+                  data-preview-stale={previewStale || undefined}
+                  ref={(node) => {
+                    mediaRef.current = node;
+                    if (node) {
+                      configurePreviewClock(node, previewRanges);
+                      if (loadedSource.current !== sourceUrl)
+                        node.dataset.previewSwitching = 'true';
                     }
-                  : undefined
-              }
-            >
-              {selectedEffect?.id === 'painting' &&
-                (() => {
-                  const instance = edit.effectInstances?.find(
-                    (item) => item.id === selectedEffect.instanceId,
-                  );
-                  const recipe = instance ? instanceRecipe(edit, instance) : edit;
-                  return (
-                    <PaintingCanvas
-                      showExisting
-                      edit={recipe}
-                      update={(patch) =>
-                        update(instance ? changeInstance(edit, instance.id, null, patch) : patch)
+                  }}
+                  src={sourceUrl}
+                  {...mediaEvents}
+                  playsInline
+                  preload="metadata"
+                />
+              )}
+              <div
+                className="paint-preview-area"
+                style={
+                  visual.crop && !stackedVisual
+                    ? {
+                        left: `${(visual.crop.x / asset.width!) * 100}%`,
+                        top: `${(visual.crop.y / asset.height!) * 100}%`,
+                        width: `${(visual.crop.width / asset.width!) * 100}%`,
+                        height: `${(visual.crop.height / asset.height!) * 100}%`,
                       }
-                      width={frameDimensions(asset, recipe).width}
-                      height={frameDimensions(asset, recipe).height}
-                      disabled={disabled}
-                      onError={notify}
-                    />
-                  );
-                })()}
-              <PaintLayersPreview
-                edit={recipe}
-                current={current}
-                position={position}
-                selected={
-                  selectedEffect?.id === 'painting'
-                    ? (selectedEffect.instanceId ?? 'primary')
                     : undefined
                 }
-              />
-            </div>
-            <OverlayPreview
-              outputPosition={position}
-              current={current}
-              edit={edit}
-              asset={asset}
-              disabled={disabled}
-              update={update}
-              pause={() => mediaRef.current?.pause()}
-              openEffect={openEffect}
-              selectedEffect={selectedEffect}
-            />
-            {captionItems(edit).some((cue) => cue.mode !== 'none') && (
-              <CaptionPreview
-                outputPosition={position}
+              >
+                {selectedEffect?.id === 'painting' &&
+                  (() => {
+                    const instance = edit.effectInstances?.find(
+                      (item) => item.id === selectedEffect.instanceId,
+                    );
+                    const recipe = instance ? instanceRecipe(edit, instance) : edit;
+                    return (
+                      <PaintingCanvas
+                        showExisting
+                        edit={recipe}
+                        update={(patch) =>
+                          update(instance ? changeInstance(edit, instance.id, null, patch) : patch)
+                        }
+                        width={frameDimensions(asset, recipe).width}
+                        height={frameDimensions(asset, recipe).height}
+                        disabled={disabled}
+                        onError={notify}
+                      />
+                    );
+                  })()}
+                <PaintLayersPreview
+                  edit={recipe}
+                  current={current}
+                  position={position}
+                  selected={
+                    selectedEffect?.id === 'painting'
+                      ? (selectedEffect.instanceId ?? 'primary')
+                      : undefined
+                  }
+                />
+              </div>
+              <ShapePreview
+                edit={edit}
+                asset={asset}
+                current={current}
+                position={position}
+                disabled={disabled}
+                update={update}
+                pause={() => mediaRef.current?.pause()}
                 openEffect={openEffect}
                 selectedEffect={selectedEffect}
-                asset={asset}
-                edit={{ ...edit, crop: stackedVisual ? null : visual.crop }}
+              />
+              <OverlayPreview
+                outputPosition={position}
                 current={current}
+                edit={edit}
+                asset={asset}
                 disabled={disabled}
-                pause={() => mediaRef.current?.pause()}
                 update={update}
+                pause={() => mediaRef.current?.pause()}
+                openEffect={openEffect}
+                selectedEffect={selectedEffect}
               />
-            )}
-            {!stackedVisual && visual.crop && asset.width && asset.height && (
-              <CropOverlay
-                crop={visual.crop!}
-                width={asset.width}
-                height={asset.height}
-                disabled={disabled}
-                onChange={(crop) =>
-                  update(
-                    trackCrop
-                      ? changeInstance(edit, trackCrop.id, null, { crop })
-                      : clip
-                        ? {
-                            clips: edit.clips!.map((item) =>
-                              item.id === clip.id
-                                ? { ...item, effects: { ...item.effects, crop } }
-                                : item,
-                            ),
-                          }
-                        : { crop },
-                  )
-                }
-              />
-            )}
+              {captionItems(edit).some((cue) => cue.mode !== 'none') && (
+                <CaptionPreview
+                  outputPosition={position}
+                  openEffect={openEffect}
+                  selectedEffect={selectedEffect}
+                  asset={asset}
+                  edit={{ ...edit, crop: stackedVisual ? null : visual.crop }}
+                  current={current}
+                  disabled={disabled}
+                  pause={() => mediaRef.current?.pause()}
+                  update={update}
+                />
+              )}
+              {!stackedVisual && visual.crop && asset.width && asset.height && (
+                <CropOverlay
+                  crop={visual.crop!}
+                  width={asset.width}
+                  height={asset.height}
+                  disabled={disabled}
+                  onChange={(crop) =>
+                    update(
+                      trackCrop
+                        ? changeInstance(edit, trackCrop.id, null, { crop })
+                        : clip
+                          ? {
+                              clips: edit.clips!.map((item) =>
+                                item.id === clip.id
+                                  ? { ...item, effects: { ...item.effects, crop } }
+                                  : item,
+                              ),
+                            }
+                          : { crop },
+                    )
+                  }
+                />
+              )}
+            </CanvasGuides>
           </div>
         ) : (
           <div className="audio-preview" ref={audioBackdrop}>
@@ -642,6 +660,7 @@ export function Preview({
               }
             }}
           />
+          {asset.kind === 'video' && <CanvasGuidesMenu />}
           <MonitorVolume />
           <button
             data-preview-expand

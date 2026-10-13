@@ -1,4 +1,5 @@
 import { parsePainting } from './painting';
+import { parseShape } from './shapes';
 import { parseCurves } from './curves';
 import { parseImageResize } from './image-resize';
 import { parseImageLayers } from './image-layers';
@@ -73,6 +74,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragme
   validateAudioOutput(edit);
   parseAcceleration(edit.acceleration);
   validateSizeTarget(edit.targetSizeMb);
+  parseShape(edit.shape);
   parseCurves(edit.curves);
   parseImageResize(edit.imageResize);
   parseImageLayers(edit.imageLayers);

@@ -37,6 +37,7 @@ export function needsEffectPreview(edit: EditSettings) {
 }
 const liveVisual = new Set([
   'painting',
+  'shape',
   'crop',
   'transform',
   'captions',
@@ -50,6 +51,7 @@ export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): Edit
   const strip = (recipe: EditSettings): EditSettings => ({
     ...recipe,
     painting: defaultPainting(),
+    shape: null,
     crop: null,
     geometry: defaultGeometry(),
     subtitles: { mode: 'none', cues: [] },
@@ -91,6 +93,7 @@ export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): Edit
       effects: {
         ...clip.effects,
         painting: defaultPainting(),
+        shape: null,
         crop: null,
         geometry: defaultGeometry(),
         videoFadeIn: 0,

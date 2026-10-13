@@ -40,7 +40,7 @@ export function imageLayerStages(
         key: row.key,
         effect: row.effect.id,
         state: row.state,
-        object: ['painting', 'watermark', 'captions'].includes(row.effect.id),
+        object: ['painting', 'watermark', 'captions', 'shape'].includes(row.effect.id),
       };
     });
 }

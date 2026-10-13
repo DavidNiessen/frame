@@ -1,3 +1,4 @@
+import { parseShape } from './shapes';
 import { parseCurves } from './curves';
 import { parseImageResize } from './image-resize';
 import { parseImageLayers } from './image-layers';
@@ -79,6 +80,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
     imageLayers: parseImageLayers(e.imageLayers),
+    shape: parseShape(e.shape),
     curves: parseCurves(e.curves),
     imageResize: parseImageResize(e.imageResize),
     painting: parsePainting(e.painting),
@@ -191,6 +193,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
         clip.effects.addedEffects = parseAddedEffects(clip.effects.addedEffects);
       if (clip.effects.effectRanges !== undefined)
         clip.effects.effectRanges = parseEffectRanges(clip.effects.effectRanges);
+      if (clip.effects.shape) clip.effects.shape = parseShape(clip.effects.shape);
       if (clip.effects.curves) clip.effects.curves = parseCurves(clip.effects.curves);
       if (clip.effects.color) clip.effects.color = parseColor(clip.effects.color);
       if (clip.effects.geometry) clip.effects.geometry = parseGeometry(clip.effects.geometry);

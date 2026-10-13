@@ -25,6 +25,7 @@ export const clipEffectKeys = [
   'painting',
   'visual',
   'curves',
+  'shape',
   'color',
   'geometry',
   'crop',

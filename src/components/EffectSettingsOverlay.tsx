@@ -240,7 +240,7 @@ export function EffectSettingsOverlay({
             seek={seek}
           />
           {asset.kind === 'image' &&
-            !['crop', 'transform', 'captions', 'painting', 'watermark'].includes(id) && (
+            !['crop', 'transform', 'captions', 'painting', 'watermark', 'shape'].includes(id) && (
               <ImageMaskControls editor={editor} id={id} instanceId={instanceId} />
             )}
           {['normalize', 'noise', 'equalizer'].includes(id) && (

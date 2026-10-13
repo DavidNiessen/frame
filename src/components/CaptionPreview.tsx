@@ -111,7 +111,7 @@ export function CaptionPreview({
   pause: () => void;
   update: (patch: Partial<EditSettings>) => void;
 }) {
-  const crop = edit.crop;
+  const crop = asset.kind === 'image' ? null : edit.crop;
   const active = captionItems(edit)
     .filter((item) => {
       if (onlyInstance !== undefined && (item.instanceId ?? null) !== onlyInstance) return false;
