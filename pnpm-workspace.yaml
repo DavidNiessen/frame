@@ -16,3 +16,8 @@ allowBuilds:
   '@ffprobe-installer/linux-x64': true
   '@ffprobe-installer/win32-ia32': true
   '@ffprobe-installer/win32-x64': true
+  # CPU inference binaries are already in the npm package; skip its optional CUDA downloader.
+  onnxruntime-node: false
+  # Speech inference does not use Sharp, and protobuf ships its generated JavaScript.
+  sharp: false
+  protobufjs: false
