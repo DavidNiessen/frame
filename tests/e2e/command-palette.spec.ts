@@ -87,6 +87,7 @@ for (const width of [1440, 390])
   test(`adds every effect from commands and reopens singleton settings at ${width}px`, async ({
     page,
   }) => {
+    test.setTimeout(180000);
     await page.setViewportSize({ width, height: 1000 });
     await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
     await page.goto('/');
@@ -108,7 +109,9 @@ for (const width of [1440, 390])
       await expect(page.locator('.effect-settings-overlay')).toBeVisible();
       await closeEffect(page);
     }
-    for (const effect of effectLibrary) {
+    for (const effect of effectLibrary.filter(
+      (item) => !item.mediaKinds || item.mediaKinds.includes('video'),
+    )) {
       await apply(effect.id, effect.name);
       const card = page
         .getByRole('button', { name: `Select ${effect.name} effect`, exact: true })

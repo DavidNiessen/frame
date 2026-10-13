@@ -1,9 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { realpath } from 'node:fs/promises';
 const require = createRequire(import.meta.url),
   { configureNativeInferenceFiles } = require('../../scripts/native-inference-files.cjs');
-const { getFileMatchers } = require('app-builder-lib/out/fileMatcher.js');
+const builderRequire = createRequire(
+  await realpath(require.resolve('electron-builder/package.json')),
+);
+const { getFileMatchers } = builderRequire('app-builder-lib/out/fileMatcher.js');
 for (const platform of ['linux', 'darwin', 'win32'])
   for (const arch of ['x64', 'arm64'])
     test(`packages only matching inference binaries without including the checkout: ${platform}/${arch}`, () => {

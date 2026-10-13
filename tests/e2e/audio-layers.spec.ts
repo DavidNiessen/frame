@@ -43,7 +43,7 @@ test('mixes music with video, moves and trims tracks, and restores their sources
     await page.getByRole('button', { name: 'Remove Song.wav', exact: true }).click();
     await expect(page.locator('.asset-list li')).toHaveCount(2);
     await expect(
-      page.getByText('Remove this source’s audio layers before removing it from the library.', {
+      page.getByText('Remove this source’s timeline layers before removing it from the library.', {
         exact: true,
       }),
     ).toBeVisible();

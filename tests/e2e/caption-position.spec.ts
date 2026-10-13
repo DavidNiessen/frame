@@ -29,6 +29,10 @@ async function drag(page: Page, dx: number, dy: number) {
 test('moves captions with one undo per drag, keyboard nudges and saved project placement', async ({
   page,
 }) => {
+  // This test verifies exact free movement; snapping has separate canvas-guide coverage.
+  await page.addInitScript(() =>
+    localStorage.setItem('frame:canvas-guides', JSON.stringify({ grid: 'none', snapping: false })),
+  );
   await captions(page);
   const caption = page.getByRole('button', { name: 'Move caption 1', exact: true });
   const initial = (await caption.boundingBox())!,
