@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { verifyInstaller } from './update-download';
 import type { UpdateInstallPlan } from './update-install-types';
+import { applyPrivilegedMacUpdate } from './update-macos-privileges';
 
 const exec = promisify(execFile);
 function launchEnvironment() {
@@ -46,15 +47,19 @@ export async function verifyMacBundle(path: string, version: string, arch: strin
 /** Prepare a sibling on the same filesystem before quitting; never alter the running app. */
 export async function stageReplacement(plan: UpdateInstallPlan) {
   await verifyInstaller(plan.source, plan.checksum);
+  let stagingDirectory = dirname(plan.target);
   try {
-    await access(dirname(plan.target), constants.W_OK);
+    await access(stagingDirectory, constants.W_OK);
   } catch {
-    throw new Error(
-      'Frame’s installation folder is read-only. Move Frame to a writable application folder, then try again.',
-    );
+    if (plan.platform !== 'darwin')
+      throw new Error(
+        'Frame’s installation folder is read-only. Move Frame to a writable application folder, then try again.',
+      );
+    // Verify and stage privately before quitting. macOS can authorize replacement later.
+    stagingDirectory = plan.directory;
   }
   const staged = join(
-    dirname(plan.target),
+    stagingDirectory,
     `.Frame-update-${randomUUID()}${plan.platform === 'darwin' ? '.app' : '.AppImage'}`,
   );
   try {
@@ -124,6 +129,11 @@ export async function applyReplacement(
   await verifyInstaller(plan.source, plan.checksum);
   if (plan.platform === 'darwin') await verifyMacBundle(staged, plan.version, plan.arch);
   else await verifyInstaller(staged, plan.checksum);
+  if (plan.platform === 'darwin' && dirname(staged) !== dirname(plan.target)) {
+    await applyPrivilegedMacUpdate(plan);
+    await rm(staged, { recursive: true, force: true });
+    return;
+  }
   const backup = `${staged}.previous`;
   await rename(plan.target, backup);
   try {
