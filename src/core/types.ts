@@ -1,3 +1,4 @@
+import { defaultRetouch, type RetouchSettings } from './retouch';
 import {
   defaultImageMetadata,
   type ImageMetadataOutput,
@@ -106,6 +107,7 @@ export interface EditSettings {
   imageLayers?: ImageLayerStack;
   curves?: Curves;
   shape?: ShapeSettings | null;
+  retouch?: RetouchSettings;
   imageResize?: ImageResize;
   imageMetadata?: ImageMetadataOutput;
   imageOutput?: ImageOutput;
@@ -269,6 +271,7 @@ export const acceptMedia = supportedExtensions.map((ext) => `.${ext}`).join(',')
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return {
     shape: null,
+    retouch: defaultRetouch(),
     curves: defaultCurves(),
     imageResize: defaultImageResize(),
     imageMetadata: defaultImageMetadata(),

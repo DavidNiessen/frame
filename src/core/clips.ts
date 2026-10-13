@@ -23,6 +23,7 @@ export const clipEffectKeys = [
   'videoFadeIn',
   'videoFadeOut',
   'painting',
+  'retouch',
   'visual',
   'curves',
   'shape',

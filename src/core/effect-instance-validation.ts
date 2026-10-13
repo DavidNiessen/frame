@@ -38,6 +38,8 @@ export function parseEffectInstances(
       throw new Error('Invalid effect instance identifier.');
     ids.add(instance.id);
     const effect = definitionFor(instance.effect);
+    if (effect.mediaKinds && !effect.mediaKinds.includes(asset.kind))
+      throw new Error('This effect is not supported for this media type.');
     if (
       (clipOnly && effect.scope !== 'clip') ||
       !instance.settings ||

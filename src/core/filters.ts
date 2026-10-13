@@ -88,6 +88,25 @@ function rawVideoFilters(
       resources.image + 'primaryshape',
     ).map((filter) => timedFilter(filter, timing, edit.effectRanges?.shape)),
   );
+  if (asset.kind === 'image' && edit.retouch?.image)
+    filters.push(
+      ...overlayFilters(
+        asset,
+        {
+          ...edit,
+          overlays: {
+            ...defaultOverlays(),
+            image: edit.retouch.image,
+            imageWidth: 100,
+            x: 0,
+            y: 0,
+          },
+        },
+        { ...resources, image: `${resources.image}-retouch.png` },
+        timing,
+        frameDimensions(asset, edit).height,
+      ),
+    );
   if (edit.painting?.image)
     filters.push(
       ...overlayFilters(
@@ -119,6 +138,25 @@ function rawVideoFilters(
           paths.image + 'shape',
         ).map((filter) =>
           timedFilter(filter, timing, instance.range, instance.timeSpace === 'output'),
+        ),
+      );
+    if (asset.kind === 'image' && instance.effect === 'retouch' && recipe.retouch?.image)
+      filters.push(
+        ...overlayFilters(
+          asset,
+          {
+            ...recipe,
+            overlays: {
+              ...defaultOverlays(),
+              image: recipe.retouch.image,
+              imageWidth: 100,
+              x: 0,
+              y: 0,
+            },
+          },
+          { ...paths, image: `${paths.image}-retouch.png` },
+          timing,
+          frameDimensions(asset, edit).height,
         ),
       );
     if (instance.effect === 'painting' && recipe.painting?.image) {

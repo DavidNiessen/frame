@@ -78,6 +78,19 @@ export const embeddedCaptionPath = (edit: EditSettings, paths: RecipeResources) 
     : paths.captions;
 export function recipeImages(edit: EditSettings, paths: RecipeResources) {
   return [
+    ...(edit.retouch?.image
+      ? [{ path: `${paths.image}-retouch.png`, data: edit.retouch.image }]
+      : []),
+    ...extraInstances(edit, 'retouch').flatMap((instance) =>
+      instance.settings.retouch?.image
+        ? [
+            {
+              path: `${instancePaths(paths, instance).image}-retouch.png`,
+              data: instance.settings.retouch.image,
+            },
+          ]
+        : [],
+    ),
     ...Object.entries(edit.imageLayers?.entries ?? {}).flatMap(([key, state]) =>
       state.mask?.brush.image
         ? [{ path: imageMaskPath(paths, key), data: state.mask.brush.image }]

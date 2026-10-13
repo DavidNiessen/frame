@@ -2,7 +2,7 @@ import type { EffectId } from './effect-ids';
 export const imageEffectCategories = ['Adjust', 'Style', 'Frame', 'Layers'] as const;
 export function imageEffectCategory(id: EffectId): (typeof imageEffectCategories)[number] {
   if (['crop', 'transform'].includes(id)) return 'Frame';
-  if (['painting', 'captions', 'watermark', 'shape'].includes(id)) return 'Layers';
+  if (['painting', 'captions', 'watermark', 'shape', 'retouch'].includes(id)) return 'Layers';
   if (
     [
       'vignette',

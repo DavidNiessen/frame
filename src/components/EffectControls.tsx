@@ -1,3 +1,4 @@
+import { RetouchControls } from './RetouchControls';
 import { ShapeControls } from './ShapeControls';
 import { CurvesControls } from './CurvesControls';
 import { PaintingControls } from './PaintingControls';
@@ -21,8 +22,10 @@ export function EffectControls({
   current,
   seek,
   frameSize,
+  layerKey,
 }: {
   frameSize?: { width: number; height: number };
+  layerKey?: string;
   effect: EffectDefinition;
   editor: Editor;
   current: number;
@@ -33,6 +36,9 @@ export function EffectControls({
     asset = editor.asset!;
   return (
     <div className="effect-editor">
+      {effect.id === 'retouch' && (
+        <RetouchControls editor={scoped} layerKey={layerKey ?? 'primary:retouch'} />
+      )}
       {effect.id === 'shape' && <ShapeControls edit={edit} update={scoped.update} />}
       {effect.id === 'curves' && <CurvesControls edit={edit} update={scoped.update} />}
       {effect.id === 'painting' && <PaintingControls editor={scoped} dimensions={frameSize} />}

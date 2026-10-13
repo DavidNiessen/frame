@@ -1,3 +1,4 @@
+import { RetouchCanvas } from './RetouchCanvas';
 import { ShapePreview } from './ShapePreview';
 import { FrameInteractionContext } from './frame-interaction';
 import { cssBlendMode } from '../core/image-compositing';
@@ -15,10 +16,12 @@ export function ImageFrameLayers({
   selectedEffect,
   openEffect,
   interactionKey,
+  baseUrl,
   startInteraction,
   finishInteraction,
 }: {
   interactionKey: string;
+  baseUrl?: string;
   startInteraction: (key: string) => void;
   finishInteraction: (key: string) => void;
   editor: Editor;
@@ -29,11 +32,13 @@ export function ImageFrameLayers({
     asset = editor.asset!,
     dims = frameDimensions(asset, edit);
   const rows = imageLayerRows(asset, edit).filter(
-    (row) => !row.hidden && ['painting', 'watermark', 'captions', 'shape'].includes(row.effect.id),
+    (row) =>
+      !row.hidden &&
+      ['painting', 'watermark', 'captions', 'shape', 'retouch'].includes(row.effect.id),
   );
   const painting =
-    selectedEffect?.id === 'painting' &&
-    rows.some((row) => row.id === selectedEffect.instanceId && !row.locked);
+    ['painting', 'retouch'].includes(selectedEffect?.id ?? '') &&
+    rows.some((row) => row.id === selectedEffect?.instanceId && !row.locked);
   return (
     <div className="image-frame-layers" data-painting={painting || undefined}>
       {rows.map((layer, index) => {
@@ -42,7 +47,7 @@ export function ImageFrameLayers({
           selectedEffect.instanceId === layer.id &&
           !layer.locked;
         const disabled =
-          !!editor.busy || layer.locked || (painting && layer.effect.id !== 'painting');
+          !!editor.busy || layer.locked || (painting && layer.effect.id !== selectedEffect?.id);
         const live = active && interactionKey === layer.key;
         return (
           <FrameInteractionContext.Provider
@@ -63,7 +68,22 @@ export function ImageFrameLayers({
               }}
               key={layer.key}
             >
-              {layer.effect.id === 'painting' ? (
+              {layer.effect.id === 'retouch' ? (
+                active ? (
+                  <RetouchCanvas
+                    edit={layer.recipe}
+                    update={(patch) =>
+                      editor.update(layer.id ? changeInstance(edit, layer.id, null, patch) : patch)
+                    }
+                    url={baseUrl}
+                    width={dims.width}
+                    height={dims.height}
+                    layerKey={layer.key}
+                    disabled={disabled}
+                    onError={editor.setNotice}
+                  />
+                ) : null
+              ) : layer.effect.id === 'painting' ? (
                 active ? (
                   <PaintingCanvas
                     showExisting={live}

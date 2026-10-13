@@ -233,6 +233,7 @@ export function EffectSettingsOverlay({
             <ImageLayerCompositing editor={editor} id={id} instanceId={instanceId} />
           )}
           <EffectControls
+            layerKey={imageLayerKey(id, instanceId)}
             frameSize={frameDimensions(asset, editor.scopedEdit!)}
             effect={effect}
             editor={controlsEditor}
@@ -240,9 +241,15 @@ export function EffectSettingsOverlay({
             seek={seek}
           />
           {asset.kind === 'image' &&
-            !['crop', 'transform', 'captions', 'painting', 'watermark', 'shape'].includes(id) && (
-              <ImageMaskControls editor={editor} id={id} instanceId={instanceId} />
-            )}
+            ![
+              'crop',
+              'transform',
+              'captions',
+              'painting',
+              'watermark',
+              'shape',
+              'retouch',
+            ].includes(id) && <ImageMaskControls editor={editor} id={id} instanceId={instanceId} />}
           {['normalize', 'noise', 'equalizer'].includes(id) && (
             <AudioEffectsPreview
               editor={{

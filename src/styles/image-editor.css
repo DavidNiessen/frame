@@ -609,3 +609,39 @@
   align-items: center;
   gap: 6px;
 }
+
+.retouch-canvas-wrap,
+.retouch-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.retouch-canvas {
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+  opacity: 0;
+}
+.image-frame-layer[data-live] .retouch-canvas {
+  opacity: 1;
+}
+.retouch-source-point,
+.retouch-brush-cursor {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  border: 1px solid white;
+  box-shadow: 0 0 0 1px #111;
+  border-radius: 50%;
+}
+.retouch-source-point {
+  color: white;
+  background: #1118;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  font-size: 16px;
+}

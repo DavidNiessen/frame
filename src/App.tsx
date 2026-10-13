@@ -1,3 +1,4 @@
+import { RetouchSourceProvider } from './components/RetouchSource';
 import { ImagePreview } from './components/ImagePreview';
 import { ImageLayers } from './components/ImageLayers';
 import { AppFooter } from './components/LoadingBeam';
@@ -52,6 +53,13 @@ import { useDesktopChrome } from './hooks/useDesktopChrome';
 import { outputTimeAtSource } from './core/fades';
 import { useEditorShortcuts } from './hooks/useEditorShortcuts';
 export default function App() {
+  return (
+    <RetouchSourceProvider>
+      <FrameApp />
+    </RetouchSourceProvider>
+  );
+}
+function FrameApp() {
   useAppUpdateActivity();
   const editor = useEditor();
   const { theme, setTheme } = useTheme();

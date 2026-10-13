@@ -4,6 +4,7 @@ import { mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 test('edits a TIFF in the desktop canvas and exports an image with bundled tools', async () => {
+  test.setTimeout(120000);
   const directory = await mkdtemp(join(tmpdir(), 'frame-image-desktop-')),
     input = join(directory, 'photo.tiff'),
     output = join(directory, 'photo.png');
@@ -57,6 +58,22 @@ test('edits a TIFF in the desktop canvas and exports an image with bundled tools
     });
     await page.mouse.up();
     await expect(page.getByRole('button', { name: 'Undo stroke', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
+    await page.getByRole('button', { name: 'Add Retouch', exact: true }).click();
+    const retouch = page.getByLabel('Retouch image', { exact: true });
+    await expect(retouch).toHaveAttribute('aria-busy', 'false', { timeout: 30000 });
+    const area = (await retouch.boundingBox())!;
+    await page.keyboard.down('Alt');
+    await page.mouse.click(area.x + area.width * 0.25, area.y + area.height * 0.25);
+    await page.keyboard.up('Alt');
+    await expect(page.locator('.image-canvas-frame')).toHaveAttribute('aria-busy', 'false', {
+      timeout: 30000,
+    });
+    await expect(retouch).toHaveAttribute('aria-busy', 'false');
+    await page.mouse.click(area.x + area.width * 0.65, area.y + area.height * 0.65);
+    await expect(
+      page.getByRole('button', { name: 'Undo retouch stroke', exact: true }),
+    ).toBeEnabled();
     await page.getByRole('button', { name: 'Close effect settings', exact: true }).click();
     await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Export PNG', exact: true })).toBeEnabled({

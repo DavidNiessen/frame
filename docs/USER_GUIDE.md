@@ -107,3 +107,7 @@ Inputs support up to 32 megapixels and 16,384 pixels per side. Paint layers are 
 ### Image credits and privacy
 
 Open **Export → Advanced settings → Image credits & privacy** to edit creator, copyright, and description. Untouched fields follow **Keep metadata**; clearing a field removes it. Camera information can be retained independently. GPS location is excluded by default and must be explicitly enabled. Original thumbnails and camera maker notes are omitted. These controls also work in bulk conversion and saved output presets. JPEG, PNG, WebP, and TIFF support EXIF; BMP does not.
+
+### Clone and healing brushes
+
+Add a **Retouch** layer. Alt/Option-click the image to choose a source, then paint over the area to repair. **Clone** copies texture, while **Heal** also matches the surrounding color. Adjust size, hardness, and opacity; **Erase** removes only this retouch layer. Each stroke keeps its source offset. Use **Undo retouch stroke**, **Clear retouch layer**, or project undo/redo. Sampling uses layers below Retouch, so later effects are not baked twice. Retouch is image-only and renders in a background worker.

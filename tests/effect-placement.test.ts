@@ -9,6 +9,7 @@ it('describes every effect by its current placement rather than legacy project s
     ...Object.fromEntries(
       [
         'painting',
+        'retouch',
         'curves',
         'shape',
         'exposure',

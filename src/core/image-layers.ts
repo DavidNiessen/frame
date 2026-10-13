@@ -104,8 +104,9 @@ export function imageLayerRows(asset: MediaAsset, edit: EditSettings) {
       ? 1200 +
           (row.id
             ? 100 + rows.indexOf(row)
-            : ['painting', 'watermark', 'captions', 'shape'].includes(row.effect.id)
-              ? 80 + ['painting', 'watermark', 'captions', 'shape'].indexOf(row.effect.id)
+            : ['painting', 'watermark', 'captions', 'shape', 'retouch'].includes(row.effect.id)
+              ? 80 +
+                ['painting', 'watermark', 'captions', 'shape', 'retouch'].indexOf(row.effect.id)
               : rows.indexOf(row))
       : index;
   };
@@ -154,4 +155,19 @@ export function moveImageLayer(
     return {};
   [order[index], order[target]] = [order[target], order[index]];
   return { imageLayers: { ...(edit.imageLayers ?? emptyImageLayers()), order } };
+}
+
+/** Retouch samples the canvas below its layer, so adjustments above it are not baked twice. */
+export function imageEditBeforeLayer(
+  asset: MediaAsset,
+  edit: EditSettings,
+  key: string,
+): EditSettings {
+  const rows = imageLayerRows(asset, edit),
+    index = rows.findIndex((row) => row.key === key);
+  if (index < 0) return edit;
+  let next = edit;
+  for (const row of rows.slice(index))
+    if (!row.fixed) next = { ...next, ...changeImageLayer(next, row.key, { hidden: true }) };
+  return next;
 }

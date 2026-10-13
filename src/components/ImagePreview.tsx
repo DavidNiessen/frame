@@ -1,6 +1,6 @@
 import { CanvasGuides } from './CanvasGuides';
 import { ImageMaskOverlay } from './ImageMaskOverlay';
-import { imageLayerKey, imageLayerRows } from '../core/image-layers';
+import { imageEditBeforeLayer, imageLayerKey, imageLayerRows } from '../core/image-layers';
 import { effectAction } from '../core/effect-actions';
 import { ImageToolbar } from './ImageToolbar';
 import { ImageFrameLayers } from './ImageFrameLayers';
@@ -55,15 +55,17 @@ export function ImagePreview({
     activeLayer &&
     !activeLayer.hidden &&
     !activeLayer.locked &&
-    ['captions', 'painting', 'watermark', 'shape'].includes(activeLayer.effect.id);
+    ['captions', 'painting', 'watermark', 'shape', 'retouch'].includes(activeLayer.effect.id);
   // Cache an exact composite and an object-free base for responsive gestures.
   const interactionEdit = liveObject
-    ? activeLayer.id
-      ? {
-          ...base,
-          effectInstances: base.effectInstances?.filter((item) => item.id !== activeLayer.id),
-        }
-      : { ...base, ...effectAction(base, asset, activeLayer.effect, null, 'remove') }
+    ? activeLayer.effect.id === 'retouch'
+      ? imageEditBeforeLayer(asset, base, activeLayer.key)
+      : activeLayer.id
+        ? {
+            ...base,
+            effectInstances: base.effectInstances?.filter((item) => item.id !== activeLayer.id),
+          }
+        : { ...base, ...effectAction(base, asset, activeLayer.effect, null, 'remove') }
     : undefined;
   const renderEdit = base;
   const render = useImageRender(
@@ -116,7 +118,13 @@ export function ImagePreview({
     return () => element.removeEventListener('wheel', wheel);
   }, [minimumZoom, maximumZoom]);
   function start(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || selectedEffect?.id === 'painting' || cropping || zoom === 1) return;
+    if (
+      event.button !== 0 ||
+      ['painting', 'retouch'].includes(selectedEffect?.id ?? '') ||
+      cropping ||
+      zoom === 1
+    )
+      return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { x: event.clientX, y: event.clientY, pan };
   }
@@ -165,6 +173,7 @@ export function ImagePreview({
         >
           <CanvasGuides>
             <img
+              crossOrigin="anonymous"
               src={before ? render.original : interacting && render.base ? render.base : render.url}
               alt={before ? 'Original image' : asset.name}
               draggable={false}
@@ -179,6 +188,7 @@ export function ImagePreview({
                 editor={editor}
                 selectedEffect={selectedEffect}
                 openEffect={openEffect}
+                baseUrl={render.base}
                 interactionKey={interacting ? interaction.key : ''}
                 startInteraction={(key) => setInteraction({ key, phase: 'active' })}
                 finishInteraction={(key) =>

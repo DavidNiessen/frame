@@ -112,3 +112,5 @@ See [architecture](docs/ARCHITECTURE.md), [design](docs/DESIGN.md), and [contrib
 Frame's application code does not yet have a chosen open-source license. An explicit license is required before reuse or redistribution of that code is permitted. Bundled tools, fonts and dependencies retain their upstream licenses; see [distribution notices](docs/DISTRIBUTION.md) and [vendored tools](vendor/media-tools/README.md).
 
 Image exports also include credits and privacy controls: creator, copyright, description, optional camera information, and GPS location excluded by default. EXIF export is supported in JPEG, PNG, WebP, and TIFF; original files stay unchanged.
+
+Image retouch layers provide soft clone and healing brushes with editable strokes, an eraser, and per-layer undo. Choose a sample point with Alt/Option-click, then paint. Raster generation runs in a worker.

@@ -13,6 +13,7 @@ export interface EffectDefinition {
   group: 'Audio' | 'Video' | 'Timing';
   scope: 'clip' | 'source';
   repeatable?: boolean;
+  mediaKinds?: MediaAsset['kind'][];
   keys: (keyof EditSettings)[];
 }
 /** Read older projects without exposing audio insertion as an effect. */
@@ -25,6 +26,16 @@ export const legacyMixEffect: EffectDefinition = {
   keys: ['audioLayers'],
 };
 export const effectLibrary: EffectDefinition[] = [
+  {
+    id: 'retouch',
+    name: 'Retouch',
+    description: 'Clone texture or heal small imperfections with a soft brush',
+    group: 'Video',
+    scope: 'clip',
+    repeatable: true,
+    mediaKinds: ['image'],
+    keys: ['retouch'],
+  },
   {
     id: 'shape',
     name: 'Shape',
@@ -200,6 +211,7 @@ export function effectPlacement(effect: EffectDefinition): 'source' | 'layer' | 
 }
 export function availableEffects(asset: MediaAsset) {
   return effectLibrary
+    .filter((effect) => !effect.mediaKinds || effect.mediaKinds.includes(asset.kind))
     .filter(
       (effect) =>
         asset.kind !== 'image' || (effect.group === 'Video' && !effect.id.includes('Fade')),
@@ -213,6 +225,7 @@ export function availableEffects(asset: MediaAsset) {
     );
 }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
+  if (effect.id === 'retouch') return !!edit.retouch?.image;
   if (effect.id === 'shape') return !!edit.shape;
   if (effect.id === 'curves') return !!hasCurves(edit.curves);
   if (effect.id === 'painting') return !!edit.painting?.image;
