@@ -11,15 +11,16 @@ export async function runSpeechModel(
   samples: Float32Array,
   options: TranscriptionOptions,
   progress: (value: ExportProgress) => void,
-  config: { cacheDir?: string; wasmPath?: string },
+  config: { modelRoot: string; wasmPath?: string },
 ) {
-  env.allowLocalModels = false;
-  if (config.cacheDir) {
-    env.cacheDir = config.cacheDir;
-    env.useBrowserCache = false;
-  }
+  env.allowLocalModels = true;
+  env.allowRemoteModels = false;
+  env.localModelPath = config.modelRoot;
+  env.useFSCache = false;
+  env.useBrowserCache = !!config.wasmPath;
   if (config.wasmPath) {
-    env.useFSCache = false;
+    env.remoteHost = config.modelRoot;
+    env.remotePathTemplate = '{model}/';
     env.backends.onnx.wasm!.wasmPaths = config.wasmPath;
     env.backends.onnx.wasm!.numThreads = 1;
     env.backends.onnx.wasm!.proxy = false;
@@ -31,7 +32,8 @@ export async function runSpeechModel(
     device: config.wasmPath ? 'wasm' : 'cpu',
     session_options: { intraOpNumThreads: 2, interOpNumThreads: 1 },
     progress_callback: (value) => {
-      if (value.status === 'progress') progress({ ratio: 0, message: 'Downloading speech model…' });
+      if (value.status === 'progress')
+        progress({ ratio: 0, message: 'Loading bundled speech model…' });
     },
   });
   const chunks: SpeechChunk[] = [];

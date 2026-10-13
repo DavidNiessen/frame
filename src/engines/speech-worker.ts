@@ -5,7 +5,7 @@ self.onmessage = async (event) => {
       new Float32Array(event.data.samples),
       event.data.options,
       (progress) => self.postMessage({ progress }),
-      { wasmPath: event.data.wasmPath },
+      { modelRoot: event.data.modelRoot, wasmPath: event.data.wasmPath },
     );
     self.postMessage({ cues });
   } catch (error) {

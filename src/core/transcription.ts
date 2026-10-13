@@ -1,11 +1,12 @@
+import speechManifest from '../../vendor/speech-models/manifest.json';
 import { captionItems } from './caption-items';
 import { captionLimit, extraInstances } from './effect-instances';
 import { parseAnalysisOptions } from './analysis-data';
 import { parseSubtitles, type SubtitleCue } from './subtitles';
 import type { EditSettings } from './types';
 export const speechModel = {
-  id: 'onnx-community/whisper-tiny',
-  revision: 'ff4177021cc41f7db950912b73ea4fdf7d01d8e7',
+  id: speechManifest.model,
+  revision: speechManifest.revision,
   downloadMegabytes: 42,
 };
 export const speechLanguages = [

@@ -15,5 +15,5 @@ https://github.com/openai/whisper
 Model source: https://huggingface.co/openai/whisper-tiny
 Quantized ONNX conversion:
 https://huggingface.co/onnx-community/whisper-tiny/tree/ff4177021cc41f7db950912b73ea4fdf7d01d8e7
-Model files are downloaded on demand over HTTPS from this pinned revision.
+Model files are vendored in the repository with SHA-256 integrity checks and bundled in desktop packages. Web serves these verified files with the application. Runtime model downloads from Hugging Face are disabled.
 Media is processed locally; no audio is sent to the model provider.

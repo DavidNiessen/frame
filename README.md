@@ -20,7 +20,7 @@ A cross-platform media editor and converter for images, video and audio. Edit a 
 - **Edit:** trim, split, reorder and join clips; insert videos from the library; replace or layer audio; extract audio from video.
 - **Effects:** crop, rotate, resize, speed, fades, color adjustments, LUTs, volume, EQ, noise reduction and loudness normalization. Timed effects have draggable timeline bars and live previews.
 - **Playback:** independent monitoring volume, five-second skips that keep playback running, precise frame stepping and an audio-reactive background.
-- **Captions:** local Whisper speech recognition for videos and audio, with cached models and language detection; independent text effects with on-frame editing, positioning and resizing; fonts, colors and styling; SRT import/export and burned-in subtitles.
+- **Captions:** local Whisper speech recognition for videos and audio, with a bundled model and language detection; independent text effects with on-frame editing, positioning and resizing; fonts, colors and styling; SRT import/export and burned-in subtitles.
 - **Convert:** files or recursive folders, a dedicated batch queue, presets, custom filenames, metadata and artwork, plus advanced encoding options.
 - **URL imports:** direct files on desktop/web; public YouTube, Instagram Reels, TikTok, SoundCloud, Vimeo, Dailymotion and Bandcamp links on desktop, with video/audio and quality choices.
 - **Desktop downloads:** an animated Install App button opens a platform picker, with automatic detection and an optional latest prerelease.
@@ -45,7 +45,7 @@ Output formats: **PNG, JPEG, WebP, BMP, TIFF, MP4, MOV, MKV, WebM, GIF, MP3, WAV
 
 Browser GIF conversion uses separate palette and encoding passes to avoid buffering an entire decoded movie. The browser has memory guards: 500 MB per source, 800 MB per library and 500 MB of retained conversion results. ZIP preparation uses additional memory. Use desktop for large collections.
 
-Local transcription downloads about 42 MB of pinned Whisper Tiny model files on first use, then works offline with the cache. Audio is never uploaded. Review generated text and timing before export.
+Whisper Tiny model files are committed in `vendor/speech-models/` with integrity checks. Desktop includes the model and works offline immediately. Web serves about 42 MB of model files with Frame on first use and caches them for subsequent offline inference. Audio is never uploaded. Review generated text and timing before export.
 
 Media is processed on your device. URL imports connect to the source you choose. Desktop includes FFmpeg, FFprobe and yt-dlp; users do not need to install those tools separately. Web assets and fonts are served with the application, without third-party CDNs or API keys.
 

@@ -18,6 +18,7 @@ module.exports = tseslint.config(
       'public/image-decoders/**',
       'public/notices/**',
       'public/speech/**',
+      'public/models/**',
       '.local/**',
       'coverage/**',
       'test-results/**',

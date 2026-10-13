@@ -86,7 +86,8 @@
       "!node_modules/{sharp,@img}/**/*",
       "!node_modules/onnxruntime-web/**/*",
       "!dist/speech/**/*",
-      "!dist/assets/ort-wasm-*"
+      "!dist/assets/ort-wasm-*",
+      "!dist/models/**/*"
     ],
     "asarUnpack": [
       "node_modules/@ffprobe-installer/**",
@@ -152,6 +153,10 @@
       {
         "from": "public/image-decoders",
         "to": "image-decoders"
+      },
+      {
+        "from": "vendor/speech-models",
+        "to": "speech-models"
       }
     ],
     "beforePack": "scripts/verify-package.cjs",

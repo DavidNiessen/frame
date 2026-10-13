@@ -1,4 +1,4 @@
-import { speechSamples, type TranscriptionOptions } from '../core/transcription';
+import { speechModel, speechSamples, type TranscriptionOptions } from '../core/transcription';
 import type { ExportProgress } from '../core/types';
 import type { SubtitleCue } from '../core/subtitles';
 export function browserSpeech() {
@@ -38,7 +38,12 @@ export function browserSpeech() {
           }
         };
         worker.postMessage(
-          { samples: samples.buffer, options, wasmPath: new URL('speech/', document.baseURI).href },
+          {
+            samples: samples.buffer,
+            options,
+            modelRoot: new URL(`models/${speechModel.revision}/`, document.baseURI).href,
+            wasmPath: new URL('speech/', document.baseURI).href,
+          },
           [samples.buffer],
         );
       });

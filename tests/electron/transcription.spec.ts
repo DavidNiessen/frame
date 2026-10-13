@@ -1,17 +1,12 @@
 import { expect, test, _electron } from '@playwright/test';
-import { mkdtemp, rm, cp } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-const cache = process.env.FRAME_SPEECH_MODEL_CACHE,
-  audio = process.env.FRAME_SPEECH_TEST_AUDIO;
-test('native local speech recognition generates individual editable caption effects with cached models', async () => {
-  test.skip(
-    !cache || !audio,
-    'Set FRAME_SPEECH_MODEL_CACHE and FRAME_SPEECH_TEST_AUDIO for real model inference.',
-  );
+const audio = process.env.FRAME_SPEECH_TEST_AUDIO;
+test('native local speech recognition generates individual editable caption effects with bundled models', async () => {
+  test.skip(!audio, 'Set FRAME_SPEECH_TEST_AUDIO for real model inference.');
   test.setTimeout(180000);
   const directory = await mkdtemp(join(tmpdir(), 'frame-transcription-'));
-  await cp(cache!, join(directory, 'profile', 'speech-models'), { recursive: true });
   const executablePath = process.env.FRAME_TEST_EXECUTABLE;
   const app = await _electron.launch({
     executablePath,

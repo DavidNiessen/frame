@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Captions, X } from 'lucide-react';
 import {
-  speechModel,
   speechLanguages,
   addTranscription,
   type TranscriptionOptions,
@@ -77,9 +76,9 @@ export function TranscriptionDialog({ editor, close }: { editor: Editor; close: 
       </div>
       <p>Turn speech in the edited sequence into individual caption effects.</p>
       <p className="field-note">
-        Whisper Tiny runs on your device. The first run downloads about{' '}
-        {speechModel.downloadMegabytes} MB from Hugging Face and caches it for offline use. Your
-        audio is never uploaded. Review names, punctuation and timing before export.
+        Whisper Tiny runs on your device using Frame’s bundled model. Desktop works offline
+        immediately. Web loads about 42 MB from this app on first use and caches it. Your audio is
+        never uploaded. Review names, punctuation and timing before export.
       </p>
       <fieldset disabled={loading || !!editor.busy} className="transcription-options">
         <label className="stacked-label">

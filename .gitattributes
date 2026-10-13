@@ -2,3 +2,6 @@
 vendor/media-tools/** -text
 native/windows-shell/** -text
 src/core/media-extensions.json -text
+
+# Preserve speech weights and tokenizer JSON exactly on every platform.
+vendor/speech-models/** -text -filter

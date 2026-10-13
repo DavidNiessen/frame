@@ -1,8 +1,8 @@
-import { app, net, type IpcMainInvokeEvent } from 'electron';
+import { app, type IpcMainInvokeEvent } from 'electron';
 import { Worker } from 'node:worker_threads';
 import { join } from 'node:path';
 import { analysisDataArgs } from '../src/core/analysis-data';
-import { speechModel, parseTranscriptionOptions } from '../src/core/transcription';
+import { parseTranscriptionOptions } from '../src/core/transcription';
 import type { SubtitleCue } from '../src/core/subtitles';
 import { parseEdit } from '../src/core/project';
 import { resolveAudioLayers } from '../src/core/audio-layers';
@@ -52,7 +52,9 @@ export function registerTranscription(
               workerData: {
                 input,
                 options,
-                cacheDir: join(app.getPath('userData'), 'speech-models'),
+                modelRoot: app.isPackaged
+                  ? join(process.resourcesPath, 'speech-models')
+                  : join(__dirname, '../vendor/speech-models'),
               },
             }),
             signal = jobs.signal;
@@ -76,7 +78,7 @@ export function registerTranscription(
                 cleanup();
                 reject(new Error('The speech worker stopped unexpectedly.'));
               });
-              worker.on('message', async (value) => {
+              worker.on('message', (value) => {
                 if (value.progress) {
                   progress(value.progress);
                   return;
@@ -90,47 +92,6 @@ export function registerTranscription(
                   cleanup();
                   reject(new Error(value.error));
                   return;
-                }
-                if (value.request) {
-                  const request = value.request;
-                  try {
-                    const prefix = `https://huggingface.co/${speechModel.id}/resolve/${speechModel.revision}/`;
-                    if (typeof request.url !== 'string' || !request.url.startsWith(prefix))
-                      throw new Error('Unsupported speech model download.');
-                    const response = await net.fetch(request.url, { signal });
-                    const chunks: Uint8Array[] = [];
-                    let length = 0;
-                    const reader = response.body?.getReader();
-                    if (!reader) throw new Error('Empty model response.');
-                    while (true) {
-                      const { done, value: chunk } = await reader.read();
-                      if (done) break;
-                      length += chunk.length;
-                      if (length > 50 * 1024 * 1024) {
-                        await reader.cancel();
-                        throw new Error('Speech model file exceeds its download limit.');
-                      }
-                      chunks.push(chunk);
-                    }
-                    const bytes = new Uint8Array(length);
-                    let offset = 0;
-                    for (const chunk of chunks) {
-                      bytes.set(chunk, offset);
-                      offset += chunk.length;
-                    }
-                    worker.postMessage(
-                      {
-                        id: request.id,
-                        bytes: bytes.buffer,
-                        status: response.status,
-                        headers: Object.fromEntries(response.headers),
-                      },
-                      [bytes.buffer],
-                    );
-                  } catch (error) {
-                    if (!signal.aborted)
-                      worker.postMessage({ id: request.id, error: (error as Error).message });
-                  }
                 }
               });
             });

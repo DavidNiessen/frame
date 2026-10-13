@@ -1,46 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { speechModel } from '../../src/core/transcription';
-const cache = process.env.FRAME_SPEECH_MODEL_CACHE,
-  audio = process.env.FRAME_SPEECH_TEST_AUDIO;
+const audio = process.env.FRAME_SPEECH_TEST_AUDIO;
 test('browser speech inference uses a worker, caches its model and creates separate captions offline', async ({
   page,
 }, info) => {
-  test.skip(
-    !cache || !audio,
-    'Set FRAME_SPEECH_MODEL_CACHE and FRAME_SPEECH_TEST_AUDIO for real model inference.',
-  );
+  test.skip(!audio, 'Set FRAME_SPEECH_TEST_AUDIO for real model inference.');
   test.setTimeout(180000);
   let offline = false,
     requests = 0;
-  await page.route('https://huggingface.co/**', async (route) => {
+  await page.route('https://huggingface.co/**', (route) => route.abort());
+  await page.route('**/models/**', async (route) => {
     requests++;
-    if (offline) {
-      await route.abort();
-      return;
-    }
-    const prefix = `https://huggingface.co/${speechModel.id}/resolve/${speechModel.revision}/`,
-      url = route.request().url();
-    if (!url.startsWith(prefix)) {
-      await route.fulfill({ status: 404, body: 'Not found' });
-      return;
-    }
-    const file = url.slice(prefix.length).split('?')[0];
-    try {
-      const body = await readFile(join(cache!, speechModel.id, speechModel.revision, file));
-      await route.fulfill({
-        status: 200,
-        body,
-        headers: {
-          'access-control-allow-origin': '*',
-          'cross-origin-resource-policy': 'cross-origin',
-          'content-type': file.endsWith('.json') ? 'application/json' : 'application/octet-stream',
-        },
-      });
-    } catch {
-      await route.fulfill({ status: 404, body: 'Not found' });
-    }
+    if (offline) await route.abort();
+    else await route.continue();
   });
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
   await page.goto('/');
