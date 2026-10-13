@@ -29,6 +29,7 @@ export function clipFilterGraph(
   clips.forEach((clip, index) => {
     const recipe = {
       ...clipRecipe(edit, clip),
+      mediaLayers: [],
       overlays: defaultOverlays(),
       subtitles: { mode: 'none' as const, cues: [] },
       effectInstances: extraInstances(clipRecipe(edit, clip)).filter(

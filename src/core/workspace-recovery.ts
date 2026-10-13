@@ -39,6 +39,22 @@ export function recoveredEdits(recovery: WorkspaceRecovery) {
         {
           ...entry.edit,
           audioLayers: restoreLayers(entry.edit.audioLayers),
+          mediaLayers: entry.edit.mediaLayers?.flatMap((layer) => {
+            const index =
+                layer.sourceIndex ??
+                document.project.sources.findIndex((item) =>
+                  sameLayerSource(layer.source, item.source),
+                ),
+              source = assets.find((item) => item.id === sourceIds[index]);
+            if (!source || !sameLayerSource(layer.source, source)) {
+              issues.push(
+                `${asset.name}: unavailable visual track “${layer.source.name}” was omitted.`,
+              );
+              return [];
+            }
+            const { sourceIndex: _index, sourceId: _id, ...portable } = layer;
+            return [{ ...portable, sourceId: source.id, source: sourceIdentity(source) }];
+          }),
           effectInstances: entry.edit.effectInstances?.map((instance) =>
             instance.effect === 'mix'
               ? {

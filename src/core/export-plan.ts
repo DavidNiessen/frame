@@ -1,3 +1,4 @@
+import { parseMediaLayers } from './media-layers';
 import { parseCutout } from './cutout';
 import { parseRetouch } from './retouch';
 import { parseImageMetadata } from './image-metadata';
@@ -49,6 +50,9 @@ import { editedDuration, keptRanges } from './timeline';
 import type { EditSettings, MediaAsset } from './types';
 
 export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragment = false): void {
+  parseMediaLayers(edit.mediaLayers);
+  if (asset.kind === 'audio' && edit.mediaLayers?.length)
+    throw new Error('Visual layers need a video or image project.');
   parseEffectRanges(edit.effectRanges);
   parseAddedEffects(edit.addedEffects);
   parseEffectInstances(edit.effectInstances, asset, (recipe) => validateEdit(asset, recipe));

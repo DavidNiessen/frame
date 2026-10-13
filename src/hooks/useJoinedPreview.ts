@@ -42,6 +42,7 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
     proxy: PreviewProxy;
     ranges: PreviewRange[];
     effects: boolean;
+    geometry: boolean;
     engine: MediaEngine;
   } | null>(null);
   const [attempt, retry] = useState(0);
@@ -89,6 +90,7 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
             proxy,
             ranges: request.ranges,
             effects: !!request.recipe,
+            geometry: !!request.recipe?.mediaLayers?.length,
             engine,
           });
           setState({ key, done: true });
@@ -118,6 +120,7 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
     proxy: preview?.proxy,
     ranges: preview?.ranges,
     processed: !!preview?.effects,
+    geometryProcessed: !!preview?.geometry,
     effects,
     stale: !!preview && preview.key !== key,
     preparing: !!key && (!matched || (!state.done && !state.error)),

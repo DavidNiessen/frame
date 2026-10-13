@@ -18,6 +18,7 @@ export interface TimelineMenuTarget {
   moveLimits?: TimeRange;
   preview?: (range: TimeRange, edge: 'start' | 'end' | 'body') => void;
   remove?: () => void;
+  split?: (output: number) => void;
 }
 export const TimelineMenuContext = createContext<{
   open: (event: MouseEvent<HTMLElement>, target?: TimelineMenuTarget) => void;

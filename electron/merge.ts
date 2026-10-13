@@ -105,6 +105,7 @@ export function registerMerge(
               );
             },
             clips.map((c) => c.asset),
+            [...assets.values()],
           );
           const { size } = await stat(temporary);
           await rename(temporary, destination.filePath);

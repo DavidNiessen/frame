@@ -11,6 +11,7 @@ export function snapTargets(
 ): Record<SnapSpace, number[]> {
   const positions = clipPositions(edit);
   const timedOutput = [
+    ...(edit.mediaLayers ?? []).flatMap((layer) => [layer.start, layer.end]),
     ...allAudioLayers(edit).flatMap((layer) => [layer.start, layer.end]),
     ...extraInstances(edit)
       .filter((instance) => instance.timeSpace === 'output')

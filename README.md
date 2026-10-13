@@ -118,3 +118,5 @@ Image retouch layers provide soft clone and healing brushes with editable stroke
 HEIC/HEIF and common camera RAW files (DNG, CR2/CR3, NEF, ARW, RAF, RW2, and more) can be imported and batch converted locally on desktop and web. Portable decoder workers create lossless working PNGs while retaining the original files for recovery. RAW imports are developed to 8-bit sRGB; support depends on the camera and compression supported by the bundled LibRaw build.
 
 Local background removal supports edge-connected selection, sampled colors, soft edges, and restore/remove brush refinement. Transparent exports are available as PNG, WebP, and TIFF.
+
+Independent video and image tracks can be layered over the current media, with their own timing, position, fit, opacity, color adjustments, and curves. Video tracks can link to source audio; picture and sound trim, move, and split together. Tracks are stored as source references in projects and automatic recovery.

@@ -48,7 +48,9 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
             [...sources.values()].map((asset) => ({ asset, path: `layer-${asset.id}` })),
           )
         : [];
-      const resources = edit ? await browserResources(ff, [edit], [asset]) : undefined;
+      const resources = edit
+        ? await browserResources(ff, [edit], [asset], files, sources)
+        : undefined;
       const duration = edit
         ? editedDuration(edit)
         : ranges.reduce((sum, range) => sum + range.end - range.start, 0);

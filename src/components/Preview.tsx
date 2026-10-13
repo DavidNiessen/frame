@@ -1,3 +1,5 @@
+import { defaultGeometry } from '../core/geometry';
+import { MediaLayerPreview } from './MediaLayerPreview';
 import { CanvasGuides } from './CanvasGuides';
 import { CanvasGuidesMenu } from './CanvasGuidesMenu';
 import { ShapePreview } from './ShapePreview';
@@ -57,6 +59,9 @@ export function Preview({
   previewUrl,
   previewRanges,
   previewProcessed = false,
+  previewGeometryProcessed = false,
+  openMediaLayer,
+  selectedMediaLayer,
   effectsRequested = false,
   previewStale = false,
   preparing = false,
@@ -86,6 +91,9 @@ export function Preview({
   panelRef: RefObject<HTMLElement | null>;
   previewRanges?: PreviewRange[];
   previewProcessed?: boolean;
+  previewGeometryProcessed?: boolean;
+  openMediaLayer: (id: string, keepView?: boolean) => void;
+  selectedMediaLayer?: string;
   effectsRequested?: boolean;
   previewStale?: boolean;
   preparing?: boolean;
@@ -170,11 +178,41 @@ export function Preview({
           instance.settings.geometry.flipVertical ||
           instance.settings.geometry.resize)),
   );
-  const geometry = stackedVisual
-    ? stackedGeometryPreview(asset, visual)
-    : geometryPreview(asset, visual);
+  const renderedDimensions = frameDimensions(asset, visual);
+  const displayAsset = previewGeometryProcessed ? { ...asset, ...renderedDimensions } : asset;
+  const overlayEdit: EditSettings = previewGeometryProcessed
+    ? {
+        ...edit,
+        crop: null,
+        geometry: defaultGeometry(),
+        effectInstances: extraInstances(edit).filter(
+          (i) => !['crop', 'transform'].includes(i.effect),
+        ),
+        clips: edit.clips?.map((c) => ({
+          ...c,
+          effects: {
+            ...c.effects,
+            crop: null,
+            geometry: defaultGeometry(),
+            effectInstances: c.effects.effectInstances?.filter(
+              (i) => !['crop', 'transform'].includes(i.effect),
+            ),
+          },
+        })),
+      }
+    : edit;
+  const geometry = previewGeometryProcessed
+    ? geometryPreview(displayAsset, {
+        ...visual,
+        crop: null,
+        geometry: defaultGeometry(),
+        effectInstances: [],
+      })
+    : stackedVisual
+      ? stackedGeometryPreview(asset, visual)
+      : geometryPreview(asset, visual);
   const dimensions =
-    visual.crop && !stackedVisual
+    visual.crop && !stackedVisual && !previewGeometryProcessed
       ? { width: asset.width ?? 640, height: asset.height ?? 360 }
       : frameDimensions(asset, visual);
   const sourceUrl = previewUrl ?? asset.previewUrl;
@@ -381,7 +419,7 @@ export function Preview({
               <div
                 className="paint-preview-area"
                 style={
-                  visual.crop && !stackedVisual
+                  visual.crop && !stackedVisual && !previewGeometryProcessed
                     ? {
                         left: `${(visual.crop.x / asset.width!) * 100}%`,
                         top: `${(visual.crop.y / asset.height!) * 100}%`,
@@ -422,9 +460,21 @@ export function Preview({
                   }
                 />
               </div>
+              {selectedEffect?.id !== 'crop' && (
+                <MediaLayerPreview
+                  edit={overlayEdit}
+                  assets={assets}
+                  position={position}
+                  selectedId={selectedMediaLayer}
+                  disabled={disabled}
+                  update={update}
+                  openLayer={openMediaLayer}
+                  pause={() => mediaRef.current?.pause()}
+                />
+              )}
               <ShapePreview
-                edit={edit}
-                asset={asset}
+                edit={overlayEdit}
+                asset={displayAsset}
                 current={current}
                 position={position}
                 disabled={disabled}
@@ -436,8 +486,8 @@ export function Preview({
               <OverlayPreview
                 outputPosition={position}
                 current={current}
-                edit={edit}
-                asset={asset}
+                edit={overlayEdit}
+                asset={displayAsset}
                 disabled={disabled}
                 update={update}
                 pause={() => mediaRef.current?.pause()}
@@ -449,37 +499,44 @@ export function Preview({
                   outputPosition={position}
                   openEffect={openEffect}
                   selectedEffect={selectedEffect}
-                  asset={asset}
-                  edit={{ ...edit, crop: stackedVisual ? null : visual.crop }}
+                  asset={displayAsset}
+                  edit={{
+                    ...overlayEdit,
+                    crop: previewGeometryProcessed || stackedVisual ? null : visual.crop,
+                  }}
                   current={current}
                   disabled={disabled}
                   pause={() => mediaRef.current?.pause()}
                   update={update}
                 />
               )}
-              {!stackedVisual && visual.crop && asset.width && asset.height && (
-                <CropOverlay
-                  crop={visual.crop!}
-                  width={asset.width}
-                  height={asset.height}
-                  disabled={disabled}
-                  onChange={(crop) =>
-                    update(
-                      trackCrop
-                        ? changeInstance(edit, trackCrop.id, null, { crop })
-                        : clip
-                          ? {
-                              clips: edit.clips!.map((item) =>
-                                item.id === clip.id
-                                  ? { ...item, effects: { ...item.effects, crop } }
-                                  : item,
-                              ),
-                            }
-                          : { crop },
-                    )
-                  }
-                />
-              )}
+              {!previewGeometryProcessed &&
+                !stackedVisual &&
+                visual.crop &&
+                asset.width &&
+                asset.height && (
+                  <CropOverlay
+                    crop={visual.crop!}
+                    width={asset.width}
+                    height={asset.height}
+                    disabled={disabled}
+                    onChange={(crop) =>
+                      update(
+                        trackCrop
+                          ? changeInstance(edit, trackCrop.id, null, { crop })
+                          : clip
+                            ? {
+                                clips: edit.clips!.map((item) =>
+                                  item.id === clip.id
+                                    ? { ...item, effects: { ...item.effects, crop } }
+                                    : item,
+                                ),
+                              }
+                            : { crop },
+                      )
+                    }
+                  />
+                )}
             </CanvasGuides>
           </div>
         ) : (

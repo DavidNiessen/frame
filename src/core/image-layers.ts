@@ -1,3 +1,5 @@
+import type { MediaLayer } from './media-layers';
+import { mediaLayerEffect } from './effect-library';
 import { parseImageMask, type ImageMask } from './image-masks';
 import { imageBlendModes, type ImageBlendMode } from './image-compositing';
 import { appliedEffects, type EffectId } from './effect-library';
@@ -25,13 +27,14 @@ export interface ImageLayerStack {
   groups: ImageLayerGroup[];
 }
 export const emptyImageLayers = (): ImageLayerStack => ({ order: [], entries: {}, groups: [] });
+export const mediaLayerKey = (id: string) => `media:${id}`;
 export const imageLayerKey = (id: EffectId, instanceId?: string) =>
   instanceId ? `instance:${instanceId}` : `primary:${id}`;
 export function parseImageLayers(value: unknown): ImageLayerStack | undefined {
   if (value === undefined) return undefined;
   const s = value as ImageLayerStack;
   const key = (v: unknown) =>
-    typeof v === 'string' && /^(primary|instance):[a-zA-Z0-9_-]{1,120}$/.test(v);
+    typeof v === 'string' && /^(primary|instance|media):[a-zA-Z0-9_-]{1,120}$/.test(v);
   const name = (v: unknown) => typeof v === 'string' && v.trim().length > 0 && v.length <= 80;
   if (
     !s ||
@@ -87,12 +90,25 @@ export function imageLayerRows(asset: MediaAsset, edit: EditSettings) {
       recipe: edit,
       id: undefined as string | undefined,
       key: imageLayerKey(effect.id),
+      mediaLayer: undefined as MediaLayer | undefined,
     })),
     ...extraInstances(edit).map((instance) => ({
       effect: definitionFor(instance.effect),
       recipe: instanceRecipe(edit, instance),
       id: instance.id,
       key: imageLayerKey(instance.effect, instance.id),
+      mediaLayer: undefined as MediaLayer | undefined,
+    })),
+    ...(edit.mediaLayers ?? []).map((layer) => ({
+      effect: {
+        ...mediaLayerEffect,
+        name: layer.source.name,
+        description: layer.source.kind === 'image' ? 'Image layer' : 'Video layer',
+      },
+      recipe: { ...edit, mediaLayers: [layer] },
+      id: layer.id,
+      key: mediaLayerKey(layer.id),
+      mediaLayer: layer,
     })),
   ];
   // Geometry defines the canvas; everything else is a bottom-to-top processing stack.
@@ -104,9 +120,13 @@ export function imageLayerRows(asset: MediaAsset, edit: EditSettings) {
       ? 1200 +
           (row.id
             ? 100 + rows.indexOf(row)
-            : ['painting', 'watermark', 'captions', 'shape', 'retouch'].includes(row.effect.id)
+            : ['painting', 'watermark', 'captions', 'shape', 'retouch', 'media'].includes(
+                  row.effect.id,
+                )
               ? 80 +
-                ['painting', 'watermark', 'captions', 'shape', 'retouch'].indexOf(row.effect.id)
+                ['painting', 'watermark', 'captions', 'shape', 'retouch', 'media'].indexOf(
+                  row.effect.id,
+                )
               : rows.indexOf(row))
       : index;
   };
@@ -119,8 +139,8 @@ export function imageLayerRows(asset: MediaAsset, edit: EditSettings) {
         ...row,
         state,
         group,
-        hidden: !!(state.hidden || group?.hidden),
-        locked: !!(state.locked || group?.locked),
+        hidden: !!(state.hidden || group?.hidden || row.mediaLayer?.hidden),
+        locked: !!(state.locked || group?.locked || row.mediaLayer?.locked),
         fixed: ['crop', 'transform'].includes(row.effect.id),
       };
     });

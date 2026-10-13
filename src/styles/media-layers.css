@@ -1,0 +1,72 @@
+.asset-layer {
+  flex: 0 0 auto;
+}
+.media-layer-frame-area {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.media-layer-object .frame-object-content {
+  width: 100%;
+  height: 100%;
+}
+.media-layer-object .frame-object-content > img {
+  display: block;
+}
+.video-media-area {
+  z-index: 1;
+}
+.video-media-area .frame-object-content {
+  opacity: 0;
+}
+.media-layer-object {
+  position: absolute;
+}
+.visual-media-bar {
+  --lane-accent: var(--accent);
+}
+.visual-media-bar.inactive {
+  opacity: 0.5;
+}
+.media-layer-overlay .control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.media-layer-overlay .control-grid input {
+  min-width: 0;
+}
+.media-layer-overlay .painting-actions {
+  flex-wrap: wrap;
+}
+.media-layer-overlay .effect-overlay-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.visual-media-lane {
+  height: 36px;
+  margin: 3px 0 7px;
+}
+.visual-media-bar .range-body {
+  cursor: grab;
+}
+.asset:has(.asset-layer) .asset-select {
+  padding-right: 58px;
+}
+.asset:has(.asset-insert):has(.asset-layer) .asset-select {
+  padding-right: 80px;
+}
+.asset-layer {
+  position: absolute;
+  right: 31px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 28px;
+}
+.asset:has(.asset-insert) .asset-layer {
+  right: 55px;
+}

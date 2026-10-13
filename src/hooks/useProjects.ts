@@ -89,6 +89,16 @@ export function useProjects(editor: Editor) {
           edit: {
             ...entry.edit,
             audioLayers: restoreLayers(entry.edit.audioLayers),
+            mediaLayers: entry.edit.mediaLayers?.map((layer) => {
+              const sourceIndex =
+                  layer.sourceIndex ??
+                  pending.sources.findIndex((item) => sameLayerSource(layer.source, item.source)),
+                asset = editor.assets.find((item) => item.id === links[sourceIndex]);
+              if (!asset)
+                throw new Error(`Restore “${layer.source.name}” before opening its visual layer.`);
+              const { sourceIndex: _index, ...runtime } = layer;
+              return { ...runtime, sourceId: asset.id, source: sourceIdentity(asset) };
+            }),
             effectInstances: entry.edit.effectInstances?.map((instance) =>
               instance.effect === 'mix'
                 ? {

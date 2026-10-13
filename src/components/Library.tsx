@@ -8,6 +8,7 @@ import {
   Link,
   ListPlus,
   AudioLines,
+  Layers,
 } from 'lucide-react';
 import type { Editor } from '../hooks/useEditor';
 import { mediaDragType } from '../core/media-insertion';
@@ -20,6 +21,7 @@ export function Library({
   clearDisabled,
   hasSavedWorkspace,
   onInsert,
+  onLayer,
 }: {
   editor: Editor;
   onImport: () => void;
@@ -28,6 +30,7 @@ export function Library({
   clearDisabled: boolean;
   hasSavedWorkspace: boolean;
   onInsert: (id: string) => void;
+  onLayer: (id: string) => void;
 }) {
   return (
     <aside id="media-library" className="library panel">
@@ -125,6 +128,21 @@ export function Library({
                       onClick={() => onInsert(asset.id)}
                     >
                       {asset.kind === 'video' ? <ListPlus size={14} /> : <AudioLines size={14} />}
+                    </button>
+                  )}
+                {editor.asset &&
+                  asset.kind !== 'audio' &&
+                  editor.asset.kind !== 'audio' &&
+                  (editor.asset.kind === 'video' || asset.kind === 'image') &&
+                  asset.id !== editor.selected && (
+                    <button
+                      className="icon-button asset-layer"
+                      aria-label={`Layer ${asset.name} over current media`}
+                      title="Add an independent picture track"
+                      disabled={!!editor.busy}
+                      onClick={() => onLayer(asset.id)}
+                    >
+                      <Layers size={14} />
                     </button>
                   )}
                 <button

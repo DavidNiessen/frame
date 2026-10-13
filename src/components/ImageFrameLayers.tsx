@@ -1,3 +1,4 @@
+import { MediaLayerPreview } from './MediaLayerPreview';
 import { CutoutCanvas } from './CutoutCanvas';
 import { RetouchCanvas } from './RetouchCanvas';
 import { ShapePreview } from './ShapePreview';
@@ -15,6 +16,8 @@ import type { Editor } from '../hooks/useEditor';
 export function ImageFrameLayers({
   editor,
   selectedEffect,
+  selectedMediaLayer,
+  openMediaLayer,
   openEffect,
   interactionKey,
   baseUrl,
@@ -26,6 +29,8 @@ export function ImageFrameLayers({
   startInteraction: (key: string) => void;
   finishInteraction: (key: string) => void;
   editor: Editor;
+  selectedMediaLayer?: string;
+  openMediaLayer: (id: string, keepView?: boolean) => void;
   selectedEffect: { id: EffectId; instanceId?: string } | null;
   openEffect: (id: EffectId, instanceId?: string) => void;
 }) {
@@ -35,7 +40,9 @@ export function ImageFrameLayers({
   const rows = imageLayerRows(asset, edit).filter(
     (row) =>
       !row.hidden &&
-      ['painting', 'watermark', 'captions', 'shape', 'retouch', 'cutout'].includes(row.effect.id),
+      ['painting', 'watermark', 'captions', 'shape', 'retouch', 'cutout', 'media'].includes(
+        row.effect.id,
+      ),
   );
   const painting =
     ['painting', 'retouch', 'cutout'].includes(selectedEffect?.id ?? '') &&
@@ -43,10 +50,11 @@ export function ImageFrameLayers({
   return (
     <div className="image-frame-layers" data-painting={painting || undefined}>
       {rows.map((layer, index) => {
-        const active =
-          selectedEffect?.id === layer.effect.id &&
-          selectedEffect.instanceId === layer.id &&
-          !layer.locked;
+        const active = layer.mediaLayer
+          ? selectedMediaLayer === layer.id && !layer.locked
+          : selectedEffect?.id === layer.effect.id &&
+            selectedEffect.instanceId === layer.id &&
+            !layer.locked;
         const disabled =
           !!editor.busy || layer.locked || (painting && layer.effect.id !== selectedEffect?.id);
         const live = active && interactionKey === layer.key;
@@ -69,7 +77,19 @@ export function ImageFrameLayers({
               }}
               key={layer.key}
             >
-              {layer.effect.id === 'cutout' ? (
+              {layer.mediaLayer ? (
+                <MediaLayerPreview
+                  image
+                  onlyId={layer.id}
+                  selectedId={selectedMediaLayer}
+                  edit={edit}
+                  assets={editor.assets}
+                  disabled={disabled}
+                  update={editor.update}
+                  openLayer={openMediaLayer}
+                  pause={() => {}}
+                />
+              ) : layer.effect.id === 'cutout' ? (
                 active ? (
                   <CutoutCanvas
                     edit={layer.recipe}

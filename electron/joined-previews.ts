@@ -79,6 +79,7 @@ export function createJoinedPreviews(
             (paths) =>
               render(effectPreviewArgs(source.asset, edit, source.path, path, paths[0], layers)),
             [source.asset],
+            [...assets.values()],
           );
         else await render(joinedPreviewArgs(source.asset, ranges, source.path, path));
         if (closed || ticket !== generation || !assets.has(id))

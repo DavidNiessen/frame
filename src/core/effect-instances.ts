@@ -1,4 +1,10 @@
-import { effectLibrary, legacyMixEffect, effectActive, enableEffect } from './effect-library';
+import {
+  effectLibrary,
+  mediaLayerEffect,
+  legacyMixEffect,
+  effectActive,
+  enableEffect,
+} from './effect-library';
 import { clipRecipe, editClips, patchClip } from './clips';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 import { activeAtSource, isTimedAdjustment } from './timed-adjustments';
@@ -18,11 +24,13 @@ export const instanceLimit = 128;
 export const captionLimit = 1000;
 export const definitionFor = (id: EffectId) =>
   effectLibrary.find((effect) => effect.id === id) ??
-  (id === 'mix'
-    ? legacyMixEffect
-    : (() => {
-        throw new Error(`Unknown effect: ${id}`);
-      })());
+  (id === 'media'
+    ? mediaLayerEffect
+    : id === 'mix'
+      ? legacyMixEffect
+      : (() => {
+          throw new Error(`Unknown effect: ${id}`);
+        })());
 export const extraInstances = (edit: Pick<EditSettings, 'effectInstances'>, id?: EffectId) =>
   (edit.effectInstances ?? []).filter((instance) => !id || instance.effect === id);
 export const primaryPresent = (edit: EditSettings, asset: MediaAsset, id: EffectId) =>
@@ -277,6 +285,30 @@ export function updateAudioLayers(
     primaryIds = new Set((edit.audioLayers ?? []).map((layer) => layer.id));
   return {
     audioLayers: next.filter((layer) => primaryIds.has(layer.id)),
+    ...(edit.mediaLayers?.length
+      ? {
+          mediaLayers: edit.mediaLayers.map((layer) => {
+            const linked = next.find((item) => item.id === layer.audioLayerId),
+              previous = edit.audioLayers?.find((item) => item.id === layer.audioLayerId);
+            return linked &&
+              previous &&
+              (linked.start !== previous.start ||
+                linked.end !== previous.end ||
+                linked.sourceStart !== previous.sourceStart ||
+                linked.sourceEnd !== previous.sourceEnd)
+              ? {
+                  ...layer,
+                  start: linked.start,
+                  end: linked.end,
+                  sourceStart: linked.sourceStart,
+                  sourceEnd: linked.sourceEnd,
+                }
+              : layer.audioLayerId && !linked
+                ? { ...layer, audioLayerId: undefined }
+                : layer;
+          }),
+        }
+      : {}),
     effectInstances: extraInstances(edit).map((instance) =>
       instance.effect === 'mix'
         ? {

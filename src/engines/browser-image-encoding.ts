@@ -44,7 +44,9 @@ export async function browserImageEncoding(
               imageLayers: {
                 order: [],
                 groups: [],
-                entries: { [imageLayerKey(stage.effect)]: stage.state },
+                entries: {
+                  [stage.effect === 'media' ? stage.key : imageLayerKey(stage.effect)]: stage.state,
+                },
               },
             },
             source,

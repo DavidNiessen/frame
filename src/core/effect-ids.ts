@@ -7,6 +7,7 @@ export const effectIds = [
   'curves',
   'shape',
   'mix',
+  'media',
   'volume',
   'speed',
   'audioFadeIn',

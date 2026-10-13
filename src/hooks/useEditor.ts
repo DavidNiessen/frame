@@ -1,3 +1,4 @@
+import { mediaLayerSource } from '../core/media-layers';
 import { flushSync } from 'react-dom';
 import { detachSourceMedia } from './media-elements';
 import { allAudioLayers, effectiveSpeed, extraInstances } from '../core/effect-instances';
@@ -331,12 +332,15 @@ export function useEditor() {
         (source) =>
           source.id !== item.id &&
           histories[source.id] &&
-          allAudioLayers(histories[source.id].present).some(
+          (allAudioLayers(histories[source.id].present).some(
             (layer) => audioLayerSource(layer, assetsRef.current)?.id === item.id,
-          ),
+          ) ||
+            histories[source.id].present.mediaLayers?.some(
+              (layer) => mediaLayerSource(layer, assetsRef.current)?.id === item.id,
+            )),
       )
     ) {
-      setNotice('Remove this source’s audio layers before removing it from the library.');
+      setNotice('Remove this source’s timeline layers before removing it from the library.');
       return;
     }
     busyRef.current = true;

@@ -17,6 +17,15 @@ export interface EffectDefinition {
   keys: (keyof EditSettings)[];
 }
 /** Read older projects without exposing audio insertion as an effect. */
+export const mediaLayerEffect: EffectDefinition = {
+  id: 'media',
+  name: 'Media layer',
+  description: 'A picture from the media library',
+  group: 'Video',
+  scope: 'source',
+  repeatable: true,
+  keys: ['mediaLayers'],
+};
 export const legacyMixEffect: EffectDefinition = {
   id: 'mix',
   name: 'Audio layers',

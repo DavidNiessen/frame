@@ -6,13 +6,17 @@ export function ImageLayerCompositing({
   editor,
   id,
   instanceId,
+  layerKey,
+  opacityControl = true,
 }: {
   editor: Editor;
   id: EffectId;
   instanceId?: string;
+  layerKey?: string;
+  opacityControl?: boolean;
 }) {
   const edit = editor.edit!,
-    key = imageLayerKey(id, instanceId),
+    key = layerKey ?? imageLayerKey(id, instanceId),
     state = edit.imageLayers?.entries[key] ?? {};
   return (
     <section className="control-section image-layer-compositing" aria-label="Layer compositing">
@@ -37,20 +41,22 @@ export function ImageLayerCompositing({
           ))}
         </select>
       </label>
-      <label className="stacked-label">
-        Opacity · {Math.round((state.opacity ?? 1) * 100)}%
-        <input
-          type="range"
-          aria-label="Layer opacity"
-          min={0}
-          max={1}
-          step={0.01}
-          value={state.opacity ?? 1}
-          onChange={(e) =>
-            editor.update(changeImageLayer(edit, key, { opacity: Number(e.target.value) }))
-          }
-        />
-      </label>
+      {opacityControl && (
+        <label className="stacked-label">
+          Opacity · {Math.round((state.opacity ?? 1) * 100)}%
+          <input
+            type="range"
+            aria-label="Layer opacity"
+            min={0}
+            max={1}
+            step={0.01}
+            value={state.opacity ?? 1}
+            onChange={(e) =>
+              editor.update(changeImageLayer(edit, key, { opacity: Number(e.target.value) }))
+            }
+          />
+        </label>
+      )}
     </section>
   );
 }

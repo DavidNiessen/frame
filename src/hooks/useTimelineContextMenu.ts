@@ -1,3 +1,4 @@
+import { mediaLayerSource } from '../core/media-layers';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import {
   ClipboardPaste,
@@ -47,6 +48,7 @@ interface Options {
   notify: (message: string) => void;
   openEffect: (id: import('../core/effect-library').EffectId, instanceId?: string) => void;
   openAudioLayer: (id: string) => void;
+  openMediaLayer: (id: string) => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -108,7 +110,9 @@ export function useTimelineContextMenu(options: Options) {
   const unavailable = (value: TimelineClipboard | null) =>
     value?.kind === 'audio' && !audioLayerSource(value.layer, options.assets)
       ? 'The audio source is no longer in the library.'
-      : clipboardUnavailable(value, options.edit, options.asset);
+      : value?.kind === 'visual' && !mediaLayerSource(value.layer, options.assets)
+        ? 'The visual source is no longer in the library.'
+        : clipboardUnavailable(value, options.edit, options.asset);
   function paste(value = clipboard, output = menu?.output ?? options.current) {
     if (!value) return;
     const reason = unavailable(value);
@@ -123,7 +127,8 @@ export function useTimelineContextMenu(options: Options) {
       else if (value.kind === 'effect') {
         options.selectClip(null);
         options.openEffect(value.instance.effect, result.id);
-      } else options.openAudioLayer(result.id);
+      } else if (value.kind === 'visual') options.openMediaLayer(result.id);
+      else options.openAudioLayer(result.id);
       options.seek(
         sourceTimeAtOutput({ ...options.edit, ...result.patch }, result.output),
         result.output,
@@ -179,6 +184,15 @@ export function useTimelineContextMenu(options: Options) {
           },
         });
       }
+    if (target.split)
+      actions.push({
+        label: 'Split here',
+        icon: Scissors,
+        disabled:
+          value <= target.range.start + target.minimum ||
+          value >= target.range.end - target.minimum,
+        run: () => target.split!(value),
+      });
     if (target.clipId) {
       const pair = adjacentSplitJoin(options.edit, target.clipId);
       actions.push({

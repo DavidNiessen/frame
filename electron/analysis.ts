@@ -103,6 +103,7 @@ export function registerAnalysis(
           return new Uint8Array(await readFile(output));
         },
         [item.asset],
+        [...assets.values()],
       ),
     );
   });
@@ -151,6 +152,7 @@ export function registerAnalysis(
           return new Uint8Array(await readFile(output));
         },
         [item.asset],
+        [...assets.values()],
       ),
     );
   });

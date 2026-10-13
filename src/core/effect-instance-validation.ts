@@ -37,6 +37,8 @@ export function parseEffectInstances(
     )
       throw new Error('Invalid effect instance identifier.');
     ids.add(instance.id);
+    if (instance.effect === 'media')
+      throw new Error('Media layers must reference library items directly.');
     const effect = definitionFor(instance.effect);
     if (effect.mediaKinds && !effect.mediaKinds.includes(asset.kind))
       throw new Error('This effect is not supported for this media type.');

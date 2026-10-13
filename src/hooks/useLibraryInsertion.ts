@@ -1,3 +1,4 @@
+import { insertedMediaLayer } from '../core/media-layers';
 import { useRef, useState } from 'react';
 import { editClips } from '../core/clips';
 import { insertedAudioLayer, insertedVideoEdit } from '../core/media-insertion';
@@ -63,6 +64,31 @@ export function useLibraryInsertion(editor: Editor, current: number) {
       },
     );
   }
+  function layerMedia(id: string) {
+    const source = editor.assets.find((a) => a.id === id),
+      base = editor.asset,
+      edit = editor.edit;
+    if (!source || !base || !edit || editor.busy || active.current) return;
+    try {
+      const layer = insertedMediaLayer(edit, base, source, current),
+        audio =
+          source.hasAudio && base.kind === 'video'
+            ? { ...insertedAudioLayer(edit, source, current), role: undefined }
+            : undefined;
+      if (audio) {
+        audio.start = layer.start;
+        audio.end = layer.end;
+        layer.audioLayerId = audio.id;
+      }
+      editor.update({
+        mediaLayers: [...(edit.mediaLayers ?? []), layer],
+        ...(audio ? { audioLayers: [...(edit.audioLayers ?? []), audio] } : {}),
+      });
+      return layer.id;
+    } catch (error) {
+      editor.setNotice((error as Error).message);
+    }
+  }
   async function extractAudio() {
     const asset = editor.asset;
     if (!asset || asset.kind !== 'video' || !asset.hasAudio) return;
@@ -74,5 +100,5 @@ export function useLibraryInsertion(editor: Editor, current: number) {
       },
     );
   }
-  return { insert, extractAudio, progress, cancel: editor.cancel };
+  return { insert, layerMedia, extractAudio, progress, cancel: editor.cancel };
 }

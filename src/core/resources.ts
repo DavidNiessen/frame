@@ -12,6 +12,7 @@ import { outputCues, serializeCaptionAss, serializeSrt } from './subtitles';
 import { frameDimensions } from './geometry';
 import type { EditSettings, MediaAsset } from './types';
 export interface RecipeResources {
+  media?: Record<string, string>;
   mask?: string;
   artwork: string;
   chapters: string;

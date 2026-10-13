@@ -1,3 +1,4 @@
+import { MediaLayerOverlay } from './components/MediaLayerOverlay';
 import { RetouchSourceProvider } from './components/RetouchSource';
 import { ImagePreview } from './components/ImagePreview';
 import { ImageLayers } from './components/ImageLayers';
@@ -78,6 +79,14 @@ function FrameApp() {
     keepView?: boolean;
   } | null>(null);
   const [urlOpen, setUrlOpen] = useState(false);
+  const [openMediaLayer, setOpenMediaLayer] = useState<{ id: string; keepView?: boolean } | null>(
+    null,
+  );
+  function showMediaLayer(id: string, keepView = true) {
+    setOpenLayer(null);
+    setOpenEffect(null);
+    setOpenMediaLayer({ id, keepView });
+  }
   const [openLayer, setOpenLayer] = useState<{ id: string; keepView?: boolean } | null>(null);
   const {
     autoWaveforms,
@@ -91,7 +100,10 @@ function FrameApp() {
   const proxies = useProxies(editor);
   const joinedPreview = useJoinedPreview(
     editor,
-    !settingsOpen && workflow === 'edit' && editor.asset?.kind !== 'image',
+    !settingsOpen &&
+      workflow === 'edit' &&
+      editor.asset?.kind !== 'image' &&
+      openEffect?.id !== 'crop',
   );
   const [sheetOpen, setSheetOpen] = useState(false),
     [scenesOpen, setScenesOpen] = useState(false);
@@ -134,6 +146,10 @@ function FrameApp() {
   const [current, setCurrent] = useState(0);
   const [, refreshSeek] = useState(0);
   const insertion = useLibraryInsertion(editor, current);
+  const layerMedia = (id: string) => {
+    const layerId = insertion.layerMedia(id);
+    if (layerId) showMediaLayer(layerId);
+  };
   const insertMedia = (id: string) => {
     void insertion.insert(id);
   };
@@ -209,6 +225,7 @@ function FrameApp() {
       void insertion.extractAudio();
     },
     insertMedia,
+    layerMedia,
     applyEffect: (id) => {
       showInspector('effects');
       try {
@@ -273,6 +290,7 @@ function FrameApp() {
   useEffect(() => {
     setOpenEffect(null);
     setOpenLayer(null);
+    setOpenMediaLayer(null);
   }, [editor.asset?.id]);
   useEffect(() => {
     if (workflow !== 'edit' || settingsOpen) {
@@ -280,6 +298,9 @@ function FrameApp() {
       setOpenLayer(null);
     }
   }, [workflow, settingsOpen]);
+  useEffect(() => {
+    if (openEffect || openLayer) setOpenMediaLayer(null);
+  }, [openEffect, openLayer]);
   const seek = useCallback((value: number, output?: number) => {
     if (mediaRef.current) seekPreviewTime(mediaRef.current, value, output);
     setCurrent(value);
@@ -407,6 +428,7 @@ function FrameApp() {
           library={
             <Library
               onInsert={insertMedia}
+              onLayer={layerMedia}
               editor={editor}
               onImport={onImport}
               onUrl={onUrl}
@@ -444,11 +466,16 @@ function FrameApp() {
                   editor={editor}
                   openEffect={(id, instanceId) => setOpenEffect({ id, instanceId, keepView: true })}
                   selectedEffect={openEffect}
+                  selectedMediaLayer={openMediaLayer?.id}
+                  openMediaLayer={showMediaLayer}
                   expanded={preview.expanded}
                   toggleExpanded={preview.toggle}
                 />
               ) : (
                 <Preview
+                  selectedMediaLayer={openMediaLayer?.id}
+                  openMediaLayer={showMediaLayer}
+                  previewGeometryProcessed={joinedPreview.geometryProcessed}
                   notify={editor.setNotice}
                   selectedEffect={openEffect}
                   openEffect={(id, instanceId) => {
@@ -485,6 +512,8 @@ function FrameApp() {
               editor.asset.kind === 'image' ? (
                 <ImageLayers
                   selectedEffect={openEffect}
+                  selectedMediaLayer={openMediaLayer?.id}
+                  openMediaLayer={showMediaLayer}
                   editor={editor}
                   openEffect={(id, instanceId) => setOpenEffect({ id, instanceId, keepView: true })}
                 />
@@ -492,6 +521,7 @@ function FrameApp() {
                 <Timeline
                   outputPosition={outputPosition}
                   onInsert={insertMedia}
+                  openMediaLayer={showMediaLayer}
                   openAudioLayer={(id, keepView) => {
                     setOpenEffect(null);
                     setOpenLayer({ id, keepView });
@@ -617,6 +647,15 @@ function FrameApp() {
             close={() => setOpenEffect(null)}
           />
         )}
+      {openMediaLayer && editor.asset && editor.edit && (
+        <MediaLayerOverlay
+          key={`${editor.asset.id}-${openMediaLayer.id}`}
+          id={openMediaLayer.id}
+          editor={editor}
+          close={() => setOpenMediaLayer(null)}
+          keepView={openMediaLayer.keepView}
+        />
+      )}
       {openLayer && editor.asset && editor.edit && (
         <AudioLayerOverlay
           key={`${editor.asset.id}-${openLayer.id}`}

@@ -55,7 +55,7 @@ export function browserAnalysis(
       const source = files.get(asset.id);
       if (!source) throw new Error('Import the source again.');
       const ff = await ready();
-      const resources = await browserResources(ff, [edit], [asset]);
+      const resources = await browserResources(ff, [edit], [asset], files, sources);
       const input = `frame-source-${asset.id}`,
         output = 'frame-preview.png';
       try {
@@ -168,7 +168,7 @@ export function browserAnalysis(
       const source = files.get(asset.id);
       if (!source) throw new Error('Import the source again.');
       const ff = await ready();
-      const resources = await browserResources(ff, [edit], [asset]),
+      const resources = await browserResources(ff, [edit], [asset], files, sources),
         input = `sheet-source-${asset.id}`,
         output = `sheet-${asset.id}.png`;
       const progress = ({ time }: { time: number }) =>

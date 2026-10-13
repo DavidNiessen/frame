@@ -18,6 +18,7 @@ interface Actions {
   applyEffect: (id: EffectId) => void;
   extractAudio?: () => void;
   insertMedia?: (id: string) => void;
+  layerMedia?: (id: string) => void;
   contactSheet: () => void;
   scenes: () => void;
   merge: () => void;
@@ -183,6 +184,23 @@ export function frameCommands(
             ? 'Select a video sequence first'
             : undefined),
         run: editing(() => actions.insertMedia?.(asset.id)),
+      })),
+    ...editor.assets
+      .filter(
+        (asset) =>
+          asset.id !== editor.selected &&
+          asset.kind !== 'audio' &&
+          editor.asset?.kind !== 'audio' &&
+          (editor.asset?.kind === 'video' || asset.kind === 'image'),
+      )
+      .map((asset) => ({
+        id: `visual-layer-${asset.id}`,
+        label: `Layer ${asset.name} over current media`,
+        description: 'Create an independent picture track at the playhead',
+        group: 'Library',
+        keywords: 'layer overlay picture video image multitrack',
+        disabled: media,
+        run: editing(() => actions.layerMedia?.(asset.id)),
       })),
     ...effectLibrary.map((definition) => {
       const variant = editor.asset

@@ -15,7 +15,10 @@ export function imageLayerStages(
   return imageLayerRows(asset, edit)
     .filter((row) => !row.hidden)
     .map((row) => {
-      const instance = row.id ? extraInstances(edit).find((item) => item.id === row.id) : undefined;
+      const instance =
+        row.id && !row.mediaLayer
+          ? extraInstances(edit).find((item) => item.id === row.id)
+          : undefined;
       const paths = {
         ...(instance ? instancePaths(resources, instance) : resources),
         mask: imageMaskPath(resources, row.key),
@@ -43,7 +46,9 @@ export function imageLayerStages(
           row.effect.id === 'cutout'
             ? { ...row.state, blend: 'normal' as const, opacity: 1, mask: undefined }
             : row.state,
-        object: ['painting', 'watermark', 'captions', 'shape', 'retouch'].includes(row.effect.id),
+        object: ['painting', 'watermark', 'captions', 'shape', 'retouch', 'media'].includes(
+          row.effect.id,
+        ),
       };
     });
 }

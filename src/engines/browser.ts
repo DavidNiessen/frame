@@ -214,7 +214,7 @@ export function createBrowserEngine(): MediaEngine {
         settings,
         [...sources.values()].map((asset) => ({ asset, path: `layer-${asset.id}` })),
       );
-      const resources = await browserResources(ff, [settings], [asset]);
+      const resources = await browserResources(ff, [settings], [asset], files, sources);
       try {
         await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
         await writeBrowserLayers(ff, layers, files, sources);
@@ -304,6 +304,8 @@ export function createBrowserEngine(): MediaEngine {
         ff,
         clips.map((c) => c.edit),
         clips.map((c) => c.asset),
+        files,
+        sources,
       );
       const captions = 'merged-captions.srt';
       try {

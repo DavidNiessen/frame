@@ -1,3 +1,4 @@
+import { resolveMediaLayers } from '../src/core/media-layers';
 import { writeImageMetadata } from '../src/core/image-metadata-export';
 import { readFile, writeFile } from 'node:fs/promises';
 import { taggedNamingAsset } from '../src/core/media-tags';
@@ -34,6 +35,10 @@ export function registerExports(
       if (!item) throw new Error('Import the media file again.');
       validateEdit(item.asset, settings);
       const layers = resolveAudioLayers(settings, [...assets.values()]);
+      const visual = resolveMediaLayers(
+        settings,
+        [...assets.values()].map((item) => ({ ...item, path: item.originalPath ?? item.path })),
+      );
       return jobs.run(async (execute) => {
         let temporary: string | undefined;
         try {
@@ -59,9 +64,10 @@ export function registerExports(
             process.platform === 'win32' ? path.toLowerCase() : path;
           if (
             !batchToken &&
-            [sourcePath, ...(await Promise.all(layers.map((layer) => realpath(layer.path))))].some(
-              (path) => comparable(destinationPath) === comparable(path),
-            )
+            [
+              sourcePath,
+              ...(await Promise.all([...layers, ...visual].map((layer) => realpath(layer.path)))),
+            ].some((path) => comparable(destinationPath) === comparable(path))
           )
             throw new Error('Choose a different output path to preserve the original.');
           temporary = join(
@@ -86,6 +92,7 @@ export function registerExports(
               );
             },
             [item.asset],
+            [...assets.values()],
           );
           if (item.asset.kind === 'image')
             await writeFile(

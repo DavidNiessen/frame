@@ -1,3 +1,4 @@
+import { mediaLayerFilters } from './media-layer-filters';
 import { cutoutFilters } from './cutout';
 import { shapeFilters } from './shapes';
 import { compositeImageLayer } from './image-compositing';
@@ -78,6 +79,7 @@ function rawVideoFilters(
         ),
       );
   }
+  filters.push(...mediaLayerFilters(asset, edit, resources));
   if (asset.kind !== 'image' && burnedCues(timing).length)
     filters.push(
       `subtitles=filename=${filterPath(burnedCaptionPath(timing, resources))}:fontsdir=${filterPath(resources.fonts)}`,

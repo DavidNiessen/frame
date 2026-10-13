@@ -16,6 +16,7 @@ import type { PreviewRange } from './preview-clock';
 export function needsEffectPreview(edit: EditSettings) {
   const recipes = [edit, ...editClips(edit).map((clip) => clipRecipe(edit, clip))];
   return (
+    !!edit.mediaLayers?.length ||
     allAudioLayers(edit).length > 0 ||
     recipes.some((recipe) =>
       [recipe, ...extraInstances(recipe).map((instance) => instanceRecipe(recipe, instance))].some(
@@ -48,20 +49,23 @@ const liveVisual = new Set([
 /** Keep frame objects/geometry/fades interactive; bake exact color and the complete audio mix. */
 export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): EditSettings {
   if (asset.kind === 'image') return { ...edit, format: 'png' };
+  const bakeGeometry = !!edit.mediaLayers?.length;
+  const keepInstance = (instance: import('./effect-instances').EffectInstance) =>
+    (!liveVisual.has(instance.effect) ||
+      (bakeGeometry && ['crop', 'transform'].includes(instance.effect))) &&
+    instance.effect !== 'mix';
   const strip = (recipe: EditSettings): EditSettings => ({
     ...recipe,
     painting: defaultPainting(),
     shape: null,
-    crop: null,
-    geometry: defaultGeometry(),
+    crop: bakeGeometry ? recipe.crop : null,
+    geometry: bakeGeometry ? recipe.geometry : defaultGeometry(),
     subtitles: { mode: 'none', cues: [] },
     overlays: defaultOverlays(),
     videoFadeIn: 0,
     videoFadeOut: 0,
     addedEffects: undefined,
-    effectInstances: extraInstances(recipe).filter(
-      (instance) => !liveVisual.has(instance.effect) && instance.effect !== 'mix',
-    ),
+    effectInstances: extraInstances(recipe).filter(keepInstance),
   });
   return {
     ...strip(edit),
@@ -94,14 +98,16 @@ export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): Edit
         ...clip.effects,
         painting: defaultPainting(),
         shape: null,
-        crop: null,
-        geometry: defaultGeometry(),
+        crop: bakeGeometry
+          ? clip.effects.crop !== undefined
+            ? clip.effects.crop
+            : edit.crop
+          : null,
+        geometry: bakeGeometry ? (clip.effects.geometry ?? edit.geometry) : defaultGeometry(),
         videoFadeIn: 0,
         videoFadeOut: 0,
         addedEffects: undefined,
-        effectInstances: clip.effects.effectInstances?.filter(
-          (instance) => !liveVisual.has(instance.effect) && instance.effect !== 'mix',
-        ),
+        effectInstances: clip.effects.effectInstances?.filter(keepInstance),
       },
     })),
   };

@@ -1,3 +1,4 @@
+import type { MediaLayer } from './media-layers';
 import { defaultCutout, type CutoutSettings } from './cutout';
 import { defaultRetouch, type RetouchSettings } from './retouch';
 import {
@@ -105,6 +106,7 @@ export interface TimeRange {
   end: number;
 }
 export interface EditSettings {
+  mediaLayers?: MediaLayer[];
   imageLayers?: ImageLayerStack;
   curves?: Curves;
   shape?: ShapeSettings | null;
@@ -272,6 +274,7 @@ export { supportedExtensions };
 export const acceptMedia = supportedExtensions.map((ext) => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return {
+    mediaLayers: [],
     shape: null,
     retouch: defaultRetouch(),
     cutout: defaultCutout(),

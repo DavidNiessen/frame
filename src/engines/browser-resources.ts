@@ -1,11 +1,20 @@
+import { resolveMediaLayers, mediaLayerSource } from '../core/media-layers';
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import { recipeImages, recipeFiles, resourcePaths } from '../core/resources';
 import type { EditSettings, MediaAsset } from '../core/types';
 import { captionItems } from '../core/caption-items';
 import { captionFontFile, defaultCaptionStyle, systemFontFamily } from '../core/caption-style';
 const fonts = new Map<string, Promise<Uint8Array>>();
-export async function browserResources(ff: FFmpeg, edits: EditSettings[], assets?: MediaAsset[]) {
-  const paths = edits.map((edit, i) => resourcePaths(`clip${i}`, edit.subtitles.mode));
+export async function browserResources(
+  ff: FFmpeg,
+  edits: EditSettings[],
+  assets?: MediaAsset[],
+  files?: Map<string, File>,
+  sources?: Map<string, MediaAsset>,
+) {
+  const paths: import('../core/resources').RecipeResources[] = edits.map((edit, i) =>
+    resourcePaths(`clip${i}`, edit.subtitles.mode),
+  );
   const names: string[] = [];
   try {
     const captionFonts = edits.flatMap((edit) =>
@@ -51,6 +60,26 @@ export async function browserResources(ff: FFmpeg, edits: EditSettings[], assets
         await ff.writeFile(`fonts/${name}`, new Uint8Array(await fonts.get(name)!));
         names.push(`fonts/${name}`);
       }
+    }
+    const written = new Set<string>();
+    for (let i = 0; i < edits.length; i++) {
+      const media = resolveMediaLayers(
+        edits[i],
+        [...(sources?.values() ?? [])].map((asset) => ({ asset, path: `visual-${asset.id}` })),
+      );
+      paths[i].media = Object.fromEntries(media.map((item) => [item.layer.id, item.path]));
+      for (const item of media)
+        if (!written.has(item.path)) {
+          const source = mediaLayerSource(item.layer, [...(sources?.values() ?? [])]),
+            file = source && files?.get(source.id);
+          if (!file)
+            throw new Error(
+              `Restore “${item.layer.source.name}” before rendering its visual layer.`,
+            );
+          await ff.writeFile(item.path, new Uint8Array(await file.arrayBuffer()));
+          written.add(item.path);
+          names.push(item.path);
+        }
     }
     for (let i = 0; i < edits.length; i++)
       for (const file of recipeFiles(edits[i], paths[i], assets?.[i])) {

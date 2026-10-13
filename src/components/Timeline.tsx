@@ -1,3 +1,4 @@
+import { MediaLayerLanes } from './MediaLayerLanes';
 import { TimelineMenuContext } from './TimelineMenuContext';
 import { TimelineContextMenu } from './TimelineContextMenu';
 import { useTimelineContextMenu } from '../hooks/useTimelineContextMenu';
@@ -28,6 +29,7 @@ import type { EditSettings, MediaAsset } from '../core/types';
 export function Timeline({
   onInsert,
   openAudioLayer,
+  openMediaLayer,
   openEffect,
   generatingId,
   asset,
@@ -54,6 +56,7 @@ export function Timeline({
 }: {
   onInsert: (id: string) => void;
   openAudioLayer: (id: string, keepView?: boolean) => void;
+  openMediaLayer: (id: string, keepView?: boolean) => void;
   openEffect: (id: EffectId, instanceId?: string, keepView?: boolean) => void;
   generatingId: string | null;
   assets: MediaAsset[];
@@ -121,6 +124,7 @@ export function Timeline({
     });
   }, [clips, edit, asset]);
   const effectCount =
+    (edit.mediaLayers?.length ?? 0) +
     allAudioLayers(edit).length +
     effectCounts.reduce((count, value) => count + value, 0) +
     appliedEffects(asset, edit, null).filter((effect) => effect.scope === 'source').length +
@@ -283,6 +287,7 @@ export function Timeline({
     notify,
     openEffect,
     openAudioLayer,
+    openMediaLayer,
     undo,
     redo,
     canUndo,
@@ -443,6 +448,17 @@ export function Timeline({
                   <span key={i}>{time((total * i) / 4)}</span>
                 ))}
               </div>
+              {filter !== 'captions' && (
+                <MediaLayerLanes
+                  edit={edit}
+                  axisDuration={total}
+                  compact={compact}
+                  disabled={disabled}
+                  update={update}
+                  seek={seek}
+                  openLayer={openMediaLayer}
+                />
+              )}
               {filter !== 'clips' && filter !== 'captions' && (
                 <AudioLayerLanes
                   openLayer={openAudioLayer}

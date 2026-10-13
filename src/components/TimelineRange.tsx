@@ -16,6 +16,7 @@ import { TimelineMenuContext, type TimelineMenuTarget } from './TimelineMenuCont
 import type { TimelineClipboard } from '../core/timeline-clipboard';
 interface Props {
   clipboard?: TimelineClipboard;
+  onSplit?: (output: number) => void;
   contextClipId?: string;
   snapSpace?: SnapSpace;
   selectOnPointer?: boolean;
@@ -76,6 +77,7 @@ export function TimelineRange({
   wideHandles = false,
   edgeLimits,
   clipboard,
+  onSplit,
   contextClipId,
 }: Props) {
   const element = useRef<HTMLDivElement>(null);
@@ -97,6 +99,7 @@ export function TimelineRange({
     moveLimits,
     preview: onPreview,
     remove: remove?.run,
+    split: onSplit,
   };
   useLayoutEffect(() => {
     if (element.current?.contains(document.activeElement)) menu?.focus(target);

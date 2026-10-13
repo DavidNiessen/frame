@@ -119,3 +119,9 @@ Import HEIC/HEIF phone photos or common camera RAW files, including DNG, CR2/CR3
 ### Remove an image background
 
 Add **Remove background** for automatic edge-connected color removal. This local tool works best with plain or gently varying backgrounds; it does not use an AI model. Adjust **Color tolerance** and **Edge softness**, or choose **Pick background color** and click the canvas. Keep **Remove only connected background** enabled to preserve enclosed areas of similar color. Paint with **Restore area** or **Remove more** to refine the mask, and undo or clear refinements independently. Recalculate after changing layers below this effect. PNG, WebP, and TIFF preserve transparency; JPEG/BMP use the export background color. Original pixels remain unchanged.
+
+### Independent video and image tracks
+
+Use the **Layer** icon beside another library item to place it over the current video or image. The command palette also lists these actions. The separate **Insert** icon still appends a video to the end of a sequence. Each picture track has its own position, dimensions, fit, opacity, visual adjustments, and curves. Drag or resize its frame object; use **Fill frame**, **Center picture**, **Bring forward**, and **Send backward** in its overlay.
+
+In video projects, drag a track bar to move it, use its edges to trim/expand within the source, and right-click for **Split here**, copy/paste, duplicate, or delete. A source video with sound creates a linked audio track; timing changes and splitting keep both synchronized. Mute its sound or unlink it in media layer settings. Image tracks can remain on screen for any portion of the sequence. Image projects show picture layers in the ordered Layers island, including hide/lock/group/blend controls. Up to 16 visual and 16 audio tracks are supported. Projects and autosave retain source references; original media stays unchanged.

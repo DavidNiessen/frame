@@ -1,3 +1,4 @@
+import type { MediaLayer } from './media-layers';
 import { clipGroups } from './clip-groups';
 import { clipPositions, editClips, splitClip, type TimelineClip } from './clips';
 import {
@@ -17,7 +18,8 @@ import type { EditSettings, MediaAsset } from './types';
 export type TimelineClipboard =
   | { kind: 'clips'; assetId: string; clips: TimelineClip[] }
   | { kind: 'effect'; instance: EffectInstance }
-  | { kind: 'audio'; layer: AudioLayer };
+  | { kind: 'audio'; layer: AudioLayer }
+  | { kind: 'visual'; layer: MediaLayer; audio?: AudioLayer };
 export function copySection(
   edit: EditSettings,
   assetId: string,
@@ -37,6 +39,12 @@ export function clipboardUnavailable(
       ? 'Sections can be pasted into their original source. Use Insert for other media.'
       : editClips(edit).length + value.clips.length + 1 > 1000
         ? 'The timeline supports up to 1,000 pieces.'
+        : undefined;
+  if (value.kind === 'visual')
+    return asset.kind !== 'video'
+      ? 'Visual tracks need a video timeline.'
+      : (edit.mediaLayers?.length ?? 0) >= 16
+        ? 'Use up to 16 visual layers.'
         : undefined;
   if (value.kind === 'audio')
     return allAudioLayers(edit).length >= 16 ? 'Use up to 16 audio layers.' : undefined;
@@ -123,6 +131,29 @@ export function pasteTimeline(
       },
       id: copies[0].id,
       output: positions[insertion]?.start ?? duration,
+    };
+  }
+  if (value.kind === 'visual') {
+    const layer = structuredClone(value.layer),
+      range = fitTimelineRange({ start: at, end: at + layer.end - layer.start }, duration);
+    const audio = value.audio
+      ? { ...structuredClone(value.audio), ...range, id: crypto.randomUUID() }
+      : undefined;
+    Object.assign(layer, range, { id: crypto.randomUUID(), audioLayerId: audio?.id });
+    if (audio) {
+      audio.sourceEnd = audio.sourceStart + range.end - range.start;
+      audio.fadeIn = Math.min(audio.fadeIn, range.end - range.start);
+      audio.fadeOut = Math.min(audio.fadeOut, range.end - range.start);
+    }
+    if (layer.source.kind === 'video')
+      layer.sourceEnd = layer.sourceStart + range.end - range.start;
+    return {
+      patch: {
+        mediaLayers: [...(edit.mediaLayers ?? []), layer],
+        ...(audio ? { audioLayers: [...(edit.audioLayers ?? []), audio] } : {}),
+      },
+      id: layer.id,
+      output: range.start,
     };
   }
   if (value.kind === 'audio') {

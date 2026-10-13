@@ -1,3 +1,4 @@
+import { changeMediaLayer, removeMediaLayer } from '../core/media-layers';
 import { useState } from 'react';
 import {
   ArrowDown,
@@ -29,9 +30,13 @@ export function ImageLayers({
   editor,
   openEffect,
   selectedEffect,
+  selectedMediaLayer,
+  openMediaLayer,
 }: {
   selectedEffect: { id: EffectId; instanceId?: string } | null;
   editor: Editor;
+  selectedMediaLayer?: string;
+  openMediaLayer: (id: string) => void;
   openEffect: (id: EffectId, instance?: string) => void;
 }) {
   const asset = editor.asset!,
@@ -83,7 +88,9 @@ export function ImageLayers({
   };
   const rowView = (row: (typeof rows)[number], index: number) => {
     const name = row.state.name ?? (row.effect.id === 'captions' ? 'Text' : row.effect.name),
-      selected = selectedEffect?.id === row.effect.id && selectedEffect.instanceId === row.id;
+      selected = row.mediaLayer
+        ? selectedMediaLayer === row.id
+        : selectedEffect?.id === row.effect.id && selectedEffect.instanceId === row.id;
     return (
       <div
         className={`image-layer ${selected ? 'selected' : ''}`}
@@ -107,7 +114,9 @@ export function ImageLayers({
           <button
             className="image-layer-open"
             disabled={blocked || row.locked}
-            onClick={() => openEffect(row.effect.id, row.id)}
+            onClick={() =>
+              row.mediaLayer ? openMediaLayer(row.mediaLayer.id) : openEffect(row.effect.id, row.id)
+            }
           >
             <Sparkles size={14} />
             <span>
@@ -127,7 +136,12 @@ export function ImageLayers({
             aria-label={`${row.hidden ? 'Show' : 'Hide'} ${name} layer ${index + 1}`}
             disabled={blocked || row.fixed || row.locked}
             onClick={() =>
-              editor.update(changeImageLayer(edit, row.key, { hidden: !row.state.hidden }))
+              editor.update({
+                ...changeImageLayer(edit, row.key, { hidden: !row.hidden }),
+                ...(row.mediaLayer
+                  ? changeMediaLayer(edit, row.mediaLayer.id, { hidden: !row.hidden })
+                  : {}),
+              })
             }
           >
             {row.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -137,7 +151,12 @@ export function ImageLayers({
             aria-label={`${row.locked ? 'Unlock' : 'Lock'} ${name} layer ${index + 1}`}
             disabled={blocked || row.group?.locked}
             onClick={() =>
-              editor.update(changeImageLayer(edit, row.key, { locked: !row.state.locked }))
+              editor.update({
+                ...changeImageLayer(edit, row.key, { locked: !row.locked }),
+                ...(row.mediaLayer
+                  ? changeMediaLayer(edit, row.mediaLayer.id, { locked: !row.locked })
+                  : {}),
+              })
             }
           >
             {row.locked ? <Lock size={14} /> : <Unlock size={14} />}
@@ -206,9 +225,11 @@ export function ImageLayers({
             disabled={blocked || row.locked}
             onClick={() =>
               editor.update(
-                row.id
-                  ? changeInstance(edit, row.id, null, 'remove')
-                  : effectAction(edit, asset, row.effect, null, 'remove'),
+                row.mediaLayer
+                  ? removeMediaLayer(edit, row.mediaLayer.id)
+                  : row.id
+                    ? changeInstance(edit, row.id, null, 'remove')
+                    : effectAction(edit, asset, row.effect, null, 'remove'),
               )
             }
           >

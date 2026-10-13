@@ -1,3 +1,4 @@
+import { resolveMediaLayers } from '../src/core/media-layers';
 import { app } from 'electron';
 import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -18,6 +19,7 @@ export async function withResources<T>(
   edits: EditSettings[],
   task: (paths: RecipeResources[], directory: string) => Promise<T>,
   assets?: MediaAsset[],
+  sources?: { asset: MediaAsset; path: string }[],
 ): Promise<T> {
   const directory = await mkdtemp(join(tmpdir(), 'frame-resources-'));
   try {
@@ -54,6 +56,11 @@ export async function withResources<T>(
     const paths = edits.map((edit, i) => ({
       ...resourcePaths(join(directory, `clip${i}`), edit.subtitles.mode),
       fonts,
+      media: edits[i].mediaLayers?.length
+        ? Object.fromEntries(
+            resolveMediaLayers(edits[i], sources ?? []).map((item) => [item.layer.id, item.path]),
+          )
+        : undefined,
     }));
     for (let i = 0; i < edits.length; i++) {
       for (const file of recipeFiles(edits[i], paths[i], assets?.[i]))

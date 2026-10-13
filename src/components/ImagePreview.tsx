@@ -20,10 +20,14 @@ export function ImagePreview({
   expanded,
   toggleExpanded,
   openEffect,
+  selectedMediaLayer,
+  openMediaLayer,
   panelRef,
 }: {
   panelRef: RefObject<HTMLElement | null>;
   editor: Editor;
+  selectedMediaLayer?: string;
+  openMediaLayer: (id: string, keepView?: boolean) => void;
   selectedEffect: { id: EffectId; instanceId?: string } | null;
   expanded: boolean;
   toggleExpanded: () => void;
@@ -46,21 +50,23 @@ export function ImagePreview({
         }
       : { ...edit, crop: null, geometry: defaultGeometry(), effectInstances: [] }
     : edit;
-  const activeLayer = selectedEffect
-    ? imageLayerRows(asset, edit).find(
-        (row) => row.key === imageLayerKey(selectedEffect.id, selectedEffect.instanceId),
-      )
-    : undefined;
+  const activeLayer = selectedMediaLayer
+    ? imageLayerRows(asset, edit).find((row) => row.mediaLayer?.id === selectedMediaLayer)
+    : selectedEffect
+      ? imageLayerRows(asset, edit).find(
+          (row) => row.key === imageLayerKey(selectedEffect.id, selectedEffect.instanceId),
+        )
+      : undefined;
   const liveObject =
     activeLayer &&
     !activeLayer.hidden &&
     !activeLayer.locked &&
-    ['captions', 'painting', 'watermark', 'shape', 'retouch', 'cutout'].includes(
+    ['captions', 'painting', 'watermark', 'shape', 'retouch', 'cutout', 'media'].includes(
       activeLayer.effect.id,
     );
   // Cache an exact composite and an object-free base for responsive gestures.
   const interactionEdit = liveObject
-    ? ['retouch', 'cutout'].includes(activeLayer.effect.id)
+    ? ['retouch', 'cutout', 'media'].includes(activeLayer.effect.id)
       ? imageEditBeforeLayer(asset, base, activeLayer.key)
       : activeLayer.id
         ? {
@@ -122,7 +128,7 @@ export function ImagePreview({
   function start(event: PointerEvent<HTMLDivElement>) {
     if (
       event.button !== 0 ||
-      ['painting', 'retouch', 'cutout'].includes(selectedEffect?.id ?? '') ||
+      ['painting', 'retouch', 'cutout', 'media'].includes(selectedEffect?.id ?? '') ||
       cropping ||
       zoom === 1
     )
@@ -189,6 +195,8 @@ export function ImagePreview({
               <ImageFrameLayers
                 editor={editor}
                 selectedEffect={selectedEffect}
+                selectedMediaLayer={selectedMediaLayer}
+                openMediaLayer={openMediaLayer}
                 openEffect={openEffect}
                 baseUrl={render.base}
                 interactionKey={interacting ? interaction.key : ''}

@@ -10,6 +10,7 @@ import './styles/editor.css';
 import './styles/controls.css';
 import './styles/workspace.css';
 import './styles/timeline.css';
+import './styles/media-layers.css';
 import './styles/captions.css';
 import './styles/conversion.css';
 import './styles/settings.css';

@@ -1,3 +1,4 @@
+import { parseMediaLayers } from './media-layers';
 import { parseCutout } from './cutout';
 import { parseRetouch } from './retouch';
 import { parseImageMetadata } from './image-metadata';
@@ -82,6 +83,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const c = e.crop === null ? null : record(e.crop);
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
+    mediaLayers: parseMediaLayers(e.mediaLayers),
     imageLayers: parseImageLayers(e.imageLayers),
     shape: parseShape(e.shape),
     retouch: parseRetouch(e.retouch),
@@ -296,6 +298,17 @@ export function createProject(
               : instance,
           ),
           audioLayers: portableLayers(edit.audioLayers),
+          mediaLayers: edit.mediaLayers?.map((layer) => {
+            const source =
+              assets.find((a) => a.id === layer.sourceId && sameLayerSource(layer.source, a)) ??
+              assets.find((a) => sameLayerSource(layer.source, a));
+            if (!source)
+              throw new Error(
+                `Restore the source for “${layer.source.name}” before saving this project.`,
+              );
+            const { sourceId: _id, ...portable } = layer;
+            return { ...portable, sourceIndex: assets.findIndex((a) => a.id === source.id) };
+          }),
         },
       };
       function portableLayers(layers: EditSettings['audioLayers']) {
