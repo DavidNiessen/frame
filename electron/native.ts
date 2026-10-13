@@ -4,6 +4,9 @@ import type { RecipeResources } from '../src/core/resources';
 import { editedDuration } from '../src/core/timeline';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { portableToolPath } from './tool-paths';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { buildExportArgs } from '../src/core/export-plan';
@@ -98,6 +101,28 @@ export function runFfmpeg(
   progress: (ratio: number) => void,
   onLog?: (line: string) => void,
 ): { child: ChildProcess; done: Promise<void> } {
+  // Windows limits the whole command line to 32 KiB. Animation expressions can exceed it.
+  let filterDirectory: string | undefined;
+  const scriptPlan = [...plan];
+  try {
+    for (let index = 0; index < scriptPlan.length - 1; index++) {
+      const option = scriptPlan[index];
+      if ((option !== '-vf' && option !== '-filter_complex') || scriptPlan[index + 1].length < 8000)
+        continue;
+      filterDirectory ??= mkdtempSync(join(tmpdir(), 'frame-filters-'));
+      const path = join(filterDirectory, `filter-${index}.txt`);
+      writeFileSync(path, scriptPlan[index + 1]);
+      scriptPlan[index] = option === '-vf' ? '-filter_script:v' : '-filter_complex_script';
+      scriptPlan[++index] = path;
+    }
+  } catch (error) {
+    if (filterDirectory) rmSync(filterDirectory, { recursive: true, force: true });
+    throw error;
+  }
+  const cleanup = () => {
+    if (filterDirectory) rmSync(filterDirectory, { recursive: true, force: true });
+    filterDirectory = undefined;
+  };
   const args = [
     '-hide_banner',
     '-nostdin',
@@ -110,9 +135,17 @@ export function runFfmpeg(
     '2',
     '-threads',
     '2',
-    ...plan,
+    ...scriptPlan,
   ];
-  const child = spawn(ffmpegPath(), args, { windowsHide: true });
+  let child: ChildProcess;
+  try {
+    child = spawn(ffmpegPath(), args, { windowsHide: true });
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+  child.once('error', cleanup);
+  child.once('close', cleanup);
   let errors = '';
   let pending = '';
   child.stdout!.on('data', (data) => {

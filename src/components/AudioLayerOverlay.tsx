@@ -10,11 +10,15 @@ export function AudioLayerOverlay({
   editor,
   close,
   keepView = false,
+  current = 0,
+  seek,
 }: {
   id: string;
   editor: Editor;
   close: () => void;
   keepView?: boolean;
+  current?: number;
+  seek?: (output: number) => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null),
     heading = useId(),
@@ -56,7 +60,7 @@ export function AudioLayerOverlay({
       </header>
       <div className="effect-overlay-body">
         <fieldset disabled={!!editor.busy}>
-          <AudioLayerControls editor={editor} layer={layer} />
+          <AudioLayerControls editor={editor} layer={layer} current={current} seek={seek} />
         </fieldset>
       </div>
       <footer className="effect-overlay-footer">

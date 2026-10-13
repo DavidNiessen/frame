@@ -1,3 +1,4 @@
+import { shiftKeyframes } from '../core/keyframes';
 import { allAudioLayers, updateAudioLayers } from '../core/effect-instances';
 import { Waveform } from './Waveform';
 import { layerWaveformPoints, audioLayerSource } from '../core/audio-layers';
@@ -47,6 +48,10 @@ export function AudioLayerLanes({
             length = next.end - next.start;
           return {
             ...next,
+            volumeKeyframes:
+              'sourceStart' in values && values.start !== undefined
+                ? shiftKeyframes(layer.volumeKeyframes, next.start - layer.start)
+                : next.volumeKeyframes,
             fadeIn: Math.min(next.fadeIn, length),
             fadeOut: Math.min(next.fadeOut, length),
           };
@@ -68,6 +73,11 @@ export function AudioLayerLanes({
           layer={layer}
           index={index}
           duration={duration}
+          maximum={
+            edit.mediaLayers?.some((item) => item.audioLayerId === layer.id)
+              ? Math.min(duration, layer.start + layer.source.duration - layer.sourceStart)
+              : duration
+          }
           axisDuration={axisDuration}
           source={audioLayerSource(layer, assets)}
           points={waveforms[audioLayerSource(layer, assets)?.id ?? '']}
@@ -90,6 +100,7 @@ export function AudioLayerLanes({
 }
 function AudioLayerBar({
   axisDuration,
+  maximum,
   layer,
   index,
   duration,
@@ -103,6 +114,7 @@ function AudioLayerBar({
   select,
 }: {
   axisDuration: number;
+  maximum: number;
   select: () => void;
   remove: () => void;
   source?: MediaAsset;
@@ -148,7 +160,7 @@ function AudioLayerBar({
           range={shown}
           limits={{
             start: Math.max(0, layer.start - (layer.loop ? layer.start : layer.sourceStart)),
-            end: duration,
+            end: maximum,
           }}
           duration={axisDuration}
           snapSpace="output"

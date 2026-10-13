@@ -1,3 +1,10 @@
+import {
+  parseMediaAnimation,
+  shiftMediaAnimation,
+  shiftKeyframes,
+  setKeyframe,
+  type MediaAnimation,
+} from './keyframes';
 import { defaultCurves, parseCurves, type Curves } from './curves';
 import { sameLayerSource } from './audio-layers';
 import { parseVisual, defaultVisual, type VisualSettings } from './visual-settings';
@@ -23,6 +30,7 @@ export interface MediaLayer extends TimeRange {
   locked: boolean;
   visual: VisualSettings;
   curves?: Curves;
+  animation?: MediaAnimation;
   audioLayerId?: string;
 }
 export function parseMediaLayers(input: unknown): MediaLayer[] {
@@ -103,6 +111,7 @@ export function parseMediaLayers(input: unknown): MediaLayer[] {
     ids.add(value.id);
     return {
       ...structuredClone(value),
+      animation: parseMediaAnimation(value.animation),
       curves: parseCurves(value.curves),
       visual: parseVisual(value.visual),
     };
@@ -193,6 +202,10 @@ export function changeMediaLayer(
                   end: next.end,
                   sourceStart: next.sourceStart,
                   sourceEnd: next.sourceEnd,
+                  volumeKeyframes:
+                    patch.sourceStart !== undefined && patch.sourceStart !== layer.sourceStart
+                      ? shiftKeyframes(item.volumeKeyframes, next.start - layer.start)
+                      : item.volumeKeyframes,
                   fadeIn: Math.min(item.fadeIn, next.end - next.start),
                   fadeOut: Math.min(item.fadeOut, next.end - next.start),
                 }
@@ -229,6 +242,7 @@ export function resizeMediaLayer(
     end: range.end,
     sourceStart,
     sourceEnd,
+    ...(!move && delta ? { animation: shiftMediaAnimation(layer.animation, delta) } : {}),
   });
 }
 export function splitMediaLayer(edit: EditSettings, id: string, at: number): Partial<EditSettings> {
@@ -241,6 +255,7 @@ export function splitMediaLayer(edit: EditSettings, id: string, at: number): Par
       ...layer,
       id: secondId,
       start: at,
+      animation: shiftMediaAnimation(layer.animation, at - layer.start),
       ...(layer.source.kind === 'video' ? { sourceStart: sourceAt } : {}),
     };
   const audio = edit.audioLayers?.find((a) => a.id === layer.audioLayerId),
@@ -250,8 +265,22 @@ export function splitMediaLayer(edit: EditSettings, id: string, at: number): Par
           a.id !== audio.id
             ? [a]
             : [
-                { ...a, end: at, sourceEnd: sourceAt },
-                { ...a, id: audioId!, start: at, sourceStart: sourceAt },
+                {
+                  ...a,
+                  end: at,
+                  sourceEnd: sourceAt,
+                  fadeIn: Math.min(a.fadeIn, at - layer.start),
+                  fadeOut: Math.min(a.fadeOut, at - layer.start),
+                },
+                {
+                  ...a,
+                  id: audioId!,
+                  start: at,
+                  sourceStart: sourceAt,
+                  volumeKeyframes: shiftKeyframes(a.volumeKeyframes, at - layer.start),
+                  fadeIn: Math.min(a.fadeIn, layer.end - at),
+                  fadeOut: Math.min(a.fadeOut, layer.end - at),
+                },
               ],
         )
       : undefined;
@@ -260,4 +289,21 @@ export function splitMediaLayer(edit: EditSettings, id: string, at: number): Par
     mediaLayers: edit.mediaLayers!.flatMap((l) => (l.id === id ? [left, right] : [l])),
     ...(audioLayers ? { audioLayers } : {}),
   };
+}
+
+export function recordMediaChange(
+  edit: EditSettings,
+  layer: MediaLayer,
+  patch: Partial<MediaLayer>,
+  time: number,
+): Partial<EditSettings> {
+  const animation = { ...layer.animation };
+  for (const property of ['x', 'y', 'width', 'height', 'opacity'] as const)
+    if (animation[property] && patch[property] !== undefined)
+      animation[property] = setKeyframe(
+        animation[property],
+        Math.max(0, Math.min(layer.end - layer.start, time - layer.start)),
+        patch[property]!,
+      );
+  return changeMediaLayer(edit, layer.id, { ...patch, ...(layer.animation ? { animation } : {}) });
 }

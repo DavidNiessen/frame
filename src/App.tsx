@@ -51,7 +51,7 @@ import { usePreferences } from './hooks/usePreferences';
 import { EditorWorkspace, type WorkspaceLayout } from './components/layout/EditorWorkspace';
 import { useExpandedPreview } from './hooks/useExpandedPreview';
 import { useDesktopChrome } from './hooks/useDesktopChrome';
-import { outputTimeAtSource } from './core/fades';
+import { sourceTimeAtOutput, outputTimeAtSource } from './core/fades';
 import { useEditorShortcuts } from './hooks/useEditorShortcuts';
 export default function App() {
   return (
@@ -651,6 +651,8 @@ function FrameApp() {
         <MediaLayerOverlay
           key={`${editor.asset.id}-${openMediaLayer.id}`}
           id={openMediaLayer.id}
+          current={outputPosition}
+          seek={(output) => seek(sourceTimeAtOutput(editor.edit!, output), output)}
           editor={editor}
           close={() => setOpenMediaLayer(null)}
           keepView={openMediaLayer.keepView}
@@ -660,6 +662,8 @@ function FrameApp() {
         <AudioLayerOverlay
           key={`${editor.asset.id}-${openLayer.id}`}
           id={openLayer.id}
+          current={outputPosition}
+          seek={(output) => seek(sourceTimeAtOutput(editor.edit!, output), output)}
           keepView={openLayer.keepView}
           editor={editor}
           close={() => setOpenLayer(null)}

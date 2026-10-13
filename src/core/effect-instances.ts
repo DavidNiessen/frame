@@ -1,3 +1,4 @@
+import { shiftMediaAnimation } from './keyframes';
 import {
   effectLibrary,
   mediaLayerEffect,
@@ -281,7 +282,11 @@ export function updateAudioLayers(
   edit: EditSettings,
   layers: EditSettings['audioLayers'],
 ): Partial<EditSettings> {
-  const next = layers ?? [],
+  const next = (layers ?? []).map((audio) =>
+      edit.mediaLayers?.some((layer) => layer.audioLayerId === audio.id)
+        ? { ...audio, sourceEnd: audio.sourceStart + audio.end - audio.start, loop: false }
+        : audio,
+    ),
     primaryIds = new Set((edit.audioLayers ?? []).map((layer) => layer.id));
   return {
     audioLayers: next.filter((layer) => primaryIds.has(layer.id)),
@@ -302,6 +307,10 @@ export function updateAudioLayers(
                   end: linked.end,
                   sourceStart: linked.sourceStart,
                   sourceEnd: linked.sourceEnd,
+                  animation:
+                    linked.sourceStart !== previous.sourceStart
+                      ? shiftMediaAnimation(layer.animation, linked.start - previous.start)
+                      : layer.animation,
                 }
               : layer.audioLayerId && !linked
                 ? { ...layer, audioLayerId: undefined }

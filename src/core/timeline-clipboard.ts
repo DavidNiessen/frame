@@ -45,7 +45,9 @@ export function clipboardUnavailable(
       ? 'Visual tracks need a video timeline.'
       : (edit.mediaLayers?.length ?? 0) >= 16
         ? 'Use up to 16 visual layers.'
-        : undefined;
+        : value.audio && allAudioLayers(edit).length >= 16
+          ? 'Use up to 16 audio layers.'
+          : undefined;
   if (value.kind === 'audio')
     return allAudioLayers(edit).length >= 16 ? 'Use up to 16 audio layers.' : undefined;
   const effect = definitionFor(value.instance.effect);

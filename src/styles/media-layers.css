@@ -70,3 +70,33 @@
 .asset:has(.asset-insert) .asset-layer {
   right: 55px;
 }
+.keyframe-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.keyframe-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.keyframe-list .selected {
+  color: var(--accent-text);
+  background: var(--accent-dim);
+}
+.keyframe-editor > .switch-row {
+  margin-bottom: 14px;
+}
+
+.timeline-keyframe-dot {
+  position: absolute;
+  bottom: 3px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-text);
+  border: 1px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
+  pointer-events: none;
+}

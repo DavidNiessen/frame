@@ -1,3 +1,4 @@
+import { MediaLayerAnimation } from './MediaLayerAnimation';
 import { useEffect, useId, useRef } from 'react';
 import { Layers, Trash2, X, Lock, Unlock } from 'lucide-react';
 import { useInspectorOverlay } from '../hooks/useInspectorOverlay';
@@ -11,8 +12,12 @@ export function MediaLayerOverlay({
   editor,
   close,
   keepView = false,
+  current,
+  seek,
 }: {
   id: string;
+  current: number;
+  seek: (output: number) => void;
   editor: Editor;
   close: () => void;
   keepView?: boolean;
@@ -64,7 +69,8 @@ export function MediaLayerOverlay({
               opacityControl={false}
             />
           )}
-          <MediaLayerControls editor={editor} layer={layer} />
+          <MediaLayerControls editor={editor} layer={layer} current={current} />
+          <MediaLayerAnimation editor={editor} layer={layer} current={current} seek={seek} />
         </fieldset>
       </div>
       <footer className="effect-overlay-footer">

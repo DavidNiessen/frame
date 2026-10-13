@@ -1,12 +1,23 @@
+import { animatedMedia } from '../core/keyframes';
+import { recordMediaChange } from '../core/media-layers';
 import { CurvesControls } from './CurvesControls';
 import { useState } from 'react';
 import { visualIds, visualControls, type VisualEffect } from '../core/visual-settings';
-import { changeMediaLayer, type MediaLayer } from '../core/media-layers';
+import { type MediaLayer } from '../core/media-layers';
 import { VisualEffectControls } from './VisualEffectControls';
 import type { Editor } from '../hooks/useEditor';
-export function MediaLayerControls({ editor, layer }: { editor: Editor; layer: MediaLayer }) {
+export function MediaLayerControls({
+  editor,
+  layer,
+  current = 0,
+}: {
+  editor: Editor;
+  layer: MediaLayer;
+  current?: number;
+}) {
   const edit = editor.edit!,
-    change = (patch: Partial<MediaLayer>) => editor.update(changeMediaLayer(edit, layer.id, patch)),
+    change = (patch: Partial<MediaLayer>) =>
+      editor.update(recordMediaChange(edit, layer, patch, current)),
     [appearance, setAppearance] = useState<VisualEffect>('exposure'),
     index = edit.mediaLayers!.findIndex((item) => item.id === layer.id),
     audio = edit.audioLayers?.find((a) => a.id === layer.audioLayerId);
@@ -17,6 +28,7 @@ export function MediaLayerControls({ editor, layer }: { editor: Editor; layer: M
     [layers[index], layers[next]] = [layers[next], layers[index]];
     editor.update({ mediaLayers: layers });
   }
+  const shown = animatedMedia(layer, layer.animation, current - layer.start);
   return (
     <>
       <section className="control-section">
@@ -34,7 +46,7 @@ export function MediaLayerControls({ editor, layer }: { editor: Editor; layer: M
                 min={key === 'x' || key === 'y' ? -100 : 1}
                 max={200}
                 step={1}
-                value={layer[key]}
+                value={Number(shown[key].toFixed(3))}
                 onChange={(e) => change({ [key]: Number(e.target.value) })}
               />
             </label>
@@ -53,14 +65,14 @@ export function MediaLayerControls({ editor, layer }: { editor: Editor; layer: M
           </select>
         </label>
         <label className="stacked-label">
-          Opacity · {Math.round(layer.opacity * 100)}%
+          Opacity · {Math.round(shown.opacity * 100)}%
           <input
             aria-label="Media layer opacity"
             type="range"
             min={0}
             max={1}
             step={0.01}
-            value={layer.opacity}
+            value={shown.opacity}
             onChange={(e) => change({ opacity: Number(e.target.value) })}
           />
         </label>

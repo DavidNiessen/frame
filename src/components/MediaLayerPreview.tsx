@@ -1,7 +1,9 @@
-import { useContext } from 'react';
+import { animatedMedia } from '../core/keyframes';
+import { recordMediaChange } from '../core/media-layers';
+import { useContext, useMemo } from 'react';
 import { FrameObject } from './FrameObject';
 import { FrameInteractionContext } from './frame-interaction';
-import { changeMediaLayer, mediaLayerSource, type MediaLayer } from '../core/media-layers';
+import { mediaLayerSource, type MediaLayer } from '../core/media-layers';
 import type { EditSettings, MediaAsset } from '../core/types';
 export function MediaLayerPreview({
   edit,
@@ -27,31 +29,39 @@ export function MediaLayerPreview({
   image?: boolean;
 }) {
   const interaction = useContext(FrameInteractionContext);
+  const shown = useMemo(
+    () =>
+      (edit.mediaLayers ?? []).map((layer) => ({
+        layer,
+        value: animatedMedia(layer, layer.animation, position - layer.start),
+      })),
+    [edit.mediaLayers, position],
+  );
   return (
     <div
       className={`media-layer-frame-area ${image ? 'image-media-area' : 'video-media-area'}`}
       data-frame-area
     >
-      {(edit.mediaLayers ?? [])
+      {shown
         .filter(
-          (layer) =>
+          ({ layer }) =>
             !layer.hidden &&
             (!onlyId || layer.id === onlyId) &&
             (image || (position >= layer.start && position < layer.end)),
         )
-        .map((layer) => {
+        .map(({ layer, value }) => {
           const source = mediaLayerSource(layer, assets);
           return (
             <FrameObject<MediaLayer>
               key={layer.id}
-              value={layer}
+              value={value}
               className="media-layer-object"
               label={`Move ${layer.source.name} layer`}
               selected={selectedId === layer.id}
               disabled={disabled || layer.locked}
               select={() => openLayer(layer.id, true)}
               pause={pause}
-              commit={(next) => update(changeMediaLayer(edit, layer.id, next))}
+              commit={(next) => update(recordMediaChange(edit, layer, next, position))}
               style={(value) => ({
                 left: `${value.x}%`,
                 top: `${value.y}%`,

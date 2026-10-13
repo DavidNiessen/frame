@@ -1,3 +1,4 @@
+import { parseKeyframeTrack, keyframeExpression, type KeyframeTrack } from './keyframes';
 import { allAudioLayers, extraInstances } from './effect-instances';
 import { timelineFadeFilter } from './timeline-effects';
 import { duckMusicGraph } from './audio-ducking';
@@ -15,6 +16,7 @@ export interface AudioLayer {
   sourceStart: number;
   sourceEnd: number;
   volume: number;
+  volumeKeyframes?: KeyframeTrack;
   fadeIn: number;
   fadeOut: number;
   loop: boolean;
@@ -124,6 +126,7 @@ export function parseAudioLayers(value: unknown): AudioLayer[] {
       throw new Error('Invalid audio track timing, fades or volume.');
     if (layer.loop && layer.sourceEnd - layer.sourceStart > 300)
       throw new Error('Loop a source segment of up to five minutes to limit memory use.');
+    const volumeKeyframes = parseKeyframeTrack(layer.volumeKeyframes, 0, 3);
     const { name, size, kind, duration, hasAudio, width, height, fingerprint } = source;
     return {
       id: layer.id,
@@ -145,6 +148,7 @@ export function parseAudioLayers(value: unknown): AudioLayer[] {
       sourceStart: layer.sourceStart,
       sourceEnd: layer.sourceEnd,
       volume: layer.volume,
+      ...(volumeKeyframes ? { volumeKeyframes } : {}),
       fadeIn: layer.fadeIn,
       fadeOut: layer.fadeOut,
       loop: layer.loop,
@@ -201,7 +205,12 @@ export function audioMixGraph(
       'aformat=sample_fmts=fltp:channel_layouts=stereo',
     ];
     if (layer.loop) filters.push(`aloop=loop=-1:size=${Math.round(segment * 48000)}`);
-    filters.push(`atrim=duration=${length}`, `volume=${layer.volume}`);
+    filters.push(
+      `atrim=duration=${length}`,
+      layer.volumeKeyframes
+        ? `volume='${keyframeExpression(layer.volumeKeyframes, layer.volume)}':eval=frame`
+        : `volume=${layer.volume}`,
+    );
     if (layer.fadeIn) filters.push(`afade=t=in:d=${layer.fadeIn}`);
     if (layer.fadeOut)
       filters.push(`afade=t=out:st=${Math.max(0, length - layer.fadeOut)}:d=${layer.fadeOut}`);

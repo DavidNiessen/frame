@@ -1,3 +1,6 @@
+import { changeMediaLayer } from '../core/media-layers';
+import { keyframeValue, setKeyframe } from '../core/keyframes';
+import { KeyframeEditor } from './KeyframeEditor';
 import { useRef } from 'react';
 import { useMonitorMediaVolume } from '../hooks/useMonitorVolume';
 import { TransientMessage } from './TransientMessage';
@@ -12,9 +15,20 @@ import { TimelineRange } from './TimelineRange';
 import { LoudnessControls } from './LoudnessControls';
 import { time } from '../core/format';
 
-export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: AudioLayer }) {
+export function AudioLayerControls({
+  editor,
+  layer,
+  current = 0,
+  seek = () => {},
+}: {
+  editor: Editor;
+  layer: AudioLayer;
+  current?: number;
+  seek?: (output: number) => void;
+}) {
   const preview = useAudioPreview(editor),
     edit = editor.edit!,
+    linkedPicture = edit.mediaLayers?.find((picture) => picture.audioLayerId === layer.id),
     tracks = allAudioLayers(edit),
     index = tracks.findIndex((item) => item.id === layer.id) + 1;
   const patch = (values: Partial<AudioLayer>) =>
@@ -23,7 +37,19 @@ export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: A
         edit,
         tracks.map((item) => {
           if (item.id !== layer.id) return item;
-          const next = { ...item, ...values };
+          const next = {
+            ...item,
+            ...values,
+            ...(item.volumeKeyframes && values.volume !== undefined
+              ? {
+                  volumeKeyframes: setKeyframe(
+                    item.volumeKeyframes,
+                    Math.max(0, Math.min(layer.end - layer.start, current - layer.start)),
+                    values.volume,
+                  ),
+                }
+              : {}),
+          };
           return {
             ...next,
             fadeIn: Math.min(next.fadeIn, next.end - next.start),
@@ -36,6 +62,17 @@ export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: A
   useMonitorMediaVolume(audio, preview.url);
   return (
     <div className="audio-layer-controls">
+      <KeyframeEditor
+        label="Volume"
+        track={layer.volumeKeyframes}
+        value={keyframeValue(layer.volumeKeyframes, current - layer.start, layer.volume)}
+        min={0}
+        max={3}
+        current={current - layer.start}
+        duration={layer.end - layer.start}
+        change={(track) => patch({ volumeKeyframes: track })}
+        seek={(at) => seek(layer.start + at)}
+      />
       {!audioLayerSource(layer, editor.assets) && (
         <p className="field-note" role="alert">
           Import this source to restore its audio layer.
@@ -48,14 +85,18 @@ export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: A
           bar to move it, or its edges to trim.
         </p>
         <label className="stacked-label">
-          Volume · {Math.round(layer.volume * 100)}%
+          Volume ·{' '}
+          {Math.round(
+            keyframeValue(layer.volumeKeyframes, current - layer.start, layer.volume) * 100,
+          )}
+          %
           <input
             type="range"
             aria-label={`Track ${index} volume`}
             min={0}
             max={3}
             step={0.01}
-            value={layer.volume}
+            value={keyframeValue(layer.volumeKeyframes, current - layer.start, layer.volume)}
             onChange={(event) => patch({ volume: Number(event.target.value) })}
           />
         </label>
@@ -74,7 +115,7 @@ export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: A
             type="checkbox"
             aria-label={`Loop track ${index}`}
             checked={layer.loop}
-            disabled={layer.sourceEnd - layer.sourceStart > 300}
+            disabled={!!linkedPicture || layer.sourceEnd - layer.sourceStart > 300}
             onChange={(event) => patch({ loop: event.target.checked })}
           />
         </label>
@@ -102,6 +143,19 @@ export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: A
             onChange={(event) => patch({ fadeOut: Number(event.target.value) })}
           />
         </label>
+        {linkedPicture && (
+          <div className="field-note">
+            Picture and audio stay synchronized.{' '}
+            <button
+              className="button subtle small"
+              onClick={() =>
+                editor.update(changeMediaLayer(edit, linkedPicture.id, { audioLayerId: undefined }))
+              }
+            >
+              Unlink picture and audio
+            </button>
+          </div>
+        )}
         <details className="audio-source-excerpt">
           <summary>
             Source excerpt · {time(layer.sourceStart)}–{time(layer.sourceEnd)}
@@ -114,7 +168,7 @@ export function AudioLayerControls({ editor, layer }: { editor: Editor; layer: A
                 limits={{ start: 0, end: layer.source.duration }}
                 duration={layer.source.duration}
                 label={`Track ${index} source excerpt`}
-                disabled={false}
+                disabled={!!linkedPicture}
                 onSelect={() => {}}
                 onChange={(range) =>
                   patch({

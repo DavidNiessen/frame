@@ -92,6 +92,27 @@ export function MediaLayerLanes({
                 label: 'Delete visual track',
                 run: () => update(removeMediaLayer(edit, layer.id)),
               }}
+              renderContent={() => (
+                <>
+                  {[
+                    ...new Set(
+                      Object.values(layer.animation ?? {}).flatMap(
+                        (track) => track?.keys.map((key) => key.time) ?? [],
+                      ),
+                    ),
+                  ]
+                    .filter((at) => at >= 0 && at <= layer.end - layer.start)
+                    .map((at) => (
+                      <span
+                        key={at}
+                        className="timeline-keyframe-dot"
+                        style={{ left: `${(at / (layer.end - layer.start)) * 100}%` }}
+                        title={`Keyframe at ${at.toFixed(2)}s`}
+                        aria-hidden="true"
+                      />
+                    ))}
+                </>
+              )}
               onSplit={(at) => update(splitMediaLayer(edit, layer.id, at))}
             />
           </div>
