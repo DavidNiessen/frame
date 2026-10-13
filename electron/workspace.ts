@@ -36,7 +36,7 @@ export function registerWorkspace(
     const inputs = ids.map((id) => {
       const item = assets.get(id);
       if (!item) throw new Error('The workspace source is unavailable.');
-      return { ...item, temporary: imports.temporary(id) };
+      return { ...item, path: item.originalPath ?? item.path, temporary: imports.temporary(id) };
     });
     await store.save(document, inputs);
   });

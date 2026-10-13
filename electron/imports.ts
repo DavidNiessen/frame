@@ -1,3 +1,8 @@
+import type { SessionAssets } from './media-session';
+import { prepareImageSource } from './image-source';
+import { readImageMetadata } from '../src/core/image-metadata';
+import { nativeSourceFingerprint } from './source-fingerprint';
+import { readFile, rm } from 'node:fs/promises';
 import type { WindowIpc } from './window-ipc';
 import { dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { basename } from 'node:path';
@@ -12,13 +17,14 @@ import type { LaunchInbox } from './launch-inbox';
 import { registerUrlImports } from './url-imports';
 
 export function registerImports(
-  assets: Map<string, { path: string; asset: MediaAsset }>,
+  assets: SessionAssets,
   jobs: MediaJobs,
   window: () => BrowserWindow,
   trusted: (event: IpcMainInvokeEvent) => void,
   launches: LaunchInbox,
   ipc: WindowIpc = ipcMain,
 ) {
+  const decodedDirectories = new Map<string, string>();
   async function read(
     event: IpcMainInvokeEvent,
     inputs: { path: string; relativePath?: string }[],
@@ -29,7 +35,9 @@ export function registerImports(
   ): Promise<ImportReport> {
     const key = (path: string) => (process.platform === 'win32' ? path.toLowerCase() : path);
     const existing = new Map(
-      reuse ? [...assets.values()].map((item) => [key(item.path), item.asset]) : [],
+      reuse
+        ? [...assets.values()].map((item) => [key(item.originalPath ?? item.path), item.asset])
+        : [],
     );
     if (
       inputs.filter((input) => !existing.has(key(input.path))).length + assets.size >
@@ -43,13 +51,16 @@ export function registerImports(
     for (let index = 0; index < inputs.length; index += 4) {
       const results = await Promise.all(
         inputs.slice(index, index + 4).map(async (input) => {
+          let prepared: Awaited<ReturnType<typeof prepareImageSource>> | undefined;
+          let stored = false;
           try {
             const previous = existing.get(key(input.path));
             if (previous) return { asset: previous };
             const id = randomUUID();
+            prepared = await prepareImageSource(input.path, jobs.signal);
             const asset: MediaAsset = {
               ...(await probeFile(
-                input.path,
+                prepared.path,
                 rawOnly ? { rawOnly, signal: jobs.signal } : undefined,
               )),
               id,
@@ -57,9 +68,24 @@ export function registerImports(
               relativePath: input.relativePath,
               previewUrl: `media://asset/${id}`,
             };
+            if (prepared.directory) {
+              const info = await stat(input.path);
+              asset.size = info.size;
+              asset.fingerprint = await nativeSourceFingerprint(input.path, info.size);
+              asset.imageMetadata = {
+                ...prepared.metadata,
+                ...(await readImageMetadata(await readFile(input.path))),
+              };
+            }
             if (rawOnly && jobs.signal.aborted) throw new Error('URL import cancelled.');
             if (event.sender.isDestroyed()) throw new Error('The window was closed.');
-            assets.set(id, { path: input.path, asset });
+            assets.set(id, {
+              path: prepared.path,
+              asset,
+              ...(prepared.directory ? { originalPath: input.path } : {}),
+            });
+            if (prepared.directory) decodedDirectories.set(id, prepared.directory);
+            stored = true;
             return { asset };
           } catch (error) {
             return {
@@ -71,6 +97,9 @@ export function registerImports(
                     : 'Unable to read this file.',
               },
             };
+          } finally {
+            if (prepared?.directory && !stored)
+              await rm(prepared.directory, { recursive: true, force: true });
           }
         }),
       );
@@ -153,5 +182,22 @@ export function registerImports(
     (event, inputs) => read(event, inputs, 0, undefined, false, true),
     ipc,
   );
-  return { ...downloads, read };
+  return {
+    ...downloads,
+    read,
+    release: async (id: string) => {
+      await downloads.release(id);
+      const directory = decodedDirectories.get(id);
+      if (directory) {
+        await rm(directory, { recursive: true, force: true });
+        decodedDirectories.delete(id);
+      }
+    },
+    clear: () => {
+      downloads.clear();
+      for (const directory of decodedDirectories.values())
+        void rm(directory, { recursive: true, force: true });
+      decodedDirectories.clear();
+    },
+  };
 }

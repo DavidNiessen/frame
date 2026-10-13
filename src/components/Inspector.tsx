@@ -46,7 +46,7 @@ export function Inspector({
           <p>Choose an image, video or audio file to edit or convert.</p>
           <div className="supported-formats">
             <span>IMAGES</span>
-            <p>PNG · JPEG · WebP · TIFF · BMP · AVIF</p>
+            <p>PNG · JPEG · WebP · TIFF · HEIC · RAW</p>
             <span>VIDEO</span>
             <p>MP4 · MOV · WebM · MKV · GIF</p>
             <span>AUDIO</span>

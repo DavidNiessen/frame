@@ -1,3 +1,6 @@
+import { prepareImageSource } from './image-source';
+import { nativeSourceFingerprint } from './source-fingerprint';
+import { readImageMetadata } from '../src/core/image-metadata';
 import { writeImageMetadata } from '../src/core/image-metadata-export';
 import { recordExport } from './export-history';
 import {
@@ -56,14 +59,25 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
       work.signal.addEventListener('abort', cancel, { once: true });
       if (work.signal.aborted) cancel();
       let temporary: string | undefined;
+      let decodedDirectory: string | undefined;
       try {
+        const prepared = await prepareImageSource(source, jobs.signal);
+        decodedDirectory = prepared.directory;
         const asset = {
-          ...(await probeFile(source, { rawOnly: true, signal: jobs.signal })),
+          ...(await probeFile(prepared.path, { rawOnly: true, signal: jobs.signal })),
           id: randomUUID(),
           name: basename(source),
           relativePath: work.relativePath,
           previewUrl: '',
         };
+        if (prepared.directory) {
+          asset.size = original.size;
+          asset.fingerprint = await nativeSourceFingerprint(source, original.size);
+          asset.imageMetadata = {
+            ...prepared.metadata,
+            ...(await readImageMetadata(await readFile(source))),
+          };
+        }
         if (!canConvert(asset, work.watch.settings))
           throw new Error(
             `This source cannot be converted to ${work.watch.settings.format.toUpperCase()}.`,
@@ -85,7 +99,7 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
           async (paths) =>
             execute(
               runFfmpeg(
-                buildExportArgs(asset, edit, source, temporary!, paths[0]),
+                buildExportArgs(asset, edit, prepared.path, temporary!, paths[0]),
                 editedDuration(edit),
                 work.progress,
               ),
@@ -111,6 +125,7 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
       } finally {
         work.signal.removeEventListener('abort', cancel);
         if (temporary) await rm(temporary, { force: true });
+        if (decodedDirectory) await rm(decodedDirectory, { recursive: true, force: true });
       }
     });
   }, persist);

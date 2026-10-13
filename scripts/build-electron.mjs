@@ -8,7 +8,12 @@ await ensureFfmpeg();
 await ensureYoutubeTools();
 await prepareWindowsShell();
 await build({
-  entryPoints: ['electron/main.ts', 'electron/preload.ts', 'electron/update-worker.ts'],
+  entryPoints: [
+    'electron/main.ts',
+    'electron/preload.ts',
+    'electron/update-worker.ts',
+    'electron/image-decode-worker.ts',
+  ],
   outdir: 'dist-electron',
   outExtension: { '.js': '.cjs' },
   bundle: true,

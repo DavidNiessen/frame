@@ -8,6 +8,7 @@ const packages = [
   'lucide-react',
   'fflate',
   'exifr',
+  'libheif-js',
   '@fontsource/public-sans',
 ];
 
@@ -28,6 +29,16 @@ export async function prepareNotices(destination = 'public/notices') {
   const scheduler = JSON.parse(await readFile(join(schedulerRoot, 'package.json'), 'utf8'));
   await cp(join(schedulerRoot, 'LICENSE'), join(destination, 'scheduler-LICENSE.txt'));
   lines.push(`scheduler ${scheduler.version} (${scheduler.license}): scheduler-LICENSE.txt`);
+  for (const file of [
+    'IMAGE-DECODERS.txt',
+    'libraw-LGPL.txt',
+    'libraw-COPYRIGHT.txt',
+    'little-cms-LICENSE.txt',
+  ])
+    await cp(`vendor/licenses/${file}`, join(destination, file));
+  lines.push(
+    'libraw-wasm 1.6.0: see IMAGE-DECODERS.txt for the wrapper and bundled codec notices.',
+  );
   await cp('vendor/licenses/ffmpeg-wasm.LICENSE', join(destination, 'ffmpeg-wasm-LICENSE.txt'));
   await cp('vendor/licenses/GPL-2.0.txt', join(destination, 'GPL-2.0.txt'));
   await cp('vendor/licenses/LGPL-2.1.txt', join(destination, 'LGPL-2.1.txt'));

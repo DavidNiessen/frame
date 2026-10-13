@@ -24,3 +24,5 @@ pnpm-lock.yaml
 *.pem
 *.pfx
 *.p12
+
+public/image-decoders/

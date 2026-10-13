@@ -17,7 +17,7 @@ import { registerExports } from './exports';
 import type { LaunchInbox } from './launch-inbox';
 import { trustWindow, type WindowIpc } from './window-ipc';
 
-export type SessionAssets = Map<string, { path: string; asset: MediaAsset }>;
+export type SessionAssets = Map<string, { path: string; originalPath?: string; asset: MediaAsset }>;
 export function createMediaSession(
   window: BrowserWindow,
   launches: LaunchInbox,
@@ -41,7 +41,7 @@ export function createMediaSession(
   registerProjectSaving(
     () => window,
     trusted,
-    () => Array.from(assets.values(), (item) => item.path),
+    () => Array.from(assets.values(), (item) => item.originalPath ?? item.path),
     ipc,
   );
   registerExports(window, assets, jobs, folders, ipc);

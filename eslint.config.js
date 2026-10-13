@@ -15,6 +15,7 @@ module.exports = tseslint.config(
       'vendor/**',
       'native/**',
       'public/ffmpeg/**',
+      'public/image-decoders/**',
       'public/notices/**',
       '.local/**',
       'coverage/**',

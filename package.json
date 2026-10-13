@@ -36,6 +36,8 @@
     "@fontsource/public-sans": "^5.2.7",
     "exifr": "7.1.3",
     "fflate": "^0.8.3",
+    "libheif-js": "1.23.5",
+    "libraw-wasm": "1.6.0",
     "lucide-react": "^0.468.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
@@ -75,7 +77,8 @@
       "!dist/ffmpeg/**/*",
       "!node_modules/@ffmpeg/**/*",
       "!node_modules/@fontsource/**/*",
-      "!node_modules/{react,react-dom,scheduler,lucide-react,fflate}/**/*"
+      "!node_modules/{react,react-dom,scheduler,lucide-react,fflate}/**/*",
+      "!node_modules/{libraw-wasm,libheif-js,exifr}/**/*"
     ],
     "asarUnpack": [
       "node_modules/@ffprobe-installer/**"
@@ -136,6 +139,10 @@
           "THIRD_PARTY_LICENSES.txt",
           "TOOLS.txt"
         ]
+      },
+      {
+        "from": "public/image-decoders",
+        "to": "image-decoders"
       }
     ],
     "beforePack": "scripts/verify-package.cjs",

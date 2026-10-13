@@ -114,3 +114,5 @@ Frame's application code does not yet have a chosen open-source license. An expl
 Image exports also include credits and privacy controls: creator, copyright, description, optional camera information, and GPS location excluded by default. EXIF export is supported in JPEG, PNG, WebP, and TIFF; original files stay unchanged.
 
 Image retouch layers provide soft clone and healing brushes with editable strokes, an eraser, and per-layer undo. Choose a sample point with Alt/Option-click, then paint. Raster generation runs in a worker.
+
+HEIC/HEIF and common camera RAW files (DNG, CR2/CR3, NEF, ARW, RAF, RW2, and more) can be imported and batch converted locally on desktop and web. Portable decoder workers create lossless working PNGs while retaining the original files for recovery. RAW imports are developed to 8-bit sRGB; support depends on the camera and compression supported by the bundled LibRaw build.

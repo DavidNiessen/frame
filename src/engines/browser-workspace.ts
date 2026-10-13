@@ -13,13 +13,14 @@ export function browserWorkspace(
   engine: MediaEngine,
   files: Map<string, File>,
   sources: Map<string, MediaAsset>,
+  originals?: Map<string, File>,
 ): Pick<MediaEngine, 'saveWorkspace' | 'recoverWorkspace' | 'discardWorkspace'> {
   const retainedIds = new Map<string, string>();
   return {
     async saveWorkspace(document, ids) {
       const media = new Map<string, RetainedMedia>();
       for (const id of ids) {
-        const file = files.get(id);
+        const file = originals?.get(id) ?? files.get(id);
         if (!file) throw new Error('The workspace is missing source media.');
         media.set(retainedIds.get(id) ?? id, {
           blob: file,

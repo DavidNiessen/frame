@@ -6,6 +6,7 @@ build/
 vendor/
 native/windows-shell/
 public/ffmpeg/
+public/image-decoders/
 public/notices/
 .local/
 coverage/

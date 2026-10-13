@@ -1,3 +1,4 @@
+import { prepareImageDecoders } from './prepare-image-decoders.mjs';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -53,3 +54,4 @@ for (const [source, destination] of [
 }
 
 await prepareNotices();
+await prepareImageDecoders();

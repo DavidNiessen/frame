@@ -1,3 +1,4 @@
+import { browserImageSource } from './browser-image-source';
 import { readImageMetadata } from '../core/image-metadata';
 import { writeImageMetadata } from '../core/image-metadata-export';
 import { browserImageEncoding, renderedImagePath } from './browser-image-encoding';
@@ -38,11 +39,21 @@ export function createBrowserEngine(): MediaEngine {
     background = browserRuntime();
   const ready = runtime.ready;
   const files = new Map<string, File>(),
+    originals = new Map<string, File>(),
     sources = new Map<string, MediaAsset>();
   const joined = browserJoinedPreview(files, sources);
   const prepared = browserPreparedMedia(files, sources);
   let cancelled = false;
   let download: AbortController | null = null;
+  let importing: AbortController | null = null;
+  const retainedSize = () =>
+    [...files.entries()].reduce(
+      (sum, [id, file]) =>
+        sum +
+        file.size +
+        (originals.get(id) && originals.get(id) !== file ? originals.get(id)!.size : 0),
+      0,
+    );
   let batchOptions: BatchOptions = {};
   const engine: MediaEngine = {
     platform: 'web',
@@ -57,8 +68,7 @@ export function createBrowserEngine(): MediaEngine {
       if (source) throw new Error(desktopImportMessage(source));
       if (files.size >= MAX_IMPORT_FILES)
         throw new Error('The library is full. Remove some files before importing another URL.');
-      const remaining =
-        MAX_WEB_LIBRARY_SIZE - [...files.values()].reduce((size, file) => size + file.size, 0);
+      const remaining = MAX_WEB_LIBRARY_SIZE - retainedSize();
       if (remaining <= 0)
         throw new Error('The browser library is limited to 800 MB. Remove files or use desktop.');
       const controller = new AbortController();
@@ -116,7 +126,9 @@ export function createBrowserEngine(): MediaEngine {
       if (!media.length) return report;
       onProgress?.({ ratio: 0, message: 'Loading the local media engine…' });
       const ff = await ready();
-      let retained = [...files.values()].reduce((sum, file) => sum + file.size, 0);
+      let retained = retainedSize();
+      const controller = new AbortController();
+      importing = controller;
       for (const [index, file] of media.entries()) {
         const id = crypto.randomUUID();
         const input = `input-${id}`;
@@ -130,7 +142,14 @@ export function createBrowserEngine(): MediaEngine {
             throw new Error(
               'The browser library is limited to 800 MB. Remove files or use desktop.',
             );
-          await ff.writeFile(input, new Uint8Array(await file.arrayBuffer()));
+          controller.signal.throwIfAborted();
+          const working = await browserImageSource(file, controller.signal);
+          const addedSize = file.size + (working.file !== file ? working.file.size : 0);
+          if (retained + addedSize > MAX_WEB_LIBRARY_SIZE)
+            throw new Error(
+              'Decoded images exceed the browser library limit. Remove some files or use desktop.',
+            );
+          await ff.writeFile(input, new Uint8Array(await working.file.arrayBuffer()));
           const code = await ff.ffprobe([
             '-v',
             'error',
@@ -155,14 +174,17 @@ export function createBrowserEngine(): MediaEngine {
             size: file.size,
             fingerprint: await sourceFingerprint(file),
             relativePath: browserRelativePath(file.webkitRelativePath),
-            previewUrl: URL.createObjectURL(file),
+            previewUrl: URL.createObjectURL(working.file),
           };
           if (asset.kind === 'image')
-            Object.assign(asset, { imageMetadata: await readImageMetadata(file) });
-          files.set(id, file);
+            Object.assign(asset, {
+              imageMetadata: { ...working.metadata, ...(await readImageMetadata(file)) },
+            });
+          files.set(id, working.file);
+          originals.set(id, file);
           sources.set(id, asset);
           report.assets.push(asset);
-          retained += file.size;
+          retained += addedSize;
         } catch (error) {
           report.issues.push({
             name: browserRelativePath(file.webkitRelativePath) || file.name,
@@ -177,6 +199,7 @@ export function createBrowserEngine(): MediaEngine {
           message: `Read ${index + 1} of ${media.length} files…`,
         });
       }
+      if (importing === controller) importing = null;
       return report;
     },
     async export(asset, settings, onProgress, batchToken) {
@@ -355,6 +378,7 @@ export function createBrowserEngine(): MediaEngine {
     },
     cancel() {
       download?.abort();
+      importing?.abort();
       cancelled = true;
       runtime.cancel();
       prepared.cancel();
@@ -362,9 +386,10 @@ export function createBrowserEngine(): MediaEngine {
     async release(asset) {
       await joined.releaseAsset(asset.id);
       files.delete(asset.id);
+      originals.delete(asset.id);
       sources.delete(asset.id);
       URL.revokeObjectURL(asset.previewUrl);
     },
   };
-  return Object.assign(engine, browserWorkspace(engine, files, sources));
+  return Object.assign(engine, browserWorkspace(engine, files, sources, originals));
 }

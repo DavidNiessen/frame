@@ -1,3 +1,4 @@
+import { portableImageExtensions } from './image-decoders';
 import { supportedExtensions } from './types';
 
 export const MAX_IMPORT_FILES = 2000;
@@ -23,6 +24,16 @@ export function orderBrowserFiles(files: File[]): File[] {
   return files.map((file) => (file.webkitRelativePath ? folders[index++] : file));
 }
 
-export const imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tif', 'tiff', 'avif'];
+export const imageExtensions = [
+  'png',
+  'jpg',
+  'jpeg',
+  'webp',
+  'bmp',
+  'tif',
+  'tiff',
+  'avif',
+  ...portableImageExtensions,
+];
 export const isImageFilename = (name: string) =>
   imageExtensions.includes(name.split('.').at(-1)?.toLowerCase() ?? '');

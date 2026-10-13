@@ -1,0 +1,25 @@
+Frame — portable image decoders
+
+libraw-wasm 1.6.0, JavaScript/WASM wrapper by ybouane, ISC license as declared in the upstream npm package.
+Corresponding wrapper source and build instructions:
+https://github.com/ybouane/LibRaw-Wasm/tree/32fd36a9883a10c1632bc20073f1ea88cc60487a
+
+Bundled LibRaw 0.22.1: LGPL-2.1 or CDDL; this distribution uses LGPL-2.1.
+License and copyright: libraw-LGPL.txt, libraw-COPYRIGHT.txt.
+Source: https://github.com/LibRaw/LibRaw/tree/0.22.1
+
+Bundled Little CMS 2.19.1: MIT, little-cms-LICENSE.txt.
+Source: https://github.com/mm2/Little-CMS/tree/lcms2.19.1
+
+The Emscripten LibRaw build also uses its libpng, zlib and libjpeg ports.
+Port sources and license texts: https://github.com/emscripten-core/emscripten/tree/main/tools/ports
+
+libheif-js 1.23.5: LGPL-3.0, libheif-js-LICENSE.txt.
+Corresponding JavaScript/WASM distribution source and build instructions:
+https://github.com/catdad-experiments/libheif-js/tree/d8ec4bc3bc5bf8055975577bccbbc7e1d7313c2d
+Upstream libheif and HEVC decoder sources:
+https://github.com/strukturag/libheif
+https://github.com/strukturag/libde265
+
+Decoder modules remain separate replaceable files in image-decoders/ and are loaded in workers.
+No remote decoder service is used. Retain these notices when redistributing.

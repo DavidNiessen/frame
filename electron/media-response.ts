@@ -18,6 +18,14 @@ const mime: Record<string, string> = {
   '.mov': 'video/quicktime',
   '.mkv': 'video/x-matroska',
   '.gif': 'image/gif',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.bmp': 'image/bmp',
+  '.tiff': 'image/tiff',
+  '.tif': 'image/tiff',
+  '.avif': 'image/avif',
 };
 /** Serve only paths resolved from imported asset/proxy IDs by the protocol handler. */
 export async function mediaResponse(path: string, request: Request): Promise<Response> {

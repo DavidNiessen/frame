@@ -51,7 +51,7 @@ export function registerExports(
                 filters: [{ name: settings.format.toUpperCase(), extensions: [settings.format] }],
               });
           if (destination.canceled || !destination.filePath) return null;
-          const sourcePath = await realpath(item.path);
+          const sourcePath = await realpath(item.originalPath ?? item.path);
           const destinationPath = await realpath(destination.filePath).catch(
             () => destination.filePath!,
           );
