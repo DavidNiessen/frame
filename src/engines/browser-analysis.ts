@@ -1,3 +1,4 @@
+import { analysisDataArgs } from '../core/analysis-data';
 import { resolveAudioLayers } from '../core/audio-layers';
 import { writeBrowserLayers } from './browser-audio-layers';
 import type { MediaAsset } from '../core/types';
@@ -17,6 +18,7 @@ export function browserAnalysis(
   sources: Map<string, MediaAsset> = new Map(),
 ): Pick<
   MediaEngine,
+  | 'analysisData'
   | 'detectSilence'
   | 'previewFrame'
   | 'previewAudio'
@@ -26,6 +28,47 @@ export function browserAnalysis(
   | 'measureLoudness'
 > {
   return {
+    async analysisData(asset, edit, options, onProgress) {
+      const source = files.get(asset.id);
+      if (!source) throw new Error('Import the source again.');
+      const ff = await ready(),
+        input = `analysis-source-${asset.id}`,
+        output = options.kind === 'speech' ? 'speech.wav' : 'frames.raw';
+      const resources = await browserResources(ff, [edit], [asset], files, sources);
+      const layers =
+        options.kind === 'speech'
+          ? resolveAudioLayers(
+              edit,
+              [...sources.values()].map((asset) => ({ asset, path: `layer-${asset.id}` })),
+            )
+          : [];
+      const update = ({ time }: { time: number }) =>
+        onProgress({
+          ratio: Math.min(0.99, time / 1e6 / (options.end - options.start)),
+          message:
+            options.kind === 'speech' ? 'Preparing speech audio…' : 'Preparing tracking frames…',
+        });
+      ff.on('progress', update);
+      try {
+        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        await writeBrowserLayers(ff, layers, files, sources);
+        if (
+          (await ff.exec(
+            analysisDataArgs(asset, edit, options, input, output, resources.paths[0], layers),
+          )) !== 0
+        )
+          throw new Error('Could not prepare this analysis.');
+        const bytes = await ff.readFile(output);
+        if (typeof bytes === 'string') throw new Error('Invalid analysis output.');
+        return new Uint8Array(bytes);
+      } finally {
+        ff.off('progress', update);
+        await resources.cleanup();
+        for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {});
+        await ff.deleteFile(input).catch(() => {});
+        await ff.deleteFile(output).catch(() => {});
+      }
+    },
     async detectSilence(asset, options, onProgress) {
       const file = files.get(asset.id);
       if (!file) throw new Error('Import the source again.');

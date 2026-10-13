@@ -122,3 +122,5 @@ Local background removal supports edge-connected selection, sampled colors, soft
 Independent video and image tracks can be layered over the current media, with their own timing, position, fit, opacity, color adjustments, and curves. Video tracks can link to source audio; picture and sound trim, move, and split together. Tracks are stored as source references in projects and automatic recovery.
 
 Layer position, size, opacity, and audio volume can be animated with linear, smooth, or hold keyframes. Keyframes are visible in the timeline, editable at the playhead, and retained through track trimming and splitting.
+
+Visual tracks can follow a subject using local motion tracking. Select a textured region in the tracking frame to generate editable position keyframes. Analysis runs in a worker, supports up to 30 seconds per pass, and stops when it loses the subject.

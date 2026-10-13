@@ -124,6 +124,14 @@ export function createDesktopEngine(): MediaEngine {
         remove();
       }
     },
+    async analysisData(asset, edit, options, onProgress) {
+      const remove = bridge.onProgress(onProgress);
+      try {
+        return new Uint8Array(await bridge.analysisData(asset.id, edit, options));
+      } finally {
+        remove();
+      }
+    },
     async previewFrame(asset, edit, time, onProgress) {
       const remove = bridge.onProgress(onProgress);
       try {

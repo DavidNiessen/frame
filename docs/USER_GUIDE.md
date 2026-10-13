@@ -129,3 +129,7 @@ In video projects, drag a track bar to move it, use its edges to trim/expand wit
 ### Motion and audio keyframes
 
 Open a video/image track overlay in a video project and expand **Motion & keyframes**. Choose X/Y position, width, height, or opacity, then enable **Animate**. Move the playhead and change the value to add a keyframe. Numeric layout fields and frame gestures also record changes when that property is animated. Use linear, smooth ease, or hold interpolation, previous/next controls, and the keyframe time buttons. Diamonds mark animation times on the track. Audio overlays provide **Animate volume** with the same controls. Animation moves with its track, keeps its trajectory when trimmed/split, and is applied in editing previews and exports.
+
+### Motion tracking
+
+Open a video or image layer in a video project, expand **Motion tracking**, and prepare frames from the current playhead. Drag a box around a contrasting, textured subject, then choose **Track subject**. Frame follows its position for up to 30 seconds and replaces the layer's X/Y keyframes, retaining its initial offset from the subject. Size and opacity automation remain unchanged. Review the generated motion in playback and adjust keyframes as needed. If the subject disappears, Frame applies only the reliable portion and reports where tracking stopped. This is local template tracking; it does not estimate rotation, perspective or object identity.

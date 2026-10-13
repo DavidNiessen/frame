@@ -1,3 +1,4 @@
+import { analysisDataArgs, parseAnalysisOptions } from '../src/core/analysis-data';
 import { resolveAudioLayers } from '../src/core/audio-layers';
 import { contactSheetArgs, parseContactSheet } from '../src/core/contact-sheet';
 import type { WindowIpc } from './window-ipc';
@@ -30,6 +31,36 @@ export function registerAnalysis(
   const progress = (event: IpcMainInvokeEvent, message: string) => (ratio: number) => {
     if (!event.sender.isDestroyed()) event.sender.send('media:progress', { ratio, message });
   };
+  ipc.handle('media:analysis-data', (event, id: string, value: unknown, rawOptions: unknown) => {
+    const item = source(event, id),
+      edit = parseEdit(value, item.asset),
+      options = parseAnalysisOptions(rawOptions, edit);
+    return jobs.run(async (execute) =>
+      withResources(
+        [edit],
+        async ([paths], directory) => {
+          const output = join(directory, options.kind === 'speech' ? 'speech.wav' : 'frames.raw');
+          const layers =
+            options.kind === 'speech' ? resolveAudioLayers(edit, [...assets.values()]) : [];
+          await execute(
+            runFfmpeg(
+              analysisDataArgs(item.asset, edit, options, item.path, output, paths, layers),
+              options.end - options.start,
+              progress(
+                event,
+                options.kind === 'speech'
+                  ? 'Preparing speech audio…'
+                  : 'Preparing tracking frames…',
+              ),
+            ),
+          );
+          return new Uint8Array(await readFile(output));
+        },
+        [item.asset],
+        [...assets.values()],
+      ),
+    );
+  });
   ipc.handle('media:silence', (event, id: string, options: unknown) => {
     const item = source(event, id);
     const settings = parseSilence(options);

@@ -1,3 +1,4 @@
+import { MotionTracking } from './MotionTracking';
 import { MediaLayerAnimation } from './MediaLayerAnimation';
 import { useEffect, useId, useRef } from 'react';
 import { Layers, Trash2, X, Lock, Unlock } from 'lucide-react';
@@ -71,6 +72,13 @@ export function MediaLayerOverlay({
           )}
           <MediaLayerControls editor={editor} layer={layer} current={current} />
           <MediaLayerAnimation editor={editor} layer={layer} current={current} seek={seek} />
+          <MotionTracking
+            key={layer.id}
+            editor={editor}
+            layer={layer}
+            current={current}
+            seek={seek}
+          />
         </fieldset>
       </div>
       <footer className="effect-overlay-footer">

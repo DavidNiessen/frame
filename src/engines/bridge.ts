@@ -1,3 +1,4 @@
+import type { AnalysisOptions } from '../core/analysis-data';
 import type { ExportHistoryBridge } from '../core/export-history';
 import type { UpdateBridge } from '../core/app-updates';
 import type { LoudnessStats } from '../core/loudness';
@@ -77,6 +78,7 @@ export interface DesktopBridge extends ExportHistoryBridge, UpdateBridge {
   appendVideo(id: string, addedId: string): Promise<MediaAsset>;
   extractAudio(id: string): Promise<MediaAsset>;
   detectSilence(id: string, options: SilenceOptions): Promise<TimeRange[]>;
+  analysisData(id: string, edit: EditSettings, options: AnalysisOptions): Promise<Uint8Array>;
   previewFrame(id: string, edit: EditSettings, time: number): Promise<Uint8Array>;
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;
   measureLoudness(id: string, edit: EditSettings): Promise<LoudnessStats>;

@@ -1,3 +1,4 @@
+import type { AnalysisOptions } from './analysis-data';
 import type { MediaLayer } from './media-layers';
 import { defaultCutout, type CutoutSettings } from './cutout';
 import { defaultRetouch, type RetouchSettings } from './retouch';
@@ -235,6 +236,12 @@ export interface MediaEngine {
     options: SilenceOptions,
     onProgress: (p: ExportProgress) => void,
   ): Promise<TimeRange[]>;
+  analysisData(
+    asset: MediaAsset,
+    edit: EditSettings,
+    options: AnalysisOptions,
+    onProgress: (p: ExportProgress) => void,
+  ): Promise<Uint8Array>;
   previewFrame(
     asset: MediaAsset,
     edit: EditSettings,
