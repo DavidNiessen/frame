@@ -24,6 +24,7 @@ export const clipEffectKeys = [
   'videoFadeOut',
   'painting',
   'retouch',
+  'cutout',
   'visual',
   'curves',
   'shape',

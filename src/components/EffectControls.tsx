@@ -1,3 +1,4 @@
+import { CutoutControls } from './CutoutControls';
 import { RetouchControls } from './RetouchControls';
 import { ShapeControls } from './ShapeControls';
 import { CurvesControls } from './CurvesControls';
@@ -36,6 +37,7 @@ export function EffectControls({
     asset = editor.asset!;
   return (
     <div className="effect-editor">
+      {effect.id === 'cutout' && <CutoutControls editor={scoped} />}
       {effect.id === 'retouch' && (
         <RetouchControls editor={scoped} layerKey={layerKey ?? 'primary:retouch'} />
       )}

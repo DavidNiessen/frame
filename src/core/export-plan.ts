@@ -1,3 +1,4 @@
+import { parseCutout } from './cutout';
 import { parseRetouch } from './retouch';
 import { parseImageMetadata } from './image-metadata';
 import { parsePainting } from './painting';
@@ -78,6 +79,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragme
   validateSizeTarget(edit.targetSizeMb);
   parseShape(edit.shape);
   parseRetouch(edit.retouch);
+  parseCutout(edit.cutout);
   parseCurves(edit.curves);
   parseImageResize(edit.imageResize);
   parseImageMetadata(edit.imageMetadata);

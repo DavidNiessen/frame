@@ -1,3 +1,4 @@
+import { CutoutCanvas } from './CutoutCanvas';
 import { RetouchCanvas } from './RetouchCanvas';
 import { ShapePreview } from './ShapePreview';
 import { FrameInteractionContext } from './frame-interaction';
@@ -34,10 +35,10 @@ export function ImageFrameLayers({
   const rows = imageLayerRows(asset, edit).filter(
     (row) =>
       !row.hidden &&
-      ['painting', 'watermark', 'captions', 'shape', 'retouch'].includes(row.effect.id),
+      ['painting', 'watermark', 'captions', 'shape', 'retouch', 'cutout'].includes(row.effect.id),
   );
   const painting =
-    ['painting', 'retouch'].includes(selectedEffect?.id ?? '') &&
+    ['painting', 'retouch', 'cutout'].includes(selectedEffect?.id ?? '') &&
     rows.some((row) => row.id === selectedEffect?.instanceId && !row.locked);
   return (
     <div className="image-frame-layers" data-painting={painting || undefined}>
@@ -68,7 +69,21 @@ export function ImageFrameLayers({
               }}
               key={layer.key}
             >
-              {layer.effect.id === 'retouch' ? (
+              {layer.effect.id === 'cutout' ? (
+                active ? (
+                  <CutoutCanvas
+                    edit={layer.recipe}
+                    update={(patch) =>
+                      editor.update(layer.id ? changeInstance(edit, layer.id, null, patch) : patch)
+                    }
+                    url={baseUrl}
+                    width={dims.width}
+                    height={dims.height}
+                    disabled={disabled}
+                    onError={editor.setNotice}
+                  />
+                ) : null
+              ) : layer.effect.id === 'retouch' ? (
                 active ? (
                   <RetouchCanvas
                     edit={layer.recipe}

@@ -229,7 +229,7 @@ export function EffectSettingsOverlay({
       )}
       <div className="effect-overlay-body">
         <fieldset disabled={!!editor.busy || layerLocked}>
-          {asset.kind === 'image' && !['crop', 'transform'].includes(id) && (
+          {asset.kind === 'image' && !['crop', 'transform', 'cutout'].includes(id) && (
             <ImageLayerCompositing editor={editor} id={id} instanceId={instanceId} />
           )}
           <EffectControls

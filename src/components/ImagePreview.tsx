@@ -55,10 +55,12 @@ export function ImagePreview({
     activeLayer &&
     !activeLayer.hidden &&
     !activeLayer.locked &&
-    ['captions', 'painting', 'watermark', 'shape', 'retouch'].includes(activeLayer.effect.id);
+    ['captions', 'painting', 'watermark', 'shape', 'retouch', 'cutout'].includes(
+      activeLayer.effect.id,
+    );
   // Cache an exact composite and an object-free base for responsive gestures.
   const interactionEdit = liveObject
-    ? activeLayer.effect.id === 'retouch'
+    ? ['retouch', 'cutout'].includes(activeLayer.effect.id)
       ? imageEditBeforeLayer(asset, base, activeLayer.key)
       : activeLayer.id
         ? {
@@ -120,7 +122,7 @@ export function ImagePreview({
   function start(event: PointerEvent<HTMLDivElement>) {
     if (
       event.button !== 0 ||
-      ['painting', 'retouch'].includes(selectedEffect?.id ?? '') ||
+      ['painting', 'retouch', 'cutout'].includes(selectedEffect?.id ?? '') ||
       cropping ||
       zoom === 1
     )

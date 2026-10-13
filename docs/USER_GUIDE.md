@@ -115,3 +115,7 @@ Add a **Retouch** layer. Alt/Option-click the image to choose a source, then pai
 ### HEIC and camera RAW
 
 Import HEIC/HEIF phone photos or common camera RAW files, including DNG, CR2/CR3, NEF/NRW, ARW, RAF, ORF, RW2, PEF, and SRW. The bundled decoders run locally in workers on desktop and web. No installed camera codecs or upload service is needed. Frame uses the primary HEIC image and develops RAW into 8-bit sRGB using the recorded camera white balance. Originals remain unchanged and are retained for automatic workspace recovery. All image editing effects and bulk conversion are available on the decoded image. Unsupported camera/compression combinations report an import error. HEIC/RAW inputs are limited to 128 MB; decoded images use the existing 32-megapixel limit.
+
+### Remove an image background
+
+Add **Remove background** for automatic edge-connected color removal. This local tool works best with plain or gently varying backgrounds; it does not use an AI model. Adjust **Color tolerance** and **Edge softness**, or choose **Pick background color** and click the canvas. Keep **Remove only connected background** enabled to preserve enclosed areas of similar color. Paint with **Restore area** or **Remove more** to refine the mask, and undo or clear refinements independently. Recalculate after changing layers below this effect. PNG, WebP, and TIFF preserve transparency; JPEG/BMP use the export background color. Original pixels remain unchanged.

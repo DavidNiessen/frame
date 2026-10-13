@@ -36,6 +36,7 @@ it('describes every effect by its current placement rather than legacy project s
     speed: 'track',
     normalize: 'track',
     crop: 'track',
+    cutout: 'track',
     transform: 'track',
     volume: 'timed',
     audioFadeIn: 'timed',

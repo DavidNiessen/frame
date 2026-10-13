@@ -1,3 +1,4 @@
+import { defaultCutout, type CutoutSettings } from './cutout';
 import { defaultRetouch, type RetouchSettings } from './retouch';
 import {
   defaultImageMetadata,
@@ -108,6 +109,7 @@ export interface EditSettings {
   curves?: Curves;
   shape?: ShapeSettings | null;
   retouch?: RetouchSettings;
+  cutout?: CutoutSettings;
   imageResize?: ImageResize;
   imageMetadata?: ImageMetadataOutput;
   imageOutput?: ImageOutput;
@@ -272,6 +274,7 @@ export function defaultSettings(asset: MediaAsset): EditSettings {
   return {
     shape: null,
     retouch: defaultRetouch(),
+    cutout: defaultCutout(),
     curves: defaultCurves(),
     imageResize: defaultImageResize(),
     imageMetadata: defaultImageMetadata(),

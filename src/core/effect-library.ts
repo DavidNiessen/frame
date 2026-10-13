@@ -27,6 +27,15 @@ export const legacyMixEffect: EffectDefinition = {
 };
 export const effectLibrary: EffectDefinition[] = [
   {
+    id: 'cutout',
+    name: 'Remove background',
+    description: 'Remove connected background colors and refine transparency',
+    group: 'Video',
+    scope: 'clip',
+    mediaKinds: ['image'],
+    keys: ['cutout'],
+  },
+  {
     id: 'retouch',
     name: 'Retouch',
     description: 'Clone texture or heal small imperfections with a soft brush',
@@ -225,6 +234,7 @@ export function availableEffects(asset: MediaAsset) {
     );
 }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
+  if (effect.id === 'cutout') return !!edit.cutout?.image;
   if (effect.id === 'retouch') return !!edit.retouch?.image;
   if (effect.id === 'shape') return !!edit.shape;
   if (effect.id === 'curves') return !!hasCurves(edit.curves);

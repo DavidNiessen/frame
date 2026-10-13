@@ -1,3 +1,4 @@
+import { cutoutFilters } from './cutout';
 import { shapeFilters } from './shapes';
 import { compositeImageLayer } from './image-compositing';
 import { curvesFilter } from './curves';
@@ -88,6 +89,12 @@ function rawVideoFilters(
       resources.image + 'primaryshape',
     ).map((filter) => timedFilter(filter, timing, edit.effectRanges?.shape)),
   );
+  if (asset.kind === 'image') {
+    const dims = frameDimensions(asset, edit);
+    filters.push(
+      ...cutoutFilters(edit.cutout, resources, 'primarycutout', dims.width, dims.height),
+    );
+  }
   if (asset.kind === 'image' && edit.retouch?.image)
     filters.push(
       ...overlayFilters(
@@ -130,6 +137,12 @@ function rawVideoFilters(
   for (const instance of extraInstances(edit)) {
     const recipe = instanceRecipe(edit, instance),
       paths = instancePaths(resources, instance);
+    if (asset.kind === 'image' && instance.effect === 'cutout') {
+      const dims = frameDimensions(asset, edit);
+      filters.push(
+        ...cutoutFilters(recipe.cutout, paths, 'cutout' + instance.id, dims.width, dims.height),
+      );
+    }
     if (instance.effect === 'shape')
       filters.push(
         ...shapeFilters(

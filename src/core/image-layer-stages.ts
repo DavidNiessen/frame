@@ -39,7 +39,10 @@ export function imageLayerStages(
         paths,
         key: row.key,
         effect: row.effect.id,
-        state: row.state,
+        state:
+          row.effect.id === 'cutout'
+            ? { ...row.state, blend: 'normal' as const, opacity: 1, mask: undefined }
+            : row.state,
         object: ['painting', 'watermark', 'captions', 'shape', 'retouch'].includes(row.effect.id),
       };
     });

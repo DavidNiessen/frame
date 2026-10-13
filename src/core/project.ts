@@ -1,3 +1,4 @@
+import { parseCutout } from './cutout';
 import { parseRetouch } from './retouch';
 import { parseImageMetadata } from './image-metadata';
 import { parseShape } from './shapes';
@@ -84,6 +85,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     imageLayers: parseImageLayers(e.imageLayers),
     shape: parseShape(e.shape),
     retouch: parseRetouch(e.retouch),
+    cutout: parseCutout(e.cutout),
     curves: parseCurves(e.curves),
     imageResize: parseImageResize(e.imageResize),
     imageMetadata: parseImageMetadata(e.imageMetadata),

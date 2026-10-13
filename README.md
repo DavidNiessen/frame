@@ -116,3 +116,5 @@ Image exports also include credits and privacy controls: creator, copyright, des
 Image retouch layers provide soft clone and healing brushes with editable strokes, an eraser, and per-layer undo. Choose a sample point with Alt/Option-click, then paint. Raster generation runs in a worker.
 
 HEIC/HEIF and common camera RAW files (DNG, CR2/CR3, NEF, ARW, RAF, RW2, and more) can be imported and batch converted locally on desktop and web. Portable decoder workers create lossless working PNGs while retaining the original files for recovery. RAW imports are developed to 8-bit sRGB; support depends on the camera and compression supported by the bundled LibRaw build.
+
+Local background removal supports edge-connected selection, sampled colors, soft edges, and restore/remove brush refinement. Transparent exports are available as PNG, WebP, and TIFF.

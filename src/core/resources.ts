@@ -78,6 +78,17 @@ export const embeddedCaptionPath = (edit: EditSettings, paths: RecipeResources) 
     : paths.captions;
 export function recipeImages(edit: EditSettings, paths: RecipeResources) {
   return [
+    ...(edit.cutout?.image ? [{ path: `${paths.image}-cutout.png`, data: edit.cutout.image }] : []),
+    ...extraInstances(edit, 'cutout').flatMap((instance) =>
+      instance.settings.cutout?.image
+        ? [
+            {
+              path: `${instancePaths(paths, instance).image}-cutout.png`,
+              data: instance.settings.cutout.image,
+            },
+          ]
+        : [],
+    ),
     ...(edit.retouch?.image
       ? [{ path: `${paths.image}-retouch.png`, data: edit.retouch.image }]
       : []),
