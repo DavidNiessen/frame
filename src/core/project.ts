@@ -1,3 +1,4 @@
+import { parseImageResize } from './image-resize';
 import { parseImageLayers } from './image-layers';
 import { parsePainting } from './painting';
 import { parseVisual } from './visual-settings';
@@ -77,6 +78,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
   const eq = e.equalizer === undefined ? { bass: 0, mid: 0, treble: 0 } : record(e.equalizer);
   const edit: EditSettings = {
     imageLayers: parseImageLayers(e.imageLayers),
+    imageResize: parseImageResize(e.imageResize),
     painting: parsePainting(e.painting),
     visual: parseVisual(e.visual),
     imageOutput: parseImageOutput(e.imageOutput),

@@ -347,3 +347,33 @@
 .image-frame-layer:not([data-live]) .frame-object:has(textarea) {
   visibility: visible;
 }
+.image-resize-controls {
+  margin-top: 16px;
+}
+.image-resize-controls .stacked-label {
+  margin-bottom: 12px;
+}
+.image-resize-dimensions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.image-resize-dimensions > label:only-child {
+  grid-column: 1 / -1;
+}
+.image-resize-example {
+  padding: 9px 10px;
+  background: var(--accent-soft);
+  border-radius: 6px;
+}
+.image-size-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.image-size-save > input,
+.image-size-save > span {
+  flex: 1;
+  min-width: 0;
+}

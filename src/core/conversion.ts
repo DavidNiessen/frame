@@ -1,3 +1,4 @@
+import { imageResizeGeometry } from './image-resize';
 import { namedConversion, filenameStem } from './output-naming';
 import { availableFormats } from './formats';
 import { outputSettings, type OutputSettings } from './presets';
@@ -8,7 +9,14 @@ export const canConvert = (asset: MediaAsset, output: OutputSettings) =>
 
 export function conversionSettings(asset: MediaAsset, output: OutputSettings): EditSettings {
   // Conversion always uses the complete source, independently of its editing recipe.
-  return { ...defaultSettings(asset), ...outputSettings(output) };
+  const settings = { ...defaultSettings(asset), ...outputSettings(output) };
+  if (asset.kind === 'image')
+    settings.geometry.resize = imageResizeGeometry(
+      asset.width ?? 640,
+      asset.height ?? 360,
+      output.imageResize,
+    );
+  return settings;
 }
 
 export function conversionName(

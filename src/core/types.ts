@@ -1,3 +1,4 @@
+import { defaultImageResize, type ImageResize } from './image-resize';
 import type { ImageLayerStack } from './image-layers';
 import { defaultPainting, type PaintingSettings } from './painting';
 import { defaultVisual, type VisualSettings } from './visual-settings';
@@ -95,6 +96,7 @@ export interface TimeRange {
 }
 export interface EditSettings {
   imageLayers?: ImageLayerStack;
+  imageResize?: ImageResize;
   imageOutput?: ImageOutput;
   visual?: VisualSettings;
   painting?: PaintingSettings;
@@ -255,6 +257,7 @@ export { supportedExtensions };
 export const acceptMedia = supportedExtensions.map((ext) => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return {
+    imageResize: defaultImageResize(),
     imageOutput: defaultImageOutput(),
     visual: defaultVisual(),
     painting: defaultPainting(),

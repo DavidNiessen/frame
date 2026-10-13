@@ -92,7 +92,7 @@ export function useConversion(editor: Editor) {
     error = `${incompatible.length} selected ${incompatible.length === 1 ? 'file is' : 'files are'} incompatible with ${output.format.toUpperCase()}. Choose another format or deselect them.`;
   else if (selected.length) {
     try {
-      validateEdit(selected[0], conversionSettings(selected[0], output));
+      for (const asset of selected) validateEdit(asset, conversionSettings(asset, output));
     } catch (issue) {
       error = issue instanceof Error ? issue.message : 'Check the conversion settings.';
     }

@@ -1,3 +1,4 @@
+import { ImageResizeControls } from '../ImageResizeControls';
 import { ImageOutputControls } from '../ImageOutputControls';
 import { TransientMessage } from '../TransientMessage';
 import { CoverArtworkControls } from '../CoverArtworkControls';
@@ -81,7 +82,10 @@ export function ConversionSettings({
           </span>
         </div>
         {format.kind === 'image' ? (
-          <ImageOutputControls edit={s} update={c.update} />
+          <>
+            <ImageResizeControls output={s} update={c.update} assets={c.selected} />
+            <ImageOutputControls edit={s} update={c.update} />
+          </>
         ) : lossless ? (
           <p className="conversion-quality-note">
             <Check size={15} />
