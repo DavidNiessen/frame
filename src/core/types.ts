@@ -1,3 +1,4 @@
+import { defaultCurves, type Curves } from './curves';
 import { defaultImageResize, type ImageResize } from './image-resize';
 import type { ImageLayerStack } from './image-layers';
 import { defaultPainting, type PaintingSettings } from './painting';
@@ -96,6 +97,7 @@ export interface TimeRange {
 }
 export interface EditSettings {
   imageLayers?: ImageLayerStack;
+  curves?: Curves;
   imageResize?: ImageResize;
   imageOutput?: ImageOutput;
   visual?: VisualSettings;
@@ -257,6 +259,7 @@ export { supportedExtensions };
 export const acceptMedia = supportedExtensions.map((ext) => `.${ext}`).join(',');
 export function defaultSettings(asset: MediaAsset): EditSettings {
   return {
+    curves: defaultCurves(),
     imageResize: defaultImageResize(),
     imageOutput: defaultImageOutput(),
     visual: defaultVisual(),

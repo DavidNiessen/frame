@@ -8,6 +8,7 @@ const timedAdjustments = [
   'equalizer',
   'noise',
   'color',
+  'curves',
   'painting',
   ...visualIds,
 ] as const;

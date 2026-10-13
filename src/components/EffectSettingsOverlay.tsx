@@ -123,6 +123,7 @@ export function EffectSettingsOverlay({
       (row) => row.key === imageLayerKey(id, instanceId) && row.locked,
     );
   const change = (patch: Partial<typeof edit>) =>
+    !layerLocked &&
     editor.update(
       instanceId ? changeInstance(edit, instanceId, editor.selectedClip, patch) : patch,
     );

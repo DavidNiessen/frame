@@ -1,3 +1,4 @@
+import { hasCurves } from './curves';
 import { visualControls, visualIds, isVisualEffect, parseVisual } from './visual-settings';
 import { extraInstances } from './effect-instances';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
@@ -23,6 +24,15 @@ export const legacyMixEffect: EffectDefinition = {
   keys: ['audioLayers'],
 };
 export const effectLibrary: EffectDefinition[] = [
+  {
+    id: 'curves',
+    name: 'Curves',
+    description: 'Shape contrast and color with editable tone curves',
+    group: 'Video',
+    scope: 'clip',
+    repeatable: true,
+    keys: ['curves'],
+  },
   {
     id: 'painting',
     name: 'Painting',
@@ -193,6 +203,7 @@ export function availableEffects(asset: MediaAsset) {
     );
 }
 export function effectActive(effect: EffectDefinition, edit: EditSettings, asset: MediaAsset) {
+  if (effect.id === 'curves') return !!hasCurves(edit.curves);
   if (effect.id === 'painting') return !!edit.painting?.image;
   if (isVisualEffect(effect.id))
     return parseVisual(edit.visual)[effect.id] !== visualControls[effect.id].neutral;

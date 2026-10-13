@@ -377,3 +377,44 @@
   flex: 1;
   min-width: 0;
 }
+.curves-graph {
+  width: 100%;
+  display: block;
+  overflow: visible;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 16px 0;
+  touch-action: none;
+  cursor: crosshair;
+}
+.curve-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.curve-diagonal {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.5;
+}
+.curve-point-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.curve-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.curve-point-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 11px;
+  margin: 10px 0;
+}

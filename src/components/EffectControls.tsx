@@ -1,3 +1,4 @@
+import { CurvesControls } from './CurvesControls';
 import { PaintingControls } from './PaintingControls';
 import { isVisualEffect } from '../core/visual-settings';
 import { VisualEffectControls } from './VisualEffectControls';
@@ -31,6 +32,7 @@ export function EffectControls({
     asset = editor.asset!;
   return (
     <div className="effect-editor">
+      {effect.id === 'curves' && <CurvesControls edit={edit} update={scoped.update} />}
       {effect.id === 'painting' && <PaintingControls editor={scoped} dimensions={frameSize} />}
       {isVisualEffect(effect.id) && (
         <VisualEffectControls id={effect.id} edit={edit} update={scoped.update} />

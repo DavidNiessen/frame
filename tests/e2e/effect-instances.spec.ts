@@ -107,6 +107,7 @@ test('reuses corrections and creates independent captions and watermarks from th
   for (const name of labels) {
     const repeatable = [
       'Add Painting',
+      'Add Curves',
       'Add Exposure',
       'Add Gamma',
       'Add Shadows',

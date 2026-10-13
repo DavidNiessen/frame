@@ -1,3 +1,4 @@
+import { hasCurves } from './curves';
 import { defaultPainting } from './painting';
 import { hasVisualAdjustments } from './visual-settings';
 import { framePreviewArgs } from './frame-preview';
@@ -19,6 +20,7 @@ export function needsEffectPreview(edit: EditSettings) {
     recipes.some((recipe) =>
       [recipe, ...extraInstances(recipe).map((instance) => instanceRecipe(recipe, instance))].some(
         (view) =>
+          hasCurves(view.curves) ||
           hasVisualAdjustments(view.visual) ||
           view.normalizeLoudness ||
           view.reduceNoise ||

@@ -1,3 +1,4 @@
+import { defaultCurves } from './curves';
 import { defaultVisual } from './visual-settings';
 import { defaultPainting } from './painting';
 import { definitionFor, effectiveSpeed, extraInstances } from './effect-instances';
@@ -76,6 +77,7 @@ export function clipFilterGraph(
     crop: null,
     geometry: defaultGeometry(),
     color: defaultColor(),
+    curves: defaultCurves(),
     visual: defaultVisual(),
     painting: defaultPainting(),
     volume: 1,

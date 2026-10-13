@@ -102,6 +102,7 @@ export function recipePatch(
     for (const key of [
       'color',
       'visual',
+      'curves',
       'painting',
       'geometry',
       'crop',

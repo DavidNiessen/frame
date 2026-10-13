@@ -2,6 +2,7 @@ import { visualIds } from './visual-settings';
 export const effectIds = [
   ...visualIds,
   'painting',
+  'curves',
   'mix',
   'volume',
   'speed',

@@ -1,3 +1,4 @@
+import { curvesFilter } from './curves';
 import { imageLayerStages } from './image-layer-stages';
 import { preserveImageAlpha } from './image-alpha';
 import { visualFilters } from './visual-filters';
@@ -35,6 +36,9 @@ function rawVideoFilters(
   if (c) filters.push(`crop=${c.width}:${c.height}:${c.x}:${c.y}`);
   filters.push(
     ...geometryFilters(edit),
+    ...curvesFilter(edit.curves).map((filter) =>
+      timedFilter(filter, timing, edit.effectRanges?.curves),
+    ),
     ...(asset.kind === 'image'
       ? preserveImageAlpha(visualFilters(edit.visual), 'primary')
       : visualFilters(edit.visual)),
@@ -57,6 +61,12 @@ function rawVideoFilters(
           : visualFilters(recipe.visual).map((filter) =>
               timedFilter(filter, timing, instance.range, instance.timeSpace === 'output'),
             )),
+      );
+    if (instance.effect === 'curves')
+      filters.push(
+        ...curvesFilter(recipe.curves).map((filter) =>
+          timedFilter(filter, timing, instance.range, instance.timeSpace === 'output'),
+        ),
       );
     if (instance.effect === 'color')
       filters.push(
