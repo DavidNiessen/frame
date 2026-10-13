@@ -1,3 +1,4 @@
+import { parseImageMetadata } from './image-metadata';
 import { parseShape } from './shapes';
 import { parseCurves } from './curves';
 import { parseImageResize } from './image-resize';
@@ -83,6 +84,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     shape: parseShape(e.shape),
     curves: parseCurves(e.curves),
     imageResize: parseImageResize(e.imageResize),
+    imageMetadata: parseImageMetadata(e.imageMetadata),
     painting: parsePainting(e.painting),
     visual: parseVisual(e.visual),
     imageOutput: parseImageOutput(e.imageOutput),

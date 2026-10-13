@@ -34,6 +34,7 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "@fontsource/public-sans": "^5.2.7",
+    "exifr": "7.1.3",
     "fflate": "^0.8.3",
     "lucide-react": "^0.468.0",
     "react": "^19.1.1",

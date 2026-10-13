@@ -1,8 +1,9 @@
+import { readImageMetadata } from '../src/core/image-metadata';
 import { nativeSourceFingerprint } from './source-fingerprint';
 import type { RecipeResources } from '../src/core/resources';
 import { editedDuration } from '../src/core/timeline';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { portableToolPath } from './tool-paths';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { buildExportArgs } from '../src/core/export-plan';
@@ -66,8 +67,12 @@ export async function probeFile(
   });
   const info = await stat(path);
   if (!info.isFile()) throw new Error('Select a media file.');
+  const parsed = parseProbe(JSON.parse(metadata), path);
   return {
-    ...parseProbe(JSON.parse(metadata), path),
+    ...parsed,
+    ...(parsed.kind === 'image' && info.size <= 128 * 1024 * 1024
+      ? { imageMetadata: await readImageMetadata(await readFile(path)) }
+      : {}),
     size: info.size,
     fingerprint: await nativeSourceFingerprint(path, info.size),
   };

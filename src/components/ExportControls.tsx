@@ -1,3 +1,4 @@
+import { ImageMetadataControls } from './ImageMetadataControls';
 import { ImageOutputControls } from './ImageOutputControls';
 import { CoverArtworkControls } from './CoverArtworkControls';
 import { MetadataControls } from './MetadataControls';
@@ -178,6 +179,9 @@ export function ExportControls({
               onChange={(event) => update({ keepMetadata: event.target.checked })}
             />
           </label>
+          {asset.kind === 'image' && (
+            <ImageMetadataControls asset={asset} edit={edit} update={update} />
+          )}
           {asset.kind !== 'image' && edit.format !== 'gif' && (
             <MetadataControls
               tags={edit.outputTags}

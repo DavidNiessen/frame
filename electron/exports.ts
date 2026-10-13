@@ -1,3 +1,5 @@
+import { writeImageMetadata } from '../src/core/image-metadata-export';
+import { readFile, writeFile } from 'node:fs/promises';
 import { taggedNamingAsset } from '../src/core/media-tags';
 import { recordExport } from './export-history';
 import { resolveAudioLayers } from '../src/core/audio-layers';
@@ -85,6 +87,11 @@ export function registerExports(
             },
             [item.asset],
           );
+          if (item.asset.kind === 'image')
+            await writeFile(
+              temporary,
+              writeImageMetadata(await readFile(temporary), item.asset, settings),
+            );
           const { size } = await stat(temporary);
           if (jobs.cancelled || window.isDestroyed()) throw new Error('Conversion cancelled.');
           const savedPath = batchToken

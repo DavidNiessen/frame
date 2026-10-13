@@ -23,18 +23,7 @@ export function imageOutputArgs(
       `format=rgba,split[photo][matte];[matte]lutrgb=r=${red}:g=${green}:b=${blue}:a=255[background];[background][photo]overlay=format=auto,format=rgb24`,
     );
   }
-  const args = [
-    '-y',
-    '-i',
-    input,
-    '-map',
-    '0:V:0',
-    '-an',
-    '-frames:v',
-    '1',
-    '-map_metadata',
-    edit.keepMetadata ? '0' : '-1',
-  ];
+  const args = ['-y', '-i', input, '-map', '0:V:0', '-an', '-frames:v', '1', '-map_metadata', '-1'];
   if (filters.length) args.push('-vf', filters.join(','));
   args.push('-c:v', format.videoCodec!, '-threads', '1');
   if (edit.format === 'jpeg')

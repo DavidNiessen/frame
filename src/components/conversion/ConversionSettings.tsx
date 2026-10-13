@@ -1,3 +1,4 @@
+import { ImageMetadataControls } from '../ImageMetadataControls';
 import { ImageResizeControls } from '../ImageResizeControls';
 import { ImageOutputControls } from '../ImageOutputControls';
 import { TransientMessage } from '../TransientMessage';
@@ -211,6 +212,7 @@ export function ConversionSettings({
               </label>
             )}
             {s.format === 'gif' && <GifOutputControls settings={s} update={c.update} />}
+            {format.kind === 'image' && <ImageMetadataControls edit={s} update={c.update} bulk />}
             {format.kind !== 'image' && s.format !== 'gif' && (
               <AudioOutputControls settings={s} update={c.update} />
             )}
@@ -246,6 +248,7 @@ export function ConversionSettings({
                 onChange={(event) => c.update({ keepMetadata: event.target.checked })}
               />
             </label>
+            {format.kind === 'image' && <ImageMetadataControls edit={s} update={c.update} bulk />}
             {format.kind !== 'image' && s.format !== 'gif' && (
               <MetadataControls
                 tags={s.outputTags}

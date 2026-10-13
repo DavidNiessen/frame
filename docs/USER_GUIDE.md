@@ -103,3 +103,7 @@ In **Convert**, select an image output and choose **Image size**. Built-in web, 
 Choose PNG, JPEG, WebP, BMP or TIFF for output. PNG is lossless, and WebP offers a lossless switch. JPEG and BMP flatten transparency onto your chosen background color. PNG, WebP and TIFF retain transparency, including through vignette and sketch adjustments. Image quality is separate from video bitrate settings. Use **Convert** to process a folder of images with one setup. The browser performs image processing locally using the same engine as other media. AVIF decoding depends on the engine; desktop handles codecs absent from the browser build.
 
 Inputs support up to 32 megapixels and 16,384 pixels per side. Paint layers are rasterized up to 4,096 pixels per side and scaled to the output frame. Original files are preserved. Saved projects and workspace recovery retain image settings, text and paint layers.
+
+### Image credits and privacy
+
+Open **Export → Advanced settings → Image credits & privacy** to edit creator, copyright, and description. Untouched fields follow **Keep metadata**; clearing a field removes it. Camera information can be retained independently. GPS location is excluded by default and must be explicitly enabled. Original thumbnails and camera maker notes are omitted. These controls also work in bulk conversion and saved output presets. JPEG, PNG, WebP, and TIFF support EXIF; BMP does not.

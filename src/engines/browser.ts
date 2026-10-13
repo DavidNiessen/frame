@@ -1,3 +1,5 @@
+import { readImageMetadata } from '../core/image-metadata';
+import { writeImageMetadata } from '../core/image-metadata-export';
 import { browserImageEncoding, renderedImagePath } from './browser-image-encoding';
 import { browserWorkspace } from './browser-workspace';
 import { browserPreparedMedia } from './browser-prepared-media';
@@ -155,6 +157,8 @@ export function createBrowserEngine(): MediaEngine {
             relativePath: browserRelativePath(file.webkitRelativePath),
             previewUrl: URL.createObjectURL(file),
           };
+          if (asset.kind === 'image')
+            Object.assign(asset, { imageMetadata: await readImageMetadata(file) });
           files.set(id, file);
           sources.set(id, asset);
           report.assets.push(asset);
@@ -218,7 +222,9 @@ export function createBrowserEngine(): MediaEngine {
         );
         const data = await ff.readFile(output);
         if (typeof data === 'string') throw new Error('Invalid export output.');
-        const blob = new Blob([new Uint8Array(data)], { type: getFormat(settings.format).mime });
+        const blob = new Blob([new Uint8Array(writeImageMetadata(data, asset, settings))], {
+          type: getFormat(settings.format).mime,
+        });
         onProgress({ ratio: 1, message: 'Your export is ready.' });
         return {
           name:

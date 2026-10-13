@@ -1,3 +1,4 @@
+import { parseImageMetadata } from './image-metadata';
 import { parsePainting } from './painting';
 import { parseShape } from './shapes';
 import { parseCurves } from './curves';
@@ -77,6 +78,7 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragme
   parseShape(edit.shape);
   parseCurves(edit.curves);
   parseImageResize(edit.imageResize);
+  parseImageMetadata(edit.imageMetadata);
   parseImageLayers(edit.imageLayers);
   parseImageOutput(edit.imageOutput);
   parseVisual(edit.visual);

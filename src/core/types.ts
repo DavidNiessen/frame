@@ -1,3 +1,8 @@
+import {
+  defaultImageMetadata,
+  type ImageMetadataOutput,
+  type ImageSourceMetadata,
+} from './image-metadata';
 import type { ShapeSettings } from './shapes';
 import { defaultCurves, type Curves } from './curves';
 import { defaultImageResize, type ImageResize } from './image-resize';
@@ -65,6 +70,7 @@ export interface MediaAsset {
   videoCodec?: string;
   audioCodec?: string;
   metadata?: Record<string, string>;
+  imageMetadata?: ImageSourceMetadata;
   artworkIndex?: number;
   previewUrl: string;
   relativePath?: string;
@@ -101,6 +107,7 @@ export interface EditSettings {
   curves?: Curves;
   shape?: ShapeSettings | null;
   imageResize?: ImageResize;
+  imageMetadata?: ImageMetadataOutput;
   imageOutput?: ImageOutput;
   visual?: VisualSettings;
   painting?: PaintingSettings;
@@ -264,6 +271,7 @@ export function defaultSettings(asset: MediaAsset): EditSettings {
     shape: null,
     curves: defaultCurves(),
     imageResize: defaultImageResize(),
+    imageMetadata: defaultImageMetadata(),
     imageOutput: defaultImageOutput(),
     visual: defaultVisual(),
     painting: defaultPainting(),

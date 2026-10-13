@@ -1,3 +1,4 @@
+import { parseImageMetadata } from './image-metadata';
 import { parseTagOverrides } from './media-tags';
 import { parseImageResize } from './image-resize';
 import { parseImageOutput } from './image-settings';
@@ -7,6 +8,7 @@ import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 export type OutputSettings = Pick<
   EditSettings,
   | 'imageResize'
+  | 'imageMetadata'
   | 'imageOutput'
   | 'gifLoop'
   | 'gifColors'
@@ -66,6 +68,7 @@ export function outputSettings(edit: OutputSettings): OutputSettings {
   } = edit;
   return {
     imageResize: parseImageResize(edit.imageResize),
+    imageMetadata: parseImageMetadata(edit.imageMetadata),
     imageOutput: parseImageOutput(edit.imageOutput),
     gifLoop: gifLoop ?? 0,
     gifColors: gifColors ?? 256,
@@ -101,6 +104,7 @@ export function parseOutputSettings(value: unknown): OutputSettings {
       {
         ...defaultSettings(presetAsset),
         imageResize: s.imageResize,
+        imageMetadata: s.imageMetadata,
         imageOutput: s.imageOutput,
         format: s.format,
         quality: s.quality,

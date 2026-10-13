@@ -1,3 +1,4 @@
+import { writeImageMetadata } from '../src/core/image-metadata-export';
 import { recordExport } from './export-history';
 import {
   app,
@@ -91,6 +92,8 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
             ),
           [asset],
         );
+        if (asset.kind === 'image')
+          await writeFile(temporary, writeImageMetadata(await readFile(temporary), asset, edit));
         if (jobs.cancelled) throw new Error('Conversion cancelled.');
         const current = await lstat(source);
         if (current.size !== original.size || current.mtimeMs !== original.mtimeMs)

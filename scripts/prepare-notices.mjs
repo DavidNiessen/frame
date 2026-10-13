@@ -2,7 +2,14 @@ import { createRequire } from 'node:module';
 import { cp, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-const packages = ['react', 'react-dom', 'lucide-react', 'fflate', '@fontsource/public-sans'];
+const packages = [
+  'react',
+  'react-dom',
+  'lucide-react',
+  'fflate',
+  'exifr',
+  '@fontsource/public-sans',
+];
 
 /** Copy exact upstream license texts into both web and desktop distribution resources. */
 export async function prepareNotices(destination = 'public/notices') {
