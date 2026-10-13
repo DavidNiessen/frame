@@ -9,13 +9,18 @@ A cross-platform media editor and converter for images, video and audio. Edit a 
 - **Images:** a dedicated canvas with zoom, pan, before/after comparison, crop handles, rotation, text and editable brush layers. Export PNG, JPEG, WebP, BMP or TIFF; convert entire image folders.
 - **Shapes & guides:** editable rectangles, rounded rectangles, ellipses, lines and arrows for images and videos; on-canvas handles, rotation, color and stroke controls. Center, thirds and safe-area guides, with snapping for shapes, text and artwork.
 - **Image layers:** reorder, rename, hide, lock and group adjustments and frame objects. Nine blend modes, layer opacity, and editable rectangle, ellipse or brush masks with feathering and inversion.
+- **Retouch & cutouts:** editable clone/healing brushes and local background removal with soft edges and restore/remove refinement. Transparent PNG, WebP and TIFF exports.
+- **Camera imports:** HEIC/HEIF and common camera RAW formats through portable decoder workers. Original files remain available for recovery; RAW development produces 8-bit sRGB working images.
+- **Image metadata:** credits, copyright, descriptions and optional camera information in JPEG, PNG, WebP and TIFF. GPS location is excluded by default.
+- **Multitrack:** independent video/image layers with positioning, fit, opacity, color and curves; linked video/audio trimming, movement and splitting.
+- **Animation:** position, size, opacity and volume keyframes with linear, smooth and hold interpolation. Local subject tracking creates editable X/Y keyframes, up to 30 seconds per pass.
 - **Color curves:** RGB and separate red/green/blue tone curves, a frame histogram, draggable points, numerical controls and tonal presets. Also available as timed video effects.
 - **Batch image sizes:** resize by longest edge, dimensions or percentage; preserve proportions, crop to fill or stretch. Avoid enlargement and save custom size presets.
 - **Visual adjustments:** exposure, gamma, shadows, highlights, vibrance, hue, tint, vignette, blur, sharpen, black & white, sepia, invert, pixelate, posterize, film grain, sketch and emboss. These also work as timed video effects with live previews.
 - **Edit:** trim, split, reorder and join clips; insert videos from the library; replace or layer audio; extract audio from video.
 - **Effects:** crop, rotate, resize, speed, fades, color adjustments, LUTs, volume, EQ, noise reduction and loudness normalization. Timed effects have draggable timeline bars and live previews.
 - **Playback:** independent monitoring volume, five-second skips that keep playback running, precise frame stepping and an audio-reactive background.
-- **Captions:** independent text effects with on-frame editing, positioning and resizing; fonts, colors and styling; SRT import/export and burned-in subtitles.
+- **Captions:** local Whisper speech recognition for videos and audio, with cached models and language detection; independent text effects with on-frame editing, positioning and resizing; fonts, colors and styling; SRT import/export and burned-in subtitles.
 - **Convert:** files or recursive folders, a dedicated batch queue, presets, custom filenames, metadata and artwork, plus advanced encoding options.
 - **URL imports:** direct files on desktop/web; public YouTube, Instagram Reels, TikTok, SoundCloud, Vimeo, Dailymotion and Bandcamp links on desktop, with video/audio and quality choices.
 - **Desktop downloads:** an animated Install App button opens a platform picker, with automatic detection and an optional latest prerelease.
@@ -39,6 +44,8 @@ Output formats: **PNG, JPEG, WebP, BMP, TIFF, MP4, MOV, MKV, WebM, GIF, MP3, WAV
 | Hardware encoding, proxies and watch folders | Yes, subject to hardware/platform support       | Unavailable                                         |
 
 Browser GIF conversion uses separate palette and encoding passes to avoid buffering an entire decoded movie. The browser has memory guards: 500 MB per source, 800 MB per library and 500 MB of retained conversion results. ZIP preparation uses additional memory. Use desktop for large collections.
+
+Local transcription downloads about 42 MB of pinned Whisper Tiny model files on first use, then works offline with the cache. Audio is never uploaded. Review generated text and timing before export.
 
 Media is processed on your device. URL imports connect to the source you choose. Desktop includes FFmpeg, FFprobe and yt-dlp; users do not need to install those tools separately. Web assets and fonts are served with the application, without third-party CDNs or API keys.
 
@@ -84,6 +91,8 @@ npm run build            # Web and Electron bundles
 npm run package          # Installer for the current OS and architecture
 ```
 
+Speech inference uses the CPU runtime bundled by npm. On Linux, set `ONNXRUNTIME_NODE_INSTALL_CUDA=skip` when installing dependencies to avoid downloading unused CUDA libraries; CI already sets this.
+
 Use `npm run format` and `npm run lint:fix` to apply automatic fixes. CI validates the web app, pnpm setup and native desktop builds on Windows, macOS Intel/Apple Silicon and Linux. Every successful `master` push publishes all four installers and `SHA256SUMS.txt` as a uniquely versioned prerelease. For a full release, open **Actions → Validate and package → Run workflow**, select `master`, choose **release**, and enter a version such as `1.0.0`. Choose **prerelease** for a manual preview. Leaving the version blank continues the current release line. After `v1.0.0`, automatic previews use `v1.0.1-build.N`; a manually selected newer prerelease version becomes the preview line. Published tags determine versions without committing automated version bumps. Full releases are never overwritten.
 
 ## Project structure
@@ -110,17 +119,3 @@ See [architecture](docs/ARCHITECTURE.md), [design](docs/DESIGN.md), and [contrib
 ## Licensing
 
 Frame's application code does not yet have a chosen open-source license. An explicit license is required before reuse or redistribution of that code is permitted. Bundled tools, fonts and dependencies retain their upstream licenses; see [distribution notices](docs/DISTRIBUTION.md) and [vendored tools](vendor/media-tools/README.md).
-
-Image exports also include credits and privacy controls: creator, copyright, description, optional camera information, and GPS location excluded by default. EXIF export is supported in JPEG, PNG, WebP, and TIFF; original files stay unchanged.
-
-Image retouch layers provide soft clone and healing brushes with editable strokes, an eraser, and per-layer undo. Choose a sample point with Alt/Option-click, then paint. Raster generation runs in a worker.
-
-HEIC/HEIF and common camera RAW files (DNG, CR2/CR3, NEF, ARW, RAF, RW2, and more) can be imported and batch converted locally on desktop and web. Portable decoder workers create lossless working PNGs while retaining the original files for recovery. RAW imports are developed to 8-bit sRGB; support depends on the camera and compression supported by the bundled LibRaw build.
-
-Local background removal supports edge-connected selection, sampled colors, soft edges, and restore/remove brush refinement. Transparent exports are available as PNG, WebP, and TIFF.
-
-Independent video and image tracks can be layered over the current media, with their own timing, position, fit, opacity, color adjustments, and curves. Video tracks can link to source audio; picture and sound trim, move, and split together. Tracks are stored as source references in projects and automatic recovery.
-
-Layer position, size, opacity, and audio volume can be animated with linear, smooth, or hold keyframes. Keyframes are visible in the timeline, editable at the playhead, and retained through track trimming and splitting.
-
-Visual tracks can follow a subject using local motion tracking. Select a textured region in the tracking frame to generate editable position keyframes. Analysis runs in a worker, supports up to 30 seconds per pass, and stops when it loses the subject.

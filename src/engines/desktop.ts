@@ -124,6 +124,14 @@ export function createDesktopEngine(): MediaEngine {
         remove();
       }
     },
+    async transcribe(asset, edit, options, onProgress) {
+      const remove = bridge.onProgress(onProgress);
+      try {
+        return await bridge.transcribe(asset.id, edit, options);
+      } finally {
+        remove();
+      }
+    },
     async analysisData(asset, edit, options, onProgress) {
       const remove = bridge.onProgress(onProgress);
       try {

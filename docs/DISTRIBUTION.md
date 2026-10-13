@@ -120,3 +120,5 @@ Use **Actions → Validate and package → Run workflow** on `master`. Choose `r
 Every master push creates a prerelease. After full release `1.0.0`, these builds use `1.0.1-build.N` until the next full release or a manually selected newer version. The release history persists the version line, so a prerelease does not increment the patch on each push. Selecting a full release does not change the signing or notarization requirements above.
 
 Only full releases deploy GitHub Pages. The publishing workflow calls the Pages workflow directly with the published tag; it builds and tests that exact release before deploying. This works with GitHub's Actions token, which does not trigger a second workflow through a generated release event.
+
+Local speech recognition uses pinned Transformers.js and ONNX Runtime CPU/WASM binaries. Native packages omit unused Sharp/libvips and foreign-platform inference binaries. The optional Whisper Tiny model is downloaded from a fixed Hugging Face revision on first use, with no media upload. See `vendor/licenses/SPEECH-MODELS.txt` for sources and license notices. Linux CI disables optional CUDA downloads because inference uses the CPU.

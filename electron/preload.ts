@@ -89,6 +89,7 @@ const bridge: DesktopBridge = {
   appendVideo: (id, addedId) => ipcRenderer.invoke('media:append-video', id, addedId),
   extractAudio: (id) => ipcRenderer.invoke('media:extract-audio', id),
   detectSilence: (id, options) => ipcRenderer.invoke('media:silence', id, options),
+  transcribe: (id, edit, options) => ipcRenderer.invoke('media:transcribe', id, edit, options),
   analysisData: (id, edit, options) => ipcRenderer.invoke('media:analysis-data', id, edit, options),
   previewFrame: (id, edit, time) => ipcRenderer.invoke('media:frame-preview', id, edit, time),
   previewAudio: (id, edit) => ipcRenderer.invoke('media:audio-preview', id, edit),

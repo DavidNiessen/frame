@@ -26,3 +26,5 @@ pnpm-lock.yaml
 *.p12
 
 public/image-decoders/
+
+public/speech/

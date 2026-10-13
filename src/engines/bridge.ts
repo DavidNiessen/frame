@@ -1,3 +1,5 @@
+import type { TranscriptionOptions } from '../core/transcription';
+import type { SubtitleCue } from '../core/subtitles';
 import type { AnalysisOptions } from '../core/analysis-data';
 import type { ExportHistoryBridge } from '../core/export-history';
 import type { UpdateBridge } from '../core/app-updates';
@@ -78,6 +80,7 @@ export interface DesktopBridge extends ExportHistoryBridge, UpdateBridge {
   appendVideo(id: string, addedId: string): Promise<MediaAsset>;
   extractAudio(id: string): Promise<MediaAsset>;
   detectSilence(id: string, options: SilenceOptions): Promise<TimeRange[]>;
+  transcribe(id: string, edit: EditSettings, options: TranscriptionOptions): Promise<SubtitleCue[]>;
   analysisData(id: string, edit: EditSettings, options: AnalysisOptions): Promise<Uint8Array>;
   previewFrame(id: string, edit: EditSettings, time: number): Promise<Uint8Array>;
   previewAudio(id: string, edit: EditSettings): Promise<Uint8Array>;

@@ -17,6 +17,8 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
+env:
+  ONNXRUNTIME_NODE_INSTALL_CUDA: skip
 permissions:
   contents: read
 jobs:

@@ -1,3 +1,4 @@
+const { configureNativeInferenceFiles } = require('./native-inference-files.cjs');
 const { execFileSync } = require('node:child_process');
 const { existsSync } = require('node:fs');
 const { readFileSync } = require('node:fs');
@@ -12,6 +13,7 @@ module.exports = async (context) => {
       `Build ${context.electronPlatformName}/${targetArch} on a matching machine so portable FFmpeg binaries match the application.`,
     );
   }
+  configureNativeInferenceFiles(context.packager.config.files, process.platform, process.arch);
   for (const binary of [require('@ffprobe-installer/ffprobe').path]) {
     if (!binary || !existsSync(binary))
       throw new Error('The portable media tools are missing. Run npm ci on this platform.');

@@ -1,3 +1,4 @@
+import { hasEditedAudio } from '../core/audio-layers';
 import { TransientMessage } from './TransientMessage';
 import { useRef, useState } from 'react';
 import { captionItems } from '../core/caption-items';
@@ -13,10 +14,12 @@ export function CaptionTools({
   editor,
   seek,
   openCaption,
+  openTranscription,
 }: {
   editor: Editor;
   seek: (time: number) => void;
   openCaption: (instanceId?: string) => void;
+  openTranscription: () => void;
 }) {
   const input = useRef<HTMLInputElement>(null),
     [error, setError] = useState('');
@@ -37,6 +40,15 @@ export function CaptionTools({
     <details className="advanced caption-tools">
       <summary>Caption tools</summary>
       <div className="advanced-content">
+        {editor.asset?.kind !== 'image' && (
+          <button
+            className="button subtle small"
+            disabled={!!editor.busy || !hasEditedAudio(editor.asset!, edit)}
+            onClick={openTranscription}
+          >
+            Generate captions locally
+          </button>
+        )}
         <input
           ref={input}
           type="file"

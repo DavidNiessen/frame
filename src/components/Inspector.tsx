@@ -16,6 +16,7 @@ export function Inspector({
   tab,
   setTab,
   openCaption,
+  openTranscription,
   openEffect,
 }: {
   tab: InspectorTab;
@@ -25,6 +26,7 @@ export function Inspector({
   editor: Editor;
   seek: (time: number) => void;
   openCaption: (instanceId?: string) => void;
+  openTranscription: () => void;
   openEffect: (id: EffectId, instanceId?: string) => void;
 }) {
   const { asset, edit, busy } = editor;
@@ -65,6 +67,7 @@ export function Inspector({
                     current={current}
                     seek={seek}
                     openCaption={openCaption}
+                    openTranscription={openTranscription}
                     editor={editor}
                   />
                 </fieldset>

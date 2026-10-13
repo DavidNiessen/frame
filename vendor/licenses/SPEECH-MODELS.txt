@@ -1,0 +1,19 @@
+Frame — local speech recognition
+
+Transformers.js 3.8.1 (Apache-2.0): huggingface-transformers-LICENSE.txt
+https://github.com/huggingface/transformers.js/tree/3.8.1
+Jinja template utilities: huggingface-jinja-LICENSE.txt
+
+ONNX Runtime Node 1.21.0 and Web 1.22.0-dev.20250409-89f8206ba4 (MIT): onnxruntime-LICENSE.txt
+https://github.com/microsoft/onnxruntime/tree/v1.21.0
+https://github.com/microsoft/onnxruntime/tree/89f8206ba4
+Native distributions include CPU runtime binaries for their target OS/architecture.
+CUDA libraries are not needed. Sharp/libvips is excluded from the audio-only speech bundle.
+
+Whisper Tiny (MIT): whisper-LICENSE.txt
+https://github.com/openai/whisper
+Model source: https://huggingface.co/openai/whisper-tiny
+Quantized ONNX conversion:
+https://huggingface.co/onnx-community/whisper-tiny/tree/ff4177021cc41f7db950912b73ea4fdf7d01d8e7
+Model files are downloaded on demand over HTTPS from this pinned revision.
+Media is processed locally; no audio is sent to the model provider.

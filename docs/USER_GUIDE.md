@@ -133,3 +133,11 @@ Open a video/image track overlay in a video project and expand **Motion & keyfra
 ### Motion tracking
 
 Open a video or image layer in a video project, expand **Motion tracking**, and prepare frames from the current playhead. Drag a box around a contrasting, textured subject, then choose **Track subject**. Frame follows its position for up to 30 seconds and replaces the layer's X/Y keyframes, retaining its initial offset from the subject. Size and opacity automation remain unchanged. Review the generated motion in playback and adjust keyframes as needed. If the subject disappears, Frame applies only the reliable portion and reports where tracking stopped. This is local template tracking; it does not estimate rotation, perspective or object identity.
+
+### Generate captions from speech
+
+In **Caption tools**, choose **Generate captions locally**. Choose a language or let Whisper Tiny detect it, select up to 10 minutes of the edited sequence, then generate. The first run downloads approximately 42 MB of model files from the pinned Hugging Face revision; later runs use the local cache. Native inference uses a background CPU worker, and web inference uses a WebAssembly worker. Audio is not uploaded.
+
+Review the transcript, then add it to the timeline. Each segment becomes a separate editable caption effect; existing captions remain. Captions use output timing, including cuts, speed and the audio mix. Long segments are broken into readable lines with proportionally divided timing; refine these timings if needed. Audio-only projects can save their captions using **Save output SRT**. Use multiple passes for longer media. Whisper Tiny can miss words or invent text in noisy or silent passages, so check the result before publishing.
+
+The desktop model cache lives in the app's user-data folder under `speech-models`; web models use the browser's Cache Storage. Clearing app/browser data removes the cache and requires a new download. Offline use requires the model to have been downloaded successfully first.

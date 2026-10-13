@@ -1,3 +1,4 @@
+import { registerTranscription } from './transcription';
 import { registerWorkspace } from './workspace';
 import { registerPreparedMedia } from './prepared-media';
 import type { BrowserWindow } from 'electron';
@@ -37,6 +38,7 @@ export function createMediaSession(
   registerLoudnessAnalysis(assets, jobs, trusted, ipc);
   registerSceneAnalysis(assets, jobs, trusted, ipc);
   const analysis = registerAnalysis(assets, jobs, trusted, ipc);
+  registerTranscription(assets, jobs, trusted, ipc);
   registerMerge(assets, jobs, () => window, trusted, ipc);
   registerProjectSaving(
     () => window,

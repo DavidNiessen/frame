@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import { copyFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { ensureYoutubeTools } from './prepare-youtube.mjs';
 import { ensureFfmpeg } from './prepare-ffmpeg.mjs';
 import { prepareWindowsShell } from './prepare-windows-shell.mjs';
@@ -13,6 +14,7 @@ await build({
     'electron/preload.ts',
     'electron/update-worker.ts',
     'electron/image-decode-worker.ts',
+    'electron/speech-worker.ts',
   ],
   outdir: 'dist-electron',
   outExtension: { '.js': '.cjs' },
@@ -20,7 +22,9 @@ await build({
   platform: 'node',
   format: 'cjs',
   target: 'node22',
-  external: ['electron', '@ffprobe-installer/ffprobe'],
+  external: ['electron', '@ffprobe-installer/ffprobe', 'onnxruntime-node'],
+  // Audio inference does not need Sharp/libvips or another image decoding stack.
+  alias: { sharp: resolve('electron/speech-image-backend.ts') },
   sourcemap: true,
 });
 await copyFile('electron/update-windows.ps1', 'dist-electron/update-windows.ps1');

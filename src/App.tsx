@@ -15,7 +15,7 @@ import { useCommandPalette } from './hooks/useCommandPalette';
 import { frameCommands } from './hooks/frame-commands';
 import { applyEditorEffect } from './hooks/apply-editor-effect';
 import type { InspectorTab } from './components/InspectorTabs';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Upload, X } from 'lucide-react';
 import { ImportInputs } from './components/ImportInputs';
 import { seekPreviewTime, hasPreviewClock } from './core/preview-clock';
@@ -53,6 +53,11 @@ import { useExpandedPreview } from './hooks/useExpandedPreview';
 import { useDesktopChrome } from './hooks/useDesktopChrome';
 import { sourceTimeAtOutput, outputTimeAtSource } from './core/fades';
 import { useEditorShortcuts } from './hooks/useEditorShortcuts';
+const TranscriptionDialog = lazy(() =>
+  import('./components/TranscriptionDialog').then((module) => ({
+    default: module.TranscriptionDialog,
+  })),
+);
 export default function App() {
   return (
     <RetouchSourceProvider>
@@ -106,7 +111,8 @@ function FrameApp() {
       openEffect?.id !== 'crop',
   );
   const [sheetOpen, setSheetOpen] = useState(false),
-    [scenesOpen, setScenesOpen] = useState(false);
+    [scenesOpen, setScenesOpen] = useState(false),
+    [transcriptionOpen, setTranscriptionOpen] = useState(false);
   const merge = useMerge(editor);
   const [mergeOpen, setMergeOpen] = useState(false);
   const waves = useWaveforms(
@@ -237,6 +243,7 @@ function FrameApp() {
     },
     contactSheet: () => setSheetOpen(true),
     scenes: () => setScenesOpen(true),
+    transcribe: () => setTranscriptionOpen(true),
     merge: () => setMergeOpen(true),
     batch: () => setBatchOpen(true),
     timelineAvailable: !settingsOpen && workflow === 'edit',
@@ -255,6 +262,7 @@ function FrameApp() {
       mergeOpen ||
       sheetOpen ||
       scenesOpen ||
+      transcriptionOpen ||
       urlOpen ||
       !!openEffect ||
       !!openLayer,
@@ -449,6 +457,7 @@ function FrameApp() {
                 setOpenLayer(null);
                 setOpenEffect({ id: 'captions', instanceId });
               }}
+              openTranscription={() => setTranscriptionOpen(true)}
               current={current}
               tab={inspectorTab}
               setTab={setInspectorTab}
@@ -671,6 +680,11 @@ function FrameApp() {
       )}
       <CommandPalette open={commandPalette.open} close={commandPalette.close} commands={commands} />
       <UrlImportDialog open={urlOpen} close={() => setUrlOpen(false)} editor={editor} />
+      {transcriptionOpen && editor.asset && editor.edit && (
+        <Suspense fallback={null}>
+          <TranscriptionDialog editor={editor} close={() => setTranscriptionOpen(false)} />
+        </Suspense>
+      )}
       {scenesOpen && editor.asset && editor.edit && (
         <SceneDetectionDialog editor={editor} seek={seek} close={() => setScenesOpen(false)} />
       )}

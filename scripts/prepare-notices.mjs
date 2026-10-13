@@ -8,6 +8,8 @@ const packages = [
   'lucide-react',
   'fflate',
   'exifr',
+  '@huggingface/transformers',
+  '@huggingface/jinja',
   'libheif-js',
   '@fontsource/public-sans',
 ];
@@ -16,8 +18,12 @@ const packages = [
 export async function prepareNotices(destination = 'public/notices') {
   await mkdir(destination, { recursive: true });
   const lines = ['Frame — bundled libraries and fonts', ''];
+  const speechRequire = createRequire(
+    await realpath('node_modules/@huggingface/transformers/package.json'),
+  );
+  const jinjaRoot = dirname(dirname(speechRequire.resolve('@huggingface/jinja')));
   for (const name of packages) {
-    const root = join('node_modules', name);
+    const root = name === '@huggingface/jinja' ? jinjaRoot : join('node_modules', name);
     const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
     const file = `${name.replaceAll('/', '-').replaceAll('@', '')}-LICENSE.txt`;
     await cp(join(root, 'LICENSE'), join(destination, file));
@@ -30,6 +36,9 @@ export async function prepareNotices(destination = 'public/notices') {
   await cp(join(schedulerRoot, 'LICENSE'), join(destination, 'scheduler-LICENSE.txt'));
   lines.push(`scheduler ${scheduler.version} (${scheduler.license}): scheduler-LICENSE.txt`);
   for (const file of [
+    'SPEECH-MODELS.txt',
+    'onnxruntime-LICENSE.txt',
+    'whisper-LICENSE.txt',
     'IMAGE-DECODERS.txt',
     'libraw-LGPL.txt',
     'libraw-COPYRIGHT.txt',
@@ -37,6 +46,7 @@ export async function prepareNotices(destination = 'public/notices') {
   ])
     await cp(`vendor/licenses/${file}`, join(destination, file));
   lines.push(
+    'Speech runtime/model licensing and sources: SPEECH-MODELS.txt',
     'libraw-wasm 1.6.0: see IMAGE-DECODERS.txt for the wrapper and bundled codec notices.',
   );
   await cp('vendor/licenses/ffmpeg-wasm.LICENSE', join(destination, 'ffmpeg-wasm-LICENSE.txt'));

@@ -1,3 +1,5 @@
+import { browserSpeech } from './browser-speech';
+import { parseTranscriptionOptions } from '../core/transcription';
 import { browserImageSource } from './browser-image-source';
 import { readImageMetadata } from '../core/image-metadata';
 import { writeImageMetadata } from '../core/image-metadata-export';
@@ -37,7 +39,8 @@ import type { BatchOptions, ImportReport, MediaEngine } from '../core/types';
 export function createBrowserEngine(): MediaEngine {
   const runtime = browserRuntime(),
     background = browserRuntime();
-  const ready = runtime.ready;
+  const ready = runtime.ready,
+    speech = browserSpeech();
   const files = new Map<string, File>(),
     originals = new Map<string, File>(),
     sources = new Map<string, MediaAsset>();
@@ -57,6 +60,18 @@ export function createBrowserEngine(): MediaEngine {
   let batchOptions: BatchOptions = {};
   const engine: MediaEngine = {
     platform: 'web',
+    async transcribe(asset, edit, value, onProgress) {
+      cancelled = false;
+      const options = parseTranscriptionOptions(value, edit);
+      const bytes = await engine.analysisData(
+        asset,
+        edit,
+        { ...options, kind: 'speech' },
+        onProgress,
+      );
+      if (cancelled) throw new Error('Transcription cancelled.');
+      return speech.run(bytes, options, onProgress);
+    },
     appendVideo: prepared.appendVideo,
     extractAudio: prepared.extractAudio,
     joinedPreview: joined.generate,
@@ -383,6 +398,7 @@ export function createBrowserEngine(): MediaEngine {
       importing?.abort();
       cancelled = true;
       runtime.cancel();
+      speech.cancel();
       prepared.cancel();
     },
     async release(asset) {

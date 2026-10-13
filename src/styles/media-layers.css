@@ -112,3 +112,25 @@
   cursor: crosshair;
   touch-action: none;
 }
+
+.transcription-dialog {
+  width: min(620px, calc(100vw - 32px));
+}
+.transcription-options {
+  border: 0;
+  padding: 0;
+  margin-block: 20px;
+}
+.transcription-review {
+  margin-top: 20px;
+}
+.transcription-review > p {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 110px minmax(0, 1fr);
+  font-size: 13px;
+}
+.transcription-review span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

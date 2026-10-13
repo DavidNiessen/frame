@@ -1,3 +1,4 @@
+import { hasEditedAudio } from '../core/audio-layers';
 import type { FrameCommand } from '../components/CommandPalette';
 import type { Editor } from './useEditor';
 import type { Projects } from './useProjects';
@@ -21,6 +22,7 @@ interface Actions {
   layerMedia?: (id: string) => void;
   contactSheet: () => void;
   scenes: () => void;
+  transcribe?: () => void;
   merge: () => void;
   batch: () => void;
   timelineAvailable: boolean;
@@ -228,6 +230,23 @@ export function frameCommands(
         run: editing(() => actions.applyEffect(effect.id)),
       };
     }),
+    ...(actions.transcribe
+      ? [
+          {
+            id: 'transcribe',
+            label: 'Generate captions locally',
+            description: 'Transcribe edited speech on your device',
+            group: 'Review',
+            keywords: 'automatic subtitles transcription whisper speech',
+            disabled:
+              media ||
+              (!editor.edit || !editor.asset || !hasEditedAudio(editor.asset, editor.edit)
+                ? 'Select media with audio'
+                : undefined),
+            run: editing(actions.transcribe),
+          },
+        ]
+      : []),
     {
       id: 'scenes',
       label: 'Find scene changes',

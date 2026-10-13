@@ -16,3 +16,5 @@ package-lock.json
 pnpm-lock.yaml
 # These inputs are fingerprinted against committed Windows shell binaries.
 src/core/media-extensions.json
+
+public/speech/

@@ -17,6 +17,7 @@ module.exports = tseslint.config(
       'public/ffmpeg/**',
       'public/image-decoders/**',
       'public/notices/**',
+      'public/speech/**',
       '.local/**',
       'coverage/**',
       'test-results/**',

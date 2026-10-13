@@ -32,12 +32,14 @@ export function EffectLibrary({
   current,
   seek,
   openCaption,
+  openTranscription,
   openEffect,
 }: {
   editor: Editor;
   current: number;
   seek: (time: number) => void;
   openCaption: (instanceId?: string) => void;
+  openTranscription: () => void;
   openEffect: (id: EffectId, instanceId?: string) => void;
 }) {
   const [query, setQuery] = useState(''),
@@ -246,8 +248,13 @@ export function EffectLibrary({
           {asset.kind === 'image' ? 'Remove all image adjustments' : 'Remove all track effects'}
         </button>
       )}
-      {asset.kind === 'video' && (
-        <CaptionTools editor={editor} seek={seek} openCaption={openCaption} />
+      {asset.kind !== 'image' && (
+        <CaptionTools
+          editor={editor}
+          seek={seek}
+          openCaption={openCaption}
+          openTranscription={openTranscription}
+        />
       )}
       <EffectRecipes editor={editor} />
     </section>

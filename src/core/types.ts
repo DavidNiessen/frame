@@ -1,3 +1,5 @@
+import type { TranscriptionOptions } from './transcription';
+import type { SubtitleCue } from './subtitles';
 import type { AnalysisOptions } from './analysis-data';
 import type { MediaLayer } from './media-layers';
 import { defaultCutout, type CutoutSettings } from './cutout';
@@ -236,6 +238,12 @@ export interface MediaEngine {
     options: SilenceOptions,
     onProgress: (p: ExportProgress) => void,
   ): Promise<TimeRange[]>;
+  transcribe(
+    asset: MediaAsset,
+    edit: EditSettings,
+    options: TranscriptionOptions,
+    onProgress: (p: ExportProgress) => void,
+  ): Promise<SubtitleCue[]>;
   analysisData(
     asset: MediaAsset,
     edit: EditSettings,
