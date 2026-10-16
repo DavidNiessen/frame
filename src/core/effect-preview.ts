@@ -12,6 +12,7 @@ import type { AudioLayerInput } from './audio-layers';
 import type { RecipeResources } from './resources';
 import type { PreviewRange } from './preview-clock';
 import { previewResolution } from './preview-resolution';
+import { seekPreviewClips } from './preview-seeking';
 
 /** These corrections cannot be represented by a media element or CSS alone. */
 export function needsEffectPreview(edit: EditSettings, realtimeAudio = false) {
@@ -200,5 +201,5 @@ export function effectPreviewArgs(
     if (preset >= 0) args[preset + 1] = 'ultrafast';
     args.splice(args.length - 1, 0, '-r', String(Math.min(30, asset.frameRate ?? 30)));
   }
-  return args;
+  return seekPreviewClips(args, edit, input);
 }

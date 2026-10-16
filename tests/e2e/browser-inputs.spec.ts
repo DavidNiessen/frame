@@ -96,3 +96,57 @@ test('imports, analyses, layers and exports Blob inputs without full-file copies
   expect(result.extracted).toBe('audio');
   expect(result.appended).toBeCloseTo(12, 1);
 });
+
+test('seeks directly into reordered preview excerpts with a separate audio mix', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const encoded = (await readFile('tests/fixtures/sample.mp4')).toString('base64');
+  const result = await page.evaluate(async (encoded) => {
+    const engineUrl = '/src/engines/browser.ts',
+      typesUrl = '/src/core/types.ts';
+    const { createBrowserEngine } = await import(/* @vite-ignore */ engineUrl);
+    const { defaultSettings } = await import(/* @vite-ignore */ typesUrl);
+    const engine = createBrowserEngine(),
+      progress = () => {};
+    const file = new File([Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0))], 'source.mp4');
+    const asset = (await engine.importFiles([file])).assets[0];
+    const audio = {
+      id: 'audio',
+      sourceId: asset.id,
+      source: asset,
+      start: 0,
+      end: 3,
+      sourceStart: 0,
+      sourceEnd: 3,
+      volume: 0.2,
+      fadeIn: 0,
+      fadeOut: 0,
+      muted: false,
+      loop: false,
+    };
+    const edit = {
+      ...defaultSettings(asset),
+      audioLayers: [audio],
+      clips: [
+        { id: 'late', start: 4, end: 6, effects: { speed: 2 } },
+        { id: 'early', start: 0, end: 2, effects: {} },
+      ],
+    };
+    const proxy = await engine.effectPreview(asset, edit, progress);
+    const video = document.createElement('video');
+    video.src = proxy.url;
+    await new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error('The preview is not playable.'));
+    });
+    const result = { size: proxy.size, duration: video.duration };
+    video.removeAttribute('src');
+    video.load();
+    await engine.releaseProxy(proxy.id);
+    await engine.release(asset);
+    return result;
+  }, encoded);
+  expect(result.size).toBeGreaterThan(1000);
+  expect(result.duration).toBeCloseTo(3, 1);
+});
