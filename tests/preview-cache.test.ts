@@ -37,3 +37,16 @@ it('bounds retained bytes while preserving an oversized active decoder', () => {
   cache.retainAsset('other');
   expect(b.release).toHaveBeenCalledTimes(1);
 });
+
+it('keeps the full image and its interaction base until both visible sources have switched', () => {
+  const cache = previewCache<ReturnType<typeof entry>>(1, 10),
+    full = entry('full', 8),
+    base = entry('base', 8);
+  cache.put(full);
+  cache.put(base);
+  cache.trim(['full', 'base']);
+  expect(full.release).not.toHaveBeenCalled();
+  expect(base.release).not.toHaveBeenCalled();
+  cache.trim('full');
+  expect(base.release).toHaveBeenCalledTimes(1);
+});

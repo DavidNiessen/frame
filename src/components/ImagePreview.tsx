@@ -6,7 +6,7 @@ import { ImageToolbar } from './ImageToolbar';
 import { ImageFrameLayers } from './ImageFrameLayers';
 import { defaultGeometry } from '../core/geometry';
 import { useElementSize } from '../hooks/useElementSize';
-import { useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type RefObject } from 'react';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useImageRender } from '../hooks/useImageRender';
 import { changeInstance, instanceRecipe } from '../core/effect-instances';
@@ -38,25 +38,37 @@ export function ImagePreview({
   const asset = editor.asset!,
     edit = editor.edit!,
     instance = edit.effectInstances?.find((item) => item.id === selectedEffect?.instanceId);
-  const selected = instance ? instanceRecipe(edit, instance) : edit;
+  const selected = useMemo(
+    () => (instance ? instanceRecipe(edit, instance) : edit),
+    [edit, instance],
+  );
   const change = (patch: Partial<typeof edit>) =>
     editor.update(instance ? changeInstance(edit, instance.id, null, patch) : patch);
   const cropping = selectedEffect?.id === 'crop';
-  const base = cropping
-    ? instance
-      ? {
-          ...edit,
-          effectInstances: edit.effectInstances?.slice(0, edit.effectInstances.indexOf(instance)),
-        }
-      : { ...edit, crop: null, geometry: defaultGeometry(), effectInstances: [] }
-    : edit;
-  const activeLayer = selectedMediaLayer
-    ? imageLayerRows(asset, edit).find((row) => row.mediaLayer?.id === selectedMediaLayer)
-    : selectedEffect
-      ? imageLayerRows(asset, edit).find(
-          (row) => row.key === imageLayerKey(selectedEffect.id, selectedEffect.instanceId),
-        )
-      : undefined;
+  const base = useMemo(
+    () =>
+      cropping
+        ? instance
+          ? {
+              ...edit,
+              effectInstances: edit.effectInstances?.slice(
+                0,
+                edit.effectInstances.indexOf(instance),
+              ),
+            }
+          : { ...edit, crop: null, geometry: defaultGeometry(), effectInstances: [] }
+        : edit,
+    [cropping, instance, edit],
+  );
+  const activeLayer = useMemo(() => {
+    if (!selectedMediaLayer && !selectedEffect) return undefined;
+    const rows = imageLayerRows(asset, edit);
+    return selectedMediaLayer
+      ? rows.find((row) => row.mediaLayer?.id === selectedMediaLayer)
+      : rows.find(
+          (row) => row.key === imageLayerKey(selectedEffect!.id, selectedEffect!.instanceId),
+        );
+  }, [asset, edit, selectedMediaLayer, selectedEffect]);
   const liveObject =
     activeLayer &&
     !activeLayer.hidden &&
@@ -65,16 +77,17 @@ export function ImagePreview({
       activeLayer.effect.id,
     );
   // Cache an exact composite and an object-free base for responsive gestures.
-  const interactionEdit = liveObject
-    ? ['retouch', 'cutout', 'media'].includes(activeLayer.effect.id)
+  const interactionEdit = useMemo(() => {
+    if (!liveObject || !activeLayer) return undefined;
+    return ['retouch', 'cutout', 'media'].includes(activeLayer.effect.id)
       ? imageEditBeforeLayer(asset, base, activeLayer.key)
       : activeLayer.id
         ? {
             ...base,
             effectInstances: base.effectInstances?.filter((item) => item.id !== activeLayer.id),
           }
-        : { ...base, ...effectAction(base, asset, activeLayer.effect, null, 'remove') }
-    : undefined;
+        : { ...base, ...effectAction(base, asset, activeLayer.effect, null, 'remove') };
+  }, [liveObject, activeLayer, asset, base]);
   const renderEdit = base;
   const render = useImageRender(
     { ...editor, edit: renderEdit },

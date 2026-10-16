@@ -25,11 +25,12 @@ export function previewCache<
       if (entries.has(value.key)) remove(value.key);
       entries.set(value.key, value);
     },
-    trim(visible: string) {
+    trim(visible: string | readonly string[]) {
+      const protectedKeys = new Set(typeof visible === 'string' ? [visible] : visible);
       let total = [...entries.values()].reduce((sum, entry) => sum + entry.proxy.size, 0);
       for (const [key, entry] of entries) {
         if (entries.size <= limit && total <= bytes) break;
-        if (key === visible) continue;
+        if (protectedKeys.has(key)) continue;
         total -= entry.proxy.size;
         remove(key);
       }
