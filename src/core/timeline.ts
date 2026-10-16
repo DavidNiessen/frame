@@ -18,11 +18,47 @@ export function keptRanges(
   if (cursor < edit.end) ranges.push({ start: cursor, end: edit.end });
   return ranges;
 }
-export function editedDuration(
-  edit: Pick<EditSettings, 'start' | 'end' | 'cuts'> &
-    Partial<Pick<EditSettings, 'clips'>> &
-    Partial<Pick<EditSettings, 'speed' | 'effectInstances'>>,
-): number {
+type TimingEdit = Pick<EditSettings, 'start' | 'end' | 'cuts'> &
+  Partial<Pick<EditSettings, 'clips'>> &
+  Partial<Pick<EditSettings, 'speed' | 'effectInstances'>>;
+const durations = new WeakMap<
+  TimingEdit,
+  {
+    start: number;
+    end: number;
+    cuts: TimingEdit['cuts'];
+    clips: TimingEdit['clips'];
+    speed: TimingEdit['speed'];
+    instances: TimingEdit['effectInstances'];
+    value: number;
+  }
+>();
+export function editedDuration(edit: TimingEdit): number {
+  const cached = durations.get(edit);
+  if (
+    cached &&
+    cached.start === edit.start &&
+    cached.end === edit.end &&
+    cached.cuts === edit.cuts &&
+    cached.clips === edit.clips &&
+    cached.speed === edit.speed &&
+    cached.instances === edit.effectInstances
+  )
+    return cached.value;
+  const value = calculateDuration(edit);
+  if (Object.isFrozen(edit))
+    durations.set(edit, {
+      start: edit.start,
+      end: edit.end,
+      cuts: edit.cuts,
+      clips: edit.clips,
+      speed: edit.speed,
+      instances: edit.effectInstances,
+      value,
+    });
+  return value;
+}
+function calculateDuration(edit: TimingEdit): number {
   if (edit.clips)
     return edit.clips.reduce(
       (total, clip) =>

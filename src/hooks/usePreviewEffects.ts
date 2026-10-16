@@ -10,6 +10,7 @@ import { previewPlaybackStep } from '../core/preview-playback';
 import type { EditSettings } from '../core/types';
 import { hasPreviewClock, readPreviewTime, seekPreviewTime } from '../core/preview-clock';
 import { previewFrameLoop } from './preview-frame-loop';
+import { realtimeEqualizers, updatePlaybackAudio } from '../core/realtime-audio';
 export function pauseOtherMedia(active: HTMLMediaElement) {
   for (const element of document.querySelectorAll('video, audio'))
     if (element !== active && !element.hasAttribute('data-frame-mix-layer'))
@@ -74,18 +75,19 @@ export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings)
               )),
         1,
       );
-  media.volume =
-    monitorVolume() *
-    (rendered
-      ? 1
-      : Math.min(
-          1,
-          effectiveVolume(recipe, sourceTime, position) *
-            sharedFade('audio') *
-            additionalFade('audio') *
-            localFade *
-            fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut),
-        ));
+  const gain = rendered
+    ? 1
+    : effectiveVolume(recipe, sourceTime, position) *
+      sharedFade('audio') *
+      additionalFade('audio') *
+      localFade *
+      fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut);
+  const realtime = updatePlaybackAudio(
+    media,
+    rendered ? [] : realtimeEqualizers(recipe, sourceTime, position),
+    gain,
+  );
+  media.volume = monitorVolume() * (realtime ? 1 : Math.min(1, gain));
   if (media.tagName === 'VIDEO')
     media.style.opacity = String(
       sharedFade('video') *

@@ -61,7 +61,9 @@ export function useEditor() {
   const engine = () => (engineRef.current ??= createEngine().then(trackedEngine));
   const asset = assets.find((a) => a.id === selected) ?? null;
   const history = selected ? histories[selected] : undefined;
-  const edit = history?.present ?? null;
+  // Published recipes are immutable. Drafts remain mutable until their state
+  // update finishes, so timing caches can safely distinguish the two.
+  const edit = history?.present ? Object.freeze(history.present) : null;
   useEffect(
     () => () => {
       if (resultRef.current?.url) URL.revokeObjectURL(resultRef.current.url);

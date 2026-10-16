@@ -36,21 +36,20 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
     await expect(page.getByRole('button', { name: 'Add media', exact: true })).toBeEnabled();
     const media = page.locator('.audio-stage audio');
     await expect(media).toHaveJSProperty('readyState', 4);
-    // Analyse the actual playing signal, rather than checking the recipe or a rendered-effect flag alone.
-    if (!app)
-      await media.evaluate((node) => {
-        const context = new AudioContext(),
-          source = context.createMediaElementSource(node as HTMLMediaElement),
-          analyser = context.createAnalyser();
-        analyser.fftSize = 2048;
-        source.connect(analyser);
-        analyser.connect(context.destination);
+    // Observe Frame's own audio route; creating a second MediaElementSource
+    // would steal playback from the application and hide live-processing bugs.
+    await page.evaluate(() => {
+      const create = AudioContext.prototype.createAnalyser;
+      AudioContext.prototype.createAnalyser = function () {
+        const analyser = create.call(this);
         (
           window as typeof window & {
             effectAudio: { context: AudioContext; analyser: AnalyserNode };
           }
-        ).effectAudio = { context, analyser };
-      });
+        ).effectAudio = { context: this, analyser };
+        return analyser;
+      };
+    });
     const fetchPrepared = async (url: string, name: string) => {
       const bytes = await app!.evaluate(
         async ({ net }, source) =>
@@ -62,17 +61,6 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
       return path;
     };
     const rms = async () => {
-      if (app) {
-        const path = await fetchPrepared((await media.getAttribute('src'))!, 'playing.mp3');
-        const { stdout } = await promisify(execFile)(
-          ffmpegPath(),
-          ['-v', 'error', '-ss', '0.5', '-i', path, '-t', '0.5', '-ac', '1', '-f', 'f32le', '-'],
-          { encoding: 'buffer' },
-        );
-        let sum = 0;
-        for (let i = 0; i < stdout.length; i += 4) sum += stdout.readFloatLE(i) ** 2;
-        return Math.sqrt(sum / (stdout.length / 4));
-      }
       return page.evaluate(() => {
         const { analyser } = (window as typeof window & { effectAudio: { analyser: AnalyserNode } })
           .effectAudio;
@@ -82,29 +70,27 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
       });
     };
     await page.getByRole('button', { name: 'Play', exact: true }).click();
-    if (!app)
-      await page.evaluate(() =>
-        (
-          window as typeof window & { effectAudio: { context: AudioContext } }
-        ).effectAudio.context.resume(),
-      );
-    if (!app) await expect.poll(rms).toBeGreaterThan(0.07);
+    await page.evaluate(() =>
+      (
+        window as typeof window & { effectAudio: { context: AudioContext } }
+      ).effectAudio.context.resume(),
+    );
+    await expect.poll(rms).toBeGreaterThan(0.07);
     const original = await rms();
     expect(original).toBeGreaterThan(0.07);
     await page.getByRole('button', { name: 'Pause', exact: true }).click();
     await page.getByLabel('Seek playhead').fill('0.5');
+    const originalSource = await media.getAttribute('src');
     await openEffect(page, 'Equalizer');
     await page.getByLabel('Equalizer mid', { exact: true }).fill('-12');
-    await expect(page.getByRole('contentinfo', { name: 'Workspace status' })).toHaveAttribute(
-      'aria-busy',
-      'true',
-    );
+    await expect(media).toHaveAttribute('src', originalSource!);
+    await expect(media).not.toHaveAttribute('data-preview-effects', 'rendered');
     await expect(page.locator('progress, [role=progressbar]')).toHaveCount(0);
-    await expect(media).toHaveAttribute('data-preview-effects', 'rendered', { timeout: 60000 });
     await expect(media).toHaveJSProperty('readyState', 4);
     await expect(media).toHaveJSProperty('volume', 1);
     await page.getByRole('button', { name: 'Play', exact: true }).click();
-    if (!app) await expect.poll(rms).toBeGreaterThan(0.01);
+    await expect.poll(rms).toBeGreaterThan(0.01);
+    await expect.poll(rms).toBeLessThan(original * 0.35);
     const processed = await rms();
     expect(processed).toBeGreaterThan(0.01);
     expect(processed).toBeLessThan(original * 0.35);
@@ -128,7 +114,7 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
     await expect(video).toHaveJSProperty('readyState', 4);
     await openEffect(page, 'Equalizer');
     await page.getByLabel('Equalizer mid', { exact: true }).fill('6');
-    await expect(video).toHaveAttribute('data-preview-effects', 'rendered', { timeout: 60000 });
+    await expect(video).not.toHaveAttribute('data-preview-effects', 'rendered');
     await expect(video).toHaveJSProperty('readyState', 4);
     const audioOnlySource = await video.getAttribute('src');
     await openEffect(page, 'Color & LUTs');

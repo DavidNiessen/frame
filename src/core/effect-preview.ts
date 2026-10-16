@@ -11,29 +11,41 @@ import { buildExportArgs } from './export-plan';
 import type { AudioLayerInput } from './audio-layers';
 import type { RecipeResources } from './resources';
 import type { PreviewRange } from './preview-clock';
+import { previewResolution } from './preview-resolution';
 
 /** These corrections cannot be represented by a media element or CSS alone. */
-export function needsEffectPreview(edit: EditSettings) {
-  const recipes = [edit, ...editClips(edit).map((clip) => clipRecipe(edit, clip))];
+export function needsEffectPreview(edit: EditSettings, realtimeAudio = false) {
+  const needsRender = (view: EditSettings) =>
+    hasCurves(view.curves) ||
+    hasVisualAdjustments(view.visual) ||
+    view.normalizeLoudness ||
+    view.reduceNoise ||
+    (!realtimeAudio &&
+      (view.volume > 1 || Object.values(view.equalizer).some((value) => value !== 0))) ||
+    view.color.lut !== null ||
+    view.color.temperature !== 0 ||
+    view.color.brightness !== 0 ||
+    view.color.contrast !== 1 ||
+    view.color.saturation !== 1;
+  const relevant = new Set([
+    'color',
+    'curves',
+    'normalize',
+    'noise',
+    ...(realtimeAudio ? [] : ['volume', 'equalizer']),
+  ]);
+  const recipeNeedsRender = (recipe: EditSettings) =>
+    needsRender(recipe) ||
+    extraInstances(recipe).some(
+      (instance) =>
+        (relevant.has(instance.effect) || instance.settings.visual !== undefined) &&
+        needsRender(instanceRecipe(recipe, instance)),
+    );
   return (
     !!edit.mediaLayers?.length ||
     allAudioLayers(edit).length > 0 ||
-    recipes.some((recipe) =>
-      [recipe, ...extraInstances(recipe).map((instance) => instanceRecipe(recipe, instance))].some(
-        (view) =>
-          hasCurves(view.curves) ||
-          hasVisualAdjustments(view.visual) ||
-          view.normalizeLoudness ||
-          view.reduceNoise ||
-          view.volume > 1 ||
-          Object.values(view.equalizer).some((value) => value !== 0) ||
-          view.color.lut !== null ||
-          view.color.temperature !== 0 ||
-          view.color.brightness !== 0 ||
-          view.color.contrast !== 1 ||
-          view.color.saturation !== 1,
-      ),
-    )
+    recipeNeedsRender(edit) ||
+    editClips(edit).some((clip) => recipeNeedsRender(clipRecipe(edit, clip)))
   );
 }
 const liveVisual = new Set([
@@ -67,7 +79,7 @@ export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): Edit
     addedEffects: undefined,
     effectInstances: extraInstances(recipe).filter(keepInstance),
   });
-  return {
+  const result: EditSettings = {
     ...strip(edit),
     format: asset.kind === 'video' ? 'mp4' : 'mp3',
     quality: 'balanced',
@@ -87,6 +99,7 @@ export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): Edit
     keepMetadata: false,
     includeChapters: false,
     markers: [],
+    splits: [],
     customArtwork: null,
     outputTags: undefined,
     audioLayers: allAudioLayers(edit),
@@ -111,6 +124,25 @@ export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): Edit
       },
     })),
   };
+  // Splitting unchanged footage must not multiply decoder/filter branches or
+  // invalidate an otherwise identical preview. Keep local fades independent.
+  result.clips = result.clips?.reduce<NonNullable<EditSettings['clips']>>((clips, clip) => {
+    const previous = clips.at(-1);
+    const localFade = (value: typeof clip) =>
+      ['audioFadeIn', 'audioFadeOut'].some((key) => !!value.effects[key as 'audioFadeIn']) ||
+      value.effects.effectInstances?.some((instance) => instance.effect.includes('Fade'));
+    if (
+      previous &&
+      Math.abs(previous.end - clip.start) < 1e-8 &&
+      !localFade(previous) &&
+      !localFade(clip) &&
+      JSON.stringify(previous.effects) === JSON.stringify(clip.effects)
+    )
+      previous.end = clip.end;
+    else clips.push({ ...clip, id: `preview-${clips.length}`, effects: clip.effects });
+    return clips;
+  }, []);
+  return result;
 }
 export const effectPreviewRanges = (edit: EditSettings): PreviewRange[] =>
   editClips(edit).map((clip) => ({
@@ -129,7 +161,23 @@ export function effectPreviewArgs(
   layers: AudioLayerInput[] = [],
 ) {
   if (asset.kind === 'image') return framePreviewArgs(asset, edit, 0, input, output, resources);
-  const args = buildExportArgs(asset, edit, input, output, resources, layers);
+  const preview = previewResolution(asset, edit);
+  const args = buildExportArgs(preview.asset, preview.edit, input, output, resources, layers);
+  if (preview.scale) {
+    const graph = args.indexOf('-filter_complex');
+    // Clip branches scale after trimming, before their correction stacks.
+    if (graph >= 0 && edit.clips) {
+      args[graph + 1] = args[graph + 1].replace(
+        /(\[0:V:0\]trim=[^;]*?,setpts=PTS-STARTPTS,)/g,
+        `$1${preview.scale},`,
+      );
+    } else if (graph >= 0 && args[graph + 1].includes('[joinedv]')) {
+      args[graph + 1] = args[graph + 1].replace(/\[joinedv\](?=\w)/, `[joinedv]${preview.scale},`);
+    } else {
+      const filter = args.indexOf('-vf');
+      if (filter >= 0) args[filter + 1] = `${preview.scale},${args[filter + 1]}`;
+    }
+  }
   if (asset.kind === 'video') {
     const scale =
       "scale=w='min(720,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1";

@@ -1,11 +1,6 @@
 import { useEffect, type RefObject } from 'react';
 import { monitorVolume } from '../core/monitor-volume';
-
-let context: AudioContext | undefined;
-const inputs = new WeakMap<
-  HTMLMediaElement,
-  { source: MediaElementAudioSourceNode; analyser: AnalyserNode }
->();
+import { playbackAudio, startPlaybackAudio } from '../core/realtime-audio';
 
 /** Meter the playing signal without changing its gain or the export recipe. */
 export function useAudioBackdrop(
@@ -20,11 +15,10 @@ export function useAudioBackdrop(
     if (!enabled || !media || !element || !window.AudioContext) return;
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
     let active = true,
-      connected = false,
       frame = 0,
       level = 0,
       bass = 0;
-    let input: ReturnType<typeof inputs.get>;
+    let input: ReturnType<typeof playbackAudio>;
     const samples = new Float32Array(512),
       spectrum = new Uint8Array(256);
     function paint() {
@@ -53,23 +47,8 @@ export function useAudioBackdrop(
     async function start() {
       if (!active || reducedMotion.matches) return;
       try {
-        context ??= new AudioContext();
-        if (context.state !== 'running') await context.resume();
-        // Never redirect playback into a suspended context.
-        if (!active || context.state !== 'running') return;
-        input = inputs.get(media!);
-        if (!input) {
-          const analyser = context.createAnalyser();
-          analyser.fftSize = 512;
-          analyser.smoothingTimeConstant = 0.75;
-          input = { source: context.createMediaElementSource(media!), analyser };
-          inputs.set(media!, input);
-        }
-        if (!connected) {
-          input.source.connect(input.analyser);
-          input.analyser.connect(context.destination);
-          connected = true;
-        }
+        input = await startPlaybackAudio(media!, () => active);
+        if (!active || !input) return;
         if (!frame) frame = requestAnimationFrame(paint);
       } catch {
         /* Unsupported sources keep their normal player background. */
@@ -81,10 +60,6 @@ export function useAudioBackdrop(
       active = false;
       media.removeEventListener('playing', start);
       cancelAnimationFrame(frame);
-      if (connected && input) {
-        input.source.disconnect();
-        input.analyser.disconnect();
-      }
       element.style.removeProperty('--audio-level');
       element.style.removeProperty('--audio-bass');
     };

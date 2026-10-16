@@ -1,6 +1,39 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { previewFrameLoop } from '../src/hooks/preview-frame-loop';
 afterEach(() => vi.unstubAllGlobals());
+it('updates video UI once per decoded frame and cancels callbacks on pause or disposal', () => {
+  let id = 0;
+  const callbacks = new Map<number, () => void>();
+  const media = Object.assign(new EventTarget(), {
+    tagName: 'VIDEO',
+    paused: false,
+    requestVideoFrameCallback(callback: () => void) {
+      callbacks.set(++id, callback);
+      return id;
+    },
+    cancelVideoFrameCallback(id: number) {
+      callbacks.delete(id);
+    },
+  }) as unknown as HTMLVideoElement;
+  const raf = vi.fn();
+  vi.stubGlobal('requestAnimationFrame', raf);
+  const publish = vi.fn(),
+    stop = previewFrameLoop(media, publish);
+  const callback = callbacks.get(1)!;
+  callbacks.delete(1);
+  callback();
+  expect(publish).toHaveBeenCalledTimes(1);
+  expect(raf).not.toHaveBeenCalled();
+  expect(callbacks.size).toBe(1);
+  Object.assign(media, { paused: true });
+  media.dispatchEvent(new Event('pause'));
+  expect(callbacks.size).toBe(0);
+  Object.assign(media, { paused: false });
+  media.dispatchEvent(new Event('playing'));
+  expect(callbacks.size).toBe(1);
+  stop();
+  expect(callbacks.size).toBe(0);
+});
 it('restarts playhead updates after a decoder pauses during a source handoff', () => {
   let id = 0;
   const frames = new Map<number, FrameRequestCallback>();

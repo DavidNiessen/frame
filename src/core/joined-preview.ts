@@ -44,15 +44,42 @@ export function joinedPreviewArgs(
   const video = asset.kind === 'video',
     audio = asset.hasAudio || !video;
   const graph: string[] = [];
+  // Seek each retained excerpt independently. A shared decoder with many trim
+  // branches decodes the discarded prefix and buffers every earlier branch.
+  // Bound open inputs for unusually fragmented timelines.
+  const independent = ranges.length <= 8;
+  const origin = Math.min(...ranges.map((range) => range.start));
+  const inputs = independent
+    ? ranges.flatMap((range) => [
+        '-ss',
+        String(range.start),
+        '-t',
+        String(range.end - range.start),
+        '-threads',
+        '1',
+        '-i',
+        input,
+      ])
+    : [
+        '-ss',
+        String(origin),
+        '-t',
+        String(Math.max(...ranges.map((range) => range.end)) - origin),
+        '-i',
+        input,
+      ];
   ranges.forEach((range, index) => {
-    const trim = `start=${range.start}:end=${range.end}`;
+    const trim = independent
+      ? `duration=${range.end - range.start}`
+      : `start=${range.start - origin}:end=${range.end - origin}`;
+    const source = independent ? index : 0;
     if (video)
       graph.push(
-        `[0:V:0]trim=${trim},setpts=PTS-STARTPTS,scale=w='min(720,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1,format=yuv420p,settb=AVTB[v${index}]`,
+        `[${source}:V:0]trim=${trim},setpts=PTS-STARTPTS,scale=w='min(720,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1,format=yuv420p,settb=AVTB[v${index}]`,
       );
     if (audio)
       graph.push(
-        `[0:a:0]atrim=${trim},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp[a${index}]`,
+        `[${source}:a:0]atrim=${trim},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp[a${index}]`,
       );
   });
   graph.push(
@@ -61,8 +88,7 @@ export function joinedPreviewArgs(
   );
   return [
     '-y',
-    '-i',
-    input,
+    ...inputs,
     '-filter_complex',
     graph.join(';'),
     ...(video

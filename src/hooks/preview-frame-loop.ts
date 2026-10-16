@@ -2,8 +2,17 @@
 export function previewFrameLoop(media: HTMLMediaElement, publish: () => void) {
   let frame = 0,
     disposed = false;
+  const video = media as HTMLVideoElement;
+  const decodedFrames =
+    media.tagName === 'VIDEO' && typeof video.requestVideoFrameCallback === 'function';
   function schedule() {
-    if (!disposed && !frame && !media.paused) frame = requestAnimationFrame(tick);
+    if (!disposed && !frame && !media.paused)
+      frame = decodedFrames ? video.requestVideoFrameCallback(tick) : requestAnimationFrame(tick);
+  }
+  function cancel() {
+    if (decodedFrames) video.cancelVideoFrameCallback(frame);
+    else cancelAnimationFrame(frame);
+    frame = 0;
   }
   function tick() {
     frame = 0;
@@ -13,8 +22,7 @@ export function previewFrameLoop(media: HTMLMediaElement, publish: () => void) {
   }
   function pause() {
     if (media.paused) {
-      cancelAnimationFrame(frame);
-      frame = 0;
+      cancel();
     }
   }
   const events = ['play', 'playing', 'loadedmetadata', 'seeked'] as const;
@@ -23,7 +31,7 @@ export function previewFrameLoop(media: HTMLMediaElement, publish: () => void) {
   schedule();
   return () => {
     disposed = true;
-    cancelAnimationFrame(frame);
+    cancel();
     events.forEach((event) => media.removeEventListener(event, schedule));
     media.removeEventListener('pause', pause);
   };

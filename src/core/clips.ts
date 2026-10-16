@@ -89,14 +89,54 @@ export function clipAtSource(edit: EditSettings, time: number): TimelineClip | u
     editClips(edit).find((clip) => time === clip.end)
   );
 }
+type ClipPosition = { clip: TimelineClip; start: number; end: number; speed: number };
+const positionsCache = new WeakMap<
+  EditSettings,
+  {
+    clips: EditSettings['clips'];
+    cuts: EditSettings['cuts'];
+    splits: EditSettings['splits'];
+    start: number;
+    end: number;
+    speed: number;
+    instances: EditSettings['effectInstances'];
+    positions: ClipPosition[];
+  }
+>();
 export function clipPositions(edit: EditSettings) {
+  const previous = positionsCache.get(edit);
+  if (
+    previous &&
+    previous.clips === edit.clips &&
+    previous.cuts === edit.cuts &&
+    previous.splits === edit.splits &&
+    previous.start === edit.start &&
+    previous.end === edit.end &&
+    previous.speed === edit.speed &&
+    previous.instances === edit.effectInstances
+  )
+    return previous.positions;
   let elapsed = 0;
-  return editClips(edit).map((clip) => {
+  const positions = editClips(edit).map((clip) => {
     const start = elapsed,
       speed = effectiveSpeed(clipRecipe(edit, clip));
     elapsed += (clip.end - clip.start) / speed;
     return { clip, start, end: elapsed, speed };
   });
+  // Edits replace their clip/effect collections. Reuse timing through playback
+  // frames rather than rebuilding every clip recipe at display refresh rate.
+  if (Object.isFrozen(edit))
+    positionsCache.set(edit, {
+      clips: edit.clips,
+      cuts: edit.cuts,
+      splits: edit.splits,
+      start: edit.start,
+      end: edit.end,
+      speed: edit.speed,
+      instances: edit.effectInstances,
+      positions,
+    });
+  return positions;
 }
 export function splitClip(edit: EditSettings, id: string, time: number): Partial<EditSettings> {
   const clips = editClips(edit),

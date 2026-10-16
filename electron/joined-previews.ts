@@ -14,7 +14,7 @@ import { resolveAudioLayers } from '../src/core/audio-layers';
 import { editedDuration } from '../src/core/timeline';
 import { withResources } from './resources';
 import { MediaJobs } from './jobs';
-import { runFfmpeg } from './native';
+import { encodeNative } from './acceleration';
 
 /** Independent job owner: background preview work cannot interrupt exports or analysis. */
 export function createJoinedPreviews(
@@ -67,12 +67,10 @@ export function createJoinedPreviews(
           ? editedDuration(edit)
           : ranges.reduce((sum, range) => sum + range.end - range.start, 0);
         const render = (plan: string[]) =>
-          execute(
-            runFfmpeg(plan, duration, (ratio) => {
-              if (!event.sender.isDestroyed())
-                event.sender.send('media:joined-preview-progress', { ratio, message });
-            }),
-          );
+          encodeNative(plan, duration, 'auto', 2500, execute, jobs, (ratio) => {
+            if (!event.sender.isDestroyed())
+              event.sender.send('media:joined-preview-progress', { ratio, message });
+          });
         if (edit)
           await withResources(
             [edit],

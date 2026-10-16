@@ -7,6 +7,7 @@ import { PaintLayersPreview } from './PaintLayersPreview';
 import { PaintingCanvas } from './PaintingCanvas';
 import { instanceRecipe } from '../core/effect-instances';
 import { useAudioBackdrop } from '../hooks/useAudioBackdrop';
+import { useRealtimeAudio } from '../hooks/useRealtimeAudio';
 import { MonitorVolume } from './MonitorVolume';
 import { useLatest } from '../hooks/useLatest';
 import type { EffectId } from '../core/effect-library';
@@ -142,6 +143,7 @@ export function Preview({
   const [playing, setPlaying] = useState(false);
   const audioBackdrop = useRef<HTMLDivElement>(null);
   useAudioBackdrop(mediaRef, audioBackdrop, asset.kind === 'audio', asset.id);
+  useRealtimeAudio(mediaRef, edit, asset.id);
   useEffect(() => {
     setPlaying(false);
   }, [asset.id]);
@@ -394,6 +396,7 @@ export function Preview({
                 />
               ) : (
                 <video
+                  crossOrigin="anonymous"
                   data-frame-source={asset.id}
                   style={{
                     ...geometry,

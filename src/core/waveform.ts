@@ -36,7 +36,7 @@ export function waveformArgs(asset: MediaAsset, input: string): string[] {
     input,
     '-vn',
     '-af',
-    `aresample=48000,asetnsamples=n=${samples}:p=0,astats=metadata=1:reset=1,ametadata=mode=print:key=lavfi.astats.Overall.Peak_level`,
+    `aresample=48000,asetnsamples=n=${samples}:p=0,astats=metadata=1:reset=1:measure_perchannel=none:measure_overall=Peak_level,ametadata=mode=print:key=lavfi.astats.Overall.Peak_level`,
     '-f',
     'null',
     '-',

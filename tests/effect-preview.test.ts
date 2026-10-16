@@ -230,3 +230,93 @@ it('prepares video with audio-only corrections and a mixed audio graph even when
     expect(preview.duration).toBeCloseTo(video.duration, 1);
   }
 });
+
+it('keeps simple splits out of the render key while preserving independent clip fades', () => {
+  const video = { ...audio, kind: 'video' as const, width: 640, height: 360 };
+  const edit = {
+    ...defaultSettings(video),
+    splits: [1, 2],
+    clips: [
+      { id: 'a', start: 0, end: 2, effects: {} },
+      { id: 'b', start: 2, end: 4, effects: {} },
+    ],
+  };
+  const recipe = effectPreviewRecipe(video, edit);
+  expect(recipe.clips).toHaveLength(1);
+  expect(recipe.clips![0]).toMatchObject({ start: 0, end: 4 });
+  expect(recipe.splits).toEqual([]);
+  expect(edit.clips).toHaveLength(2);
+  expect(
+    effectPreviewRecipe(video, {
+      ...edit,
+      clips: edit.clips.map((clip) => ({ ...clip, effects: { audioFadeOut: 0.2 } })),
+    }).clips,
+  ).toHaveLength(2);
+});
+
+it('processes real high-resolution color at preview resolution for simple, cut and ordered sequences', async () => {
+  const input = join(directory, 'large.mp4');
+  await exec(ffmpegPath(), [
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'color=red:s=1920x1080:r=10:d=2',
+    '-c:v',
+    'libx264',
+    '-preset',
+    'ultrafast',
+    input,
+  ]);
+  const video = { ...(await probeFile(input)), id: 'large', name: 'large.mp4', previewUrl: '' };
+  const base = {
+    ...defaultSettings(video),
+    color: { ...defaultSettings(video).color, brightness: -0.1 },
+  };
+  const edits = [
+    base,
+    { ...base, cuts: [{ start: 0.5, end: 1 }] },
+    {
+      ...base,
+      clips: [
+        { id: 'first', start: 1, end: 2, effects: {} },
+        { id: 'second', start: 0, end: 0.5, effects: {} },
+      ],
+    },
+  ];
+  for (const [index, edit] of edits.entries()) {
+    const plan = effectPreviewArgs(
+      video,
+      effectPreviewRecipe(video, edit),
+      input,
+      join(directory, `large-preview-${index}.mp4`),
+      resourcePaths(),
+    );
+    await exec(ffmpegPath(), plan);
+    const rendered = await probeFile(plan.at(-1)!);
+    expect(rendered.width).toBe(720);
+    expect(rendered.height).toBeLessThanOrEqual(406);
+    expect(rendered.duration).toBeCloseTo(index ? 1.5 : 2, 1);
+    const { stdout } = await exec(
+      ffmpegPath(),
+      [
+        '-v',
+        'error',
+        '-i',
+        plan.at(-1)!,
+        '-frames:v',
+        '1',
+        '-vf',
+        'scale=1:1',
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-',
+      ],
+      { encoding: 'buffer' },
+    );
+    expect(stdout[0]).toBeGreaterThan(150);
+    expect(stdout[1]).toBeLessThan(15);
+  }
+});

@@ -9,8 +9,10 @@ import { MAX_WEB_FILE_SIZE } from '../core/imports';
 import { writeBrowserLayers } from './browser-audio-layers';
 import type { EditSettings, MediaAsset, TimeRange, ExportProgress } from '../core/types';
 import type { PreviewProxy } from '../core/hardware';
+import { browserPreviewInput } from './browser-preview-input';
 export function browserJoinedPreview(files: Map<string, File>, sources: Map<string, MediaAsset>) {
   const runtime = browserRuntime(),
+    sourceInput = browserPreviewInput(),
     urls = new Map<string, { source: string; url: string }>();
   let active: Promise<PreviewProxy> | null = null,
     sourceId = '',
@@ -18,6 +20,7 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
   const cancel = () => {
     generation++;
     runtime.cancel();
+    sourceInput.clear();
   };
   async function generate(
     asset: MediaAsset,
@@ -26,7 +29,10 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
     settings?: EditSettings,
   ) {
     const ticket = ++generation;
-    runtime.cancel();
+    if (active) {
+      runtime.cancel();
+      sourceInput.clear();
+    }
     await active?.catch(() => {});
     if (ticket !== generation) throw new Error('Continuous preview cancelled.');
     const file = files.get(asset.id);
@@ -34,7 +40,7 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
     sourceId = asset.id;
     const task = (async () => {
       const ff = await runtime.ready(),
-        input = 'joined-source',
+        input = await sourceInput.open(ff, file),
         output =
           asset.kind === 'image'
             ? 'joined.png'
@@ -67,7 +73,6 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
       ff.on('progress', update);
       ff.on('log', log);
       try {
-        await ff.writeFile(input, new Uint8Array(await file.arrayBuffer()));
         if (edit) await writeBrowserLayers(ff, layers, files, sources);
         const image =
           edit && asset.kind === 'image'
@@ -108,13 +113,14 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
         ff.off('log', log);
         await resources?.cleanup();
         await ff.deleteFile(renderedImagePath).catch(() => {});
+        await ff.deleteFile(output).catch(() => {});
+        for (const { path } of layers) await ff.deleteFile(path).catch(() => {});
       }
     })();
     active = task;
     try {
       return await task;
     } finally {
-      if (ticket === generation) runtime.cancel();
       if (active === task) {
         active = null;
         sourceId = '';
@@ -138,6 +144,7 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
         await active?.catch(() => {});
       }
       for (const [token, entry] of urls) if (entry.source === id) await release(token);
+      if (!urls.size && !active) cancel();
     },
   };
 }

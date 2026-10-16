@@ -9,12 +9,24 @@ import type { PreviewProxy } from '../core/hardware';
 import type { PreviewRange } from '../core/preview-clock';
 import type { EditSettings, MediaEngine } from '../core/types';
 import type { Editor } from './useEditor';
+import { previewCache } from '../core/preview-cache';
+
+interface ReadyPreview {
+  key: string;
+  assetId: string;
+  proxy: PreviewProxy;
+  ranges: PreviewRange[];
+  effects: boolean;
+  geometry: boolean;
+  engine: MediaEngine;
+  release: () => void;
+}
 
 /** One background stream owns cuts and export-quality corrections, with safe playback handoffs. */
 export function useJoinedPreview(editor: Editor, enabled = true) {
   const recipe = useMemo(
     () =>
-      editor.asset && editor.edit && needsEffectPreview(editor.edit)
+      editor.asset && editor.edit && needsEffectPreview(editor.edit, !!globalThis.AudioContext)
         ? effectPreviewRecipe(editor.asset, editor.edit)
         : null,
     [editor.asset, editor.edit],
@@ -28,35 +40,38 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
         : null,
     [editor.edit, recipe],
   );
-  const effects = !!recipe,
-    key =
+  const effects = !!recipe;
+  const key = useMemo(
+    () =>
       enabled && editor.asset && ranges
         ? JSON.stringify({ assetId: editor.asset.id, ranges, recipe })
-        : '';
+        : '',
+    [enabled, editor.asset, ranges, recipe],
+  );
   const latest = useRef(editor);
   latest.current = editor;
   const [state, setState] = useState<{ key: string; error?: string; done?: boolean }>({ key: '' });
-  const [ready, setReady] = useState<{
-    key: string;
-    assetId: string;
-    proxy: PreviewProxy;
-    ranges: PreviewRange[];
-    effects: boolean;
-    geometry: boolean;
-    engine: MediaEngine;
-  } | null>(null);
+  const [ready, setReady] = useState<ReadyPreview | null>(null);
+  const [cache] = useState(() => previewCache<ReadyPreview>());
   const [attempt, retry] = useState(0);
-  // React has already switched/detached the player before releasing its previous stream.
-  useEffect(
-    () => () => {
-      if (ready) void ready.engine.releaseProxy?.(ready.proxy.id).catch(() => {});
-    },
-    [ready],
-  );
+  useEffect(() => {
+    cache.retainAsset(editor.asset?.id);
+  }, [cache, editor.asset?.id]);
+  // Trim only after React has switched/detached the previous stream.
+  useEffect(() => {
+    cache.trim(ready?.key ?? '');
+  }, [cache, ready]);
+  useEffect(() => () => cache.clear(), [cache]);
   useEffect(() => {
     if (!key) {
       setState({ key: '' });
       setReady(null);
+      return;
+    }
+    const cached = cache.get(key);
+    if (cached) {
+      setReady(cached);
+      setState({ key, done: true });
       return;
     }
     let stale = false,
@@ -84,7 +99,8 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
             await engine.releaseProxy?.(proxy.id);
             return;
           }
-          setReady({
+          const owner = engine;
+          const ready: ReadyPreview = {
             key,
             assetId: asset.id,
             proxy,
@@ -92,7 +108,12 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
             effects: !!request.recipe,
             geometry: !!request.recipe?.mediaLayers?.length,
             engine,
-          });
+            release: () => {
+              void owner.releaseProxy?.(proxy.id).catch(() => {});
+            },
+          };
+          cache.put(ready);
+          setReady(ready);
           setState({ key, done: true });
         } catch (error) {
           if (!stale)
@@ -105,7 +126,7 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
       clearTimeout(timer);
       if (engine && !completed) engine.cancelJoinedPreview?.();
     };
-  }, [key, attempt]);
+  }, [key, attempt, cache]);
   const matched = state.key === key,
     preview =
       key &&

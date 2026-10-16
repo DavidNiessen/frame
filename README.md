@@ -43,6 +43,8 @@ Output formats: **PNG, JPEG, WebP, BMP, TIFF, MP4, MOV, MKV, WebM, GIF, MP3, WAV
 | Installed system fonts                       | Yes                                             | Bundled fonts only                                  |
 | Hardware encoding, proxies and watch folders | Yes, subject to hardware/platform support       | Unavailable                                         |
 
+Playback uses live EQ/gain, cached previews, lower-resolution visual processing and hardware encoding where available. See [preview performance](docs/PERFORMANCE.md) for measurements and limits.
+
 Browser GIF conversion uses separate palette and encoding passes to avoid buffering an entire decoded movie. The browser has memory guards: 500 MB per source, 800 MB per library and 500 MB of retained conversion results. ZIP preparation uses additional memory. Use desktop for large collections.
 
 Whisper Tiny model files are committed in `vendor/speech-models/` with integrity checks. Desktop includes the model and works offline immediately. Web serves about 42 MB of model files with Frame on first use and caches them for subsequent offline inference. Audio is never uploaded. Review generated text and timing before export.
