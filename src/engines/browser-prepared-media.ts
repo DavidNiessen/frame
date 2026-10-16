@@ -1,3 +1,4 @@
+import { browserInputs } from './browser-inputs';
 import { browserRuntime } from './browser-runtime';
 import {
   appendVideoArgs,
@@ -27,9 +28,6 @@ export function browserPreparedMedia(files: Map<string, File>, sources: Map<stri
       output = added ? 'sequence.mp4' : 'audio.flac';
     const inputs = added ? [base, added] : [base],
       paths = inputs.map((_, i) => `source-${i}`);
-    const plan = added
-      ? appendVideoArgs(base, added, paths as [string, string], output)
-      : extractAudioArgs(base, paths[0], output);
     active = true;
     cancelled = false;
     const message = added ? 'Preparing video sequence…' : 'Extracting audio…';
@@ -42,12 +40,16 @@ export function browserPreparedMedia(files: Map<string, File>, sources: Map<stri
           message,
         });
       ff.on('progress', update);
+      const inputFiles = browserInputs(ff);
       try {
         for (const [index, asset] of inputs.entries()) {
           const file = files.get(asset.id);
           if (!file) throw new Error('Import each source again.');
-          await ff.writeFile(paths[index], new Uint8Array(await file.arrayBuffer()));
+          paths[index] = await inputFiles.open(file);
         }
+        const plan = added
+          ? appendVideoArgs(base, added, paths as [string, string], output)
+          : extractAudioArgs(base, paths[0], output);
         if ((await ff.exec(plan)) !== 0)
           throw new Error('Could not prepare this media. Try the desktop app for larger sources.');
         const code = await ff.ffprobe([
@@ -93,6 +95,7 @@ export function browserPreparedMedia(files: Map<string, File>, sources: Map<stri
         return asset;
       } finally {
         ff.off('progress', update);
+        await inputFiles.cleanup();
       }
     } catch (error) {
       if (cancelled) throw new Error('Media preparation cancelled.', { cause: error });

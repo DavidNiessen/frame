@@ -1,6 +1,7 @@
+import { browserInputs } from './browser-inputs';
 import { analysisDataArgs } from '../core/analysis-data';
 import { resolveAudioLayers } from '../core/audio-layers';
-import { writeBrowserLayers } from './browser-audio-layers';
+import { mountBrowserLayers } from './browser-audio-layers';
 import type { MediaAsset } from '../core/types';
 import { loudnessArgs, LoudnessCollector } from '../core/loudness';
 import { sceneArgs, SceneCollector } from '../core/scenes';
@@ -32,8 +33,8 @@ export function browserAnalysis(
       const source = files.get(asset.id);
       if (!source) throw new Error('Import the source again.');
       const ff = await ready(),
-        input = `analysis-source-${asset.id}`,
         output = options.kind === 'speech' ? 'speech.wav' : 'frames.raw';
+
       const resources = await browserResources(ff, [edit], [asset], files, sources);
       const layers =
         options.kind === 'speech'
@@ -49,9 +50,10 @@ export function browserAnalysis(
             options.kind === 'speech' ? 'Preparing speech audio…' : 'Preparing tracking frames…',
         });
       ff.on('progress', update);
+      const inputs = browserInputs(ff);
       try {
-        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
-        await writeBrowserLayers(ff, layers, files, sources);
+        const input = await inputs.open(source);
+        await mountBrowserLayers(layers, files, sources, inputs);
         if (
           (await ff.exec(
             analysisDataArgs(asset, edit, options, input, output, resources.paths[0], layers),
@@ -64,8 +66,7 @@ export function browserAnalysis(
       } finally {
         ff.off('progress', update);
         await resources.cleanup();
-        for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {});
-        await ff.deleteFile(input).catch(() => {});
+        await inputs.cleanup();
         await ff.deleteFile(output).catch(() => {});
       }
     },
@@ -73,7 +74,7 @@ export function browserAnalysis(
       const file = files.get(asset.id);
       if (!file) throw new Error('Import the source again.');
       const ff = await ready();
-      const input = `silence-${asset.id}`;
+
       const collector = new SilenceCollector();
       const log = ({ message }: { message: string }) => collector.push(message);
       const progress = ({ time }: { time: number }) =>
@@ -83,15 +84,16 @@ export function browserAnalysis(
         });
       ff.on('log', log);
       ff.on('progress', progress);
+      const inputs = browserInputs(ff);
       try {
-        await ff.writeFile(input, new Uint8Array(await file.arrayBuffer()));
+        const input = await inputs.open(file);
         if ((await ff.exec(silenceArgs(asset, input, options))) !== 0)
           throw new Error('Could not detect silence.');
         return collector.finish(asset.duration);
       } finally {
         ff.off('log', log);
         ff.off('progress', progress);
-        await ff.deleteFile(input).catch(() => {});
+        await inputs.cleanup();
       }
     },
     async previewFrame(asset, edit, time, onProgress) {
@@ -99,11 +101,11 @@ export function browserAnalysis(
       if (!source) throw new Error('Import the source again.');
       const ff = await ready();
       const resources = await browserResources(ff, [edit], [asset], files, sources);
-      const input = `frame-source-${asset.id}`,
-        output = 'frame-preview.png';
+      const output = 'frame-preview.png';
+      const inputs = browserInputs(ff);
       try {
         onProgress({ ratio: 0, message: 'Rendering edited frame…' });
-        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        const input = await inputs.open(source);
         if (
           (await ff.exec(
             framePreviewArgs(asset, edit, time, input, output, resources.paths[0]),
@@ -115,7 +117,7 @@ export function browserAnalysis(
         return URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'image/png' }));
       } finally {
         await resources.cleanup();
-        await ff.deleteFile(input).catch(() => {});
+        await inputs.cleanup();
         await ff.deleteFile(output).catch(() => {});
       }
     },
@@ -127,7 +129,7 @@ export function browserAnalysis(
         edit,
         [...sources.values()].map((asset) => ({ asset, path: `layer-${asset.id}` })),
       );
-      const input = `audio-source-${asset.id}`;
+
       const output = `audio-preview-${asset.id}.wav`;
       const errors: string[] = [];
       const log = ({ message }: { message: string }) => {
@@ -135,10 +137,11 @@ export function browserAnalysis(
         if (errors.length > 15) errors.shift();
       };
       ff.on('log', log);
+      const inputs = browserInputs(ff);
       try {
         onProgress({ ratio: 0, message: 'Preparing audio effects preview…' });
-        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
-        await writeBrowserLayers(ff, layers, files, sources);
+        const input = await inputs.open(source);
+        await mountBrowserLayers(layers, files, sources, inputs);
         if ((await ff.exec(previewAudioArgs(asset, edit, input, output, layers))) !== 0)
           throw new Error(`Could not prepare the audio preview. ${errors.slice(-5).join(' ')}`);
         const data = await ff.readFile(output);
@@ -146,8 +149,7 @@ export function browserAnalysis(
         return URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'audio/wav' }));
       } finally {
         ff.off('log', log);
-        for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {});
-        await ff.deleteFile(input).catch(() => {});
+        await inputs.cleanup();
         await ff.deleteFile(output).catch(() => {});
       }
     },
@@ -155,12 +157,12 @@ export function browserAnalysis(
       const source = files.get(asset.id);
       if (!source) throw new Error('Import the source again.');
       const ff = await ready(),
-        input = `loudness-${asset.id}`,
         collector = new LoudnessCollector(),
         layers = resolveAudioLayers(
           edit,
           [...sources.values()].map((asset) => ({ asset, path: `layer-${asset.id}` })),
         );
+
       const log = ({ message }: { message: string }) => collector.push(message),
         progress = ({ time }: { time: number }) =>
           onProgress({
@@ -169,25 +171,25 @@ export function browserAnalysis(
           });
       ff.on('log', log);
       ff.on('progress', progress);
+      const inputs = browserInputs(ff);
       try {
-        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
-        await writeBrowserLayers(ff, layers, files, sources);
+        const input = await inputs.open(source);
+        await mountBrowserLayers(layers, files, sources, inputs);
         if ((await ff.exec(loudnessArgs(asset, edit, input, layers))) !== 0)
           throw new Error('Could not measure edited audio.');
         return collector.finish();
       } finally {
         ff.off('log', log);
         ff.off('progress', progress);
-        for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {});
-        await ff.deleteFile(input).catch(() => {});
+        await inputs.cleanup();
       }
     },
     async detectScenes(asset, options, onProgress) {
       const source = files.get(asset.id);
       if (!source) throw new Error('Import the source again.');
       const ff = await ready(),
-        input = `scenes-${asset.id}`,
         collector = new SceneCollector(options.minGap);
+
       const log = ({ message }: { message: string }) => collector.push(message),
         progress = ({ time }: { time: number }) =>
           onProgress({
@@ -196,15 +198,16 @@ export function browserAnalysis(
           });
       ff.on('log', log);
       ff.on('progress', progress);
+      const inputs = browserInputs(ff);
       try {
-        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        const input = await inputs.open(source);
         if ((await ff.exec(sceneArgs(asset, input, options))) !== 0)
           throw new Error('Could not scan this video for scene changes.');
         return collector.finish(asset.duration);
       } finally {
         ff.off('log', log);
         ff.off('progress', progress);
-        await ff.deleteFile(input).catch(() => {});
+        await inputs.cleanup();
       }
     },
     async contactSheet(asset, edit, options, onProgress) {
@@ -212,16 +215,17 @@ export function browserAnalysis(
       if (!source) throw new Error('Import the source again.');
       const ff = await ready();
       const resources = await browserResources(ff, [edit], [asset], files, sources),
-        input = `sheet-source-${asset.id}`,
         output = `sheet-${asset.id}.png`;
+
       const progress = ({ time }: { time: number }) =>
         onProgress({
           ratio: Math.min(1, time / 1e6 / asset.duration),
           message: 'Building contact sheet…',
         });
       ff.on('progress', progress);
+      const inputs = browserInputs(ff);
       try {
-        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        const input = await inputs.open(source);
         if (
           (await ff.exec(
             contactSheetArgs(asset, edit, options, input, output, resources.paths[0]),
@@ -234,7 +238,7 @@ export function browserAnalysis(
       } finally {
         ff.off('progress', progress);
         await resources.cleanup();
-        await ff.deleteFile(input).catch(() => {});
+        await inputs.cleanup();
         await ff.deleteFile(output).catch(() => {});
       }
     },
@@ -242,7 +246,7 @@ export function browserAnalysis(
       const source = files.get(asset.id);
       if (!source) throw new Error('Import the source file again.');
       const ff = await ready();
-      const input = `analysis-${asset.id}`;
+
       const collector = new WaveformCollector();
       const messages: string[] = [];
       const log = ({ message }: { message: string }) => {
@@ -257,8 +261,9 @@ export function browserAnalysis(
         });
       ff.on('log', log);
       ff.on('progress', progress);
+      const inputs = browserInputs(ff);
       try {
-        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
+        const input = await inputs.open(source);
         if ((await ff.exec(waveformArgs(asset, input))) !== 0 || !collector.points.length)
           throw new Error(
             `Could not read this file’s audio waveform. ${messages.slice(-5).join(' ')}`,
@@ -267,7 +272,7 @@ export function browserAnalysis(
       } finally {
         ff.off('log', log);
         ff.off('progress', progress);
-        await ff.deleteFile(input).catch(() => {});
+        await inputs.cleanup();
       }
     },
   };

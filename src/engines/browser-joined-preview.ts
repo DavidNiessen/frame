@@ -1,3 +1,4 @@
+import { browserInputs } from './browser-inputs';
 import { browserImageEncoding, renderedImagePath } from './browser-image-encoding';
 import { browserRuntime } from './browser-runtime';
 import { joinedPreviewArgs } from '../core/joined-preview';
@@ -6,7 +7,7 @@ import { resolveAudioLayers } from '../core/audio-layers';
 import { editedDuration } from '../core/timeline';
 import { browserResources } from './browser-resources';
 import { MAX_WEB_FILE_SIZE } from '../core/imports';
-import { writeBrowserLayers } from './browser-audio-layers';
+import { mountBrowserLayers } from './browser-audio-layers';
 import type { EditSettings, MediaAsset, TimeRange, ExportProgress } from '../core/types';
 import type { PreviewProxy } from '../core/hardware';
 import { browserPreviewInput } from './browser-preview-input';
@@ -72,8 +73,9 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
         });
       ff.on('progress', update);
       ff.on('log', log);
+      const inputFiles = browserInputs(ff);
       try {
-        if (edit) await writeBrowserLayers(ff, layers, files, sources);
+        if (edit) await mountBrowserLayers(layers, files, sources, inputFiles);
         const image =
           edit && asset.kind === 'image'
             ? await browserImageEncoding(ff, asset, edit, input, resources!.paths[0], progress)
@@ -114,7 +116,7 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
         await resources?.cleanup();
         await ff.deleteFile(renderedImagePath).catch(() => {});
         await ff.deleteFile(output).catch(() => {});
-        for (const { path } of layers) await ff.deleteFile(path).catch(() => {});
+        await inputFiles.cleanup();
       }
     })();
     active = task;

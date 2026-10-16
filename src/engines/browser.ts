@@ -1,3 +1,4 @@
+import { browserInputs } from './browser-inputs';
 import { browserSpeech } from './browser-speech';
 import { parseTranscriptionOptions } from '../core/transcription';
 import { browserImageSource } from './browser-image-source';
@@ -11,7 +12,7 @@ import type { MediaAsset } from '../core/types';
 import { taggedNamingAsset } from '../core/media-tags';
 import { sourceFingerprint } from '../core/source-fingerprint';
 import { mergedChapters, serializeChapters } from '../core/chapters';
-import { writeBrowserLayers } from './browser-audio-layers';
+import { mountBrowserLayers } from './browser-audio-layers';
 import { conversionIndex, validateBatchOptions } from '../core/output-naming';
 import { onlineMedia, desktopImportMessage } from '../core/online-media';
 import { browserAnalysis } from './browser-analysis';
@@ -146,7 +147,8 @@ export function createBrowserEngine(): MediaEngine {
       importing = controller;
       for (const [index, file] of media.entries()) {
         const id = crypto.randomUUID();
-        const input = `input-${id}`;
+        const inputFiles = browserInputs(ff);
+
         const metadata = `${id}.json`;
         try {
           if (file.size > MAX_WEB_FILE_SIZE)
@@ -164,7 +166,7 @@ export function createBrowserEngine(): MediaEngine {
             throw new Error(
               'Decoded images exceed the browser library limit. Remove some files or use desktop.',
             );
-          await ff.writeFile(input, new Uint8Array(await working.file.arrayBuffer()));
+          const input = await inputFiles.open(working.file);
           const code = await ff.ffprobe([
             '-v',
             'error',
@@ -206,7 +208,7 @@ export function createBrowserEngine(): MediaEngine {
             message: error instanceof Error ? error.message : 'Unable to read this file.',
           });
         } finally {
-          await ff.deleteFile(input).catch(() => {});
+          await inputFiles.cleanup();
           await ff.deleteFile(metadata).catch(() => {});
         }
         onProgress?.({
@@ -223,7 +225,8 @@ export function createBrowserEngine(): MediaEngine {
       cancelled = false;
       onProgress({ ratio: 0, message: 'Preparing the local media engine…' });
       const ff = await ready();
-      const input = `source-${asset.id}`;
+      const inputFiles = browserInputs(ff);
+
       const output = `export.${settings.format}`;
       const layers = resolveAudioLayers(
         settings,
@@ -231,8 +234,8 @@ export function createBrowserEngine(): MediaEngine {
       );
       const resources = await browserResources(ff, [settings], [asset], files, sources);
       try {
-        await ff.writeFile(input, new Uint8Array(await source.arrayBuffer()));
-        await writeBrowserLayers(ff, layers, files, sources);
+        const input = await inputFiles.open(source);
+        await mountBrowserLayers(layers, files, sources, inputFiles);
         const encoding = await browserImageEncoding(
           ff,
           asset,
@@ -293,9 +296,8 @@ export function createBrowserEngine(): MediaEngine {
         throw error;
       } finally {
         await resources.cleanup();
-        for (const layer of layers) await ff.deleteFile(layer.path).catch(() => {});
+        await inputFiles.cleanup();
         if (!cancelled) {
-          await ff.deleteFile(input).catch(() => {});
           await ff.deleteFile(output).catch(() => {});
           await ff.deleteFile(renderedImagePath).catch(() => {});
         }
@@ -304,8 +306,8 @@ export function createBrowserEngine(): MediaEngine {
     async merge(clips, settings, onProgress, transition) {
       const asset = compositionAsset(clips, transition);
       const ff = await ready();
-      const inputs = [...new Set(clips.map((c) => c.asset.id))];
-      const paths = clips.map((c) => `merge-${c.asset.id}`);
+      const inputFiles = browserInputs(ff);
+      const paths: string[] = [];
       const output = `merged.${settings.format}`;
       cancelled = false;
 
@@ -329,12 +331,12 @@ export function createBrowserEngine(): MediaEngine {
           `${captions}-chapters.ffmetadata`,
           serializeChapters(mergedChapters(clips, transition)),
         );
-        for (const id of inputs) {
-          const file = files.get(id);
+        for (const clip of clips) {
+          const file = files.get(clip.asset.id);
           if (!file) throw new Error('Import each merge source again.');
-          await ff.writeFile(`merge-${id}`, new Uint8Array(await file.arrayBuffer()));
+          paths.push(await inputFiles.open(file));
         }
-        for (const layers of mixes) await writeBrowserLayers(ff, layers, files, sources);
+        for (const layers of mixes) await mountBrowserLayers(layers, files, sources, inputFiles);
         await encodeBrowserOutput(
           ff,
           settings.format,
@@ -369,11 +371,10 @@ export function createBrowserEngine(): MediaEngine {
         throw error;
       } finally {
         await resources.cleanup();
-        for (const layer of mixes.flat()) await ff.deleteFile(layer.path).catch(() => {});
+        await inputFiles.cleanup();
         await ff.deleteFile(captions).catch(() => {});
         await ff.deleteFile(`${captions}-chapters.ffmetadata`).catch(() => {});
-        for (const name of [...inputs.map((id) => `merge-${id}`), output])
-          await ff.deleteFile(name).catch(() => {});
+        await ff.deleteFile(output).catch(() => {});
       }
     },
     ...browserAnalysis(ready, files, sources),

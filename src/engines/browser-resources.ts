@@ -4,6 +4,7 @@ import { recipeImages, recipeFiles, resourcePaths } from '../core/resources';
 import type { EditSettings, MediaAsset } from '../core/types';
 import { captionItems } from '../core/caption-items';
 import { captionFontFile, defaultCaptionStyle, systemFontFamily } from '../core/caption-style';
+import { browserInputs } from './browser-inputs';
 const fonts = new Map<string, Promise<Uint8Array>>();
 export async function browserResources(
   ff: FFmpeg,
@@ -16,6 +17,7 @@ export async function browserResources(
     resourcePaths(`clip${i}`, edit.subtitles.mode),
   );
   const names: string[] = [];
+  const inputs = browserInputs(ff);
   try {
     const captionFonts = edits.flatMap((edit) =>
       captionItems(edit)
@@ -61,25 +63,19 @@ export async function browserResources(
         names.push(`fonts/${name}`);
       }
     }
-    const written = new Set<string>();
     for (let i = 0; i < edits.length; i++) {
       const media = resolveMediaLayers(
         edits[i],
         [...(sources?.values() ?? [])].map((asset) => ({ asset, path: `visual-${asset.id}` })),
       );
-      paths[i].media = Object.fromEntries(media.map((item) => [item.layer.id, item.path]));
-      for (const item of media)
-        if (!written.has(item.path)) {
-          const source = mediaLayerSource(item.layer, [...(sources?.values() ?? [])]),
-            file = source && files?.get(source.id);
-          if (!file)
-            throw new Error(
-              `Restore “${item.layer.source.name}” before rendering its visual layer.`,
-            );
-          await ff.writeFile(item.path, new Uint8Array(await file.arrayBuffer()));
-          written.add(item.path);
-          names.push(item.path);
-        }
+      paths[i].media = {};
+      for (const item of media) {
+        const source = mediaLayerSource(item.layer, [...(sources?.values() ?? [])]),
+          file = source && files?.get(source.id);
+        if (!file)
+          throw new Error(`Restore “${item.layer.source.name}” before rendering its visual layer.`);
+        paths[i].media![item.layer.id] = await inputs.open(file);
+      }
     }
     for (let i = 0; i < edits.length; i++)
       for (const file of recipeFiles(edits[i], paths[i], assets?.[i])) {
@@ -106,10 +102,12 @@ export async function browserResources(
       paths,
       cleanup: async () => {
         for (const name of names) await ff.deleteFile(name).catch(() => {});
+        await inputs.cleanup();
       },
     };
   } catch (error) {
     for (const name of names) await ff.deleteFile(name).catch(() => {});
+    await inputs.cleanup();
     throw error;
   }
 }
