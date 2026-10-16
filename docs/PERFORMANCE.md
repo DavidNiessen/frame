@@ -11,6 +11,7 @@ Frame keeps export settings separate from playback optimizations:
 - Image previews retain up to eight completed composites/backgrounds within a 64 MiB cache budget, plus the original comparison frame. Visible frames remain protected during handoffs. Text/object changes reuse unchanged backgrounds, undo/redo reuse completed composites, and the unchanged initial image reuses its original render. Compact SHA-256 recipe keys avoid retaining duplicate paint/mask data strings. Zoom and pan reuse the render request.
 - Browser preview workers remain loaded between completed jobs. WORKERFS reads source files from Blob slices rather than first copying entire movies into the virtual filesystem. Imports, exports, merges, analysis, audio tracks and visual-layer inputs use scoped mounts; repeated references to the same File share a mount within each operation. A memory-filesystem fallback supports alternate FFmpeg cores. Cancellation still terminates an active worker; output and auxiliary temporary files are removed after each render.
 - Published editor recipes reuse clip positions and durations through playback. Mutable import/edit drafts are not cached. Video UI updates follow decoded frames; audio uses the animation-frame clock.
+- Edit history compares recipe values while skipping shared immutable objects and media strings. Each edit no longer serializes the entire recipe twice to check whether it changed.
 - Waveform generation computes overall peaks rather than every available per-channel audio statistic. Source waveforms remain reusable through trim/split edits.
 
 ## Local measurement
@@ -25,6 +26,8 @@ One Linux cloud-workspace comparison used the same bundled FFmpeg, source, recip
 An isolated timing-read benchmark with 1,000 clips (300 repeated reads) dropped from 222.14 ms to 1.53 ms by reusing the published sequence timing. This measures timing lookup work, rather than end-to-end playback.
 
 A later comparison isolated direct input seeking after the playback-resolution optimization: a four-second preview of source ranges 170–172 seconds followed by 0–2 seconds from a 180-second 1280 × 720, 15 fps H.264 source, with saturation 1.2. Two runs per version, in reversed order, measured 1,750/2,330 ms before and 194/243 ms after (medians 2,040 ms and 218.5 ms). Both outputs retained the same four-second duration.
+
+An isolated change-detection benchmark compared 50 recipes sharing a synthetic 2 MiB paint payload (25 unchanged, 25 with changed volume). Two runs measured 1,094.06/1,025.25 ms using full JSON serialization and 4.05/2.34 ms using value/reference comparisons. Both methods classified the same 25 recipes as unchanged. This measures only change detection, not complete edit latency.
 
 These are workload measurements, not guarantees for other machines or effect combinations. Regression tests also exercise real FFmpeg output, live audio, browser file mounting/runtime reuse, and cache cleanup.
 

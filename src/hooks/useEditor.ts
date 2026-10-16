@@ -1,4 +1,5 @@
 import { mediaLayerSource } from '../core/media-layers';
+import { sameEditSettings } from '../core/edit-equality';
 import { flushSync } from 'react-dom';
 import { detachSourceMedia } from './media-elements';
 import { allAudioLayers, effectiveSpeed, extraInstances } from '../core/effect-instances';
@@ -291,7 +292,7 @@ export function useEditor() {
               }
             : instance,
         );
-        if (JSON.stringify(next) === JSON.stringify(h.present)) return current;
+        if (sameEditSettings(next, h.present)) return current;
         return {
           ...current,
           [selected]: { past: [...h.past, h.present].slice(-100), present: next, future: [] },
