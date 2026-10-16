@@ -48,9 +48,13 @@ test('duplicates native footage and independent effects, then exports the comple
       (v as HTMLVideoElement).currentTime = 10;
     });
     await expect(page.getByLabel('Seek playhead')).toHaveValue('4');
+    const continuousSource = await video.getAttribute('src');
     await page.getByLabel('Volume', { exact: true }).fill('1.5');
     await closeEffect(page);
-    await expect(video).toHaveAttribute('data-preview-effects', 'rendered', { timeout: 20000 });
+    // Gain is processed live; the continuous video stream and repeated-source
+    // clock must remain intact without an effects render or source handoff.
+    await expect(video).not.toHaveAttribute('data-preview-effects', 'rendered');
+    await expect(video).toHaveAttribute('src', continuousSource!);
     await expect(video).not.toHaveAttribute('data-preview-preparing', 'true', { timeout: 20000 });
     await expect
       .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))

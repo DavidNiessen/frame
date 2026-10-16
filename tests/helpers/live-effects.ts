@@ -70,6 +70,7 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
       });
     };
     await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => 'effectAudio' in window)).toBe(true);
     await page.evaluate(() =>
       (
         window as typeof window & { effectAudio: { context: AudioContext } }
