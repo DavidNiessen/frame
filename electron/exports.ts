@@ -14,6 +14,7 @@ import { editedDuration } from '../src/core/timeline';
 import { frameDimensions } from '../src/core/geometry';
 import type { EditSettings } from '../src/core/types';
 import { encodeNative } from './acceleration';
+import { smartRender } from './smart-render';
 import { withResources } from './resources';
 import type { createBatchFolders } from './batch';
 import type { MediaJobs } from './jobs';
@@ -77,6 +78,25 @@ export function registerExports(
           await withResources(
             [settings],
             async (paths) => {
+              const report = (ratio: number, message: string) => {
+                if (!event.sender.isDestroyed())
+                  event.sender.send('media:progress', { ratio, message });
+              };
+              const smart = await smartRender(
+                item.asset,
+                settings,
+                item.path,
+                temporary!,
+                paths[0],
+                layers,
+                execute,
+                jobs,
+                report,
+              ).catch((error) => {
+                if (jobs.cancelled) throw error;
+                return false;
+              });
+              if (smart) return;
               const { width, height } = frameDimensions(item.asset, settings);
               await encodeNative(
                 buildExportArgs(item.asset, settings, item.path, temporary!, paths[0], layers),
@@ -85,10 +105,7 @@ export function registerExports(
                 hardwareBitrate(width, height, settings.quality),
                 execute,
                 jobs,
-                (ratio, message) => {
-                  if (!event.sender.isDestroyed())
-                    event.sender.send('media:progress', { ratio, message });
-                },
+                report,
                 { allCores: true },
               );
             },
