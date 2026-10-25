@@ -1,6 +1,7 @@
 import { animatedMedia } from '../core/keyframes';
 import { recordMediaChange } from '../core/media-layers';
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo, useRef, type RefObject } from 'react';
+import { LiveMediaLayer } from './LiveMediaLayer';
 import { FrameObject } from './FrameObject';
 import { FrameInteractionContext } from './frame-interaction';
 import { mediaLayerSource, type MediaLayer } from '../core/media-layers';
@@ -16,6 +17,7 @@ export function MediaLayerPreview({
   openLayer,
   pause,
   image = false,
+  live,
 }: {
   edit: EditSettings;
   assets: MediaAsset[];
@@ -27,8 +29,31 @@ export function MediaLayerPreview({
   openLayer: (id: string, keepView?: boolean) => void;
   pause: () => void;
   image?: boolean;
+  /** Composite the layers' pictures here instead of relying on a rendered preview. */
+  live?: {
+    playing: boolean;
+    frame: { width: number; height: number };
+    /** The base video, whose fade also covers the layers. */
+    base: RefObject<HTMLMediaElement | null>;
+  };
 }) {
   const interaction = useContext(FrameInteractionContext);
+  const area = useRef<HTMLDivElement>(null),
+    base = live?.base;
+  useEffect(() => {
+    const node = area.current;
+    if (!base || !node) return;
+    let frame = 0;
+    const follow = () => {
+      frame = requestAnimationFrame(follow);
+      node.style.opacity = base.current?.style.opacity || '1';
+    };
+    follow();
+    return () => {
+      cancelAnimationFrame(frame);
+      node.style.opacity = '';
+    };
+  }, [base]);
   const shown = useMemo(
     () =>
       (edit.mediaLayers ?? []).map((layer) => ({
@@ -39,7 +64,8 @@ export function MediaLayerPreview({
   );
   return (
     <div
-      className={`media-layer-frame-area ${image ? 'image-media-area' : 'video-media-area'}`}
+      ref={area}
+      className={`media-layer-frame-area ${image ? 'image-media-area' : 'video-media-area'}${live ? ' live' : ''}`}
       data-frame-area
     >
       {shown
@@ -79,7 +105,20 @@ export function MediaLayerPreview({
                 height: Math.max(1, Math.min(200, base.height * factor)),
               })}
             >
-              {image && interaction?.active && source?.kind === 'image' ? (
+              {live && source ? (
+                <div className="live-media-layer" style={{ opacity: value.opacity }}>
+                  <LiveMediaLayer
+                    layer={layer}
+                    source={source}
+                    position={position}
+                    playing={live.playing}
+                    box={{
+                      width: (live.frame.width * value.width) / 100,
+                      height: (live.frame.height * value.height) / 100,
+                    }}
+                  />
+                </div>
+              ) : image && interaction?.active && source?.kind === 'image' ? (
                 <img
                   src={source.previewUrl}
                   alt=""

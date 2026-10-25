@@ -134,3 +134,16 @@
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+.video-media-area.live .frame-object-content {
+  opacity: 1;
+}
+.live-media-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.live-layer-crop {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}

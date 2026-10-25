@@ -23,6 +23,8 @@ import {
 import { ffmpegPath, probeFile } from '../electron/native';
 import type { AudioLayer } from '../src/core/audio-layers';
 import { sourceIdentity } from '../src/core/project';
+import { insertedMediaLayer, type MediaLayer } from '../src/core/media-layers';
+import { liveMediaLayers } from '../src/core/live-media-layers';
 const exec = promisify(execFile);
 let directory: string, tone: string, audio: MediaAsset;
 beforeAll(async () => {
@@ -433,4 +435,36 @@ it('renders only the soundtrack of a cut, speed-adjusted video and mixes audio t
     ]),
   );
   expect(await probe(track)).toMatch(/Audio: mp3/);
+});
+it('leaves media layers over a simply cropped base to the live compositor and renders only their audio', () => {
+  const video = { ...audio, kind: 'video' as const, width: 640, height: 360, hasAudio: true },
+    overlay = { ...video, id: 'overlay', name: 'overlay.mp4', previewUrl: 'blob:overlay' },
+    layer: MediaLayer = {
+      ...insertedMediaLayer(defaultSettings(video), video, overlay, 0),
+      id: 'layer',
+    },
+    edit = { ...defaultSettings(video), mediaLayers: [layer] };
+  expect(liveMediaLayers(video, edit, [video, overlay], true)).toBe(true);
+  expect(liveMediaLayers(video, edit, [video, overlay], false)).toBe(false);
+  expect(liveMediaLayers(video, edit, [video], true)).toBe(false);
+  expect(
+    liveMediaLayers(
+      video,
+      { ...edit, crop: { x: 0, y: 0, width: 320, height: 180 } },
+      [video, overlay],
+      true,
+    ),
+  ).toBe(true);
+  expect(
+    liveMediaLayers(
+      video,
+      { ...edit, geometry: { ...edit.geometry, rotation: 90 } },
+      [video, overlay],
+      true,
+    ),
+  ).toBe(false);
+  expect(effectPreviewNeeds(edit, true, true, true)).toEqual({ audio: false, video: false });
+  expect(effectPreviewNeeds(edit, true, true, false).video).toBe(true);
+  expect(effectPreviewRecipe(video, edit, true, true).mediaLayers).toBeUndefined();
+  expect(effectPreviewRecipe(audioPreviewAsset(video), edit, true).mediaLayers).toBeUndefined();
 });

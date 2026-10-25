@@ -18,6 +18,7 @@ import { AudioMixPreview, ProcessedAudioPreview } from './AudioMixPreview';
 import { GradedVideo } from './GradedVideo';
 import { hasRealtimeGrade } from '../core/realtime-grade';
 import { realtimeGradeFor } from '../engines/grade-renderer';
+import { liveMediaLayers } from '../core/live-media-layers';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import {
   AudioLines,
@@ -252,6 +253,9 @@ export function Preview({
   const graded = useMemo(() => hasRealtimeGrade(edit), [edit]);
   // Media-layer previews bake color and geometry, so the GPU grade must not apply twice.
   const liveGrade = realtimeGrade && graded && !gif && !previewGeometryProcessed;
+  // Untransformed layer stacks composite live above the video rather than in a rendered preview.
+  const liveLayers =
+    !previewGeometryProcessed && liveMediaLayers(asset, edit, assets, realtimeGradeFor(asset));
   const colorFilter =
     liveGrade || previewGeometryProcessed || (previewProcessed && !realtimeGradeFor(asset))
       ? 'none'
@@ -489,18 +493,43 @@ export function Preview({
                   }
                 />
               </div>
-              {selectedEffect?.id !== 'crop' && (
-                <MediaLayerPreview
-                  edit={overlayEdit}
-                  assets={assets}
-                  position={position}
-                  selectedId={selectedMediaLayer}
-                  disabled={disabled}
-                  update={update}
-                  openLayer={openMediaLayer}
-                  pause={() => mediaRef.current?.pause()}
-                />
-              )}
+              {selectedEffect?.id !== 'crop' &&
+                (() => {
+                  const layers = (frame: { width: number; height: number }) => (
+                    <MediaLayerPreview
+                      edit={overlayEdit}
+                      assets={assets}
+                      position={position}
+                      selectedId={selectedMediaLayer}
+                      disabled={disabled}
+                      update={update}
+                      openLayer={openMediaLayer}
+                      pause={() => mediaRef.current?.pause()}
+                      live={
+                        liveLayers
+                          ? { playing: playing && !disabled, frame, base: mediaRef }
+                          : undefined
+                      }
+                    />
+                  );
+                  // Live layers sit in the cropped output frame, like the export.
+                  const crop = liveLayers && !stackedVisual ? visual.crop : null;
+                  return crop ? (
+                    <div
+                      className="live-layer-crop"
+                      style={{
+                        left: `${(crop.x / asset.width!) * 100}%`,
+                        top: `${(crop.y / asset.height!) * 100}%`,
+                        width: `${(crop.width / asset.width!) * 100}%`,
+                        height: `${(crop.height / asset.height!) * 100}%`,
+                      }}
+                    >
+                      {layers({ width: crop.width, height: crop.height })}
+                    </div>
+                  ) : (
+                    layers(dimensions)
+                  );
+                })()}
               <ShapePreview
                 edit={overlayEdit}
                 asset={displayAsset}

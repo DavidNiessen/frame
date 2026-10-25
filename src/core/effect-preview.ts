@@ -31,6 +31,7 @@ export function effectPreviewNeeds(
   edit: EditSettings,
   realtimeAudio = false,
   realtimeVideo = false,
+  liveLayers = false,
 ) {
   const audioNeeds = (view: EditSettings) =>
     view.normalizeLoudness ||
@@ -65,7 +66,7 @@ export function effectPreviewNeeds(
       allAudioLayers(edit).length > 0 ||
       anyClip(stack(audioNeeds, (instance) => audioEffects.has(instance.effect))),
     video:
-      !!edit.mediaLayers?.length ||
+      (!liveLayers && !!edit.mediaLayers?.length) ||
       anyClip(
         stack(
           videoNeeds,
@@ -99,16 +100,19 @@ const gradeEffect = (effect: string) =>
   effect === 'color' || effect === 'curves' || isVisualEffect(effect);
 /**
  * Keep frame objects/geometry/fades interactive; bake the complete audio mix.
- * Exact color is baked unless `realtimeVideo` grades it live. Media layers are
- * composited by FFmpeg, so their recipes always bake geometry and color.
+ * Exact color is baked unless `realtimeVideo` grades it live. Media layers
+ * composited by FFmpeg bake geometry and color; `liveLayers` leaves them to the
+ * renderer instead.
  */
 export function effectPreviewRecipe(
   asset: MediaAsset,
   edit: EditSettings,
   realtimeVideo = false,
+  liveLayers = false,
 ): EditSettings {
   if (asset.kind === 'image') return { ...edit, format: 'png' };
-  const bakeGeometry = !!edit.mediaLayers?.length,
+  const dropLayers = liveLayers || asset.kind === 'audio',
+    bakeGeometry = !dropLayers && !!edit.mediaLayers?.length,
     liveGrade = realtimeVideo && !bakeGeometry;
   const keepInstance = (instance: EffectInstance) =>
     (!liveVisual.has(instance.effect) ||
@@ -146,6 +150,7 @@ export function effectPreviewRecipe(
   });
   const result: EditSettings = {
     ...strip(edit),
+    mediaLayers: dropLayers ? undefined : edit.mediaLayers,
     format: asset.kind === 'video' ? 'mp4' : 'mp3',
     quality: 'balanced',
     acceleration: defaultSettings(asset).acceleration,
