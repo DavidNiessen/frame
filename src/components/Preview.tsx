@@ -14,7 +14,7 @@ import type { EffectId } from '../core/effect-library';
 import { captionItems } from '../core/caption-items';
 import { changeInstance, extraInstances } from '../core/effect-instances';
 import { stackedGeometryPreview, colorPreview } from '../core/visual-preview';
-import { AudioMixPreview } from './AudioMixPreview';
+import { AudioMixPreview, ProcessedAudioPreview } from './AudioMixPreview';
 import { GradedVideo } from './GradedVideo';
 import { hasRealtimeGrade } from '../core/realtime-grade';
 import { realtimeGradeFor } from '../engines/grade-renderer';
@@ -64,6 +64,7 @@ export function Preview({
   previewRanges,
   previewProcessed = false,
   previewGeometryProcessed = false,
+  previewAudio,
   openMediaLayer,
   selectedMediaLayer,
   effectsRequested = false,
@@ -96,6 +97,8 @@ export function Preview({
   previewRanges?: PreviewRange[];
   previewProcessed?: boolean;
   previewGeometryProcessed?: boolean;
+  /** Processed soundtrack for audio-only corrections, synced to the playing source video. */
+  previewAudio?: { url: string; ranges: PreviewRange[] };
   openMediaLayer: (id: string, keepView?: boolean) => void;
   selectedMediaLayer?: string;
   effectsRequested?: boolean;
@@ -241,6 +244,9 @@ export function Preview({
         (!mediaRef.current.paused || (pending && handoff.current.resume)),
     };
   }
+  const [audioFailed, setAudioFailed] = useState('');
+  const separateAudio =
+    asset.kind === 'video' && !!previewAudio && audioFailed !== previewAudio.url;
   const [gradeFailed, setGradeFailed] = useState(false);
   const realtimeGrade = realtimeGradeFor(asset) && !gradeFailed;
   const graded = useMemo(() => hasRealtimeGrade(edit), [edit]);
@@ -413,6 +419,7 @@ export function Preview({
                     ...(liveGrade ? { visibility: 'hidden' as const } : {}),
                   }}
                   data-preview-effects={previewProcessed ? 'rendered' : undefined}
+                  data-preview-audio={separateAudio ? 'separate' : undefined}
                   data-preview-preparing={preparing || undefined}
                   data-preview-stale={previewStale || undefined}
                   ref={(node) => {
@@ -635,8 +642,18 @@ export function Preview({
         assets={assets}
         edit={edit}
         current={current}
-        playing={playing && !disabled && !previewProcessed}
+        playing={playing && !disabled && !previewProcessed && !separateAudio}
       />
+      {separateAudio && (
+        <ProcessedAudioPreview
+          url={previewAudio.url}
+          ranges={previewAudio.ranges}
+          current={current}
+          position={position}
+          playing={playing && !disabled}
+          onFailure={() => setAudioFailed(previewAudio.url)}
+        />
+      )}
       {expanded && (
         <div className="fullscreen-scrubber" data-preview-playback>
           <input

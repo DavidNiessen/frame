@@ -4,7 +4,13 @@ import { defaultVisual, hasVisualAdjustments, isVisualEffect } from './visual-se
 import { defaultColor } from './color';
 import { framePreviewArgs } from './frame-preview';
 import { editClips, clipRecipe } from './clips';
-import { allAudioLayers, effectiveSpeed, extraInstances, instanceRecipe } from './effect-instances';
+import {
+  allAudioLayers,
+  effectiveSpeed,
+  extraInstances,
+  instanceRecipe,
+  type EffectInstance,
+} from './effect-instances';
 import { defaultGeometry } from './geometry';
 import { defaultOverlays } from './overlays';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
@@ -18,46 +24,66 @@ import { seekPreviewClips } from './preview-seeking';
 /**
  * These corrections cannot be represented by a media element or CSS alone.
  * With real-time grading, color, curves, LUTs and visual adjustments run on the
- * GPU during playback, so they never require a rendered preview.
+ * GPU during playback, so they never require a rendered preview. Audio and
+ * video are reported separately so audio-only changes skip the video encode.
  */
+export function effectPreviewNeeds(
+  edit: EditSettings,
+  realtimeAudio = false,
+  realtimeVideo = false,
+) {
+  const audioNeeds = (view: EditSettings) =>
+    view.normalizeLoudness ||
+    view.reduceNoise ||
+    (!realtimeAudio &&
+      (view.volume > 1 || Object.values(view.equalizer).some((value) => value !== 0)));
+  const videoNeeds = (view: EditSettings) =>
+    !realtimeVideo &&
+    (hasCurves(view.curves) ||
+      hasVisualAdjustments(view.visual) ||
+      view.color.lut !== null ||
+      view.color.temperature !== 0 ||
+      view.color.brightness !== 0 ||
+      view.color.contrast !== 1 ||
+      view.color.saturation !== 1);
+  const audioEffects = new Set([
+    'normalize',
+    'noise',
+    ...(realtimeAudio ? [] : ['volume', 'equalizer']),
+  ]);
+  const stack =
+    (needs: (view: EditSettings) => boolean, relevant: (instance: EffectInstance) => boolean) =>
+    (recipe: EditSettings) =>
+      needs(recipe) ||
+      extraInstances(recipe).some(
+        (instance) => relevant(instance) && needs(instanceRecipe(recipe, instance)),
+      );
+  const anyClip = (needs: (recipe: EditSettings) => boolean) =>
+    needs(edit) || editClips(edit).some((clip) => needs(clipRecipe(edit, clip)));
+  return {
+    audio:
+      allAudioLayers(edit).length > 0 ||
+      anyClip(stack(audioNeeds, (instance) => audioEffects.has(instance.effect))),
+    video:
+      !!edit.mediaLayers?.length ||
+      anyClip(
+        stack(
+          videoNeeds,
+          (instance) =>
+            instance.effect === 'color' ||
+            instance.effect === 'curves' ||
+            instance.settings.visual !== undefined,
+        ),
+      ),
+  };
+}
 export function needsEffectPreview(
   edit: EditSettings,
   realtimeAudio = false,
   realtimeVideo = false,
 ) {
-  const needsRender = (view: EditSettings) =>
-    view.normalizeLoudness ||
-    view.reduceNoise ||
-    (!realtimeAudio &&
-      (view.volume > 1 || Object.values(view.equalizer).some((value) => value !== 0))) ||
-    (!realtimeVideo &&
-      (hasCurves(view.curves) ||
-        hasVisualAdjustments(view.visual) ||
-        view.color.lut !== null ||
-        view.color.temperature !== 0 ||
-        view.color.brightness !== 0 ||
-        view.color.contrast !== 1 ||
-        view.color.saturation !== 1));
-  const relevant = new Set([
-    'normalize',
-    'noise',
-    ...(realtimeAudio ? [] : ['volume', 'equalizer']),
-    ...(realtimeVideo ? [] : ['color', 'curves']),
-  ]);
-  const recipeNeedsRender = (recipe: EditSettings) =>
-    needsRender(recipe) ||
-    extraInstances(recipe).some(
-      (instance) =>
-        (relevant.has(instance.effect) ||
-          (!realtimeVideo && instance.settings.visual !== undefined)) &&
-        needsRender(instanceRecipe(recipe, instance)),
-    );
-  return (
-    !!edit.mediaLayers?.length ||
-    allAudioLayers(edit).length > 0 ||
-    recipeNeedsRender(edit) ||
-    editClips(edit).some((clip) => recipeNeedsRender(clipRecipe(edit, clip)))
-  );
+  const needs = effectPreviewNeeds(edit, realtimeAudio, realtimeVideo);
+  return needs.audio || needs.video;
 }
 const liveVisual = new Set([
   'painting',
@@ -84,7 +110,7 @@ export function effectPreviewRecipe(
   if (asset.kind === 'image') return { ...edit, format: 'png' };
   const bakeGeometry = !!edit.mediaLayers?.length,
     liveGrade = realtimeVideo && !bakeGeometry;
-  const keepInstance = (instance: import('./effect-instances').EffectInstance) =>
+  const keepInstance = (instance: EffectInstance) =>
     (!liveVisual.has(instance.effect) ||
       (bakeGeometry && ['crop', 'transform'].includes(instance.effect))) &&
     instance.effect !== 'mix' &&
@@ -242,3 +268,6 @@ export function effectPreviewArgs(
   }
   return seekPreviewClips(args, edit, input);
 }
+/** Audio-only renders read the soundtrack of a video source without re-encoding its picture. */
+export const audioPreviewAsset = (asset: MediaAsset): MediaAsset =>
+  asset.kind === 'video' ? { ...asset, kind: 'audio' } : asset;

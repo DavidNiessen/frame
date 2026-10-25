@@ -82,12 +82,14 @@ export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings)
       additionalFade('audio') *
       localFade *
       fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut);
+  // A separately rendered soundtrack plays beside the video, so the source stays silent.
+  const audible = media.dataset.previewAudio !== 'separate';
   const realtime = updatePlaybackAudio(
     media,
-    rendered ? [] : realtimeEqualizers(recipe, sourceTime, position),
-    gain,
+    rendered || !audible ? [] : realtimeEqualizers(recipe, sourceTime, position),
+    audible ? gain : 0,
   );
-  media.volume = monitorVolume() * (realtime ? 1 : Math.min(1, gain));
+  media.volume = audible ? monitorVolume() * (realtime ? 1 : Math.min(1, gain)) : 0;
   if (media.tagName === 'VIDEO')
     media.style.opacity = String(
       sharedFade('video') *

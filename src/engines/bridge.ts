@@ -64,7 +64,8 @@ export interface DesktopBridge extends ExportHistoryBridge, UpdateBridge {
   previewProxy(id: string): Promise<PreviewProxy>;
   releaseProxy(id: string): Promise<void>;
   joinedPreview(id: string, ranges: TimeRange[]): Promise<PreviewProxy>;
-  effectPreview(id: string, edit: EditSettings): Promise<PreviewProxy>;
+  /** `audioOnly` renders just the soundtrack of a video source. */
+  effectPreview(id: string, edit: EditSettings, audioOnly?: boolean): Promise<PreviewProxy>;
   cancelJoinedPreview(): void;
   onJoinedPreviewProgress(callback: (progress: ExportProgress) => void): () => void;
   importFiles(files?: File[]): Promise<ImportReport>;

@@ -8,7 +8,11 @@ import type { SessionAssets } from './media-session';
 import type { PreviewProxy } from '../src/core/hardware';
 import type { EditSettings, TimeRange } from '../src/core/types';
 import { joinedPreviewArgs, validatePreviewRanges } from '../src/core/joined-preview';
-import { effectPreviewArgs, effectPreviewRecipe } from '../src/core/effect-preview';
+import {
+  audioPreviewAsset,
+  effectPreviewArgs,
+  effectPreviewRecipe,
+} from '../src/core/effect-preview';
 import { parseEdit } from '../src/core/project';
 import { resolveAudioLayers } from '../src/core/audio-layers';
 import { editedDuration } from '../src/core/timeline';
@@ -37,13 +41,15 @@ export function createJoinedPreviews(
     id: string,
     ranges: TimeRange[],
     settings?: EditSettings,
+    audioOnly = false,
   ) {
     trusted(event);
-    const source = assets.get(id);
-    if (!source) throw new Error('Import the source again.');
+    const stored = assets.get(id);
+    if (!stored) throw new Error('Import the source again.');
+    const source = audioOnly ? { ...stored, asset: audioPreviewAsset(stored.asset) } : stored;
     validatePreviewRanges(source.asset, ranges);
     const edit = settings
-      ? effectPreviewRecipe(source.asset, parseEdit(settings, source.asset))
+      ? effectPreviewRecipe(source.asset, parseEdit(settings, stored.asset))
       : undefined;
     const layers = edit ? resolveAudioLayers(edit, [...assets.values()]) : [];
     const message = edit ? 'Preparing effects preview…' : 'Preparing continuous preview…';
@@ -104,8 +110,14 @@ export function createJoinedPreviews(
   ipc.handle('media:joined-preview', (event, id: string, ranges: TimeRange[]) =>
     generate(event, id, ranges),
   );
-  ipc.handle('media:effect-preview', (event, id: string, edit: EditSettings) =>
-    generate(event, id, [{ start: 0, end: assets.get(id)?.asset.duration ?? 0 }], edit),
+  ipc.handle('media:effect-preview', (event, id: string, edit: EditSettings, audioOnly?: boolean) =>
+    generate(
+      event,
+      id,
+      [{ start: 0, end: assets.get(id)?.asset.duration ?? 0 }],
+      edit,
+      audioOnly === true,
+    ),
   );
   ipc.handle('media:cancel-joined-preview', (event) => {
     trusted(event);
