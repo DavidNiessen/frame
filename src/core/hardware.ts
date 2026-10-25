@@ -24,6 +24,22 @@ export function parseAcceleration(value: unknown): Acceleration {
     throw new Error('Invalid hardware encoder choice.');
   return value as Acceleration;
 }
+const threadOptions = ['-threads', '-filter_threads', '-filter_complex_threads'];
+/**
+ * Removes thread caps so FFmpeg sizes its decoder, filter and encoder pools to the machine.
+ * Interactive previews keep their caps; user-started exports should finish as fast as possible.
+ */
+export function allCores(plan: string[]): string[] {
+  const result: string[] = [];
+  for (let i = 0; i < plan.length; i++) {
+    if (threadOptions.includes(plan[i]) && i + 1 < plan.length - 1) {
+      i++;
+      continue;
+    }
+    result.push(plan[i]);
+  }
+  return result;
+}
 export function hardwarePlan(plan: string[], encoder: HardwareEncoder, bitrate: number): string[] {
   if (!plan.some((arg, i) => arg === '-c:v' && plan[i + 1] === 'libx264')) return plan;
   const result: string[] = [];

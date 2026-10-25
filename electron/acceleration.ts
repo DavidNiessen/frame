@@ -78,6 +78,7 @@ export async function encodeNative(
   execute: Execute,
   jobs: MediaJobs,
   progress: (ratio: number, message: string) => void,
+  options: { allCores?: boolean } = {},
 ) {
   let hardware: string[] | null = null;
   if (mode !== 'software' && plan.some((arg, i) => arg === '-c:v' && plan[i + 1] === 'libx264')) {
@@ -91,13 +92,18 @@ export async function encodeNative(
     hardware,
     (next) =>
       execute(
-        runFfmpeg(next, duration, (ratio) =>
-          progress(
-            ratio,
-            next === plan
-              ? 'Encoding with portable software FFmpeg…'
-              : 'Encoding with hardware acceleration…',
-          ),
+        runFfmpeg(
+          next,
+          duration,
+          (ratio) =>
+            progress(
+              ratio,
+              next === plan
+                ? 'Encoding with portable software FFmpeg…'
+                : 'Encoding with hardware acceleration…',
+            ),
+          undefined,
+          options,
         ),
       ),
     () => jobs.cancelled,

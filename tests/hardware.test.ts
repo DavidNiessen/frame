@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { hardwarePlan, hardwareFallback, hardwareBitrate } from '../src/core/hardware';
+import { allCores, hardwarePlan, hardwareFallback, hardwareBitrate } from '../src/core/hardware';
 it('replaces only H264 encoding controls and preserves target bitrate and source inputs', () => {
   const plan = [
     '-i',
@@ -66,4 +66,22 @@ it('honors hardware quality presets while keeping explicit target bitrates', () 
   expect(balanced).toBeLessThan(high);
   const args = ['-c:v', 'libx264', '-b:v', '568k', 'output.mp4'];
   expect(hardwarePlan(args, 'h264_nvenc', high)).toContain('568k');
+});
+it('lifts thread caps for exports without touching other arguments', () => {
+  expect(
+    allCores([
+      '-i',
+      'in.mp4',
+      '-filter_threads',
+      '2',
+      '-filter_complex_threads',
+      '1',
+      '-c:v',
+      'libx264',
+      '-threads',
+      '2',
+      'out.mp4',
+    ]),
+  ).toEqual(['-i', 'in.mp4', '-c:v', 'libx264', 'out.mp4']);
+  expect(allCores(['-i', 'in.mp4', '-threads'])).toEqual(['-i', 'in.mp4', '-threads']);
 });

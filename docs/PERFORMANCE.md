@@ -18,6 +18,21 @@ Frame keeps export settings separate from playback optimizations:
 - Edit history compares recipe values while skipping shared immutable objects and media strings. Each edit no longer serializes the entire recipe twice to check whether it changed.
 - Waveform generation computes overall peaks rather than every available per-channel audio statistic. Source waveforms remain reusable through trim/split edits.
 
+## Export performance
+
+- Desktop exports and joins use every CPU core for decoding, filtering and encoding. Previews, proxies and watch-folder conversions keep their two-thread limit so they stay in the background while you edit.
+
+Same 4-core Linux cloud workspace and bundled FFmpeg, 60-second 1920 × 1080, 30 fps H.264 source with AAC audio, MP4 output at Balanced quality:
+
+| Export                          | Two threads | All cores |
+| ------------------------------- | ----------: | --------: |
+| Trim to 50 seconds, no effects  |   34,321 ms | 23,568 ms |
+| Cut 10 seconds from the middle  |   30,690 ms | 20,588 ms |
+| Contrast 1.1 and saturation 1.3 |   42,306 ms | 26,781 ms |
+| Crop to 1280 × 720              |   12,677 ms |  9,928 ms |
+
+Machines with more cores gain more.
+
 ## Local measurement
 
 One Linux cloud-workspace comparison used the same bundled FFmpeg, source, recipe and output format before/after the changes:
