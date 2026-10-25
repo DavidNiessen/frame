@@ -196,9 +196,22 @@ it('plans adjustment-only image stacks for the GPU and leaves objects to FFmpeg'
     },
   } as unknown as EditSettings;
   expect(imageGradePlan(image, masked)).toBeNull();
-  expect(
-    imageGradePlan(image, { ...adjusted, geometry: { ...adjusted.geometry, rotation: 90 } }),
-  ).toBeNull();
+  expect(plan.size).toEqual({ width: 300, height: 200 });
+  const turned = imageGradePlan(image, {
+    ...adjusted,
+    geometry: { ...adjusted.geometry, rotation: 90, flipHorizontal: true },
+  })!;
+  // A clockwise turn and a mirror transpose: output right comes from source bottom.
+  expect(turned.turn).toEqual([0, -1, -1, 0]);
+  expect(turned.size).toEqual({ width: 200, height: 300 });
+  const resize = (fit: 'contain' | 'cover' | 'stretch', width: number) =>
+    imageGradePlan(image, {
+      ...adjusted,
+      geometry: { ...adjusted.geometry, resize: { width, height: 100, fit } },
+    });
+  expect(resize('stretch', 400)?.size).toEqual({ width: 400, height: 100 });
+  expect(resize('cover', 150)?.size).toEqual({ width: 150, height: 100 });
+  expect(resize('contain', 400)).toBeNull();
   expect(
     imageGradePlan(image, { ...adjusted, overlays: { ...adjusted.overlays, text: 'Credit' } }),
   ).toBeNull();

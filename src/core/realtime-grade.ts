@@ -10,6 +10,7 @@ import type { Crop, EditSettings, MediaAsset, TimeRange } from './types';
 import { imageLayerRows } from './image-layers';
 import type { ImageBlendMode } from './image-compositing';
 import type { MediaLayer } from './media-layers';
+import type { Geometry } from './geometry';
 
 /**
  * Real-time grading: color, curves, LUTs and visual adjustments are evaluated per
@@ -273,12 +274,35 @@ export function gradeLayerPasses(layers: GradeLayer[]): GradePass[] {
   return passes;
 }
 
+/** A 2 × 2 row-major matrix from centered output to source coordinates, y up. */
+export type Turn = [number, number, number, number];
+const multiply = (a: Turn, b: Turn) =>
+  [
+    a[0] * b[0] + a[1] * b[2],
+    a[0] * b[1] + a[1] * b[3],
+    a[2] * b[0] + a[3] * b[2],
+    a[2] * b[1] + a[3] * b[3],
+  ].map((value) => value || 0) as Turn;
+/** Inverts `geometryFilters`: the rotation (clockwise), then the flips. */
+function geometryTurn(g: Geometry): Turn {
+  const rotation: Record<Geometry['rotation'], Turn> = {
+    0: [1, 0, 0, 1],
+    90: [0, -1, 1, 0],
+    180: [-1, 0, 0, -1],
+    270: [0, 1, -1, 0],
+  };
+  return multiply(rotation[g.rotation], [g.flipHorizontal ? -1 : 1, 0, 0, g.flipVertical ? -1 : 1]);
+}
+
 /**
  * The image stack as GPU layers, mirroring `imageLayerStages`, or null when it
- * contains layers that need FFmpeg: objects, masks, retouching or transforms.
+ * contains layers that need FFmpeg: objects, masks, retouching or resizes that
+ * pad or cut the picture. `size` is the graded output frame.
  */
 export function imageGradePlan(asset: MediaAsset, edit: EditSettings) {
-  let crop: Crop | null = null;
+  let crop: Crop | null = null,
+    turn: Turn = [1, 0, 0, 1],
+    size = { width: asset.width ?? 0, height: asset.height ?? 0 };
   const layers: GradeLayer[] = [];
   for (const row of imageLayerRows(asset, edit)) {
     if (row.hidden) continue;
@@ -286,12 +310,23 @@ export function imageGradePlan(asset: MediaAsset, edit: EditSettings) {
       id = row.effect.id;
     if (id === 'crop') {
       const next = recipe.crop;
-      if (next) crop = crop ? { ...next, x: crop.x + next.x, y: crop.y + next.y } : { ...next };
+      if (next) {
+        crop = crop ? { ...next, x: crop.x + next.x, y: crop.y + next.y } : { ...next };
+        size = { width: next.width, height: next.height };
+      }
       continue;
     }
     if (id === 'transform') {
       const g = recipe.geometry;
-      if (g.rotation || g.flipHorizontal || g.flipVertical || g.resize) return null;
+      turn = multiply(turn, geometryTurn(g));
+      if (g.rotation % 180) size = { width: size.height, height: size.width };
+      if (g.resize) {
+        // Stretching, or fitting to the same shape, keeps every source pixel in place.
+        const { width, height, fit } = g.resize;
+        if (fit !== 'stretch' && Math.abs(width / height - size.width / size.height) > 0.01)
+          return null;
+        size = { width, height };
+      }
       continue;
     }
     if (row.state.mask && row.state.mask.mode !== 'none') return null;
@@ -307,5 +342,5 @@ export function imageGradePlan(asset: MediaAsset, edit: EditSettings) {
     if (steps.length && opacity > 0)
       layers.push({ steps, blend: row.state.blend ?? 'normal', opacity });
   }
-  return { layers, crop };
+  return { layers, crop, turn, size };
 }

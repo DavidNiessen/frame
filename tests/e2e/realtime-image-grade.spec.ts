@@ -50,6 +50,23 @@ const cases: [string, EditSettings][] = [
       visual: { ...exposure.visual!, vignette: 0.5 },
     },
   ],
+  [
+    'rotate',
+    {
+      ...exposure,
+      geometry: { ...base.geometry, rotation: 90, flipHorizontal: true },
+      visual: { ...exposure.visual!, vignette: 0.5, pixelate: 8 },
+    },
+  ],
+  [
+    'crop and turn',
+    {
+      ...exposure,
+      crop: { x: 40, y: 20, width: 120, height: 90 },
+      geometry: { ...base.geometry, rotation: 270, flipVertical: true },
+      visual: { ...exposure.visual!, blur: 2 },
+    },
+  ],
   ...imageBlendModes.map((mode): [string, EditSettings] => [
     mode,
     blended(mode, mode === 'normal' ? 0.5 : 0.7),
@@ -121,23 +138,32 @@ test('real-time image layers match the exported composite', async ({ page }) => 
             result[name] = 'unsupported';
             continue;
           }
-          const crop = plan.crop ?? { x: 0, y: 0, width, height };
+          const crop = plan.crop ?? { x: 0, y: 0, width, height },
+            frame = plan.size;
           const output = document.createElement('canvas');
-          output.width = crop.width;
-          output.height = crop.height;
+          output.width = frame.width;
+          output.height = frame.height;
           const renderer = new GradeRenderer(output, true);
-          renderer.render(source, gradeLayerPasses(plan.layers), crop, null, 0, {
-            x: crop.x / width,
-            y: crop.y / height,
-            width: crop.width / width,
-            height: crop.height / height,
-          });
+          renderer.render(
+            source,
+            gradeLayerPasses(plan.layers),
+            frame,
+            null,
+            0,
+            {
+              x: crop.x / width,
+              y: crop.y / height,
+              width: crop.width / width,
+              height: crop.height / height,
+            },
+            plan.turn,
+          );
           const reader = document.createElement('canvas').getContext('2d')!;
-          reader.canvas.width = crop.width;
-          reader.canvas.height = crop.height;
+          reader.canvas.width = frame.width;
+          reader.canvas.height = frame.height;
           reader.drawImage(output, 0, 0);
-          const data = reader.getImageData(0, 0, crop.width, crop.height).data,
-            count = crop.width * crop.height;
+          const data = reader.getImageData(0, 0, frame.width, frame.height).data,
+            count = frame.width * frame.height;
           if (expected[name].length !== count * 3) {
             result[name] = `size ${expected[name].length / 3} vs ${count}`;
             continue;

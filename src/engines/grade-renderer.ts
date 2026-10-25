@@ -7,6 +7,7 @@ import {
   type GradePass,
 } from '../core/realtime-grade';
 import type { Crop, MediaAsset } from '../core/types';
+import type { Turn } from '../core/realtime-grade';
 import { imageBlendModes, type ImageBlendMode } from '../core/image-compositing';
 
 const vertex = `#version 300 es
@@ -49,6 +50,9 @@ uniform float seed;
 uniform vec4 window;
 uniform sampler2D base;
 uniform vec4 baseWindow;
+// Rotation and flips of the source picture, applied around its center.
+uniform mat2 turn;
+uniform mat2 baseTurn;
 uniform int blend;
 uniform float opacity;
 in vec2 uv;
@@ -65,7 +69,7 @@ float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 // Decoded video is limited range; FFmpeg's luma filters see 16–235 values.
 float limited(float y) { return (16.0 + 219.0 * y) / 255.0; }
 float full(float y) { return (255.0 * y - 16.0) / 219.0; }
-vec4 tex(vec2 q) { return texture(source, window.xy + q * window.zw); }
+vec4 tex(vec2 q) { return texture(source, window.xy + (turn * (q - 0.5) + 0.5) * window.zw); }
 vec3 at(vec2 offset) { return tex(uv + vec2(offset.x, -offset.y) / frame).rgb; }
 float hash(vec2 p) {
   vec3 q = fract(vec3(p.xyx) * 0.1031 + seed);
@@ -197,7 +201,7 @@ void main() {
     if (kind != OP_EXPOSURE) c = clamp(c, 0.0, 1.0);
   }
   if (blend > 0) {
-    vec3 below = texture(base, baseWindow.xy + uv * baseWindow.zw).rgb;
+    vec3 below = texture(base, baseWindow.xy + (baseTurn * (uv - 0.5) + 0.5) * baseWindow.zw).rgb;
     c = blend == ${blendModes.normal}
       ? c * opacity + below * (1.0 - opacity)
       : c + (blended(c, below) - c) * opacity;
@@ -366,7 +370,9 @@ export class GradeRenderer {
    * Draw one frame. `frame` is the graded picture size in pixels, so kernel radii,
    * pixelation blocks and the vignette match the export at any canvas resolution.
    * Pass `null` as the image to grade the previously uploaded picture again, and
-   * `window` (top-left origin, 0–1) to grade a cropped part of it.
+   * `window` (top-left origin, 0–1) to grade a cropped part of it. `turn` maps
+   * centered output coordinates to source coordinates (row-major, y up) for
+   * rotated or flipped pictures.
    */
   render(
     image: TexImageSource | null,
@@ -375,6 +381,7 @@ export class GradeRenderer {
     crop: Crop | null,
     seed = 0,
     window = { x: 0, y: 0, width: 1, height: 1 },
+    turn: Turn = [1, 0, 0, 1],
   ) {
     const gl = this.gl,
       { width, height } = this.canvas;
@@ -400,6 +407,9 @@ export class GradeRenderer {
     gl.uniform1f(this.uniform('seed'), seed);
     const cropped = [window.x, 1 - window.y - window.height, window.width, window.height],
       whole = [0, 0, 1, 1];
+    // GLSL matrices are column-major.
+    const turned = [turn[0], turn[2], turn[1], turn[3]],
+      straight = [1, 0, 0, 1];
     let input = this.source,
       base = this.source;
     list.forEach((pass, index) => {
@@ -409,6 +419,7 @@ export class GradeRenderer {
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, input);
       gl.uniform4fv(this.uniform('window'), input === this.source ? cropped : whole);
+      gl.uniformMatrix2fv(this.uniform('turn'), false, input === this.source ? turned : straight);
       gl.bindFramebuffer(gl.FRAMEBUFFER, last ? null : target!.buffer);
       gl.uniform1i(this.uniform('blend'), pass.blend ? blendModes[pass.blend] : 0);
       // Always rebind: a stale texture here could be this pass's render target.
@@ -416,6 +427,11 @@ export class GradeRenderer {
       gl.bindTexture(gl.TEXTURE_2D, pass.blend ? base : this.source);
       if (pass.blend) {
         gl.uniform4fv(this.uniform('baseWindow'), base === this.source ? cropped : whole);
+        gl.uniformMatrix2fv(
+          this.uniform('baseTurn'),
+          false,
+          base === this.source ? turned : straight,
+        );
         gl.uniform1f(this.uniform('opacity'), pass.opacity ?? 1);
       }
       gl.uniform1i(this.uniform('kernel'), pass.kernel);
