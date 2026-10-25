@@ -1,4 +1,4 @@
-import { playbackAudio } from './realtime-audio';
+import { joinPlaybackAudio } from './realtime-audio';
 
 /**
  * A second decoder that waits, paused, on the first frame after the next cut.
@@ -74,9 +74,10 @@ export function crossCut(media: HTMLMediaElement, target: number) {
   const rate = media.playbackRate,
     muted = media.muted;
   standby.playbackRate = rate;
-  // The source is silent while it seeks, so the standby decoder carries the sound.
-  const graph = playbackAudio(media);
-  standby.volume = Math.min(1, media.volume * (graph?.connected ? graph.gain.gain.value : 1));
+  // The source is silent while it seeks, so the standby decoder carries the
+  // sound, through the same live corrections.
+  joinPlaybackAudio(media, standby);
+  standby.volume = media.volume;
   standby.muted = muted || media.dataset.previewAudio === 'separate';
   standby.dataset.bridging = 'true';
   media.muted = true;

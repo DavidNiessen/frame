@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { importTestMedia } from '../helpers/import-media';
 import { openEffect } from '../helpers/effects';
 
-test('noise reduction renders only the soundtrack while the source video keeps playing', async ({
+test('loudness normalization renders only the soundtrack while the source video keeps playing', async ({
   page,
 }) => {
   test.setTimeout(90000);
@@ -12,7 +12,7 @@ test('noise reduction renders only the soundtrack while the source video keeps p
   const video = page.locator('video'),
     soundtrack = page.locator('audio[data-preview-audio="processed"]');
   const original = await video.getAttribute('src');
-  await openEffect(page, 'Noise reduction');
+  await openEffect(page, 'Normalize loudness');
   await expect(soundtrack).toHaveJSProperty('readyState', 4, { timeout: 45000 });
   await expect(video).toHaveAttribute('data-preview-audio', 'separate');
   await expect(video).toHaveAttribute('src', original!);
