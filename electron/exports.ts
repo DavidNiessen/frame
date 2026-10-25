@@ -89,6 +89,7 @@ export function registerExports(
                   if (!event.sender.isDestroyed())
                     event.sender.send('media:progress', { ratio, message });
                 },
+                { allCores: true },
               );
             },
             [item.asset],

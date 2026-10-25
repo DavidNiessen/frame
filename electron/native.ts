@@ -11,6 +11,7 @@ import { portableToolPath } from './tool-paths';
 import ffprobe from '@ffprobe-installer/ffprobe';
 import { buildExportArgs } from '../src/core/export-plan';
 import { parseProbe } from '../src/core/probe';
+import { allCores } from '../src/core/hardware';
 import type { EditSettings, MediaAsset } from '../src/core/types';
 
 const unpacked = (path: string) => path.replace(/app\.asar([/\\])/, 'app.asar.unpacked$1');
@@ -100,7 +101,9 @@ export function runFfmpeg(
   duration: number,
   progress: (ratio: number) => void,
   onLog?: (line: string) => void,
+  options: { allCores?: boolean } = {},
 ): { child: ChildProcess; done: Promise<void> } {
+  if (options.allCores) plan = allCores(plan);
   // Windows limits the whole command line to 32 KiB. Animation expressions can exceed it.
   let filterDirectory: string | undefined;
   const scriptPlan = [...plan];
@@ -129,12 +132,9 @@ export function runFfmpeg(
     '-progress',
     'pipe:1',
     '-nostats',
-    '-filter_threads',
-    '2',
-    '-filter_complex_threads',
-    '2',
-    '-threads',
-    '2',
+    ...(options.allCores
+      ? []
+      : ['-filter_threads', '2', '-filter_complex_threads', '2', '-threads', '2']),
     ...scriptPlan,
   ];
   let child: ChildProcess;

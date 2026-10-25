@@ -102,6 +102,7 @@ export function registerMerge(
                   if (!event.sender.isDestroyed())
                     event.sender.send('media:progress', { ratio, message });
                 },
+                { allCores: true },
               );
             },
             clips.map((c) => c.asset),
