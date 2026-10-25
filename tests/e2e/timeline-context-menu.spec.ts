@@ -65,12 +65,13 @@ test('copies and pastes sections, plays repeated footage with the correct cursor
   await expect(page.locator('.timeline-clip')).toHaveCount(3);
   await expect(page.locator('.timeline-summary strong')).toContainText('0:12.0');
   const video = page.locator('video');
-  await expect(video).toHaveAttribute('data-preview-clock', 'sequence', { timeout: 45000 });
-  await expect(video).not.toHaveAttribute('data-preview-preparing', 'true', { timeout: 45000 });
+  // Repeated footage plays from the source; the output position tells the occurrences apart.
+  await expect(video).toHaveAttribute('data-preview-clock', 'source');
+  await expect(video).not.toHaveAttribute('data-preview-preparing', 'true');
   menu = await clipMenu(page, 1, 0.75);
   await menu.getByRole('menuitem', { name: 'Move playhead here' }).click();
   await expect
-    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))
+    .poll(async () => Number(await video.getAttribute('data-preview-output')))
     .toBeCloseTo(7.5, 1);
   const before = await page
     .locator('.playhead')

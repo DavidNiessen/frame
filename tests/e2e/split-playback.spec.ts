@@ -1,9 +1,27 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { importTestMedia } from '../helpers/import-media';
 import { verifySplitPlayback } from '../helpers/split-playback';
+import { closeEffect, openEffect } from '../helpers/effects';
+
+/** Without WebGL2, color is rendered by FFmpeg and handed over to the playing preview. */
+async function renderedColor(page: Page) {
+  await openEffect(page, 'Color & LUTs');
+  await page.getByLabel('Color contrast', { exact: true }).fill('1.5');
+  await closeEffect(page);
+}
+const withoutWebGL2 = () => {
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (
+    this: HTMLCanvasElement,
+    kind: string,
+    ...rest: unknown[]
+  ) {
+    return kind === 'webgl2' ? null : getContext.call(this, kind, ...(rest as []));
+  } as typeof getContext;
+};
 
 for (const remove of ['trim', 'delete'] as const)
-  test(`plays through split clips with ${remove === 'trim' ? 'trimmed' : 'deleted'} gaps without seeking`, async ({
+  test(`plays through split clips with ${remove === 'trim' ? 'trimmed' : 'deleted'} gaps from the source`, async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -18,6 +36,7 @@ for (const control of ['button', 'Space'])
     page,
   }) => {
     await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
+    await page.addInitScript(withoutWebGL2);
     await page.goto('/');
     await importTestMedia(page);
     const media = page.locator('video');
@@ -37,6 +56,7 @@ for (const control of ['button', 'Space'])
       }
       await page.locator('.timeline-clip .range-body').nth(1).click();
       await page.getByRole('button', { name: 'Remove selected section', exact: true }).click();
+      await renderedColor(page);
       await page.getByLabel('Seek playhead').fill('4.5');
       await page.getByRole('button', { name: 'Play', exact: true }).click();
       await expect(media).toHaveJSProperty('paused', false);
@@ -69,6 +89,7 @@ test('keeps playback and editing available while preparing and replacing a previ
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
+  await page.addInitScript(withoutWebGL2);
   await page.goto('/');
   await importTestMedia(page);
   const media = page.locator('video');
@@ -87,6 +108,7 @@ test('keeps playback and editing available while preparing and replacing a previ
   }
   await page.locator('.timeline-clip .range-body').nth(1).click();
   await page.getByRole('button', { name: 'Remove selected section', exact: true }).click();
+  await renderedColor(page);
   try {
     await expect(page.getByRole('contentinfo', { name: 'Workspace status' })).toHaveAttribute(
       'aria-busy',

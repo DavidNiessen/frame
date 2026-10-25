@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type RefObject } from 'react';
 import { gradeAt, gradePasses } from '../core/realtime-grade';
-import { hasPreviewClock, readPreviewTime } from '../core/preview-clock';
+import { previewOutput, readPreviewTime } from '../core/preview-clock';
 import type { EditSettings, MediaAsset } from '../core/types';
 import { GradeRenderer } from '../engines/grade-renderer';
 import { useLatest } from '../hooks/useLatest';
@@ -67,11 +67,7 @@ export function GradedVideo({
       const state = `${media.currentTime}:${media.src}`;
       if (!resized && !dirty.current && media.paused && state === shown) return;
       const { asset, edit } = latest.current;
-      const { steps, crop } = gradeAt(
-        edit,
-        readPreviewTime(media),
-        hasPreviewClock(media) ? media.currentTime : undefined,
-      );
+      const { steps, crop } = gradeAt(edit, readPreviewTime(media), previewOutput(media));
       try {
         renderer.render(
           media,

@@ -55,6 +55,7 @@ import { preciseTimecode, stepFrame } from '../core/playhead';
 import {
   configurePreviewClock,
   hasPreviewClock,
+  previewOutput,
   readPreviewTime,
   seekPreviewTime,
 } from '../core/preview-clock';
@@ -158,9 +159,7 @@ export function Preview({
   const position = outputTimeAtSource(
     edit,
     current,
-    mediaRef.current && hasPreviewClock(mediaRef.current)
-      ? mediaRef.current.currentTime
-      : undefined,
+    mediaRef.current ? previewOutput(mediaRef.current) : undefined,
   );
   const clip = edit.clips
     ? (clipPositions(edit).find((item) => position >= item.start && position < item.end)?.clip ??
@@ -232,8 +231,7 @@ export function Preview({
   desired.current = current;
   const handoff = useRef({ assetId: asset.id, url: sourceUrl, resume: false });
   if (handoff.current.url !== sourceUrl) {
-    if (mediaRef.current && hasPreviewClock(mediaRef.current))
-      mediaRef.current.dataset.previewSeekOutput = String(position);
+    if (mediaRef.current) mediaRef.current.dataset.previewSeekOutput = String(position);
     const pending = loadedSource.current !== handoff.current.url;
     handoff.current = {
       assetId: asset.id,
@@ -296,11 +294,7 @@ export function Preview({
   function skip(direction: -1 | 1) {
     const media = mediaRef.current;
     if (!media) return;
-    const position = outputTimeAtSource(
-      edit,
-      readPreviewTime(media),
-      hasPreviewClock(media) ? media.currentTime : undefined,
-    );
+    const position = outputTimeAtSource(edit, readPreviewTime(media), previewOutput(media));
     const output = Math.max(0, Math.min(editedDuration(edit), position + direction * 5));
     const source = sourceTimeAtOutput(edit, output);
     seekPreviewTime(media, source, output);
@@ -316,9 +310,10 @@ export function Preview({
       media.pause();
       setPlaying(false);
     } else {
-      const next = nextPlayableTime(playbackEdit, readPreviewTime(media));
+      const source = readPreviewTime(media),
+        next = nextPlayableTime(playbackEdit, source);
       const start = next ?? playbackEdit.clips?.[0]?.start ?? playbackEdit.start;
-      seekPreviewTime(media, start);
+      if (start !== source) seekPreviewTime(media, start);
       void media.play().catch(() => setFailed(true));
     }
   }
@@ -336,10 +331,21 @@ export function Preview({
       const media = mediaRef.current;
       if (!media || loadedSource.current !== sourceUrl) return;
       // The source may end before the animation frame can advance a reordered clip.
+      const output = previewOutput(media),
+        ending = (item: { end: number }) => Math.abs(item.end - media.duration) < 0.1;
       const index = hasPreviewClock(media)
         ? -1
-        : (playbackEdit.clips?.findIndex((item) => Math.abs(item.end - media.duration) < 0.1) ??
-          -1);
+        : (playbackEdit.clips?.findIndex(
+            (item) =>
+              ending(item) &&
+              (output === undefined ||
+                clipPositions(edit).some(
+                  (position) =>
+                    position.clip.id === item.id &&
+                    output >= position.start - 0.1 &&
+                    output <= position.end + 0.1,
+                )),
+          ) ?? -1);
       const next = index >= 0 ? playbackEdit.clips?.[index + 1] : undefined;
       seekPreviewTime(
         media,

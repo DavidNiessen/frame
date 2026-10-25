@@ -48,14 +48,12 @@ test('plays reordered clips across the source end and restarts at the sequence b
   await openEffect(page, 'Speed');
   await page.getByLabel('Playback speed').selectOption('4');
   await page.locator('.timeline-clip .range-body').nth(1).press('Alt+ArrowLeft');
-  // Reordered footage is prepared as one continuous stream. Its native clock
-  // starts at zero; the timeline still shows the corresponding source time.
-  await expect(video).toHaveAttribute('data-preview-clock', 'sequence', { timeout: 45000 });
+  // Reordered footage plays from the source and seeks to the next clip when it ends.
+  await expect(video).toHaveAttribute('data-preview-clock', 'source');
   await expect(video).not.toHaveAttribute('data-preview-preparing', 'true');
-  await expect(video).not.toHaveAttribute('data-preview-switching', 'true');
   const playhead = page.getByLabel('Seek playhead');
   await page.getByRole('button', { name: 'Back to trim start', exact: true }).click();
-  await expect(video).toHaveJSProperty('currentTime', 0);
+  await expect(video).toHaveJSProperty('currentTime', 2);
   await expect(playhead).toHaveValue('2');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect
@@ -66,13 +64,19 @@ test('plays reordered clips across the source end and restarts at the sequence b
             source = Number(
               (document.querySelector('[aria-label="Seek playhead"]') as HTMLInputElement).value,
             );
-          return !media.paused && source < 2 && media.currentTime > 4 && media.playbackRate === 4;
+          // The second clip starts one output second in, after 4 s of footage at 4×.
+          return (
+            !media.paused &&
+            source < 2 &&
+            Number(media.dataset.previewOutput) >= 1 &&
+            media.playbackRate === 4
+          );
         }),
       { timeout: 8000, intervals: [50] },
     )
     .toBe(true);
   await expect(video).toHaveJSProperty('paused', true, { timeout: 8000 });
-  await expect(video).toHaveJSProperty('currentTime', 0);
+  await expect(video).toHaveJSProperty('currentTime', 2);
   await expect(playhead).toHaveValue('2');
 });
 

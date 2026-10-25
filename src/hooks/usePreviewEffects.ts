@@ -8,7 +8,12 @@ import { timelineFadeGain } from '../core/timeline-effects';
 import { editedDuration, keptRanges } from '../core/timeline';
 import { previewPlaybackStep } from '../core/preview-playback';
 import type { EditSettings } from '../core/types';
-import { hasPreviewClock, readPreviewTime, seekPreviewTime } from '../core/preview-clock';
+import {
+  hasPreviewClock,
+  previewOutput,
+  readPreviewTime,
+  seekPreviewTime,
+} from '../core/preview-clock';
 import { previewFrameLoop } from './preview-frame-loop';
 import { realtimeEqualizers, updatePlaybackAudio } from '../core/realtime-audio';
 export function pauseOtherMedia(active: HTMLMediaElement) {
@@ -18,11 +23,7 @@ export function pauseOtherMedia(active: HTMLMediaElement) {
 }
 export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings) {
   const sourceTime = readPreviewTime(media),
-    position = outputTimeAtSource(
-      edit,
-      sourceTime,
-      hasPreviewClock(media) ? media.currentTime : undefined,
-    );
+    position = outputTimeAtSource(edit, sourceTime, previewOutput(media));
   const duration = editedDuration(edit);
   const clip = edit.clips
       ? (clipPositions(edit).find((item) => position >= item.start && position < item.end)?.clip ??
@@ -128,12 +129,25 @@ export function usePreviewEffects(
       const media = ref.current;
       if (!media || !media.readyState || media.dataset.previewSwitching) return;
       const { edit: recipe, publish: updateClock } = latest.current;
-      const sourceTime = readPreviewTime(media);
+      const sourceTime = readPreviewTime(media),
+        clock = hasPreviewClock(media),
+        positions = recipe.clips && !clock ? clipPositions(latest.current.effects) : null;
+      // Repeated footage shares source times: resume the occurrence being shown.
+      const shown = previewOutput(media);
+      if (!playingClip && positions && shown !== undefined)
+        playingClip =
+          positions.find(
+            ({ clip, start, end }) =>
+              shown >= start - 1e-3 &&
+              shown < end &&
+              sourceTime >= clip.start &&
+              sourceTime < clip.end,
+          )?.clip.id ?? null;
       const step = previewPlaybackStep(
         recipe,
         sourceTime,
         playingClip,
-        hasPreviewClock(media) && !media.dataset.previewStale,
+        clock && !media.dataset.previewStale,
       );
       const next = step.time;
       playingClip = step.clipId;
@@ -142,6 +156,11 @@ export function usePreviewEffects(
         seekPreviewTime(media, keptRanges(recipe)[0]?.start ?? recipe.start);
         playingClip = null;
       } else if (next !== sourceTime) seekPreviewTime(media, next);
+      const playingAt = positions?.find(({ clip }) => clip.id === step.clipId);
+      if (playingAt && next !== null)
+        media.dataset.previewOutput = String(
+          playingAt.start + (next - playingAt.clip.start) / playingAt.speed,
+        );
       applyPreviewEffects(media, latest.current.effects);
       updateClock(readPreviewTime(media));
     }
