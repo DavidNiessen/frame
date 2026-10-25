@@ -733,3 +733,6 @@
   font-size: 0.75rem;
   color: var(--muted);
 }
+.cut-bridge {
+  visibility: hidden;
+}

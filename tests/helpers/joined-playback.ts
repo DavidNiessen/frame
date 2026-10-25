@@ -26,7 +26,9 @@ export async function verifyJoinedPlayback(page: Page, removed = 2) {
     .filter(Boolean)
     .map(Number);
   expect(seeks).toHaveLength(1);
-  expect(seeks[0]).toBeCloseTo(2 + removed, 1);
+  // The source may seek past the cut while the standby decoder covers the seek.
+  expect(seeks[0]).toBeGreaterThanOrEqual(2 + removed - 0.01);
+  expect(seeks[0]).toBeLessThan(2 + removed + 0.6);
   // Nothing is rendered for cuts.
   await expect(media).toHaveAttribute('src', source!);
   await expect(media).not.toHaveAttribute('data-preview-preparing', 'true');

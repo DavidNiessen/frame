@@ -16,6 +16,7 @@ import { changeInstance, extraInstances } from '../core/effect-instances';
 import { stackedGeometryPreview, colorPreview } from '../core/visual-preview';
 import { AudioMixPreview, ProcessedAudioPreview } from './AudioMixPreview';
 import { GradedVideo } from './GradedVideo';
+import { CutBridge } from './CutBridge';
 import { hasRealtimeGrade } from '../core/realtime-grade';
 import { realtimeGradeFor } from '../engines/grade-renderer';
 import { liveMediaLayers } from '../core/live-media-layers';
@@ -224,6 +225,14 @@ export function Preview({
       ? { width: asset.width ?? 640, height: asset.height ?? 360 }
       : frameDimensions(asset, visual);
   const sourceUrl = previewUrl ?? asset.previewUrl;
+  // Playback jumps between clips that do not continue each other's footage.
+  const cutJumps = useMemo(
+    () =>
+      editClips(playbackEdit).some(
+        (clip, index, clips) => index > 0 && Math.abs(clip.start - clips[index - 1].end) > 1e-6,
+      ),
+    [playbackEdit],
+  );
   const sequenceStart = edit.clips?.[0]?.start ?? edit.start;
   const gif = /\.gif$/i.test(asset.name) && !previewUrl;
   const loadedSource = useRef(''),
@@ -444,6 +453,13 @@ export function Preview({
                   {...mediaEvents}
                   playsInline
                   preload="metadata"
+                />
+              )}
+              {cutJumps && !previewRanges && (
+                <CutBridge
+                  mediaRef={mediaRef}
+                  src={sourceUrl}
+                  style={{ ...geometry, filter: colorFilter }}
                 />
               )}
               {liveGrade && (
