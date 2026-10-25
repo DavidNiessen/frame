@@ -499,6 +499,7 @@ function FrameApp() {
                   panelRef={preview.panel}
                   previewUrl={joinedPreview.proxy?.url ?? proxies.proxy?.url}
                   previewRanges={joinedPreview.ranges}
+                  previewAudio={joinedPreview.audio}
                   previewProcessed={joinedPreview.processed}
                   effectsRequested={joinedPreview.effects}
                   previewStale={joinedPreview.stale}

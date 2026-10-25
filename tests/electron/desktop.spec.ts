@@ -72,6 +72,11 @@ test('runs the desktop editor and portable media tools with an empty PATH', asyn
     await closeEffect(page);
     await page.getByRole('tab', { name: 'Effects', exact: true }).click();
     await openEffect(page, 'Normalize loudness');
+    // Loudness renders only the soundtrack natively; the source video keeps playing.
+    const soundtrack = page.locator('audio[data-preview-audio="processed"]');
+    await expect(soundtrack).toHaveAttribute('src', /^media:\/\/proxy\//, { timeout: 30000 });
+    await expect(soundtrack).toHaveJSProperty('readyState', 4);
+    await expect(page.locator('video')).toHaveAttribute('src', /^media:\/\/asset\//);
 
     await page.getByRole('button', { name: 'Preview audio effects', exact: true }).click();
     await expect(page.getByLabel('Processed audio preview', { exact: true })).toHaveJSProperty(

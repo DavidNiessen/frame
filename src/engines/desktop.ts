@@ -50,7 +50,7 @@ export function createDesktopEngine(): MediaEngine {
     async effectPreview(asset, edit, progress) {
       const remove = bridge.onJoinedPreviewProgress(progress);
       try {
-        return await bridge.effectPreview(asset.id, edit);
+        return await bridge.effectPreview(asset.id, edit, asset.kind === 'audio');
       } finally {
         remove();
       }

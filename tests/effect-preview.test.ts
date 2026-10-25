@@ -5,7 +5,9 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
+  audioPreviewAsset,
   effectPreviewArgs,
+  effectPreviewNeeds,
   effectPreviewRanges,
   effectPreviewRecipe,
   needsEffectPreview,
@@ -19,6 +21,8 @@ import {
   previewSourceTime,
 } from '../src/core/preview-clock';
 import { ffmpegPath, probeFile } from '../electron/native';
+import type { AudioLayer } from '../src/core/audio-layers';
+import { sourceIdentity } from '../src/core/project';
 const exec = promisify(execFile);
 let directory: string, tone: string, audio: MediaAsset;
 beforeAll(async () => {
@@ -319,4 +323,114 @@ it('processes real high-resolution color at preview resolution for simple, cut a
     expect(stdout[0]).toBeGreaterThan(150);
     expect(stdout[1]).toBeLessThan(15);
   }
+});
+it('separates audio-only corrections from renders the picture needs', () => {
+  const video = { ...audio, kind: 'video' as const, width: 640, height: 360, hasAudio: true },
+    base = defaultSettings(video),
+    warm = { ...base, color: { ...base.color, temperature: 0.5 } };
+  expect(effectPreviewNeeds({ ...base, reduceNoise: true }, true, true)).toEqual({
+    audio: true,
+    video: false,
+  });
+  expect(effectPreviewNeeds(warm, true, false)).toEqual({ audio: false, video: true });
+  expect(effectPreviewNeeds(warm, true, true)).toEqual({ audio: false, video: false });
+  expect(
+    effectPreviewNeeds(
+      {
+        ...base,
+        clips: [{ id: 'a', start: 0, end: 2, effects: { normalizeLoudness: true } }],
+      },
+      true,
+      true,
+    ),
+  ).toEqual({ audio: true, video: false });
+  // Live grading keeps the soundtrack render independent of color changes.
+  expect(
+    effectPreviewRecipe(audioPreviewAsset(video), { ...warm, reduceNoise: true }, true),
+  ).toEqual(effectPreviewRecipe(audioPreviewAsset(video), { ...base, reduceNoise: true }, true));
+});
+it('renders only the soundtrack of a cut, speed-adjusted video and mixes audio tracks over silent video', async () => {
+  const source = join(directory, 'clip.mp4'),
+    silent = join(directory, 'silent.mp4');
+  await exec(ffmpegPath(), [
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc2=size=320x180:rate=30:duration=4',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=440:duration=4',
+    '-shortest',
+    '-pix_fmt',
+    'yuv420p',
+    source,
+  ]);
+  await exec(ffmpegPath(), [
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc2=size=320x180:rate=30:duration=4',
+    '-pix_fmt',
+    'yuv420p',
+    silent,
+  ]);
+  const probe = async (path: string) =>
+    (
+      await exec(ffmpegPath(), ['-hide_banner', '-i', path], { encoding: 'utf8' }).catch(
+        (error: { stderr: string }) => error,
+      )
+    ).stderr;
+  const video = { ...(await probeFile(source)), id: 'clip', name: 'clip.mp4', previewUrl: '' },
+    asset = audioPreviewAsset(video),
+    edit = effectPreviewRecipe(
+      asset,
+      {
+        ...defaultSettings(video),
+        reduceNoise: true,
+        clips: [
+          { id: 'a', start: 0, end: 1, effects: {} },
+          { id: 'b', start: 2, end: 4, effects: { speed: 2 } },
+        ],
+      },
+      true,
+    );
+  expect(edit.format).toBe('mp3');
+  const output = join(directory, 'soundtrack.mp3');
+  await exec(ffmpegPath(), effectPreviewArgs(asset, edit, source, output, resourcePaths()));
+  const info = await probe(output);
+  expect(info).toMatch(/Audio: mp3/);
+  expect(info).not.toMatch(/Video:/);
+  const [, minutes, seconds] = /Duration: 00:(\d+):([\d.]+)/.exec(info)!;
+  expect(Number(minutes) * 60 + Number(seconds)).toBeCloseTo(2, 0);
+
+  const quiet = { ...(await probeFile(silent)), id: 'silent', name: 'silent.mp4', previewUrl: '' },
+    layer: AudioLayer = {
+      id: 'music',
+      source: sourceIdentity(audio),
+      start: 0,
+      end: 3,
+      sourceStart: 0,
+      sourceEnd: 3,
+      volume: 1,
+      muted: false,
+      loop: false,
+      fadeIn: 0,
+      fadeOut: 0,
+    };
+  const mixed = effectPreviewRecipe(
+      audioPreviewAsset(quiet),
+      { ...defaultSettings(quiet), audioLayers: [layer] },
+      true,
+    ),
+    track = join(directory, 'track.mp3');
+  await exec(
+    ffmpegPath(),
+    effectPreviewArgs(audioPreviewAsset(quiet), mixed, silent, track, resourcePaths(), [
+      { layer, path: tone },
+    ]),
+  );
+  expect(await probe(track)).toMatch(/Audio: mp3/);
 });

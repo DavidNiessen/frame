@@ -61,7 +61,8 @@ const bridge: DesktopBridge = {
   previewProxy: (id) => ipcRenderer.invoke('media:proxy', id),
   releaseProxy: (id) => ipcRenderer.invoke('media:release-proxy', id),
   joinedPreview: (id, ranges) => ipcRenderer.invoke('media:joined-preview', id, ranges),
-  effectPreview: (id, edit) => ipcRenderer.invoke('media:effect-preview', id, edit),
+  effectPreview: (id, edit, audioOnly) =>
+    ipcRenderer.invoke('media:effect-preview', id, edit, audioOnly === true),
   cancelJoinedPreview: () => {
     void ipcRenderer.invoke('media:cancel-joined-preview').catch(() => {});
   },

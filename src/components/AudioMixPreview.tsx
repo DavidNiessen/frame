@@ -7,6 +7,7 @@ import type { EditSettings, MediaAsset } from '../core/types';
 import { editedDuration } from '../core/timeline';
 import { fadeGain, outputTimeAtSource } from '../core/fades';
 import { timelineFadeGain } from '../core/timeline-effects';
+import { previewMediaTime, type PreviewRange } from '../core/preview-clock';
 export function AudioMixPreview({
   outputPosition,
   assets,
@@ -116,5 +117,53 @@ function TrackPreview({
         </TransientMessage>
       )}
     </>
+  );
+}
+/** Plays a rendered soundtrack in step with the source video it was split from. */
+export function ProcessedAudioPreview({
+  url,
+  ranges,
+  current,
+  position,
+  playing,
+  onFailure,
+}: {
+  url: string;
+  ranges: PreviewRange[];
+  current: number;
+  position: number;
+  playing: boolean;
+  onFailure: () => void;
+}) {
+  const monitoring = useMonitorVolume();
+  const ref = useRef<HTMLAudioElement>(null),
+    [loaded, setLoaded] = useState('');
+  // Map through the soundtrack's own ranges, so a stale render still plays the right source audio.
+  const clock = previewMediaTime(ranges, current, position);
+  useEffect(() => {
+    const media = ref.current;
+    if (!media || loaded !== url) return;
+    media.volume = monitoring;
+    if (!playing) media.pause();
+    if (Math.abs(media.currentTime - clock) > (playing ? 0.15 : 0.01)) media.currentTime = clock;
+    if (playing && media.paused) void media.play().catch(onFailure);
+  }, [url, loaded, playing, clock, monitoring, onFailure]);
+  useEffect(
+    () => () => {
+      ref.current?.pause();
+    },
+    [],
+  );
+  return (
+    <audio
+      ref={ref}
+      data-frame-mix-layer
+      data-preview-audio="processed"
+      src={url}
+      preload="auto"
+      onLoadedMetadata={() => setLoaded(url)}
+      onError={onFailure}
+      aria-label="Rendered soundtrack"
+    />
   );
 }
