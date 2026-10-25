@@ -14,6 +14,10 @@ import { frameDimensions } from '../core/geometry';
 import type { EffectId } from '../core/effect-library';
 import type { Editor } from '../hooks/useEditor';
 import { CropOverlay } from './CropOverlay';
+import { GradedImage } from './GradedImage';
+import { imageGradePlan } from '../core/realtime-grade';
+import { supportsRealtimeGrade } from '../engines/grade-renderer';
+import { defaultSettings } from '../core/types';
 export function ImagePreview({
   editor,
   selectedEffect,
@@ -89,11 +93,21 @@ export function ImagePreview({
         : { ...base, ...effectAction(base, asset, activeLayer.effect, null, 'remove') };
   }, [liveObject, activeLayer, asset, base]);
   const renderEdit = base;
+  // Adjustment-only stacks grade the decoded original on the GPU; FFmpeg then
+  // only decodes the original instead of compositing every edit.
+  const [gradeFailed, setGradeFailed] = useState(false),
+    [graded, setGraded] = useState(false);
+  const gradePlan = useMemo(
+    () => (!gradeFailed && supportsRealtimeGrade() ? imageGradePlan(asset, renderEdit) : null),
+    [gradeFailed, asset, renderEdit],
+  );
+  const original = useMemo(() => defaultSettings(asset), [asset]);
   const render = useImageRender(
-    { ...editor, edit: renderEdit },
-    interactionEdit,
+    { ...editor, edit: gradePlan ? original : renderEdit },
+    gradePlan ? undefined : interactionEdit,
     liveObject ? activeLayer.key : '',
   );
+  const liveGrade = !!gradePlan && !!render.original;
   const [interaction, setInteraction] = useState({
     key: '',
     phase: 'idle' as 'idle' | 'active' | 'settling',
@@ -198,12 +212,28 @@ export function ImagePreview({
               src={before ? render.original : interacting && render.base ? render.base : render.url}
               alt={before ? 'Original image' : asset.name}
               draggable={false}
+              style={liveGrade && graded && !before ? { visibility: 'hidden' } : undefined}
               onError={() => {
                 if (before) {
                   setBefore(false);
                 }
               }}
             />
+            {liveGrade && !before && (
+              <GradedImage
+                src={render.original}
+                plan={gradePlan}
+                size={{ width: asset.width!, height: asset.height! }}
+                displayEdge={
+                  displayWidth *
+                  zoom *
+                  devicePixelRatio *
+                  (dims.width >= dims.height ? 1 : dims.height / dims.width)
+                }
+                onReady={setGraded}
+                onFailure={() => setGradeFailed(true)}
+              />
+            )}
             {!cropping && !before && (
               <ImageFrameLayers
                 editor={editor}

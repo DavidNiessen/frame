@@ -7,6 +7,7 @@ import {
   type GradePass,
 } from '../core/realtime-grade';
 import type { Crop, MediaAsset } from '../core/types';
+import { imageBlendModes, type ImageBlendMode } from '../core/image-compositing';
 
 const vertex = `#version 300 es
 in vec2 position;
@@ -18,6 +19,9 @@ void main() {
 const ops = Object.entries(gradeOps)
   .map(([name, value]) => `#define OP_${name.toUpperCase()} ${value}`)
   .join('\n');
+const blendModes = Object.fromEntries(
+  imageBlendModes.map((mode, index) => [mode, index + 1]),
+) as Record<ImageBlendMode, number>;
 const kernels = Object.entries(gradeKernels)
   .map(([name, value]) => `#define K_${name.toUpperCase()} ${value}`)
   .join('\n');
@@ -41,6 +45,12 @@ uniform int op[MAX_OPS];
 uniform vec4 a[MAX_OPS];
 uniform vec4 b[MAX_OPS];
 uniform float seed;
+// Source sub-rectangle (bottom-left origin) for crops, and the layer below a blended layer.
+uniform vec4 window;
+uniform sampler2D base;
+uniform vec4 baseWindow;
+uniform int blend;
+uniform float opacity;
 in vec2 uv;
 out vec4 color;
 
@@ -55,7 +65,8 @@ float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 // Decoded video is limited range; FFmpeg's luma filters see 16–235 values.
 float limited(float y) { return (16.0 + 219.0 * y) / 255.0; }
 float full(float y) { return (255.0 * y - 16.0) / 219.0; }
-vec3 at(vec2 offset) { return texture(source, uv + vec2(offset.x, -offset.y) / frame).rgb; }
+vec4 tex(vec2 q) { return texture(source, window.xy + q * window.zw); }
+vec3 at(vec2 offset) { return tex(uv + vec2(offset.x, -offset.y) / frame).rgb; }
 float hash(vec2 p) {
   vec3 q = fract(vec3(p.xyx) * 0.1031 + seed);
   q += dot(q, q.yzx + 33.33);
@@ -94,7 +105,7 @@ vec3 sampled(vec2 pixel) {
     for (int y = 0; y < 8; y++)
       for (int x = 0; x < 8; x++) {
         vec2 p = origin + (vec2(x, y) + 0.5) * size / 8.0;
-        sum += texture(source, vec2(p.x, frame.y - p.y) / frame).rgb;
+        sum += tex(vec2(p.x, frame.y - p.y) / frame).rgb;
       }
     return sum / 64.0;
   }
@@ -115,13 +126,28 @@ vec3 sampled(vec2 pixel) {
     vec3 yuv = toYuv(center);
     return toRgb(vec3(clamp(y, 0.0, 1.0), yuv.yz));
   }
-  return texture(source, uv).rgb;
+  return tex(uv).rgb;
+}
+// FFmpeg's blend filter: A is the adjusted layer, B the layer below.
+vec3 blended(vec3 a, vec3 b) {
+  if (blend == ${blendModes.multiply}) return a * b;
+  if (blend == ${blendModes.screen}) return 1.0 - (1.0 - a) * (1.0 - b);
+  if (blend == ${blendModes.overlay})
+    return mix(2.0 * a * b, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), step(0.5, a));
+  if (blend == ${blendModes.hardlight})
+    return mix(2.0 * a * b, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), step(0.5, b));
+  if (blend == ${blendModes.softlight}) return a * a + 2.0 * a * b * (1.0 - a);
+  if (blend == ${blendModes.darken}) return min(a, b);
+  if (blend == ${blendModes.lighten}) return max(a, b);
+  if (blend == ${blendModes.difference}) return abs(a - b);
+  return a;
 }
 void main() {
   vec2 pixel = vec2(uv.x, 1.0 - uv.y) * frame;
   vec3 c = clamp(sampled(pixel), 0.0, 1.0);
   for (int i = 0; i < MAX_OPS; i++) {
     if (i >= count) break;
+    c = clamp(c, 0.0, 1.0);
     int kind = op[i];
     vec4 p = a[i], q = b[i];
     if (kind == OP_EXPOSURE) c *= p.x;
@@ -167,9 +193,16 @@ void main() {
       vec3 x = clamp((c - p.xyz) / (q.xyz - p.xyz), 0.0, 1.0);
       c = texture(lut, x * ((q.w - 1.0) / q.w) + 0.5 / q.w).rgb;
     }
-    c = clamp(c, 0.0, 1.0);
+    // Exposure runs in floating point; FFmpeg clips it only at the next 8-bit stage.
+    if (kind != OP_EXPOSURE) c = clamp(c, 0.0, 1.0);
   }
-  color = vec4(c, 1.0);
+  if (blend > 0) {
+    vec3 below = texture(base, baseWindow.xy + uv * baseWindow.zw).rgb;
+    c = blend == ${blendModes.normal}
+      ? c * opacity + below * (1.0 - opacity)
+      : c + (blended(c, below) - c) * opacity;
+  }
+  color = vec4(clamp(c, 0.0, 1.0), tex(uv).a);
 }`;
 
 interface Target {
@@ -188,15 +221,22 @@ export class GradeRenderer {
   private floatTargets: boolean;
   /** CPU-emulated WebGL grades fewer pixels to keep playback smooth. */
   readonly software: boolean;
+  get maxTextureSize(): number {
+    return this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
+  }
   private curves = new Map<string, WebGLTexture>();
   private luts = new Map<
     string,
     { texture: WebGLTexture; size: number; min: number[]; max: number[] }
   >();
 
-  constructor(private canvas: HTMLCanvasElement | OffscreenCanvas) {
+  /** `alpha` keeps transparent image pixels; video frames are opaque. */
+  constructor(
+    private canvas: HTMLCanvasElement | OffscreenCanvas,
+    alpha = false,
+  ) {
     const gl = canvas.getContext('webgl2', {
-      alpha: false,
+      alpha,
       antialias: false,
       depth: false,
       premultipliedAlpha: false,
@@ -234,6 +274,7 @@ export class GradeRenderer {
     gl.uniform1i(this.uniform('source'), 0);
     gl.uniform1i(this.uniform('curve'), 1);
     gl.uniform1i(this.uniform('lut'), 2);
+    gl.uniform1i(this.uniform('base'), 3);
     this.source = this.texture();
   }
   private uniform(name: string) {
@@ -259,7 +300,8 @@ export class GradeRenderer {
       gl.deleteTexture(target.texture);
       gl.deleteFramebuffer(target.buffer);
     }
-    this.targets = [0, 1].map(() => {
+    // Two ping-pong targets, plus one so a blended layer's input survives its passes.
+    this.targets = [0, 1, 2].map(() => {
       const texture = this.texture();
       if (this.floatTargets)
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, width, height, 0, gl.RGBA, gl.HALF_FLOAT, null);
@@ -321,27 +363,32 @@ export class GradeRenderer {
     cache.clear();
   }
   /**
-   * Draw one frame. `frame` is the source picture size in pixels, so kernel radii,
+   * Draw one frame. `frame` is the graded picture size in pixels, so kernel radii,
    * pixelation blocks and the vignette match the export at any canvas resolution.
+   * Pass `null` as the image to grade the previously uploaded picture again, and
+   * `window` (top-left origin, 0–1) to grade a cropped part of it.
    */
   render(
-    image: TexImageSource,
+    image: TexImageSource | null,
     passes: GradePass[],
     frame: { width: number; height: number },
     crop: Crop | null,
     seed = 0,
+    window = { x: 0, y: 0, width: 1, height: 1 },
   ) {
     const gl = this.gl,
       { width, height } = this.canvas;
     gl.viewport(0, 0, width, height);
-    const list = passes.length ? passes : [{ kernel: 0, value: 0, ops: [] }];
+    const list: GradePass[] = passes.length ? passes : [{ kernel: 0, value: 0, ops: [] }];
     // Allocate before binding the source: texture creation changes the unit's binding.
     if (list.length > 1) this.ensureTargets(width, height);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.source);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    if (image) {
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    }
     gl.uniform2f(this.uniform('frame'), frame.width, frame.height);
     gl.uniform4f(
       this.uniform('region'),
@@ -351,13 +398,26 @@ export class GradeRenderer {
       crop?.height ?? frame.height,
     );
     gl.uniform1f(this.uniform('seed'), seed);
+    const cropped = [window.x, 1 - window.y - window.height, window.width, window.height],
+      whole = [0, 0, 1, 1];
+    let input = this.source,
+      base = this.source;
     list.forEach((pass, index) => {
       const last = index === list.length - 1;
-      if (index > 0) {
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.targets[(index - 1) % 2].texture);
+      if (pass.layerStart) base = input;
+      const target = this.targets.find((item) => item.texture !== input && item.texture !== base);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, input);
+      gl.uniform4fv(this.uniform('window'), input === this.source ? cropped : whole);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, last ? null : target!.buffer);
+      gl.uniform1i(this.uniform('blend'), pass.blend ? blendModes[pass.blend] : 0);
+      // Always rebind: a stale texture here could be this pass's render target.
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, pass.blend ? base : this.source);
+      if (pass.blend) {
+        gl.uniform4fv(this.uniform('baseWindow'), base === this.source ? cropped : whole);
+        gl.uniform1f(this.uniform('opacity'), pass.opacity ?? 1);
       }
-      gl.bindFramebuffer(gl.FRAMEBUFFER, last ? null : this.targets[index % 2].buffer);
       gl.uniform1i(this.uniform('kernel'), pass.kernel);
       gl.uniform1f(this.uniform('kernelValue'), pass.value);
       gl.uniform1i(this.uniform('count'), pass.ops.length);
@@ -384,9 +444,9 @@ export class GradeRenderer {
       gl.uniform4fv(this.uniform('a'), first);
       gl.uniform4fv(this.uniform('b'), second);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      if (!last) input = target!.texture;
     });
   }
-  /** `lose` frees the context immediately; keep it when the same canvas may be graded again. */
   dispose(lose = false) {
     const gl = this.gl;
     this.release(this.curves);
