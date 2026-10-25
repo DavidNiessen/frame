@@ -16,7 +16,8 @@ import {
   seekPreviewTime,
 } from '../core/preview-clock';
 import { previewFrameLoop } from './preview-frame-loop';
-import { realtimeEqualizers, updatePlaybackAudio } from '../core/realtime-audio';
+import { realtimeEqualizers, realtimeNoise, updatePlaybackAudio } from '../core/realtime-audio';
+import { reducesNoise } from '../core/effect-preview';
 export function pauseOtherMedia(active: HTMLMediaElement) {
   for (const element of document.querySelectorAll('video, audio'))
     if (element !== active && !element.hasAttribute('data-frame-mix-layer'))
@@ -87,10 +88,12 @@ export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings)
       fadeGain(position, duration, edit.audioFadeIn, edit.audioFadeOut);
   // A separately rendered soundtrack plays beside the video, so the source stays silent.
   const audible = media.dataset.previewAudio !== 'separate';
+  const live = !rendered && audible;
   const realtime = updatePlaybackAudio(
     media,
-    rendered || !audible ? [] : realtimeEqualizers(recipe, sourceTime, position),
+    live ? realtimeEqualizers(recipe, sourceTime, position) : [],
     audible ? gain : 0,
+    live && reducesNoise(edit) ? realtimeNoise(recipe, sourceTime, position) : null,
   );
   media.volume = audible ? monitorVolume() * (realtime ? 1 : Math.min(1, gain)) : 0;
   if (media.tagName === 'VIDEO')

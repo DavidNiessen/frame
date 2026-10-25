@@ -1,11 +1,12 @@
 import { expect, it, vi } from 'vitest';
 import {
   realtimeEqualizers,
+  realtimeNoise,
   startPlaybackAudio,
   releasePlaybackAudio,
   updatePlaybackAudio,
 } from '../src/core/realtime-audio';
-import { needsEffectPreview } from '../src/core/effect-preview';
+import { effectPreviewNeeds, needsEffectPreview, reducesNoise } from '../src/core/effect-preview';
 import { clipRecipe } from '../src/core/clips';
 import { defaultSettings, type MediaAsset } from '../src/core/types';
 const asset = { kind: 'video', duration: 3600, hasAudio: true } as MediaAsset;
@@ -14,6 +15,10 @@ it('uses live EQ/gain for long sources but retains exact processing for noise, n
   expect(needsEffectPreview(edit, true)).toBe(false);
   expect(needsEffectPreview(edit, false)).toBe(true);
   expect(needsEffectPreview({ ...edit, reduceNoise: true }, true)).toBe(true);
+  // Browsers with AudioWorklet reduce noise live while playing.
+  expect(effectPreviewNeeds({ ...edit, reduceNoise: true }, true, true, false, true).audio).toBe(
+    false,
+  );
   expect(needsEffectPreview({ ...edit, normalizeLoudness: true }, true)).toBe(true);
   expect(needsEffectPreview({ ...edit, visual: { ...edit.visual!, exposure: 0.5 } }, true)).toBe(
     true,
@@ -40,6 +45,7 @@ it('disconnects detached media and reconnects the existing source rather than cr
     await startPlaybackAudio(media);
     expect(updatePlaybackAudio(media, [], 2)).toBe(true);
     expect(gain.gain.value).toBe(2);
+    source.disconnect.mockClear();
     releasePlaybackAudio(media);
     expect(source.disconnect).toHaveBeenCalledTimes(1);
     expect(analyser.disconnect).toHaveBeenCalledTimes(1);
@@ -76,4 +82,31 @@ it('preserves independent stacked EQ, source intervals, local overrides and outp
   ]);
   expect(realtimeEqualizers(recipe, 18, 3)).toEqual([edit.equalizer]);
   expect(realtimeEqualizers(recipe, 21, 4)).toEqual([]);
+});
+
+it('reduces noise live within its source and output intervals, in stacking order', () => {
+  const edit = {
+    ...defaultSettings(asset),
+    reduceNoise: true,
+    noiseStrength: 20,
+    noiseFloor: -40,
+    effectRanges: { noise: { start: 10, end: 20 } },
+    effectInstances: [
+      {
+        id: 'late',
+        effect: 'noise' as const,
+        timeSpace: 'output' as const,
+        range: { start: 100, end: 200 },
+        settings: { reduceNoise: true, noiseStrength: 8, noiseFloor: -60 },
+      },
+    ],
+  };
+  expect(reducesNoise(edit)).toBe(true);
+  expect(reducesNoise(defaultSettings(asset))).toBe(false);
+  expect(realtimeNoise(edit, 5, 5)).toEqual([]);
+  expect(realtimeNoise(edit, 15, 150)).toEqual([
+    { strength: 20, floor: -40 },
+    { strength: 8, floor: -60 },
+  ]);
+  expect(realtimeNoise(edit, 15, 50)).toEqual([{ strength: 20, floor: -40 }]);
 });

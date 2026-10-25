@@ -14,6 +14,7 @@ import type { EditSettings, MediaEngine } from '../core/types';
 import type { Editor } from './useEditor';
 import { previewCache } from '../core/preview-cache';
 import { realtimeGradeFor } from '../engines/grade-renderer';
+import { supportsLiveNoiseReduction } from '../core/realtime-audio';
 
 interface ReadyPreview {
   key: string;
@@ -33,7 +34,13 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
       edit = editor.edit,
       realtimeVideo = realtimeGradeFor(asset),
       liveLayers = liveMediaLayers(asset, edit, editor.assets, realtimeVideo);
-    const needs = effectPreviewNeeds(edit, !!globalThis.AudioContext, realtimeVideo, liveLayers);
+    const needs = effectPreviewNeeds(
+      edit,
+      !!globalThis.AudioContext,
+      realtimeVideo,
+      liveLayers,
+      supportsLiveNoiseReduction(),
+    );
     // Audio-only corrections render just the soundtrack; the video keeps playing its source.
     const split = asset.kind === 'video' && needs.audio && !needs.video;
     return {

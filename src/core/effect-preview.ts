@@ -32,10 +32,11 @@ export function effectPreviewNeeds(
   realtimeAudio = false,
   realtimeVideo = false,
   liveLayers = false,
+  realtimeNoise = false,
 ) {
   const audioNeeds = (view: EditSettings) =>
     view.normalizeLoudness ||
-    view.reduceNoise ||
+    (!realtimeNoise && view.reduceNoise) ||
     (!realtimeAudio &&
       (view.volume > 1 || Object.values(view.equalizer).some((value) => value !== 0)));
   const videoNeeds = (view: EditSettings) =>
@@ -49,7 +50,7 @@ export function effectPreviewNeeds(
       view.color.saturation !== 1);
   const audioEffects = new Set([
     'normalize',
-    'noise',
+    ...(realtimeNoise ? [] : ['noise']),
     ...(realtimeAudio ? [] : ['volume', 'equalizer']),
   ]);
   const stack =
@@ -77,6 +78,21 @@ export function effectPreviewNeeds(
         ),
       ),
   };
+}
+const noiseReducing = new WeakMap<EditSettings, boolean>();
+/** Whether noise reduction applies anywhere in the edit, which keeps the live reducer in the audio path. */
+export function reducesNoise(edit: EditSettings) {
+  let result = noiseReducing.get(edit);
+  if (result === undefined) {
+    const reduces = (recipe: EditSettings) =>
+      recipe.reduceNoise ||
+      extraInstances(recipe, 'noise').some(
+        (instance) => instanceRecipe(recipe, instance).reduceNoise,
+      );
+    result = reduces(edit) || editClips(edit).some((clip) => reduces(clipRecipe(edit, clip)));
+    noiseReducing.set(edit, result);
+  }
+  return result;
 }
 export function needsEffectPreview(
   edit: EditSettings,
