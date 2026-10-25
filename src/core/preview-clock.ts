@@ -6,6 +6,7 @@ const clocks = new WeakMap<HTMLMediaElement, PreviewRange[]>();
 export function configurePreviewClock(media: HTMLMediaElement, ranges?: PreviewRange[]) {
   if (ranges) clocks.set(media, ranges);
   else clocks.delete(media);
+  if (ranges) delete media.dataset.previewOutput;
   media.dataset.previewClock = ranges ? 'sequence' : 'source';
 }
 export function previewSourceTime(ranges: PreviewRange[], time: number) {
@@ -43,10 +44,24 @@ export function readPreviewTime(media: HTMLMediaElement) {
   const ranges = clocks.get(media);
   return ranges ? previewSourceTime(ranges, media.currentTime) : media.currentTime;
 }
+/**
+ * The output position being played, where the source time alone is ambiguous
+ * (repeated footage). A source played without a sequence clock carries it as a
+ * hint that playback keeps up to date.
+ */
+export function previewOutput(media: HTMLMediaElement) {
+  if (clocks.has(media)) return media.currentTime;
+  const output = media.dataset.previewOutput;
+  return output === undefined ? undefined : Number(output);
+}
 export function seekPreviewTime(media: HTMLMediaElement, source: number, output?: number) {
   const ranges = clocks.get(media),
     target = ranges ? previewMediaTime(ranges, source, output ?? media.currentTime) : source;
   if (output !== undefined) media.dataset.previewSeekOutput = String(output);
+  if (!ranges) {
+    if (output === undefined) delete media.dataset.previewOutput;
+    else media.dataset.previewOutput = String(output);
+  }
   if (Math.abs(media.currentTime - target) > 1e-8) media.currentTime = target;
 }
 export function hasPreviewClock(media: HTMLMediaElement) {

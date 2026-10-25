@@ -34,7 +34,7 @@ export async function verifySplitPlayback(page: Page, remove: 'trim' | 'delete' 
     await page.getByRole('button', { name: 'Remove selected section', exact: true }).click();
     await expect(page.locator('.timeline-clip')).toHaveCount(2);
   }
-  // No Join operation: separate bars share the continuous decoder stream.
+  // No Join operation is needed: separate bars play from the source.
   await verifyJoinedPlayback(page, remove === 'trim' ? 1 : 2);
   const previous = await video.getAttribute('src');
   await page.getByLabel('Seek playhead').fill('5');

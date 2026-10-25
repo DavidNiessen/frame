@@ -27,38 +27,41 @@ test('duplicates native footage and independent effects, then exports the comple
     await expect(page.locator('.timeline-clip')).toHaveCount(2);
     await expect(page.locator('.timeline-summary strong')).toContainText('0:12.0');
     const video = page.locator('video');
-    await expect(video).toHaveAttribute('data-preview-clock', 'sequence', { timeout: 30000 });
+    await expect(video).toHaveAttribute('data-preview-clock', 'source');
     const body = page.locator('.timeline-clip .range-body').last(),
       box = (await body.boundingBox())!;
     await body.click({ button: 'right', position: { x: box.width / 2, y: box.height / 2 } });
     await page.getByRole('menuitem', { name: 'Move playhead here' }).click();
     await expect
-      .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))
+      .poll(async () => Number(await video.getAttribute('data-preview-output')))
       .toBeCloseTo(9, 1);
+    await expect
+      .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))
+      .toBeCloseTo(3, 1);
     // Move within the second occurrence without another explicit timeline seek.
     await body.click({ button: 'right', position: { x: box.width * 0.1, y: box.height / 2 } });
     await page.getByRole('menuitem', { name: 'Move playhead here' }).click();
     await video.evaluate((v) => {
-      (v as HTMLVideoElement).currentTime = 10;
+      (v as HTMLVideoElement).currentTime = 4;
     });
     await expect(page.getByLabel('Seek playhead')).toHaveValue('4');
     await page.getByRole('button', { name: 'Add Volume', exact: true }).click();
     await page.getByRole('button', { name: 'Volume effect', exact: true }).click();
     await video.evaluate((v) => {
-      (v as HTMLVideoElement).currentTime = 10;
+      (v as HTMLVideoElement).currentTime = 4;
     });
     await expect(page.getByLabel('Seek playhead')).toHaveValue('4');
-    const continuousSource = await video.getAttribute('src');
+    const playingSource = await video.getAttribute('src');
     await page.getByLabel('Volume', { exact: true }).fill('1.5');
     await closeEffect(page);
-    // Gain is processed live; the continuous video stream and repeated-source
-    // clock must remain intact without an effects render or source handoff.
+    // Gain is processed live; the source and repeated-source clock must remain
+    // intact without an effects render or source handoff.
     await expect(video).not.toHaveAttribute('data-preview-effects', 'rendered');
-    await expect(video).toHaveAttribute('src', continuousSource!);
+    await expect(video).toHaveAttribute('src', playingSource!);
     await expect(video).not.toHaveAttribute('data-preview-preparing', 'true', { timeout: 20000 });
     await expect
       .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))
-      .toBeCloseTo(10, 1);
+      .toBeCloseTo(4, 1);
     await page
       .getByRole('button', { name: 'Volume effect', exact: true })
       .click({ button: 'right' });

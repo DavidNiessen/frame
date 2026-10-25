@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { joinedPreviewRanges, previewCoversRanges } from '../core/joined-preview';
+import { previewCoversRanges } from '../core/joined-preview';
 import {
   audioPreviewAsset,
   effectPreviewNeeds,
@@ -20,13 +20,12 @@ interface ReadyPreview {
   assetId: string;
   proxy: PreviewProxy;
   ranges: PreviewRange[];
-  effects: boolean;
   geometry: boolean;
   engine: MediaEngine;
   release: () => void;
 }
 
-/** One background stream owns cuts and export-quality corrections, with safe playback handoffs. */
+/** One background stream owns export-quality corrections, with safe playback handoffs. */
 export function useJoinedPreview(editor: Editor, enabled = true) {
   const plan = useMemo(() => {
     if (!editor.asset || !editor.edit) return null;
@@ -50,20 +49,12 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
   }, [editor.asset, editor.edit, editor.assets]);
   const recipe = plan?.recipe ?? null,
     audioRecipe = plan?.audio ?? null;
-  const ranges = useMemo(
-    () =>
-      editor.edit
-        ? recipe
-          ? effectPreviewRanges(recipe)
-          : joinedPreviewRanges(editor.edit)
-        : null,
-    [editor.edit, recipe],
-  );
+  // Cuts alone play straight from the source, which seeks across removed footage.
+  const ranges = useMemo(() => (recipe ? effectPreviewRanges(recipe) : null), [recipe]);
   const audioRanges = useMemo(
     () => (audioRecipe ? effectPreviewRanges(audioRecipe) : null),
     [audioRecipe],
   );
-  const effects = !!recipe;
   const key = useMemo(
     () =>
       enabled && editor.asset && ranges
@@ -139,21 +130,15 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
             if (stale) return;
             const request = JSON.parse(part.key) as {
               ranges: PreviewRange[];
-              recipe?: EditSettings | null;
+              recipe?: EditSettings;
               audio?: EditSettings;
             };
-            const settings = part.audio ? request.audio! : request.recipe,
+            const settings = part.audio ? request.audio! : request.recipe!,
               asset = part.audio ? audioPreviewAsset(source) : source;
             const progress = () => {}; // The shared activity beam stays smooth without progress-driven renders.
-            let proxy: PreviewProxy;
+            if (!engine.effectPreview) throw new Error('Effects preview is unavailable.');
             running = true;
-            if (settings) {
-              if (!engine.effectPreview) throw new Error('Effects preview is unavailable.');
-              proxy = await engine.effectPreview(asset, settings, progress);
-            } else {
-              if (!engine.joinedPreview) throw new Error('Continuous preview is unavailable.');
-              proxy = await engine.joinedPreview(asset, request.ranges, progress);
-            }
+            const proxy = await engine.effectPreview(asset, settings, progress);
             running = false;
             if (stale) {
               await engine.releaseProxy?.(proxy.id);
@@ -165,7 +150,6 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
               assetId: source.id,
               proxy,
               ranges: request.ranges,
-              effects: !!settings,
               geometry: !!settings?.mediaLayers?.length,
               engine,
               release: () => {
@@ -197,8 +181,7 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
       ready &&
       ready.assetId === editor.asset?.id &&
       ranges &&
-      previewCoversRanges(ready.ranges, ranges) &&
-      (ready.effects ? effects : true)
+      previewCoversRanges(ready.ranges, ranges)
         ? ready
         : null,
     audio =
@@ -214,9 +197,9 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
     ranges: preview?.ranges,
     /** Processed soundtrack played beside the source video, in its own output timeline. */
     audio: audio ? { url: audio.proxy.url, ranges: audio.ranges } : undefined,
-    processed: !!preview?.effects,
+    processed: !!preview,
     geometryProcessed: !!preview?.geometry,
-    effects: effects || !!audioRecipe,
+    effects: !!recipe || !!audioRecipe,
     stale: (!!preview && preview.key !== key) || (!!audio && audio.key !== audioKey),
     preparing: !!jobKey && (!matched || (!state.done && !state.error)),
     error: matched ? state.error : undefined,

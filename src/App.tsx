@@ -18,7 +18,7 @@ import type { InspectorTab } from './components/InspectorTabs';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Upload, X } from 'lucide-react';
 import { ImportInputs } from './components/ImportInputs';
-import { seekPreviewTime, hasPreviewClock } from './core/preview-clock';
+import { seekPreviewTime, previewOutput } from './core/preview-clock';
 import { useJoinedPreview } from './hooks/useJoinedPreview';
 import { useProxies } from './hooks/useProxies';
 import { useAutosave } from './hooks/useAutosave';
@@ -134,10 +134,7 @@ function FrameApp() {
         ? 'Clearing workspace…'
         : 'Saving workspace…',
   );
-  useLoadingActivity(
-    joinedPreview.preparing,
-    joinedPreview.effects ? 'Updating effects preview…' : 'Preparing continuous playback…',
-  );
+  useLoadingActivity(joinedPreview.preparing, 'Updating effects preview…');
   const projectInput = useRef<HTMLInputElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
@@ -318,9 +315,7 @@ function FrameApp() {
     ? outputTimeAtSource(
         editor.edit,
         current,
-        mediaRef.current && hasPreviewClock(mediaRef.current)
-          ? mediaRef.current.currentTime
-          : undefined,
+        mediaRef.current ? previewOutput(mediaRef.current) : undefined,
       )
     : 0;
   useEditorShortcuts({
