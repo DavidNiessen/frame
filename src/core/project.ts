@@ -135,6 +135,7 @@ export function parseEdit(value: unknown, asset: MediaAsset): EditSettings {
     format: text(e.format, 10) as EditSettings['format'],
     quality: text(e.quality, 10) as EditSettings['quality'],
     acceleration: parseAcceleration(e.acceleration),
+    ...(e.keepSourceCodec === undefined ? {} : { keepSourceCodec: boolean(e.keepSourceCodec) }),
     targetSizeMb:
       e.targetSizeMb === undefined || e.targetSizeMb === null ? null : number(e.targetSizeMb),
     gifLoop: e.gifLoop === undefined ? 0 : number(e.gifLoop),

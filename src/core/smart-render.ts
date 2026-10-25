@@ -9,7 +9,7 @@ import { embeddedCues, type RecipeResources } from './resources';
 import type { EditSettings, MediaAsset } from './types';
 
 /**
- * Smart rendering copies untouched H.264 between clean keyframes and re-encodes only the
+ * Smart rendering copies untouched H.264 or HEVC between clean keyframes and re-encodes only the
  * frames between each cut and its nearest keyframe, like Premiere and Final Cut do for
  * trims and cuts without picture changes.
  */
@@ -19,6 +19,8 @@ export interface SmartSource {
   pixelFormat: string;
   /** Video stream time base denominator, e.g. 15360 for 1/15360. */
   timescale: number;
+  /** FFprobe color names; edge pieces carry them so HDR stays tagged. */
+  color: { primaries?: string; transfer?: string; space?: string; range?: string };
   rotated: boolean;
   interlaced: boolean;
 }
@@ -33,11 +35,26 @@ export interface SmartPiece {
   start: number;
   frames: number;
 }
-const profiles: Record<string, string> = {
-  'Constrained Baseline': 'baseline',
-  Baseline: 'baseline',
-  Main: 'main',
-  High: 'high',
+const codecs: Record<
+  string,
+  { encoder: string; profiles: Record<string, string>; pixelFormats: string[] }
+> = {
+  h264: {
+    encoder: 'libx264',
+    profiles: {
+      'Constrained Baseline': 'baseline',
+      Baseline: 'baseline',
+      Main: 'main',
+      High: 'high',
+    },
+    pixelFormats: ['yuv420p'],
+  },
+  // iPhone footage: Main for SDR, Main 10 for HDR (HLG).
+  hevc: {
+    encoder: 'libx265',
+    profiles: { Main: 'main', 'Main 10': 'main10' },
+    pixelFormats: ['yuv420p', 'yuv420p10le'],
+  },
 };
 // Half of the shortest plausible frame interval: separates neighbouring frames safely.
 const epsilon = 0.0005;
@@ -51,7 +68,8 @@ export function smartRenderable(
   const format = getFormat(edit.format);
   return (
     asset.kind === 'video' &&
-    asset.videoCodec === 'h264' &&
+    (asset.videoCodec === 'h264' ||
+      (asset.videoCodec === 'hevc' && edit.keepSourceCodec !== false)) &&
     ['mp4', 'mov', 'mkv'].includes(edit.format) &&
     format.videoCodec === 'libx264' &&
     !edit.clips &&
@@ -71,10 +89,10 @@ export function smartRenderable(
   );
 }
 export function smartSourceSupported(source: SmartSource): boolean {
+  const codec = codecs[source.codec];
   return (
-    source.codec === 'h264' &&
-    !!profiles[source.profile] &&
-    source.pixelFormat === 'yuv420p' &&
+    !!codec?.profiles[source.profile] &&
+    codec.pixelFormats.includes(source.pixelFormat) &&
     source.timescale > 0 &&
     !source.rotated &&
     !source.interlaced
@@ -161,14 +179,22 @@ export function smartPieceArgs(
 ): string[] {
   // Seek just under the first frame. Copies drop packets shown before it and so start on the keyframe.
   const seek = Math.max(0, piece.start - epsilon);
+  const codec = codecs[source.codec];
+  const hevc = source.codec === 'hevc';
+  const color = Object.entries({
+    '-color_primaries': source.color.primaries,
+    '-color_trc': source.color.transfer,
+    '-colorspace': source.color.space,
+    '-color_range': source.color.range,
+  }).flatMap(([option, value]) => (value && value !== 'unknown' ? [option, value] : []));
   const video =
     piece.kind === 'copy'
       ? ['-c:v', 'copy', '-copypriorss', '0']
       : [
           '-c:v',
-          'libx264',
+          codec.encoder,
           '-profile:v',
-          profiles[source.profile],
+          codec.profiles[source.profile],
           '-pix_fmt',
           source.pixelFormat,
           // Short edge pieces sit beside original frames; keep them at least High quality.
@@ -178,7 +204,13 @@ export function smartPieceArgs(
           'fast',
           '-fps_mode',
           'passthrough',
+          ...color,
+          ...(hevc ? ['-x265-params', 'log-level=error:repeat-headers=1'] : []),
         ];
+  // The concat demuxer only moves H.264 parameter sets in-band by itself. HEVC pieces carry
+  // their own in every keyframe (repeat-headers for encoded edges), or each piece would be
+  // decoded with the previous piece's parameter sets.
+  const parameterSets = hevc ? ['-bsf:v', 'hevc_mp4toannexb', '-tag:v', 'hvc1'] : [];
   return [
     '-y',
     '-ss',
@@ -195,6 +227,7 @@ export function smartPieceArgs(
     '-map_metadata',
     '-1',
     ...video,
+    ...parameterSets,
     '-video_track_timescale',
     String(source.timescale),
     '-f',
@@ -233,14 +266,15 @@ export function smartAudioArgs(
 /** Joins the pieces losslessly and adds the soundtrack, metadata and tags. */
 export function smartMuxArgs(
   edit: EditSettings,
+  source: SmartSource,
   list: string,
-  source: string,
+  input: string,
   audio: string | null,
   output: string,
 ): string[] {
   const args = ['-y', '-f', 'concat', '-safe', '0', '-i', list];
   if (audio) args.push('-i', audio);
-  if (edit.keepMetadata) args.push('-i', source);
+  if (edit.keepMetadata) args.push('-i', input);
   args.push('-map', '0:v:0');
   if (audio) args.push('-map', '1:a:0');
   args.push(
@@ -252,6 +286,8 @@ export function smartMuxArgs(
     '-c',
     'copy',
   );
+  // Apple players only open HEVC tagged hvc1.
+  if (source.codec === 'hevc' && edit.format !== 'mkv') args.push('-tag:v', 'hvc1');
   if (['mp4', 'mov'].includes(edit.format)) args.push('-movflags', '+faststart');
   args.push(output);
   return args;

@@ -80,6 +80,8 @@ export function validateEdit(asset: MediaAsset, edit: EditSettings, joinedFragme
   validateGifOutput(edit);
   validateAudioOutput(edit);
   parseAcceleration(edit.acceleration);
+  if (edit.keepSourceCodec !== undefined && typeof edit.keepSourceCodec !== 'boolean')
+    throw new Error('Invalid source codec setting.');
   validateSizeTarget(edit.targetSizeMb);
   parseShape(edit.shape);
   parseRetouch(edit.retouch);

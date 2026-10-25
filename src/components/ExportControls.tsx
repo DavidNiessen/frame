@@ -167,6 +167,21 @@ export function ExportControls({
               }
             />
           )}
+          {asset.videoCodec === 'hevc' && ['mp4', 'mov', 'mkv'].includes(edit.format) && (
+            <label className="switch-row">
+              <span>
+                Keep HEVC for trims and cuts
+                <small>Fastest export. Turn off to convert to H.264 for older players.</small>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                aria-label="Keep HEVC for trims and cuts"
+                checked={edit.keepSourceCodec !== false}
+                onChange={(event) => update({ keepSourceCodec: event.target.checked })}
+              />
+            </label>
+          )}
           <label className="switch-row">
             <span>
               Keep metadata<small>Titles, artists, and source tags</small>

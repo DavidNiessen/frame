@@ -155,6 +155,8 @@ export interface EditSettings {
   format: FormatId;
   quality: 'high' | 'balanced' | 'small';
   acceleration: Acceleration;
+  /** HEVC sources export as HEVC when smart rendering applies, unless false. */
+  keepSourceCodec?: boolean;
   targetSizeMb: number | null;
   videoBitrate: number | null;
   audioBitrate: number;

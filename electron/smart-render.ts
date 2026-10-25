@@ -57,6 +57,12 @@ async function inspect(
     profile: stream.profile,
     pixelFormat: stream.pix_fmt,
     timescale: Number(String(stream.time_base ?? '').split('/')[1]),
+    color: {
+      primaries: stream.color_primaries,
+      transfer: stream.color_transfer,
+      space: stream.color_space,
+      range: stream.color_range,
+    },
     rotated:
       !!Number(stream.tags?.rotate ?? 0) ||
       (stream.side_data_list ?? []).some((data: { rotation?: number }) => !!data.rotation),
@@ -143,7 +149,7 @@ export async function smartRender(
     await writeFile(list, names.map((name) => `file '${name}'\n`).join(''));
     await execute(
       runFfmpeg(
-        smartMuxArgs(edit, list, input, audio ? audioPath : null, output),
+        smartMuxArgs(edit, inspected.source, list, input, audio ? audioPath : null, output),
         editedDuration(edit),
         (ratio) => progress(0.95 + ratio * 0.04, 'Joining video…'),
         undefined,

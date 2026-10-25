@@ -14,6 +14,7 @@ const exec = promisify(execFile);
 let directory: string;
 let source: string;
 let asset: MediaAsset;
+let hevc: { source: string; asset: MediaAsset };
 
 // Gray thumbnails are enough to catch a wrong, missing or corrupted frame.
 async function frames(args: string[]) {
@@ -32,31 +33,59 @@ function difference(a: Buffer, b: Buffer) {
   for (let i = 0; i < a.length; i++) sum += Math.abs(a[i] - b[i]);
   return sum / a.length;
 }
-async function render(edit: EditSettings) {
+async function render(edit: EditSettings, media = { source, asset }) {
   const output = join(directory, `smart-${Math.random().toString(36).slice(2)}.${edit.format}`);
   const jobs = new MediaJobs();
   const smart = await jobs.run((execute) =>
-    smartRender(asset, edit, source, output, resourcePaths(), [], execute, jobs, () => {}),
+    smartRender(
+      media.asset,
+      edit,
+      media.source,
+      output,
+      resourcePaths(),
+      [],
+      execute,
+      jobs,
+      () => {},
+    ),
   );
   return { smart, output };
 }
 // The full render is the reference: smart rendering must keep exactly the frames it keeps.
-async function fullRender(edit: EditSettings) {
+async function fullRender(edit: EditSettings, media = { source, asset }) {
   const output = join(directory, `full-${Math.random().toString(36).slice(2)}.${edit.format}`);
-  await transcode(source, output, asset, { ...edit, quality: 'high' }, () => {}).done;
+  await transcode(media.source, output, media.asset, { ...edit, quality: 'high' }, () => {}).done;
   return frames(['-i', output]);
+}
+async function playThroughAvFoundation(output: string) {
+  const decoded = join(directory, `avfoundation-${Math.random().toString(36).slice(2)}.mov`);
+  await exec('avconvert', [
+    '--source',
+    output,
+    '--preset',
+    'PresetAppleProRes422LPCM',
+    '--output',
+    decoded,
+    '--replace',
+  ]);
+  return frames(['-i', decoded]);
+}
+function expectSameFrames(expected: Buffer[], actual: Buffer[], tolerance = 3) {
+  expect(actual.length).toBe(expected.length);
+  const worst = Math.max(...expected.map((frame, i) => difference(frame, actual[i])));
+  expect(worst).toBeLessThan(tolerance);
 }
 async function streams(path: string) {
   const { stdout } = await exec(ffprobePath(), [
     '-v',
     'error',
     '-show_entries',
-    'stream=codec_type,duration',
+    'stream=codec_type,duration,codec_name,codec_tag_string,pix_fmt,color_transfer',
     '-of',
     'json',
     path,
   ]);
-  return JSON.parse(stdout).streams as { codec_type: string; duration: string }[];
+  return JSON.parse(stdout).streams as Record<string, string>[];
 }
 
 beforeAll(async () => {
@@ -88,6 +117,44 @@ beforeAll(async () => {
     source,
   ]);
   asset = { ...(await probeFile(source)), id: 'smart', name: 'source.mp4', previewUrl: '' };
+  // 10-bit HLG HEVC with closed GOPs, like iPhone HDR video.
+  const hevcSource = join(directory, 'hevc.mov');
+  await exec(ffmpegPath(), [
+    '-v',
+    'error',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc2=s=320x180:r=30:d=12',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=f=440:d=12',
+    '-c:v',
+    'libx265',
+    '-preset',
+    'ultrafast',
+    '-x265-params',
+    'log-level=error:keyint=45:min-keyint=45:scenecut=0:open-gop=0:bframes=3',
+    '-pix_fmt',
+    'yuv420p10le',
+    '-color_primaries',
+    'bt2020',
+    '-color_trc',
+    'arib-std-b67',
+    '-colorspace',
+    'bt2020nc',
+    '-tag:v',
+    'hvc1',
+    '-c:a',
+    'aac',
+    '-shortest',
+    hevcSource,
+  ]);
+  hevc = {
+    source: hevcSource,
+    asset: { ...(await probeFile(hevcSource)), id: 'hevc', name: 'hevc.mov', previewUrl: '' },
+  };
 }, 60000);
 afterAll(async () => {
   await rm(directory, { recursive: true, force: true });
@@ -165,21 +232,7 @@ describe('smart rendering', () => {
       const edit = { ...defaultSettings(asset), start: 0.7, end: 10.2 };
       const { smart, output } = await render(edit);
       expect(smart).toBe(true);
-      const decoded = join(directory, 'avfoundation.mov');
-      await exec('avconvert', [
-        '--source',
-        output,
-        '--preset',
-        'PresetAppleProRes422LPCM',
-        '--output',
-        decoded,
-        '--replace',
-      ]);
-      const expected = await fullRender(edit);
-      const actual = await frames(['-i', decoded]);
-      expect(actual.length).toBe(expected.length);
-      const worst = Math.max(...expected.map((frame, i) => difference(frame, actual[i])));
-      expect(worst).toBeLessThan(4);
+      expectSameFrames(await fullRender(edit), await playThroughAvFoundation(output), 4);
     },
     60000,
   );
@@ -191,4 +244,40 @@ describe('smart rendering', () => {
     };
     expect((await render(edit)).smart).toBe(false);
   });
+});
+
+describe('HEVC smart rendering', () => {
+  it('keeps 10-bit HLG HEVC and copies it between keyframes', async () => {
+    const edit = { ...defaultSettings(hevc.asset), start: 0.7, end: 10.2 };
+    const { smart, output } = await render(edit, hevc);
+    expect(smart).toBe(true);
+    expectSameFrames(await fullRender(edit, hevc), await frames(['-i', output]));
+    const [video, audio] = await streams(output);
+    expect(video).toMatchObject({
+      codec_name: 'hevc',
+      codec_tag_string: 'hvc1',
+      pix_fmt: 'yuv420p10le',
+      color_transfer: 'arib-std-b67',
+    });
+    expect(audio.codec_type).toBe('audio');
+  }, 60000);
+
+  it('converts to H.264 when keeping HEVC is turned off', () => {
+    const edit = defaultSettings(hevc.asset);
+    expect(smartRenderable(hevc.asset, edit, resourcePaths())).toBe(true);
+    expect(smartRenderable(hevc.asset, { ...edit, keepSourceCodec: false }, resourcePaths())).toBe(
+      false,
+    );
+  });
+
+  it.runIf(process.platform === 'darwin')(
+    'plays back correctly through AVFoundation',
+    async () => {
+      const edit = { ...defaultSettings(hevc.asset), cuts: [{ start: 3.2, end: 7.9 }] };
+      const { smart, output } = await render(edit, hevc);
+      expect(smart).toBe(true);
+      expectSameFrames(await fullRender(edit, hevc), await playThroughAvFoundation(output), 4);
+    },
+    60000,
+  );
 });
