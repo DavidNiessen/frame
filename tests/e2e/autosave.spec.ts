@@ -118,20 +118,16 @@ test('restores linked audio and bulk clears sources that cannot be removed indiv
     });
     await page.reload();
     await expect(page.locator('.asset-list li')).toHaveCount(2, { timeout: 45000 });
-    await expect(page.locator('audio[data-frame-mix-layer]')).toHaveCount(1);
+    await expect(page.locator('audio[data-frame-mix-layer]:not([data-preview-audio])')).toHaveCount(
+      1,
+    );
     await page.getByRole('button', { name: 'Play', exact: true }).click();
-    // A ready effects preview owns the baked mix; its original audio elements stay paused.
+    // The track plays live until its mix is rendered as a soundtrack beside the video.
     await expect
       .poll(() =>
-        page.evaluate(() => {
-          const video = document.querySelector('video');
-          const audio = document.querySelector(
-            'audio[data-frame-mix-layer]',
-          ) as HTMLAudioElement | null;
-          return video?.dataset.previewEffects === 'rendered'
-            ? !video.paused
-            : !!audio && !audio.paused;
-        }),
+        page
+          .locator('audio[data-frame-mix-layer]')
+          .evaluateAll((nodes) => nodes.some((node) => !(node as HTMLMediaElement).paused)),
       )
       .toBe(true);
     await page.getByRole('button', { name: 'Clear media library', exact: true }).click();
