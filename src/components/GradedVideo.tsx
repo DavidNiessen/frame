@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type RefObject } from 'react';
 import { gradeAt, gradePasses } from '../core/realtime-grade';
+import { cutFrameSource } from '../core/cut-bridge';
 import { previewOutput, readPreviewTime } from '../core/preview-clock';
 import type { EditSettings, MediaAsset } from '../core/types';
 import { GradeRenderer } from '../engines/grade-renderer';
@@ -52,8 +53,10 @@ export function GradedVideo({
     canvas.addEventListener('webglcontextlost', lost);
     function draw() {
       frame = requestAnimationFrame(draw);
-      const media = mediaRef.current as HTMLVideoElement | null;
-      if (!media || media.readyState < 2 || media.seeking || !media.videoWidth) return;
+      const source = mediaRef.current;
+      // While a cut is bridged, the standby decoder holds the frame on screen.
+      const media = (source && cutFrameSource(source)) as HTMLVideoElement | null;
+      if (!source || !media || media.readyState < 2 || media.seeking || !media.videoWidth) return;
       const displayed = Math.max(canvas!.clientWidth, canvas!.clientHeight) * devicePixelRatio,
         edge = Math.min(renderer.software ? softwareEdge : maxEdge, Math.max(320, displayed));
       const ratio = Math.min(1, edge / Math.max(media.videoWidth, media.videoHeight)),
@@ -67,7 +70,11 @@ export function GradedVideo({
       const state = `${media.currentTime}:${media.src}`;
       if (!resized && !dirty.current && media.paused && state === shown) return;
       const { asset, edit } = latest.current;
-      const { steps, crop } = gradeAt(edit, readPreviewTime(media), previewOutput(media));
+      const { steps, crop } = gradeAt(
+        edit,
+        media === source ? readPreviewTime(source) : media.currentTime,
+        previewOutput(source),
+      );
       try {
         renderer.render(
           media,
@@ -81,7 +88,7 @@ export function GradedVideo({
         latest.current.onFailure();
         return;
       }
-      canvas!.style.opacity = media.style.opacity;
+      canvas!.style.opacity = source.style.opacity;
       shown = state;
       dirty.current = false;
     }

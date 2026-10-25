@@ -2,7 +2,8 @@ import { monitorVolume } from '../core/monitor-volume';
 import { useMonitorVolume } from './useMonitorVolume';
 import { effectiveSpeed, effectiveVolume, extraInstances } from '../core/effect-instances';
 import { useEffect, useRef, type RefObject } from 'react';
-import { clipAtSource, clipRecipe, clipPositions } from '../core/clips';
+import { clipAtSource, clipRecipe, clipPositions, editClips } from '../core/clips';
+import { bridgingCut, crossCut, cutLookahead, prepareCut } from '../core/cut-bridge';
 import { fadeGain, outputTimeAtSource } from '../core/fades';
 import { timelineFadeGain } from '../core/timeline-effects';
 import { editedDuration, keptRanges } from '../core/timeline';
@@ -37,7 +38,8 @@ export function applyPreviewEffects(media: HTMLMediaElement, edit: EditSettings)
     : 1;
   const rendered = media.dataset.previewEffects === 'rendered',
     rate = rendered ? 1 : Math.min(16, Math.max(0.0625, speed));
-  if (media.playbackRate !== rate) media.playbackRate = rate;
+  // A bridged cut briefly runs the hidden source at its own rate.
+  if (media.playbackRate !== rate && !bridgingCut(media)) media.playbackRate = rate;
   media.preservesPitch =
     rendered ||
     (recipe.preservePitch &&
@@ -155,8 +157,21 @@ export function usePreviewEffects(
         if (!latest.current.loop) media.pause();
         seekPreviewTime(media, keptRanges(recipe)[0]?.start ?? recipe.start);
         playingClip = null;
-      } else if (next !== sourceTime) seekPreviewTime(media, next);
+      } else if (next !== sourceTime)
+        seekPreviewTime(media, positions ? crossCut(media, next) : next);
       const playingAt = positions?.find(({ clip }) => clip.id === step.clipId);
+      if (playingAt && next !== null && !media.paused) {
+        // Cue the standby decoder on the clip after the next jump.
+        const clips = editClips(recipe),
+          index = clips.findIndex((clip) => clip.id === step.clipId),
+          following = clips[index + 1];
+        if (
+          following &&
+          Math.abs(following.start - clips[index].end) > 1e-6 &&
+          clips[index].end - next < cutLookahead * media.playbackRate
+        )
+          prepareCut(media, following.start);
+      }
       if (playingAt && next !== null)
         media.dataset.previewOutput = String(
           playingAt.start + (next - playingAt.clip.start) / playingAt.speed,
