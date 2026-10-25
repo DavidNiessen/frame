@@ -7,6 +7,7 @@ import {
   effectPreviewRanges,
 } from '../core/effect-preview';
 import { allAudioLayers } from '../core/effect-instances';
+import { liveMediaLayers } from '../core/live-media-layers';
 import type { PreviewProxy } from '../core/hardware';
 import type { PreviewRange } from '../core/preview-clock';
 import type { EditSettings, MediaEngine } from '../core/types';
@@ -31,21 +32,22 @@ export function useJoinedPreview(editor: Editor, enabled = true) {
     if (!editor.asset || !editor.edit) return null;
     const asset = editor.asset,
       edit = editor.edit,
-      realtimeVideo = realtimeGradeFor(asset);
-    const needs = effectPreviewNeeds(edit, !!globalThis.AudioContext, realtimeVideo);
+      realtimeVideo = realtimeGradeFor(asset),
+      liveLayers = liveMediaLayers(asset, edit, editor.assets, realtimeVideo);
+    const needs = effectPreviewNeeds(edit, !!globalThis.AudioContext, realtimeVideo, liveLayers);
     // Audio-only corrections render just the soundtrack; the video keeps playing its source.
     const split = asset.kind === 'video' && needs.audio && !needs.video;
     return {
       recipe:
         needs.video || (needs.audio && !split)
-          ? effectPreviewRecipe(asset, edit, realtimeVideo)
+          ? effectPreviewRecipe(asset, edit, realtimeVideo, liveLayers)
           : null,
       audio:
         split && (asset.hasAudio || allAudioLayers(edit).length > 0)
           ? effectPreviewRecipe(audioPreviewAsset(asset), edit, true)
           : null,
     };
-  }, [editor.asset, editor.edit]);
+  }, [editor.asset, editor.edit, editor.assets]);
   const recipe = plan?.recipe ?? null,
     audioRecipe = plan?.audio ?? null;
   const ranges = useMemo(

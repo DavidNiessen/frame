@@ -9,6 +9,7 @@ import type { VisualSettings } from './visual-settings';
 import type { Crop, EditSettings, MediaAsset, TimeRange } from './types';
 import { imageLayerRows } from './image-layers';
 import type { ImageBlendMode } from './image-compositing';
+import type { MediaLayer } from './media-layers';
 
 /**
  * Real-time grading: color, curves, LUTs and visual adjustments are evaluated per
@@ -151,6 +152,12 @@ function cachedStages(edit: EditSettings, clipId: string | undefined, recipe: ()
   if (!stages) entries.set(key, (stages = stagesFor(recipe())));
   return stages;
 }
+
+/** A media layer's own grade, in `mediaLayerFilters` order. */
+export const mediaLayerGrade = (layer: Pick<MediaLayer, 'curves' | 'visual'>) => [
+  ...curveSteps(layer.curves),
+  ...visualSteps(layer.visual),
+];
 
 /** Whether any part of the recipe grades pixels, independent of the playhead. */
 export const hasRealtimeGrade = (edit: EditSettings) =>

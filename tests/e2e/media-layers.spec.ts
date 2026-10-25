@@ -89,14 +89,31 @@ test('adds independent video tracks with linked audio, timeline editing and auto
   await page.getByLabel('Media layer x', { exact: true }).fill('10');
   await page.getByLabel('Media layer opacity', { exact: true }).fill('0.7');
   await page.getByRole('button', { name: 'Close media layer settings', exact: true }).click();
-  await expect(page.locator('video')).toHaveAttribute('data-preview-effects', 'rendered', {
-    timeout: 60000,
-  });
-  await expect(page.locator('video[data-preview-effects]')).not.toHaveAttribute(
-    'data-preview-preparing',
-    'true',
+  // The layer composites live above the source video; only its linked audio is rendered.
+  const base = page.locator('video[data-frame-source]'),
+    layer = page.locator('video[data-live-media-layer]');
+  await expect(layer).toHaveJSProperty('readyState', 4, { timeout: 30000 });
+  await expect(page.locator('.live-media-layer')).toHaveCSS('opacity', '0.7');
+  await expect(base).not.toHaveAttribute('data-preview-effects', 'rendered');
+  await expect(page.locator('audio[data-preview-audio="processed"]')).toHaveJSProperty(
+    'readyState',
+    4,
     { timeout: 60000 },
   );
+  await expect(base).not.toHaveAttribute('data-preview-preparing', 'true', { timeout: 60000 });
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(layer).toHaveJSProperty('paused', false);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const base = document.querySelector<HTMLVideoElement>('video[data-frame-source]')!,
+          layer = document.querySelector<HTMLVideoElement>('video[data-live-media-layer]')!;
+        return Math.abs(base.currentTime - layer.currentTime);
+      }),
+    )
+    .toBeLessThan(0.25);
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(layer).toHaveJSProperty('paused', true);
   const body = page.getByRole('button', { name: 'Visual track 1: Overlay.mp4', exact: true }),
     bounds = (await body.boundingBox())!;
   await page.mouse.click(bounds.x + bounds.width * 0.4, bounds.y + bounds.height * 0.5, {
