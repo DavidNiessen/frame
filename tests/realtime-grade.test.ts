@@ -6,7 +6,9 @@ import {
   gradeKernels,
   gradeOps,
   gradePasses,
+  gradeLayerPasses,
   hasRealtimeGrade,
+  imageGradePlan,
   maxPassOps,
 } from '../src/core/realtime-grade';
 import { defaultVisual } from '../src/core/visual-settings';
@@ -157,4 +159,47 @@ it('composes channel curves before the master curve', () => {
   });
   expect(lifted[0]).toBeCloseTo(64, -1);
   expect(lifted[1]).toBe(0);
+});
+
+it('plans adjustment-only image stacks for the GPU and leaves objects to FFmpeg', () => {
+  const image: MediaAsset = { ...video, id: 'image', name: 'photo.png', kind: 'image' };
+  const photo = defaultSettings(image);
+  const adjusted: EditSettings = {
+    ...photo,
+    crop: { x: 10, y: 20, width: 300, height: 200 },
+    visual: { ...defaultVisual(), exposure: 0.5, blur: 2 },
+    imageLayers: {
+      order: [],
+      groups: [],
+      entries: { 'primary:blur': { blend: 'screen', opacity: 0.5 } },
+    },
+  };
+  const plan = imageGradePlan(image, adjusted)!;
+  expect(plan.crop).toEqual(adjusted.crop);
+  expect(plan.layers.map((layer) => [layer.blend, layer.opacity])).toEqual([
+    ['normal', 1],
+    ['screen', 0.5],
+  ]);
+  const passes = gradeLayerPasses(plan.layers);
+  expect(passes.map((pass) => [pass.kernel, !!pass.layerStart, pass.blend])).toEqual([
+    [0, false, undefined],
+    [gradeKernels.blurX, true, undefined],
+    [gradeKernels.blurY, false, 'screen'],
+  ]);
+  const masked = {
+    ...adjusted,
+    imageLayers: {
+      ...adjusted.imageLayers!,
+      entries: {
+        'primary:blur': { mask: { mode: 'rectangle', x: 0, y: 0, width: 1, height: 1 } },
+      },
+    },
+  } as unknown as EditSettings;
+  expect(imageGradePlan(image, masked)).toBeNull();
+  expect(
+    imageGradePlan(image, { ...adjusted, geometry: { ...adjusted.geometry, rotation: 90 } }),
+  ).toBeNull();
+  expect(
+    imageGradePlan(image, { ...adjusted, overlays: { ...adjusted.overlays, text: 'Credit' } }),
+  ).toBeNull();
 });

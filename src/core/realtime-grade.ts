@@ -6,7 +6,9 @@ import { outputTimeAtSource } from './fades';
 import { activeAtSource } from './timed-adjustments';
 import { defaultVisual, isVisualEffect } from './visual-settings';
 import type { VisualSettings } from './visual-settings';
-import type { Crop, EditSettings, TimeRange } from './types';
+import type { Crop, EditSettings, MediaAsset, TimeRange } from './types';
+import { imageLayerRows } from './image-layers';
+import type { ImageBlendMode } from './image-compositing';
 
 /**
  * Real-time grading: color, curves, LUTs and visual adjustments are evaluated per
@@ -55,6 +57,10 @@ export interface GradePass {
   kernel: number;
   value: number;
   ops: GradePointStep[];
+  /** The input of this pass is the layer below a later blended pass. */
+  layerStart?: boolean;
+  blend?: ImageBlendMode;
+  opacity?: number;
 }
 interface GradeStage {
   range?: TimeRange;
@@ -229,4 +235,70 @@ export function cubeTexture(cube: string) {
     else if (key) values.push(Number(key), ...parts.map(Number));
   }
   return { size, min, max, data: Float32Array.from(values) };
+}
+
+export interface GradeLayer {
+  steps: GradeStep[];
+  blend: ImageBlendMode;
+  opacity: number;
+}
+/** Blended layers keep their own passes; consecutive normal layers share them. */
+export function gradeLayerPasses(layers: GradeLayer[]): GradePass[] {
+  const passes: GradePass[] = [];
+  let normal: GradeStep[] = [];
+  const flush = () => {
+    passes.push(...gradePasses(normal));
+    normal = [];
+  };
+  for (const layer of layers) {
+    if (layer.blend === 'normal' && layer.opacity === 1) {
+      normal.push(...layer.steps);
+      continue;
+    }
+    flush();
+    const own = gradePasses(layer.steps);
+    if (!own.length) continue;
+    own[0].layerStart = true;
+    Object.assign(own.at(-1)!, { blend: layer.blend, opacity: layer.opacity });
+    passes.push(...own);
+  }
+  flush();
+  return passes;
+}
+
+/**
+ * The image stack as GPU layers, mirroring `imageLayerStages`, or null when it
+ * contains layers that need FFmpeg: objects, masks, retouching or transforms.
+ */
+export function imageGradePlan(asset: MediaAsset, edit: EditSettings) {
+  let crop: Crop | null = null;
+  const layers: GradeLayer[] = [];
+  for (const row of imageLayerRows(asset, edit)) {
+    if (row.hidden) continue;
+    const recipe = row.recipe,
+      id = row.effect.id;
+    if (id === 'crop') {
+      const next = recipe.crop;
+      if (next) crop = crop ? { ...next, x: crop.x + next.x, y: crop.y + next.y } : { ...next };
+      continue;
+    }
+    if (id === 'transform') {
+      const g = recipe.geometry;
+      if (g.rotation || g.flipHorizontal || g.flipVertical || g.resize) return null;
+      continue;
+    }
+    if (row.state.mask && row.state.mask.mode !== 'none') return null;
+    const steps = isVisualEffect(id)
+      ? visualSteps({ ...defaultVisual(), [id]: recipe.visual?.[id] ?? defaultVisual()[id] })
+      : id === 'curves'
+        ? curveSteps(recipe.curves)
+        : id === 'color'
+          ? colorSteps(recipe.color)
+          : null;
+    if (!steps) return null;
+    const opacity = row.state.opacity ?? 1;
+    if (steps.length && opacity > 0)
+      layers.push({ steps, blend: row.state.blend ?? 'normal', opacity });
+  }
+  return { layers, crop };
 }
