@@ -157,6 +157,33 @@ describe('smart rendering', () => {
       expect(difference(expected[i], actual[i])).toBeLessThan(3);
   }, 60000);
 
+  // Apple's decoders may trust the sample description over in-band parameter sets, so decode
+  // through AVFoundation as QuickTime and Photos would.
+  it.runIf(process.platform === 'darwin')(
+    'plays back correctly through AVFoundation',
+    async () => {
+      const edit = { ...defaultSettings(asset), start: 0.7, end: 10.2 };
+      const { smart, output } = await render(edit);
+      expect(smart).toBe(true);
+      const decoded = join(directory, 'avfoundation.mov');
+      await exec('avconvert', [
+        '--source',
+        output,
+        '--preset',
+        'PresetAppleProRes422LPCM',
+        '--output',
+        decoded,
+        '--replace',
+      ]);
+      const expected = await fullRender(edit);
+      const actual = await frames(['-i', decoded]);
+      expect(actual.length).toBe(expected.length);
+      const worst = Math.max(...expected.map((frame, i) => difference(frame, actual[i])));
+      expect(worst).toBeLessThan(4);
+    },
+    60000,
+  );
+
   it('leaves picture changes to the full render', async () => {
     const edit = {
       ...defaultSettings(asset),
