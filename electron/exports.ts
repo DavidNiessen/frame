@@ -15,6 +15,7 @@ import { frameDimensions } from '../src/core/geometry';
 import type { EditSettings } from '../src/core/types';
 import { encodeNative } from './acceleration';
 import { smartRender } from './smart-render';
+import { seekPreviewClips } from '../src/core/preview-seeking';
 import { withResources } from './resources';
 import type { createBatchFolders } from './batch';
 import type { MediaJobs } from './jobs';
@@ -99,7 +100,12 @@ export function registerExports(
               if (smart) return;
               const { width, height } = frameDimensions(item.asset, settings);
               await encodeNative(
-                buildExportArgs(item.asset, settings, item.path, temporary!, paths[0], layers),
+                // Seek to each kept section instead of decoding the footage cut between them.
+                seekPreviewClips(
+                  buildExportArgs(item.asset, settings, item.path, temporary!, paths[0], layers),
+                  settings,
+                  item.path,
+                ),
                 editedDuration(settings),
                 settings.acceleration,
                 hardwareBitrate(width, height, settings.quality),

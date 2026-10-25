@@ -22,6 +22,7 @@ Frame keeps export settings separate from playback optimizations:
 
 - Desktop exports and joins use every CPU core for decoding, filtering and encoding. Previews, proxies and watch-folder conversions keep their two-thread limit so they stay in the background while you edit.
 - Desktop exports try a tested hardware H.264 encoder by default, falling back to portable software encoding. Choose **Portable software FFmpeg** under Desktop performance to always use x264.
+- Full-render exports with two to eight separated sections seek to each section instead of decoding the footage cut between them, as previews do. A 60-second 1080p color-graded export with 30 seconds cut out took 14,309 ms before and 12,640 ms after, with identical frames.
 - Smart rendering: when an H.264 MP4, MOV or MKV export only trims or cuts the picture (sound changes are fine), Frame copies the original video between clean keyframes and re-encodes just the frames from each cut to the next keyframe, then joins the pieces without re-encoding. The soundtrack is rendered separately. Copied frames are bit-identical to the source. Picture effects, speed changes, layers, captions, chapters, target bitrates or sizes, rotated, interlaced or non-4:2:0 sources, and other codecs use the full render. If smart rendering fails or produces an unexpected frame count, the export falls back to the full render.
 
 Same 4-core Linux cloud workspace and bundled FFmpeg, 60-second 1920 × 1080, 30 fps H.264 source with AAC audio, MP4 output at Balanced quality:
