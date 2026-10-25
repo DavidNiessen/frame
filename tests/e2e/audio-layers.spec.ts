@@ -53,19 +53,19 @@ test('mixes music with video, moves and trims tracks, and restores their sources
       timeout: 45000,
     });
     await page.getByRole('button', { name: 'Play', exact: true }).click();
+    // The track plays live until its mix is rendered as a soundtrack beside the video.
+    const mixing = page.locator('audio[data-frame-mix-layer]');
     await expect
       .poll(() =>
-        page
-          .locator('video')
-          .evaluate(
-            (node) =>
-              node.dataset.previewEffects === 'rendered' ||
-              !(document.querySelector('audio[data-frame-mix-layer]') as HTMLMediaElement).paused,
-          ),
+        mixing.evaluateAll((nodes) => nodes.some((node) => !(node as HTMLMediaElement).paused)),
       )
       .toBe(true);
     await page.getByRole('button', { name: 'Pause', exact: true }).click();
-    await expect(page.locator('audio[data-frame-mix-layer]')).toHaveJSProperty('paused', true);
+    await expect
+      .poll(() =>
+        mixing.evaluateAll((nodes) => nodes.every((node) => (node as HTMLMediaElement).paused)),
+      )
+      .toBe(true);
     const documentDownload = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Save project', exact: true }).click();
     const projectPath = (await (await documentDownload).path())!;
@@ -93,11 +93,12 @@ test('mixes music with video, moves and trims tracks, and restores their sources
     expect((await probeConversion(path)).streams[0].codec_name).toBe('pcm_s16le');
     await openAudioLayer(page, 'Song.wav');
     await page.getByRole('button', { name: 'Remove layer', exact: true }).click();
-    await expect(page.locator('audio[data-frame-mix-layer]')).toHaveCount(0);
+    const tracks = page.locator('audio[data-frame-mix-layer]:not([data-preview-audio])');
+    await expect(tracks).toHaveCount(0);
     await page.getByLabel('Choose project file', { exact: true }).setInputFiles(projectPath);
     await expect(page.getByRole('button', { name: 'Restore edits', exact: true })).toBeEnabled();
     await page.getByRole('button', { name: 'Restore edits', exact: true }).click();
-    await expect(page.locator('audio[data-frame-mix-layer]')).toHaveCount(1);
+    await expect(tracks).toHaveCount(1);
   } finally {
     await rm(library.directory, { recursive: true, force: true });
   }
