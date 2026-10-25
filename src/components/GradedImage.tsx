@@ -86,15 +86,16 @@ export function GradedImage({
     const canvas = canvasRef.current,
       renderer = rendererRef.current;
     if (!canvas || !renderer || !image) return;
-    const crop = plan.crop ?? { x: 0, y: 0, ...size };
+    const crop = plan.crop ?? { x: 0, y: 0, ...size },
+      frame = plan.size.width && plan.size.height ? plan.size : crop;
     const edge = Math.min(
         renderer.software ? softwareEdge : maxEdge,
         Math.max(256, displayEdge),
-        Math.max(crop.width, crop.height),
+        Math.max(frame.width, frame.height),
       ),
-      ratio = edge / Math.max(crop.width, crop.height);
-    const width = Math.max(1, Math.round(crop.width * ratio)),
-      height = Math.max(1, Math.round(crop.height * ratio));
+      ratio = edge / Math.max(frame.width, frame.height);
+    const width = Math.max(1, Math.round(frame.width * ratio)),
+      height = Math.max(1, Math.round(frame.height * ratio));
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
@@ -103,7 +104,7 @@ export function GradedImage({
       renderer.render(
         uploaded.current === image ? null : image,
         gradeLayerPasses(plan.layers),
-        { width: crop.width, height: crop.height },
+        frame,
         null,
         0,
         {
@@ -112,6 +113,7 @@ export function GradedImage({
           width: crop.width / size.width,
           height: crop.height / size.height,
         },
+        plan.turn,
       );
       uploaded.current = image;
       callbacks.current.onReady(true);
