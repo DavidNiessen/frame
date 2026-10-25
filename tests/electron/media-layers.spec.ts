@@ -34,9 +34,20 @@ test('desktop edits independent video and linked audio tracks and exports them l
       .click();
     await page.getByLabel('Media layer width', { exact: true }).fill('60');
     await page.getByRole('button', { name: 'Close media layer settings', exact: true }).click();
-    await expect(page.locator('video')).toHaveAttribute('data-preview-effects', 'rendered', {
-      timeout: 30000,
-    });
+    // With WebGL2 the layer composites live; otherwise the composite is rendered natively.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const layer = document.querySelector<HTMLVideoElement>('video[data-live-media-layer]'),
+              base = document.querySelector<HTMLVideoElement>('video[data-frame-source]');
+            return layer
+              ? layer.readyState >= 2
+              : base?.dataset.previewEffects === 'rendered' && !base.dataset.previewPreparing;
+          }),
+        { timeout: 30000 },
+      )
+      .toBe(true);
     await expect(page.locator('.visual-media-bar')).toHaveCount(1);
     await expect(page.locator('.audio-layer-bar')).toHaveCount(1);
     await page.getByRole('button', { name: 'Export MP4', exact: true }).click();
