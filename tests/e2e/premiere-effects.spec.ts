@@ -39,7 +39,7 @@ for (const width of [1440, 390])
     expect(bounds.y).toBeGreaterThanOrEqual(12);
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(900);
     await page.getByLabel('Color brightness').fill('0.2');
-    await expect(page.locator('video')).toHaveCSS('filter', /brightness/);
+    await expect(page.locator('canvas[data-realtime-grade]')).toHaveCount(1);
     await page.getByRole('button', { name: 'Reset Color & LUTs', exact: true }).click();
     await expect(page.getByLabel('Color brightness')).toHaveValue('0');
     await page.keyboard.press('Escape');

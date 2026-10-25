@@ -15,6 +15,9 @@ import { captionItems } from '../core/caption-items';
 import { changeInstance, extraInstances } from '../core/effect-instances';
 import { stackedGeometryPreview, colorPreview } from '../core/visual-preview';
 import { AudioMixPreview } from './AudioMixPreview';
+import { GradedVideo } from './GradedVideo';
+import { hasRealtimeGrade } from '../core/realtime-grade';
+import { realtimeGradeFor } from '../engines/grade-renderer';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import {
   AudioLines,
@@ -238,6 +241,15 @@ export function Preview({
         (!mediaRef.current.paused || (pending && handoff.current.resume)),
     };
   }
+  const [gradeFailed, setGradeFailed] = useState(false);
+  const realtimeGrade = realtimeGradeFor(asset) && !gradeFailed;
+  const graded = useMemo(() => hasRealtimeGrade(edit), [edit]);
+  // Media-layer previews bake color and geometry, so the GPU grade must not apply twice.
+  const liveGrade = realtimeGrade && graded && !gif && !previewGeometryProcessed;
+  const colorFilter =
+    liveGrade || previewGeometryProcessed || (previewProcessed && !realtimeGradeFor(asset))
+      ? 'none'
+      : colorPreview(visual, current, position);
   const sourceReset = useLatest({ sequenceStart, setCurrent });
   useEffect(() => {
     sourceReset.current.setCurrent(sourceReset.current.sequenceStart);
@@ -387,10 +399,7 @@ export function Preview({
             <CanvasGuides>
               {gif ? (
                 <img
-                  style={{
-                    ...geometry,
-                    filter: previewProcessed ? 'none' : colorPreview(visual, current, position),
-                  }}
+                  style={{ ...geometry, filter: colorFilter }}
                   src={sourceUrl}
                   alt="Animated source preview"
                 />
@@ -400,7 +409,8 @@ export function Preview({
                   data-frame-source={asset.id}
                   style={{
                     ...geometry,
-                    filter: previewProcessed ? 'none' : colorPreview(visual, current, position),
+                    filter: colorFilter,
+                    ...(liveGrade ? { visibility: 'hidden' as const } : {}),
                   }}
                   data-preview-effects={previewProcessed ? 'rendered' : undefined}
                   data-preview-preparing={preparing || undefined}
@@ -417,6 +427,15 @@ export function Preview({
                   {...mediaEvents}
                   playsInline
                   preload="metadata"
+                />
+              )}
+              {liveGrade && (
+                <GradedVideo
+                  mediaRef={mediaRef}
+                  asset={asset}
+                  edit={edit}
+                  style={geometry}
+                  onFailure={() => setGradeFailed(true)}
                 />
               )}
               <div
@@ -591,13 +610,15 @@ export function Preview({
                 ? 'GIF source loops · edits apply on export'
                 : edit.videoFadeIn || edit.videoFadeOut
                   ? 'Fade preview • source frame'
-                  : previewProcessed
-                    ? 'Effects preview'
-                    : previewRanges
-                      ? 'Continuous sequence preview'
-                      : previewUrl
-                        ? 'Lightweight proxy preview'
-                        : 'Original preview'}
+                  : liveGrade
+                    ? 'Real-time effects preview'
+                    : previewProcessed
+                      ? 'Effects preview'
+                      : previewRanges
+                        ? 'Continuous sequence preview'
+                        : previewUrl
+                          ? 'Lightweight proxy preview'
+                          : 'Original preview'}
         </span>
       </div>
       {previewError && (

@@ -98,23 +98,40 @@ test('browser previews mount large-file inputs and reuse one WASM runtime betwee
   expect(loads).toBe(1);
 });
 
-test('undo and redo reuse completed visual previews immediately', async ({ page }) => {
+test('color edits, undo and redo grade the playing video without rendering a preview', async ({
+  page,
+}) => {
   await page.addInitScript(() => localStorage.setItem('frame:auto-waveforms', 'false'));
   await page.goto('/');
   await importTestMedia(page);
   await openEffect(page, 'Color & LUTs');
   const video = page.locator('video'),
+    canvas = page.locator('canvas[data-realtime-grade]'),
     contrast = page.getByLabel('Color contrast', { exact: true });
-  await contrast.fill('1.25');
-  await expect(video).toHaveAttribute('data-preview-effects', 'rendered', { timeout: 45000 });
-  await expect(video).not.toHaveAttribute('data-preview-preparing', 'true');
-  const first = await video.getAttribute('src');
+  const original = await video.getAttribute('src');
+  // Total brightness of a downscaled frame, which changes with contrast.
+  const pixel = () =>
+    canvas.evaluate((node: HTMLCanvasElement) => {
+      const probe = document.createElement('canvas').getContext('2d')!;
+      probe.canvas.width = 32;
+      probe.canvas.height = 18;
+      probe.drawImage(node, 0, 0, 32, 18);
+      return probe.getImageData(0, 0, 32, 18).data.reduce((sum, value) => sum + value, 0);
+    });
   await contrast.fill('1.75');
-  await expect(video).not.toHaveAttribute('src', first!, { timeout: 45000 });
-  await expect(video).not.toHaveAttribute('data-preview-preparing', 'true');
-  const second = await video.getAttribute('src');
+  await expect(canvas).toHaveCount(1);
+  await expect(page.locator('.preview-label')).toHaveText('Real-time effects preview');
+  await expect.poll(pixel).toBeGreaterThan(32 * 18 * 255);
+  const strong = await pixel();
   await page.getByRole('button', { name: 'Undo edit', exact: true }).click();
-  await expect(video).toHaveAttribute('src', first!, { timeout: 2000 });
+  await expect(canvas).toHaveCount(0);
+  await expect(video).toBeVisible();
   await page.getByRole('button', { name: 'Redo edit', exact: true }).click();
-  await expect(video).toHaveAttribute('src', second!, { timeout: 2000 });
+  await expect.poll(pixel).toEqual(strong);
+  await openEffect(page, 'Color & LUTs');
+  await contrast.fill('0.5');
+  await expect.poll(pixel).not.toEqual(strong);
+  await expect(video).toHaveAttribute('src', original!);
+  await expect(video).not.toHaveAttribute('data-preview-effects', 'rendered');
+  await expect(video).not.toHaveAttribute('data-preview-preparing', 'true');
 });

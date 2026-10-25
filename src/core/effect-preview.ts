@@ -1,6 +1,7 @@
-import { hasCurves } from './curves';
+import { defaultCurves, hasCurves } from './curves';
 import { defaultPainting } from './painting';
-import { hasVisualAdjustments } from './visual-settings';
+import { defaultVisual, hasVisualAdjustments, isVisualEffect } from './visual-settings';
+import { defaultColor } from './color';
 import { framePreviewArgs } from './frame-preview';
 import { editClips, clipRecipe } from './clips';
 import { allAudioLayers, effectiveSpeed, extraInstances, instanceRecipe } from './effect-instances';
@@ -14,32 +15,41 @@ import type { PreviewRange } from './preview-clock';
 import { previewResolution } from './preview-resolution';
 import { seekPreviewClips } from './preview-seeking';
 
-/** These corrections cannot be represented by a media element or CSS alone. */
-export function needsEffectPreview(edit: EditSettings, realtimeAudio = false) {
+/**
+ * These corrections cannot be represented by a media element or CSS alone.
+ * With real-time grading, color, curves, LUTs and visual adjustments run on the
+ * GPU during playback, so they never require a rendered preview.
+ */
+export function needsEffectPreview(
+  edit: EditSettings,
+  realtimeAudio = false,
+  realtimeVideo = false,
+) {
   const needsRender = (view: EditSettings) =>
-    hasCurves(view.curves) ||
-    hasVisualAdjustments(view.visual) ||
     view.normalizeLoudness ||
     view.reduceNoise ||
     (!realtimeAudio &&
       (view.volume > 1 || Object.values(view.equalizer).some((value) => value !== 0))) ||
-    view.color.lut !== null ||
-    view.color.temperature !== 0 ||
-    view.color.brightness !== 0 ||
-    view.color.contrast !== 1 ||
-    view.color.saturation !== 1;
+    (!realtimeVideo &&
+      (hasCurves(view.curves) ||
+        hasVisualAdjustments(view.visual) ||
+        view.color.lut !== null ||
+        view.color.temperature !== 0 ||
+        view.color.brightness !== 0 ||
+        view.color.contrast !== 1 ||
+        view.color.saturation !== 1));
   const relevant = new Set([
-    'color',
-    'curves',
     'normalize',
     'noise',
     ...(realtimeAudio ? [] : ['volume', 'equalizer']),
+    ...(realtimeVideo ? [] : ['color', 'curves']),
   ]);
   const recipeNeedsRender = (recipe: EditSettings) =>
     needsRender(recipe) ||
     extraInstances(recipe).some(
       (instance) =>
-        (relevant.has(instance.effect) || instance.settings.visual !== undefined) &&
+        (relevant.has(instance.effect) ||
+          (!realtimeVideo && instance.settings.visual !== undefined)) &&
         needsRender(instanceRecipe(recipe, instance)),
     );
   return (
@@ -59,16 +69,44 @@ const liveVisual = new Set([
   'videoFadeIn',
   'videoFadeOut',
 ]);
-/** Keep frame objects/geometry/fades interactive; bake exact color and the complete audio mix. */
-export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): EditSettings {
+const gradeEffect = (effect: string) =>
+  effect === 'color' || effect === 'curves' || isVisualEffect(effect);
+/**
+ * Keep frame objects/geometry/fades interactive; bake the complete audio mix.
+ * Exact color is baked unless `realtimeVideo` grades it live. Media layers are
+ * composited by FFmpeg, so their recipes always bake geometry and color.
+ */
+export function effectPreviewRecipe(
+  asset: MediaAsset,
+  edit: EditSettings,
+  realtimeVideo = false,
+): EditSettings {
   if (asset.kind === 'image') return { ...edit, format: 'png' };
-  const bakeGeometry = !!edit.mediaLayers?.length;
+  const bakeGeometry = !!edit.mediaLayers?.length,
+    liveGrade = realtimeVideo && !bakeGeometry;
   const keepInstance = (instance: import('./effect-instances').EffectInstance) =>
     (!liveVisual.has(instance.effect) ||
       (bakeGeometry && ['crop', 'transform'].includes(instance.effect))) &&
-    instance.effect !== 'mix';
+    instance.effect !== 'mix' &&
+    !(liveGrade && gradeEffect(instance.effect));
+  const grade = (recipe: Partial<EditSettings>): Partial<EditSettings> =>
+    liveGrade
+      ? {
+          ...('color' in recipe ? { color: defaultColor() } : {}),
+          ...('curves' in recipe ? { curves: defaultCurves() } : {}),
+          ...('visual' in recipe ? { visual: defaultVisual() } : {}),
+          ...(recipe.effectRanges
+            ? {
+                effectRanges: Object.fromEntries(
+                  Object.entries(recipe.effectRanges).filter(([id]) => !gradeEffect(id)),
+                ),
+              }
+            : {}),
+        }
+      : {};
   const strip = (recipe: EditSettings): EditSettings => ({
     ...recipe,
+    ...grade(recipe),
     painting: defaultPainting(),
     shape: null,
     crop: bakeGeometry ? recipe.crop : null,
@@ -110,6 +148,7 @@ export function effectPreviewRecipe(asset: MediaAsset, edit: EditSettings): Edit
       end: clip.end,
       effects: {
         ...clip.effects,
+        ...grade(clip.effects),
         painting: defaultPainting(),
         shape: null,
         crop: bakeGeometry
