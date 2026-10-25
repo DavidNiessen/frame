@@ -3,6 +3,7 @@ import { parseTagOverrides } from './media-tags';
 import { parseImageResize } from './image-resize';
 import { parseImageOutput } from './image-settings';
 import { availableFormats, getFormat } from './formats';
+import { parseAcceleration } from './hardware';
 import { parseEdit } from './project';
 import { defaultSettings, type EditSettings, type MediaAsset } from './types';
 export type OutputSettings = Pick<
@@ -77,7 +78,7 @@ export function outputSettings(edit: OutputSettings): OutputSettings {
     audioSampleRate: audioSampleRate ?? null,
     audioChannels: audioChannels ?? null,
     wavDepth: wavDepth ?? 16,
-    acceleration: acceleration ?? 'software',
+    acceleration: acceleration ?? parseAcceleration(undefined),
     targetSizeMb: targetSizeMb ?? null,
     format,
     quality,
