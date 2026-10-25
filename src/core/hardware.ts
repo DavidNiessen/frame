@@ -15,7 +15,7 @@ export interface PreviewProxy {
   size: number;
 }
 export function parseAcceleration(value: unknown): Acceleration {
-  if (value === undefined) return 'software';
+  if (value === undefined) return 'auto';
   if (
     value !== 'software' &&
     value !== 'auto' &&

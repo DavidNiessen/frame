@@ -32,8 +32,8 @@ export function DesktopControls({ editor, proxies }: { editor: Editor; proxies: 
             value={edit.acceleration}
             onChange={(e) => editor.update({ acceleration: e.target.value as Acceleration })}
           >
-            <option value="software">Portable software FFmpeg</option>
             <option value="auto">Automatic hardware acceleration</option>
+            <option value="software">Portable software FFmpeg</option>
             {[
               ...new Set([
                 ...(capabilities?.encoders ?? []),
