@@ -1,7 +1,7 @@
 import { expect, type ElectronApplication, type Page } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { ffmpegPath } from '../../electron/native';
@@ -50,16 +50,6 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
         return analyser;
       };
     });
-    const fetchPrepared = async (url: string, name: string) => {
-      const bytes = await app!.evaluate(
-        async ({ net }, source) =>
-          Buffer.from(await (await net.fetch(source)).arrayBuffer()).toString('base64'),
-        url,
-      );
-      const path = join(directory, name);
-      await writeFile(path, Buffer.from(bytes, 'base64'));
-      return path;
-    };
     const rms = async () => {
       return page.evaluate(() => {
         const { analyser } = (window as typeof window & { effectAudio: { analyser: AnalyserNode } })
@@ -124,41 +114,22 @@ export async function verifyLiveEffects(page: Page, app?: ElectronApplication) {
       mimeType: 'text/plain',
       buffer: Buffer.from('LUT_3D_SIZE 2\n' + Array(8).fill('1 0 0').join('\n')),
     });
-    await expect(video).not.toHaveAttribute('src', audioOnlySource!, { timeout: 60000 });
-    await expect(video).toHaveAttribute('data-preview-effects', 'rendered');
-    await expect(video).toHaveJSProperty('readyState', 4);
+    // The LUT grades the decoded frames on the GPU; it must not encode a new preview.
+    const graded = page.locator('canvas[data-realtime-grade]');
+    await expect(graded).toHaveCount(1);
+    await expect(video).toHaveAttribute('src', audioOnlySource!);
+    await expect(video).not.toHaveAttribute('data-preview-effects', 'rendered');
     await expect(video).toHaveCSS('filter', 'none');
-    const color = app
-      ? [
-          ...(
-            await promisify(execFile)(
-              ffmpegPath(),
-              [
-                '-v',
-                'error',
-                '-i',
-                await fetchPrepared((await video.getAttribute('src'))!, 'playing.mp4'),
-                '-frames:v',
-                '1',
-                '-vf',
-                'scale=1:1',
-                '-f',
-                'rawvideo',
-                '-pix_fmt',
-                'rgb24',
-                '-',
-              ],
-              { encoding: 'buffer' },
-            )
-          ).stdout,
-        ]
-      : await video.evaluate((node) => {
-          const canvas = document.createElement('canvas');
-          canvas.width = canvas.height = 1;
-          const c = canvas.getContext('2d')!;
-          c.drawImage(node as HTMLVideoElement, 0, 0, 1, 1);
-          return [...c.getImageData(0, 0, 1, 1).data];
-        });
+    const pixel = () =>
+      graded.evaluate((node: HTMLCanvasElement) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        const c = canvas.getContext('2d')!;
+        c.drawImage(node, 0, 0, 1, 1);
+        return [...c.getImageData(0, 0, 1, 1).data];
+      });
+    await expect.poll(async () => (await pixel())[0]).toBeGreaterThan(220);
+    const color = await pixel();
     expect(color[0]).toBeGreaterThan(220);
     expect(color[1]).toBeLessThan(25);
     expect(color[2]).toBeLessThan(25);

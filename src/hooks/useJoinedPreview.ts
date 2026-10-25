@@ -10,6 +10,7 @@ import type { PreviewRange } from '../core/preview-clock';
 import type { EditSettings, MediaEngine } from '../core/types';
 import type { Editor } from './useEditor';
 import { previewCache } from '../core/preview-cache';
+import { realtimeGradeFor } from '../engines/grade-renderer';
 
 interface ReadyPreview {
   key: string;
@@ -24,13 +25,13 @@ interface ReadyPreview {
 
 /** One background stream owns cuts and export-quality corrections, with safe playback handoffs. */
 export function useJoinedPreview(editor: Editor, enabled = true) {
-  const recipe = useMemo(
-    () =>
-      editor.asset && editor.edit && needsEffectPreview(editor.edit, !!globalThis.AudioContext)
-        ? effectPreviewRecipe(editor.asset, editor.edit)
-        : null,
-    [editor.asset, editor.edit],
-  );
+  const recipe = useMemo(() => {
+    if (!editor.asset || !editor.edit) return null;
+    const realtimeVideo = realtimeGradeFor(editor.asset);
+    return needsEffectPreview(editor.edit, !!globalThis.AudioContext, realtimeVideo)
+      ? effectPreviewRecipe(editor.asset, editor.edit, realtimeVideo)
+      : null;
+  }, [editor.asset, editor.edit]);
   const ranges = useMemo(
     () =>
       editor.edit

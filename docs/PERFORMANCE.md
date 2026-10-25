@@ -2,8 +2,9 @@
 
 Frame keeps export settings separate from playback optimizations:
 
+- Color, curves, LUTs and visual adjustments (including timed and per-clip instances) grade the playing video in real time with WebGL2. Edits update the next displayed frame instead of encoding a new preview. The shader follows the export filter order and FFmpeg's formulas; a regression test compares 18 corrections against the export filters within 3/255 mean error. Film grain, sketch and emboss are close approximations. Recipes with media layers, animated GIF sources and browsers without WebGL2 keep the rendered preview. Grading resolution follows the displayed size (at most 1920 pixels, or 960 with software WebGL).
 - EQ and volume preview use a shared Web Audio route, including independent timed EQ instances. Ordinary EQ/gain edits do not encode the video. Noise reduction, normalization, visual corrections and rendered mixes still use FFmpeg when required.
-- Eligible video previews scale to a maximum 720-pixel edge before expensive color/visual filters. Pixel-based blur and pixelation parameters scale with the preview. Geometry-dependent compositions retain their existing processing order. Exports keep their selected resolution and full effect settings.
+- When a rendered preview is still required (noise reduction, normalization, audio and media layers), eligible video previews scale to a maximum 720-pixel edge before expensive color/visual filters. Pixel-based blur and pixelation parameters scale with the preview. Geometry-dependent compositions retain their existing processing order. Exports keep their selected resolution and full effect settings.
 - Desktop playback renders automatically try a tested hardware encoder, with portable software encoding as fallback.
 - Continuous cut previews and effect previews seek directly to retained excerpts, with up to eight independent inputs. Contiguous forward effect previews keep a single decoder. Larger assemblies retain the shared-input path.
 - Contiguous splits with identical settings share preview processing. Local clip fades remain independent.
@@ -28,6 +29,8 @@ An isolated timing-read benchmark with 1,000 clips (300 repeated reads) dropped 
 A later comparison isolated direct input seeking after the playback-resolution optimization: a four-second preview of source ranges 170–172 seconds followed by 0–2 seconds from a 180-second 1280 × 720, 15 fps H.264 source, with saturation 1.2. Two runs per version, in reversed order, measured 1,750/2,330 ms before and 194/243 ms after (medians 2,040 ms and 218.5 ms). Both outputs retained the same four-second duration.
 
 An isolated change-detection benchmark compared 50 recipes sharing a synthetic 2 MiB paint payload (25 unchanged, 25 with changed volume). Two runs measured 1,094.06/1,025.25 ms using full JSON serialization and 4.05/2.34 ms using value/reference comparisons. Both methods classified the same 25 recipes as unchanged. This measures only change detection, not complete edit latency.
+
+Real-time grading, web app in a CPU-only Linux container (software WebGL), 20-second 1920 × 1080, 30 fps H.264 source: changing color contrast took about 15.5 s per edit before (five edits: 16,331/15,455/15,521/15,544/15,711 ms until the re-rendered preview was playable). Afterwards, the time from changing the value to changed pixels on the preview canvas measured 46–131 ms (median 55 ms over seven edits). On GPU-accelerated WebGL the grading pass itself takes well under a frame.
 
 These are workload measurements, not guarantees for other machines or effect combinations. Regression tests also exercise real FFmpeg output, live audio, browser file mounting/runtime reuse, and cache cleanup.
 
