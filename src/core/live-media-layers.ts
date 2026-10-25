@@ -6,16 +6,21 @@ import type { EditSettings, MediaAsset } from './types';
 
 const identity = JSON.stringify(defaultGeometry());
 /**
- * Layers are measured against the output frame. The preview can place them in a
- * simple crop, but rotated, flipped, resized or stacked crops change the frame.
+ * Layers are measured against the output frame. Without a crop, the preview
+ * frame already is the output frame, whatever the rotation, flips or resizing.
+ * A simple crop is drawn over the whole source, so layers are placed inside it,
+ * which only matches the export while the base is otherwise untransformed.
  */
-const plainFrame = (recipe: EditSettings) =>
-  JSON.stringify(recipe.geometry ?? defaultGeometry()) === identity &&
-  !extraInstances(recipe).some(
-    (instance) =>
-      instance.effect === 'transform' ||
-      (instance.effect === 'crop' && (instance.timeSpace !== 'output' || !!recipe.crop)),
+const plainFrame = (recipe: EditSettings) => {
+  const instances = extraInstances(recipe),
+    crops = instances.filter((instance) => instance.effect === 'crop');
+  if (!recipe.crop && !crops.length) return true;
+  return (
+    JSON.stringify(recipe.geometry ?? defaultGeometry()) === identity &&
+    !instances.some((instance) => instance.effect === 'transform') &&
+    crops.every((instance) => instance.timeSpace === 'output' && !recipe.crop)
   );
+};
 const gif = (name: string) => /\.gif$/i.test(name);
 
 /**

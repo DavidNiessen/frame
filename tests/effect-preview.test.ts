@@ -436,7 +436,7 @@ it('renders only the soundtrack of a cut, speed-adjusted video and mixes audio t
   );
   expect(await probe(track)).toMatch(/Audio: mp3/);
 });
-it('leaves media layers over a simply cropped base to the live compositor and renders only their audio', () => {
+it('leaves media layers over transformed or simply cropped bases to the live compositor and renders only their audio', () => {
   const video = { ...audio, kind: 'video' as const, width: 640, height: 360, hasAudio: true },
     overlay = { ...video, id: 'overlay', name: 'overlay.mp4', previewUrl: 'blob:overlay' },
     layer: MediaLayer = {
@@ -459,6 +459,18 @@ it('leaves media layers over a simply cropped base to the live compositor and re
     liveMediaLayers(
       video,
       { ...edit, geometry: { ...edit.geometry, rotation: 90 } },
+      [video, overlay],
+      true,
+    ),
+  ).toBe(true);
+  expect(
+    liveMediaLayers(
+      video,
+      {
+        ...edit,
+        geometry: { ...edit.geometry, rotation: 90 },
+        crop: { x: 0, y: 0, width: 320, height: 180 },
+      },
       [video, overlay],
       true,
     ),
