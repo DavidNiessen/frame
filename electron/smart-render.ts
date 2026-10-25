@@ -40,8 +40,9 @@ async function inspect(
       [
         '-select_streams',
         'V:0',
-        '-show_entries',
-        'stream=codec_name,profile,pix_fmt,time_base,field_order:stream_side_data=rotation:stream_tags=rotate:format=start_time',
+        // Whole sections: older bundled FFprobe builds reject side-data entry filters.
+        '-show_streams',
+        '-show_format',
         '-of',
         'json',
         input,
