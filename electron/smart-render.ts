@@ -31,7 +31,7 @@ function probe(args: string[], signal: AbortSignal): Promise<string> {
     ),
   );
 }
-async function inspect(
+export async function inspect(
   input: string,
   signal: AbortSignal,
 ): Promise<{ source: SmartSource; packets: SmartPacket[] } | null> {
