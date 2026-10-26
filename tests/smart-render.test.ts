@@ -272,7 +272,17 @@ describe('HEVC smart rendering', () => {
 
   it.runIf(process.platform === 'darwin')(
     'plays back correctly through AVFoundation',
-    async () => {
+    async (context) => {
+      // Virtualized CI Macs may have no HEVC decoder; only judge smart output where the
+      // source itself plays.
+      const playable = await playThroughAvFoundation(hevc.source).then(
+        () => true,
+        (error: Error) => (
+          console.warn(`AVFoundation cannot decode the HEVC source: ${error.message}`),
+          false
+        ),
+      );
+      if (!playable) context.skip();
       const edit = { ...defaultSettings(hevc.asset), cuts: [{ start: 3.2, end: 7.9 }] };
       const { smart, output } = await render(edit, hevc);
       expect(smart).toBe(true);
