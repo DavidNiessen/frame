@@ -3,6 +3,7 @@ import { browserImageEncoding, renderedImagePath } from './browser-image-encodin
 import { browserRuntime } from './browser-runtime';
 import { joinedPreviewArgs } from '../core/joined-preview';
 import { effectPreviewArgs, effectPreviewRecipe } from '../core/effect-preview';
+import { videoFilters } from '../core/filters';
 import { resolveAudioLayers } from '../core/audio-layers';
 import { editedDuration } from '../core/timeline';
 import { browserResources } from './browser-resources';
@@ -80,16 +81,28 @@ export function browserJoinedPreview(files: Map<string, File>, sources: Map<stri
           edit && asset.kind === 'image'
             ? await browserImageEncoding(ff, asset, edit, input, resources!.paths[0], progress)
             : undefined;
-        const plan = image
-          ? effectPreviewArgs(image.asset, image.settings, image.input, output, resources!.paths[0])
-          : edit
-            ? effectPreviewArgs(asset, edit, input, output, resources!.paths[0], layers)
-            : joinedPreviewArgs(asset, ranges, input, output);
-        if ((await ff.exec(plan)) !== 0)
-          throw new Error(
-            `Could not prepare ${edit ? 'effects' : 'continuous'} preview. ${errors.slice(-4).join(' ')}`,
-          );
-        const data = await ff.readFile(output);
+        // A rendered layer stack is already the finished picture; encoding it again only costs time.
+        const finished =
+          image?.input === renderedImagePath &&
+          !videoFilters(image.asset, image.settings, resources!.paths[0]).length;
+        if (!finished) {
+          const plan = image
+            ? effectPreviewArgs(
+                image.asset,
+                image.settings,
+                image.input,
+                output,
+                resources!.paths[0],
+              )
+            : edit
+              ? effectPreviewArgs(asset, edit, input, output, resources!.paths[0], layers)
+              : joinedPreviewArgs(asset, ranges, input, output);
+          if ((await ff.exec(plan)) !== 0)
+            throw new Error(
+              `Could not prepare ${edit ? 'effects' : 'continuous'} preview. ${errors.slice(-4).join(' ')}`,
+            );
+        }
+        const data = await ff.readFile(finished ? renderedImagePath : output);
         if (typeof data === 'string') throw new Error('Invalid preview output.');
         if (data.length > MAX_WEB_FILE_SIZE)
           throw new Error(

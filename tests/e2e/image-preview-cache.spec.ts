@@ -14,7 +14,10 @@ test('reuses image backgrounds, undo/redo renders and zoom without redundant enc
       options?: Transferable[] | StructuredSerializeOptions,
     ) {
       const packet = message as { type?: string; data?: { args?: string[] } };
-      if (packet.type === 'EXEC' && packet.data?.args?.at(-1) === 'joined.png')
+      if (
+        packet.type === 'EXEC' &&
+        /^(joined|image-stage-\d+)\.png$/.test(packet.data?.args?.at(-1) ?? '')
+      )
         Reflect.set(window, 'imagePreviewRenders', Reflect.get(window, 'imagePreviewRenders') + 1);
       Reflect.apply(post, this, [message, options ?? []]);
     };

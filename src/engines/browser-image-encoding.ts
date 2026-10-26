@@ -35,8 +35,8 @@ export async function browserImageEncoding(
       await encodeBrowserOutput(
         ff,
         'png',
-        (_pass, path) =>
-          buildExportArgs(
+        (_pass, path) => {
+          const args = buildExportArgs(
             stage.source,
             {
               ...stage.recipe,
@@ -52,7 +52,11 @@ export async function browserImageEncoding(
             source,
             path,
             stage.paths,
-          ),
+          );
+          // Each stage is read back once, so fast compression beats a smaller file.
+          args.splice(-1, 0, '-compression_level', '1');
+          return args;
+        },
         destination,
         1,
         (p) =>
