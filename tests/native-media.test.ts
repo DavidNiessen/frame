@@ -133,6 +133,42 @@ describe('portable native media engine', () => {
     expect(info.streams[0].codec_name).toBe('flac');
     expect(Number(info.format.duration)).toBeCloseTo(2, 1);
   });
+  it.each(['aif', 'AIFF'])(
+    'reads and trims real .%s audio before converting to FLAC',
+    async (extension) => {
+      const input = join(directory, `song.${extension}`);
+      await exec(ffmpegPath(), [
+        '-y',
+        '-f',
+        'lavfi',
+        '-i',
+        'sine=frequency=440:duration=2',
+        '-c:a',
+        'pcm_s24be',
+        input,
+      ]);
+      const audio: MediaAsset = {
+        ...(await probeFile(input)),
+        id: extension,
+        name: `song.${extension}`,
+        previewUrl: '',
+      };
+      expect(audio.kind).toBe('audio');
+      expect(audio.hasAudio).toBe(true);
+      expect(audio.duration).toBeCloseTo(2, 2);
+      const output = join(directory, `${extension}.flac`);
+      await transcode(
+        input,
+        output,
+        audio,
+        { ...defaultSettings(audio), format: 'flac', start: 0.5, end: 1.5 },
+        () => {},
+      ).done;
+      const info = await inspect(output);
+      expect(info.streams[0].codec_name).toBe('flac');
+      expect(Number(info.format.duration)).toBeCloseTo(1, 2);
+    },
+  );
   it('applies volume changes to decoded audio samples', async () => {
     const original = join(directory, 'original.wav');
     const quieter = join(directory, 'quieter.wav');

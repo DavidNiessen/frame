@@ -28,7 +28,7 @@ A cross-platform media editor and converter for images, video and audio. Edit a 
 - **Workspace:** undo/redo, portable `.frame.json` projects, automatic local recovery, resizable panels, keyboard shortcuts and a command palette.
 - **Appearance:** system light/dark detection, Light, Dark and High contrast themes, responsive layouts and reduced-motion support.
 
-Output formats: **PNG, JPEG, WebP, BMP, TIFF, MP4, MOV, MKV, WebM, GIF, MP3, WAV, FLAC, OGG and M4A**. Input support depends on FFmpeg and the playback capabilities of your platform; desktop proxies help preview formats that the browser cannot play directly.
+Output formats: **PNG, JPEG, WebP, BMP, TIFF, MP4, MOV, MKV, WebM, GIF, MP3, WAV, FLAC, OGG and M4A**. AIFF audio inputs support both **.aif** and **.aiff** extensions. Input support depends on FFmpeg and the playback capabilities of your platform; desktop proxies help preview formats that the browser cannot play directly.
 
 ## Desktop and web
 

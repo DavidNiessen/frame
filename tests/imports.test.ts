@@ -1,5 +1,19 @@
 import { expect, it } from 'vitest';
-import { orderBrowserFiles } from '../src/core/imports';
+import { isMediaFilename, orderBrowserFiles } from '../src/core/imports';
+import { acceptMedia } from '../src/core/types';
+import { remoteFilename } from '../src/core/remote-media';
+
+it.each(['aif', 'AIF', 'aiff', 'AIFF'])(
+  'accepts .%s audio in file pickers and URL imports',
+  (extension) => {
+    const name = `Song.${extension}`;
+    expect(isMediaFilename(name)).toBe(true);
+    expect(acceptMedia.split(',')).toContain(`.${extension.toLowerCase()}`);
+    expect(remoteFilename(new URL(`https://media.test/${name}`), new Headers()).name).toBe(
+      `Song.${extension.toLowerCase()}`,
+    );
+  },
+);
 
 function file(path: string, folder = true) {
   const file = new File(['media'], path.split('/').at(-1)!);
