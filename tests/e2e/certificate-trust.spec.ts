@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 test('guides Windows certificate approval, recovers from cancellation and offers revocation without layout overflow', async ({
   page,
 }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   await page.addInitScript(() => {
     let trustAttempts = 0;
     let status = {
@@ -21,6 +23,12 @@ test('guides Windows certificate approval, recovers from cancellation and offers
       nextLaunch: async () => null,
       onLaunchAvailable: () => () => {},
       shellIntegrationStatus: async () => status,
+      lexiconPluginStatus: async () => ({
+        available: false,
+        state: 'no-lexicon',
+        pluginsFolder: '',
+        detail: 'Lexicon is not installed on this PC.',
+      }),
       setShellIntegration: async () => {
         throw new Error('Certificate approval must use the certificate API.');
       },
@@ -72,4 +80,5 @@ test('guides Windows certificate approval, recovers from cancellation and offers
     page.locator('section[aria-labelledby="integration-heading"] .integration-badge'),
   ).toHaveText('Not installed');
   await expect(trust).toBeEnabled();
+  expect(pageErrors).toEqual([]);
 });
