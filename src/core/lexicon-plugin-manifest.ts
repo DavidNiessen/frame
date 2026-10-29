@@ -1,16 +1,22 @@
-import {
-  LEXICON_ADD,
-  LEXICON_EXPORT_FOLDER,
-  LEXICON_IMPORT_MODE,
-  LEXICON_PRESET,
-  LEXICON_RELINK,
-} from './lexicon-plugin';
+import { LEXICON_ADD, LEXICON_IMPORT_MODE, LEXICON_RELINK } from './lexicon-plugin';
 
-const files = { read: true, write: true, list: true };
-const importMode = {
-  type: 'dropdown',
-  default: LEXICON_RELINK,
-  options: [LEXICON_RELINK, LEXICON_ADD],
+const config = {
+  permissions: {
+    track: {
+      read: ['selected'],
+      modify: ['selected'],
+      modifyFields: ['location'],
+      create: true,
+    },
+    files: { read: true, write: true, list: true },
+  },
+  settings: {
+    [LEXICON_IMPORT_MODE]: {
+      type: 'dropdown',
+      default: LEXICON_RELINK,
+      options: [LEXICON_RELINK, LEXICON_ADD],
+    },
+  },
 };
 
 /** config.json of the Lexicon plugin; see https://www.lexicondj.com/docs/developers/plugin */
@@ -20,65 +26,17 @@ export const lexiconPluginManifest = {
   actions: [
     {
       id: 'frame.convert',
-      name: 'Convert With Frame',
+      name: 'Convert In Frame',
       description:
-        'Converts the selected tracks with a Frame preset, then relinks them to the new files (keeping cues, beatgrids, tags and playlists) or adds them as new tracks. The original files stay on disk.\n\nFrame must be open.',
-      config: {
-        permissions: {
-          track: {
-            read: ['selected'],
-            modify: ['selected'],
-            modifyFields: ['location'],
-            create: true,
-          },
-          files,
-        },
-        settings: { [LEXICON_IMPORT_MODE]: importMode, [LEXICON_PRESET]: '' },
-      },
-    },
-    {
-      id: 'frame.export',
-      name: 'Export With Frame',
-      description:
-        'Converts the selected tracks, or the selected playlist, into a folder such as a USB drive. Your library does not change.\n\nFrame must be open.',
-      config: {
-        permissions: { track: { read: ['selected'] }, playlist: { read: ['selected'] }, files },
-        settings: { [LEXICON_EXPORT_FOLDER]: '', [LEXICON_PRESET]: '' },
-      },
+        "Opens the selected tracks in Frame's converter. Choose the format and folder there; when you close the converter, the tracks are relinked to the converted files, keeping cues, beatgrids, tags and playlists.\n\nFrame must be open.",
+      config,
     },
     {
       id: 'frame.edit',
       name: 'Edit In Frame',
       description:
-        'Opens the selected tracks in Frame\'s editor to trim, fade, normalize loudness or clean up noise. Save there, then run "Import From Frame".',
-      config: { permissions: { track: { read: ['selected'] }, files } },
-    },
-    {
-      id: 'frame.import',
-      name: 'Import From Frame',
-      description:
-        'Brings edits saved in Frame into your library, relinking the tracks or adding the files as new tracks.',
-      config: {
-        permissions: {
-          track: {
-            read: ['all'],
-            modify: ['all'],
-            modifyFields: ['location'],
-            create: true,
-          },
-          files,
-        },
-        settings: { [LEXICON_IMPORT_MODE]: importMode },
-        exclusive: true,
-        confirmationMessage:
-          'This updates your library with the files saved in Frame. The original files stay on disk.\n\nMake sure you have a backup. Continue?',
-      },
-    },
-    {
-      id: 'frame.status',
-      name: 'Frame Status',
-      description: 'Shows what was last sent to Frame and how far it is.',
-      config: { permissions: { files: { read: true, list: true } } },
+        "Opens the selected tracks in Frame's editor to trim, fade, normalize loudness or clean up noise. Once every track is saved, or you close the editor, the tracks are relinked to the edited files.\n\nFrame must be open.",
+      config,
     },
   ],
 };

@@ -52,7 +52,6 @@ const bridge: DesktopBridge = {
   changeShellCertificate: (action) => ipcRenderer.invoke('desktop:shell-certificate', action),
   lexiconPluginStatus: () => ipcRenderer.invoke('lexicon:status'),
   setLexiconPlugin: (enabled) => ipcRenderer.invoke('lexicon:install', enabled),
-  shareLexiconPresets: (presets) => ipcRenderer.invoke('lexicon:presets', presets),
   nextLaunch: () => ipcRenderer.invoke('desktop:next-launch'),
   importLaunch: (id) => ipcRenderer.invoke('desktop:import-launch', id),
   onLaunchAvailable: (callback) => {

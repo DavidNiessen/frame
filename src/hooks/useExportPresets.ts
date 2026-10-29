@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   outputSettings,
   parseOutputSettings,
@@ -16,10 +16,6 @@ export function useExportPresets() {
     }
   });
   const [message, setMessage] = useState('');
-  useEffect(() => {
-    // The Lexicon plugin offers saved audio presets; Frame's main process cannot read storage.
-    void window.frameDesktop?.shareLexiconPresets?.(presets).catch(() => {});
-  }, [presets]);
   function store(next: ExportPreset[]) {
     setPresets(next);
     try {

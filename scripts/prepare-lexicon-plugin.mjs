@@ -5,29 +5,16 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { lexiconSandboxViolations, toLexiconSandbox } from './lexicon-sandbox.mjs';
 
-const actions = {
-  'frame.convert': 'convertWithFrame',
-  'frame.export': 'exportWithFrame',
-  'frame.edit': 'editInFrame',
-  'frame.import': 'importFromFrame',
-  'frame.status': 'frameStatus',
-};
+const actions = { 'frame.convert': 'convertInFrame', 'frame.edit': 'editInFrame' };
 // Adapts Lexicon's plugin globals to LexiconPluginApi. Globals are only touched when used,
 // because Lexicon leaves them null for actions without the matching permission.
 const sandboxApi = `{
   selectedTracks: function () { return _vars.tracksSelected || [] },
-  selectedPlaylistTracks: async function () {
-    const playlists = _vars.playlistsSelected || [];
-    return playlists.length ? await playlists[0].getTracks() : [];
-  },
-  totalTracks: function () { return _vars.tracksAllAmount || 0 },
-  nextBatch: function () { return _library.track.getNextAllBatch() },
   createTracks: function (locations) { return _library.track.create(locations) },
   listFiles: function () { return _files.list() },
   readFile: function (name) { return _files.read(name) },
   writeFile: function (name, contents) { return _files.write(name, contents) },
   setting: function (name) { return _settings[name] },
-  ask: function (dialog) { return _ui.showInputDialog(dialog) },
   report: function (message) { _helpers.Report(message) },
   log: function (message) { _helpers.Log(message) },
   progress: function (ratio) { _ui.progress(ratio) },

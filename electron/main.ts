@@ -4,7 +4,7 @@ import { configureShutdown } from './shutdown';
 import { configureInstalledFonts } from './installed-fonts';
 import { configureExportHistory } from './export-history';
 import { configureWatchFolders } from './watch-folders';
-import { configureLexicon } from './lexicon-integration';
+import { configureLexicon, finishLexiconRequests } from './lexicon-integration';
 import {
   app,
   BrowserWindow,
@@ -147,6 +147,8 @@ function openWindow(kind: WindowKind) {
       });
     } else configureWindowControls(window, ipc);
     window.once('closed', () => {
+      // Lexicon relinks the tracks it sent here once their window closes.
+      void finishLexiconRequests(mini ? 'convert' : 'edit');
       windows.delete(kind);
       sessions.delete(id);
       inboxes[kind].clear();

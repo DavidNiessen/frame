@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,30 +7,22 @@ import { runInNewContext } from 'node:vm';
 import { strFromU8, unzipSync } from 'fflate';
 import {
   LEXICON_EXPORTS_FILE,
-  LEXICON_HELLO_FILE,
-  LEXICON_IMPORTED_FILE,
   LEXICON_PLUGIN_FILE,
-  LEXICON_PRESETS_FILE,
   LEXICON_REQUEST_FILE,
+  everyTrackSaved,
   lexiconLocation,
   parseExports,
   parseRequest,
   recordLexiconExport,
-  recordLexiconFailure,
-  type LexiconExports,
+  type LexiconExport,
   type LexiconRequest,
 } from '../src/core/lexicon';
-import { lexiconBuiltInPresets, lexiconPresets, presetChoices } from '../src/core/lexicon-presets';
-import { builtInPresets } from '../src/core/presets';
 import {
   LEXICON_ADD,
   LEXICON_IMPORT_MODE,
-  convertWithFrame,
+  LEXICON_STALE_AFTER,
+  convertInFrame,
   editInFrame,
-  exportWithFrame,
-  frameStatus,
-  importFromFrame,
-  type LexiconDialog,
   type LexiconPluginApi,
   type LexiconTrack,
 } from '../src/core/lexicon-plugin';
@@ -39,7 +31,6 @@ import {
   installLexiconPlugin,
   lexiconPluginStatus,
   lexiconPluginsFolder,
-  type LexiconRequestOptions,
 } from '../electron/lexicon-plugin';
 // @ts-expect-error The build scripts are plain JavaScript modules.
 import { lexiconSandboxViolations, toLexiconSandbox } from '../scripts/lexicon-sandbox.mjs';
@@ -50,7 +41,7 @@ const request = (overrides: Partial<LexiconRequest> = {}): LexiconRequest => ({
   version: 1,
   requestId: '1000-42',
   createdAt: 1000,
-  kind: 'edit',
+  kind: 'convert',
   status: 'opened',
   tracks: [
     { id: 1, location: 'C:/Music/Song.flac' },
@@ -65,30 +56,26 @@ const saved = (source: string, output: string, savedAt = 2000) => ({
   size: 10,
   savedAt,
 });
-const choices = presetChoices(lexiconBuiltInPresets);
-const publishedPresets = {
-  [LEXICON_PRESETS_FILE]: JSON.stringify({ version: 1, presets: choices }),
-};
+const output = (id: number, path: string, savedAt = 2000): LexiconExport => ({
+  id,
+  output: path,
+  format: 'mp3',
+  size: 1,
+  savedAt,
+});
 
 /**
  * An in-memory Lexicon. `frame` runs whenever an action waits, standing in for Frame
  * answering through the shared files.
  */
-function fakeLexicon(tracks: LexiconTrack[], files: Record<string, string> = {}) {
-  const reports: string[] = [],
-    dialogs: LexiconDialog[] = [],
-    answers: (string | null)[] = [],
+function fakeLexicon(tracks: LexiconTrack[]) {
+  const files: Record<string, string> = {},
+    reports: string[] = [],
     created: string[][] = [],
     settings: Record<string, string> = {},
-    lexicon = { frame: () => {}, playlist: [] as LexiconTrack[] };
-  let batches = 0,
-    clock = 1000;
+    lexicon = { frame: () => {}, clock: 1000 };
   const api: LexiconPluginApi = {
     selectedTracks: () => tracks,
-    selectedPlaylistTracks: async () => lexicon.playlist,
-    totalTracks: () => tracks.length,
-    // Lexicon pages through the library; return it in two batches.
-    nextBatch: async () => [tracks.slice(0, 1), tracks.slice(1), []][Math.min(batches++, 2)],
     createTracks: async (locations) => created.push(locations),
     listFiles: () => Object.keys(files),
     readFile: (name) => files[name],
@@ -96,64 +83,48 @@ function fakeLexicon(tracks: LexiconTrack[], files: Record<string, string> = {})
       files[name] = contents;
     },
     setting: (name) => settings[name],
-    ask: async (dialog) => {
-      dialogs.push(dialog);
-      return answers.length ? answers.shift()! : (dialog.default ?? null);
-    },
     report: (message) => reports.push(message),
     log: () => {},
     progress: () => {},
     wait: async (milliseconds) => {
-      clock += milliseconds;
+      lexicon.clock += milliseconds;
       lexicon.frame();
     },
-    now: () => clock,
+    now: () => lexicon.clock,
     random: () => 0.5,
   };
   const sent = () => JSON.parse(files[LEXICON_REQUEST_FILE]) as LexiconRequest;
-  const answer = (changes: Partial<LexiconRequest>, exports?: Partial<LexiconExports>) => {
+  const answer = (changes: Partial<LexiconRequest>, exports?: LexiconExport[]) => {
     files[LEXICON_REQUEST_FILE] = JSON.stringify({ ...sent(), ...changes });
     if (exports)
       files[LEXICON_EXPORTS_FILE] = JSON.stringify({
         version: 1,
         requestId: sent().requestId,
-        exports: [],
-        failures: [],
-        ...exports,
+        exports,
       });
   };
-  return { api, files, reports, dialogs, answers, created, settings, lexicon, sent, answer };
+  return { api, files, reports, created, settings, lexicon, sent, answer };
 }
 
 describe('Lexicon protocol', () => {
   it('validates requests and outputs read from the plugin folder', () => {
-    const convert = request({
-      kind: 'convert',
-      status: 'converting',
-      presetId: 'p',
-      progress: 0.5,
-    });
-    expect(parseRequest(request())).toEqual(request());
-    expect(parseRequest(convert)).toEqual(convert);
+    expect(parseRequest(request({ seenAt: 5 }))).toEqual(request({ seenAt: 5 }));
     for (const value of [
       null,
       { ...request(), version: 2 },
       { ...request(), requestId: '../escape' },
-      { ...request(), kind: 'delete' },
-      { ...request(), status: 'done!' },
+      { ...request(), kind: 'export' },
+      { ...request(), status: 'converting' },
       { ...request(), tracks: [{ id: -1, location: 'a.mp3' }] },
       { ...request(), tracks: [{ id: 1, location: 'a\0.mp3' }] },
       { ...request(), tracks: Array.from({ length: 2001 }, (_, id) => ({ id, location: 'a' })) },
-      { ...convert, presetId: undefined },
-      { ...convert, kind: 'export' },
-      { ...convert, progress: 2 },
+      { ...request(), seenAt: 'now' },
     ])
       expect(() => parseRequest(value)).toThrow();
     expect(() => parseExports({ version: 1, requestId: 'x', exports: [{ id: 1 }] })).toThrow();
-    expect(parseExports({ version: 1, requestId: 'x', exports: [] }).failures).toEqual([]);
   });
 
-  it('records outputs and failures of requested tracks, matching locations by platform', () => {
+  it('records outputs of requested tracks, matching locations by platform', () => {
     const first = recordLexiconExport(
       request(),
       null,
@@ -173,172 +144,101 @@ describe('Lexicon protocol', () => {
     for (const [current, source, savedAt, platform] of [
       [request(), 'c:/music/song.flac', 2000, 'linux'],
       [request(), 'C:/Music/Song.flac', 999, 'win32'],
-      [request({ status: 'pending' }), 'C:/Music/Song.flac', 2000, 'win32'],
+      [request({ status: 'done' }), 'C:/Music/Song.flac', 2000, 'win32'],
       [request(), 'C:/Music/Unrelated.flac', 2000, 'win32'],
     ] as const)
       expect(
         recordLexiconExport(current, null, saved(source, 'out.mp3', savedAt), platform),
       ).toBeNull();
-    expect(recordLexiconFailure(request(), first, { id: 2, error: 'Broken' })).toMatchObject({
-      exports: first!.exports,
-      failures: [{ id: 2, error: 'Broken' }],
-    });
+    expect(everyTrackSaved(request(), first!)).toBe(false);
     expect(lexiconLocation('C:\\a\\b.mp3')).toBe('C:/a/b.mp3');
-  });
-
-  it('offers DJ audio presets followed by saved audio presets', () => {
-    expect(lexiconBuiltInPresets.map((preset) => preset.settings.format)).toEqual([
-      'mp3',
-      'm4a',
-      'wav',
-      'wav',
-      'mp3',
-      'flac',
-    ]);
-    expect(lexiconBuiltInPresets[0].settings.audioBitrate).toBe(320);
-    expect(lexiconBuiltInPresets[2].settings).toMatchObject({
-      wavDepth: 16,
-      audioSampleRate: 44100,
-    });
-    const video = { ...builtInPresets[3], id: 'user:video', name: 'Video' },
-      audio = { ...lexiconBuiltInPresets[0], id: 'user:audio', name: 'Mine' };
-    expect(lexiconPresets([video, audio]).at(-1)).toBe(audio);
-    expect(lexiconPresets([video, audio])).not.toContain(video);
   });
 });
 
 describe('Lexicon plugin actions', () => {
-  it('converts with a chosen preset once Frame publishes presets, then relinks', async () => {
+  it('waits while tracks are converted in Frame, then relinks them to the newest files', async () => {
     const tracks: LexiconTrack[] = [
       { id: 1, type: '0', location: 'C:/Music/Song.flac' },
-      { id: 2, location: 'C:/Music/Broken.wav' },
+      { id: 2, location: 'C:/Music/Other.wav' },
       { id: 3, type: '1' },
     ];
     const lexicon = fakeLexicon(tracks);
-    lexicon.answers.push(choices[1].name);
     let ticks = 0;
     lexicon.lexicon.frame = () => {
-      // Frame finds the hello file, publishes presets, then works through the request.
-      if (!lexicon.files[LEXICON_PRESETS_FILE] && lexicon.files[LEXICON_HELLO_FILE])
-        lexicon.files[LEXICON_PRESETS_FILE] = publishedPresets[LEXICON_PRESETS_FILE];
-      if (!lexicon.files[LEXICON_REQUEST_FILE]) return;
       ticks++;
-      if (ticks === 1) lexicon.answer({ status: 'converting', progress: 0.5 });
-      if (ticks === 2)
-        lexicon.answer(
-          { status: 'done', progress: 1 },
-          {
-            exports: [{ id: 1, output: 'C:/Music/Song.m4a', format: 'm4a', size: 9, savedAt: 2 }],
-            failures: [{ id: 2, error: 'Unsupported file.' }],
-          },
-        );
+      const seenAt = lexicon.lexicon.clock;
+      if (ticks === 1) lexicon.answer({ status: 'opened', seenAt });
+      // The user converts one track twice, then closes the converter.
+      if (ticks === 3)
+        lexicon.answer({ seenAt }, [
+          output(1, 'C:/Music/Song.mp3', 2000),
+          output(1, 'C:/Music/Song.wav', 3000),
+        ]);
+      if (ticks === 5) lexicon.answer({ status: 'done' });
     };
-    await convertWithFrame(lexicon.api);
+    await convertInFrame(lexicon.api);
     expect(lexicon.sent()).toMatchObject({
       kind: 'convert',
-      presetId: choices[1].id,
       tracks: [
         { id: 1, location: 'C:/Music/Song.flac' },
-        { id: 2, location: 'C:/Music/Broken.wav' },
+        { id: 2, location: 'C:/Music/Other.wav' },
       ],
     });
-    expect(lexicon.dialogs[0]).toMatchObject({ input: 'select', settingsKey: 'Preset' });
-    expect(tracks[0]).toEqual({ id: 1, type: '0', location: 'C:/Music/Song.m4a' });
+    expect(tracks.map((track) => track.location)).toEqual([
+      'C:/Music/Song.wav',
+      'C:/Music/Other.wav',
+      undefined,
+    ]);
     expect(lexicon.reports).toEqual([
       'Skipped 1 streaming track(s).',
-      'Relinked 1 track(s) to their converted files.',
-      '1 track(s) could not be converted:',
-      '• Track 2: Unsupported file.',
+      'Relinked 1 track(s) to the files saved in Frame.',
+      '1 track(s) were not saved in Frame and stay unchanged.',
     ]);
-    // The convert action imported everything already; a manual import finds nothing new.
-    lexicon.reports.length = 0;
-    await importFromFrame(lexicon.api);
-    expect(lexicon.reports).toEqual(['Everything from Frame is already imported.']);
   });
 
-  it('stops cleanly when Frame is closed or the dialog is cancelled', async () => {
+  it('adds edits as new tracks when chosen, and stops when Frame quits', async () => {
+    const lexicon = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }]);
+    lexicon.settings[LEXICON_IMPORT_MODE] = LEXICON_ADD;
+    let ticks = 0;
+    lexicon.lexicon.frame = () => {
+      // Frame opens the editor, saves once, then stops confirming: it has quit.
+      if (++ticks === 1)
+        lexicon.answer({ status: 'opened', seenAt: lexicon.lexicon.clock }, [
+          output(1, 'C:/Edits/Song.wav'),
+        ]);
+    };
+    await editInFrame(lexicon.api);
+    expect(lexicon.sent().kind).toBe('edit');
+    expect(lexicon.lexicon.clock).toBeGreaterThanOrEqual(1000 + LEXICON_STALE_AFTER);
+    expect(lexicon.created).toEqual([['C:/Edits/Song.wav']]);
+    expect(lexicon.reports).toEqual(['Added 1 file(s) saved in Frame to your library.']);
+  });
+
+  it('reports when Frame is closed, cannot open the files, or nothing is saved', async () => {
     const closed = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }]);
-    await convertWithFrame(closed.api);
-    expect(closed.files[LEXICON_REQUEST_FILE]).toBeUndefined();
+    await convertInFrame(closed.api);
     expect(closed.reports).toEqual(['Frame did not respond. Open Frame, then try again.']);
 
-    const cancelled = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }], {
-      ...publishedPresets,
-    });
-    cancelled.answers.push(null);
-    await convertWithFrame(cancelled.api);
-    expect(cancelled.files[LEXICON_REQUEST_FILE]).toBeUndefined();
+    const missing = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }]);
+    missing.lexicon.frame = () => missing.answer({ status: 'failed', error: 'Files not found.' });
+    await convertInFrame(missing.api);
+    expect(missing.reports).toEqual(['Frame could not open the tracks: Files not found.']);
 
-    const unanswered = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }], {
-      ...publishedPresets,
-    });
-    await convertWithFrame(unanswered.api);
-    expect(unanswered.sent().status).toBe('pending');
-    expect(unanswered.reports[0]).toMatch(/did not finish the conversion/);
-  });
-
-  it('exports the selected playlist to a folder without touching the library', async () => {
-    const lexicon = fakeLexicon([], { ...publishedPresets });
-    lexicon.lexicon.playlist = [{ id: 5, location: 'C:/Music/Set/Intro.flac' }];
-    lexicon.settings['Export folder'] = 'E:/USB';
-    lexicon.lexicon.frame = () =>
-      lexicon.answer(
-        { status: 'done' },
-        { exports: [{ id: 5, output: 'E:/USB/Intro.wav', format: 'wav', size: 1, savedAt: 2 }] },
-      );
-    await exportWithFrame(lexicon.api);
-    expect(lexicon.sent()).toMatchObject({
-      kind: 'export',
-      destination: 'E:/USB',
-      presetId: choices[0].id,
-    });
-    expect(lexicon.reports).toEqual(['Exported 1 file(s) to E:/USB.']);
-    expect(lexicon.files[LEXICON_IMPORTED_FILE]).toBeUndefined();
-  });
-
-  it('imports each edit saved in Frame once, using the newest file per track', async () => {
-    const tracks: LexiconTrack[] = [
-      { id: 2, location: 'C:/Music/Other.wav' },
-      { id: 1, location: 'C:/Music/Song.flac' },
-    ];
-    const lexicon = fakeLexicon(tracks);
-    lexicon.lexicon.frame = () => lexicon.answer({ status: 'opened' });
-    await editInFrame(lexicon.api);
-    expect(lexicon.reports[0]).toBe("Opened 2 track(s) in Frame's editor.");
-    lexicon.answer(
-      {},
-      {
-        exports: [
-          { id: 1, output: 'C:/Out/Song.mp3', format: 'mp3', size: 5, savedAt: 2000 },
-          { id: 1, output: 'C:/Out/Song.flac', format: 'flac', size: 9, savedAt: 3000 },
-          { id: 3, output: 'C:/Out/Gone.mp3', format: 'mp3', size: 1, savedAt: 2000 },
-        ],
-      },
-    );
-    lexicon.reports.length = 0;
-    await importFromFrame(lexicon.api);
-    expect(tracks[1]).toEqual({ id: 1, location: 'C:/Out/Song.flac' });
-    expect(lexicon.reports).toEqual([
-      'Relinked 1 track(s) to their converted files.',
-      '1 track(s) are no longer in your library.',
+    const unchanged = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }]);
+    unchanged.lexicon.frame = () => unchanged.answer({ status: 'done' });
+    await editInFrame(unchanged.api);
+    expect(unchanged.reports).toEqual([
+      'Nothing was saved in Frame, so your library is unchanged.',
     ]);
-    lexicon.reports.length = 0;
-    await importFromFrame(lexicon.api);
-    expect(lexicon.reports).toEqual(['Everything from Frame is already imported.']);
 
-    const adding = fakeLexicon([], { ...lexicon.files });
-    delete adding.files[LEXICON_IMPORTED_FILE];
-    adding.settings[LEXICON_IMPORT_MODE] = LEXICON_ADD;
-    await importFromFrame(adding.api);
-    expect(adding.created).toEqual([['C:/Out/Song.flac', 'C:/Out/Gone.mp3']]);
-
-    frameStatus(lexicon.api);
-    expect(lexicon.reports.at(-1)).toBe('2 file(s) saved, 2 imported, 0 failed.');
+    const none = fakeLexicon([{ id: 1, type: 1 }]);
+    await convertInFrame(none.api);
+    expect(none.files[LEXICON_REQUEST_FILE]).toBeUndefined();
   });
 });
 
 describe('Lexicon integration', () => {
-  async function fixture(overrides: Partial<LexiconRequestOptions> = {}) {
+  async function fixture() {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'frame-lexicon-')));
     const documents = join(root, 'Documents'),
       music = join(root, 'Music'),
@@ -346,55 +246,29 @@ describe('Lexicon integration', () => {
       plugins = lexiconPluginsFolder(documents),
       folder = join(plugins, 'Frame', 'Files'),
       opened: [string[], string][] = [],
-      converted: string[] = [];
+      clock = { now: 10000 };
     await mkdir(music, { recursive: true });
     await mkdir(folder, { recursive: true });
     await writeFile(join(music, 'Song.flac'), 'audio');
+    await writeFile(join(music, 'Other.flac'), 'audio');
     await writeFile(bundled, 'plugin v2');
     const requests = new LexiconRequests({
       pluginsFolder: plugins,
-      presets: () => lexiconBuiltInPresets,
       open: (paths, workflow) => opened.push([paths, workflow]),
-      // Stands in for FFmpeg: the output is a copy named after the preset's format.
-      convert: async (work) => {
-        converted.push(work.source);
-        work.progress(0.5);
-        const path = join(work.output, `Song.${work.settings.format}`);
-        await copyFile(work.source, path);
-        return { path, size: 5, format: work.settings.format };
-      },
-      progressInterval: 0,
-      ...overrides,
+      now: () => clock.now,
     });
-    const send = (changes: Partial<LexiconRequest>) =>
+    const tracks = [
+      { id: 1, location: lexiconLocation(join(music, 'Song.flac')) },
+      { id: 2, location: lexiconLocation(join(music, 'Other.flac')) },
+      { id: 3, location: lexiconLocation(join(music, 'Missing.wav')) },
+    ];
+    const send = (changes: Partial<LexiconRequest> = {}) =>
       writeFile(
         join(folder, LEXICON_REQUEST_FILE),
-        JSON.stringify(
-          request({
-            status: 'pending',
-            createdAt: 0,
-            tracks: [
-              { id: 1, location: lexiconLocation(join(music, 'Song.flac')) },
-              { id: 2, location: lexiconLocation(join(music, 'Missing.wav')) },
-            ],
-            ...changes,
-          }),
-        ),
+        JSON.stringify(request({ status: 'pending', createdAt: 0, tracks, ...changes })),
       );
     const read = async (name: string) => JSON.parse(await readFile(join(folder, name), 'utf8'));
-    return {
-      root,
-      documents,
-      music,
-      bundled,
-      plugins,
-      folder,
-      opened,
-      converted,
-      requests,
-      send,
-      read,
-    };
+    return { documents, music, bundled, plugins, opened, clock, requests, tracks, send, read };
   }
 
   it('installs, updates and removes the plugin in Lexicon', async () => {
@@ -413,76 +287,49 @@ describe('Lexicon integration', () => {
     expect((await lexiconPluginStatus(documents, bundled)).state).toBe('not-installed');
   });
 
-  it('publishes presets to the plugin folder and opens edit requests in the editor', async () => {
-    const { folder, music, opened, requests, send, read } = await fixture();
-    await writeFile(join(folder, LEXICON_HELLO_FILE), '{}');
-    await requests.poll();
-    expect((await read(LEXICON_PRESETS_FILE)).presets).toEqual(choices);
-    await send({});
+  it('opens existing tracks once, confirms the request, and finishes when all are saved', async () => {
+    const { music, opened, clock, requests, tracks, send, read } = await fixture();
+    await send();
     await requests.poll();
     await requests.poll();
-    expect(opened).toEqual([[[lexiconLocation(join(music, 'Song.flac'))], 'edit']]);
-    expect((await read(LEXICON_REQUEST_FILE)).status).toBe('opened');
+    expect(opened).toEqual([[[tracks[0].location, tracks[1].location], 'convert']]);
+    expect(await read(LEXICON_REQUEST_FILE)).toMatchObject({ status: 'opened', seenAt: 10000 });
+    clock.now += 6000;
+    await requests.poll();
+    expect((await read(LEXICON_REQUEST_FILE)).seenAt).toBe(16000);
 
     await requests.record(saved(join(music, 'Song.flac'), join(music, 'Song.mp3')));
     await requests.record(saved(join(music, 'Unrelated.flac'), join(music, 'Unrelated.mp3')));
-    const exports = parseExports(await read(LEXICON_EXPORTS_FILE));
-    expect(exports.exports.map((entry) => [entry.id, entry.output])).toEqual([
-      [1, lexiconLocation(join(music, 'Song.mp3'))],
-    ]);
-  });
-
-  it('converts next to the source or into an export folder, recording each result', async () => {
-    const { root, music, converted, requests, send, read } = await fixture();
-    await send({ kind: 'convert', presetId: 'lexicon:wav-16' });
-    await requests.poll();
-    await requests.settled();
-    expect(converted).toEqual([lexiconLocation(join(music, 'Song.flac'))]);
-    expect(await read(LEXICON_REQUEST_FILE)).toMatchObject({ status: 'done', progress: 1 });
-    const exports = parseExports(await read(LEXICON_EXPORTS_FILE));
-    expect(exports.exports.map((entry) => [entry.id, entry.output, entry.format])).toEqual([
-      [1, lexiconLocation(join(music, 'Song.wav')), 'wav'],
-    ]);
-    expect(exports.failures).toEqual([{ id: 2, error: 'The file was not found.' }]);
-
-    const usb = join(root, 'USB', 'Set');
-    await send({
-      kind: 'export',
-      presetId: 'builtin:lossless',
-      destination: usb,
-      requestId: '2-2',
-    });
-    await requests.poll();
-    await requests.settled();
-    expect(await readFile(join(usb, 'Song.flac'), 'utf8')).toBe('audio');
+    expect((await read(LEXICON_REQUEST_FILE)).status).toBe('opened');
+    expect(parseExports(await read(LEXICON_EXPORTS_FILE)).exports.map((entry) => entry.id)).toEqual(
+      [1],
+    );
+    // The missing track can never be saved, so the request finishes when its window closes.
+    await requests.record(saved(join(music, 'Other.flac'), join(music, 'Other.mp3')));
+    expect((await read(LEXICON_REQUEST_FILE)).status).toBe('opened');
+    await requests.finish('edit');
+    expect((await read(LEXICON_REQUEST_FILE)).status).toBe('opened');
+    await requests.finish('convert');
     expect((await read(LEXICON_REQUEST_FILE)).status).toBe('done');
   });
 
-  it('fails requests it cannot serve and reports when Frame stops mid-conversion', async () => {
-    const { requests, send, read } = await fixture();
-    await send({ tracks: [{ id: 1, location: '/nowhere/Song.flac' }] });
+  it('finishes as soon as every track is saved, and fails requests without files', async () => {
+    const { music, opened, requests, send, read } = await fixture();
+    await send({
+      kind: 'edit',
+      tracks: [{ id: 1, location: lexiconLocation(join(music, 'Song.flac')) }],
+    });
+    await requests.poll();
+    expect(opened[0][1]).toBe('edit');
+    await requests.record(saved(join(music, 'Song.flac'), join(music, 'Song (edit).wav')));
+    expect((await read(LEXICON_REQUEST_FILE)).status).toBe('done');
+
+    await send({ requestId: '2-2', tracks: [{ id: 1, location: '/nowhere/Song.flac' }] });
     await requests.poll();
     expect(await read(LEXICON_REQUEST_FILE)).toMatchObject({
       status: 'failed',
       error: expect.stringMatching(/files were found/),
     });
-    await send({ kind: 'convert', presetId: 'user:deleted' });
-    await requests.poll();
-    expect((await read(LEXICON_REQUEST_FILE)).error).toMatch(/no longer available/);
-    await send({ kind: 'export', presetId: 'builtin:audio', destination: 'relative/folder' });
-    await requests.poll();
-    expect((await read(LEXICON_REQUEST_FILE)).error).toMatch(/complete export folder/);
-
-    const blocked = await fixture({
-      convert: (work) =>
-        new Promise((_, reject) =>
-          work.signal.addEventListener('abort', () => reject(new Error('cancelled'))),
-        ),
-    });
-    await blocked.send({ kind: 'convert', presetId: 'builtin:audio' });
-    await blocked.requests.poll();
-    await blocked.requests.stop();
-    expect((await blocked.read(LEXICON_REQUEST_FILE)).error).toMatch(/Frame closed/);
   });
 });
 
@@ -499,7 +346,7 @@ describe('Lexicon plugin build', () => {
     expect(lexiconSandboxViolations('do { a(); } while (b);\nimport x from "y";')).toHaveLength(2);
   });
 
-  it('packages actions that convert a Lexicon track through Frame and relink it', async () => {
+  it('packages actions that relink a track to the file converted in Frame', async () => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'frame-lexicon-build-')));
     await prepareLexiconPlugin(root);
     const archive = unzipSync(await readFile(join(root, LEXICON_PLUGIN_FILE)));
@@ -509,34 +356,40 @@ describe('Lexicon plugin build', () => {
       email: 'david@niessen.dev',
       discordUsername: 'david.niessen',
     });
+    expect(manifest.actions.map((action: { name: string }) => action.name)).toEqual([
+      'Convert In Frame',
+      'Edit In Frame',
+    ]);
     for (const action of manifest.actions) {
       // Lexicon rejects the whole plugin when an action asks to edit a read-only field.
-      expect(action.config.permissions.track?.modifyFields ?? []).not.toContain('sizeBytes');
-      expect(archive[`${action.id}.js`]).toBeDefined();
+      expect(action.config.permissions.track.modifyFields).toEqual(['location']);
       expect(lexiconSandboxViolations(strFromU8(archive[`${action.id}.js`]))).toEqual([]);
     }
 
     // Lexicon's side: a selected track and the plugin's Files folder, which Frame polls.
     const documents = join(root, 'Documents'),
       folder = join(lexiconPluginsFolder(documents), 'Frame', 'Files'),
-      source = join(root, 'Song.flac');
+      source = join(root, 'Song.flac'),
+      converted = join(root, 'Song.mp3');
     await mkdir(folder, { recursive: true });
     await writeFile(source, 'audio');
     const library = [{ id: 7, type: '0', location: lexiconLocation(source) }];
     const frame = new LexiconRequests({
       pluginsFolder: lexiconPluginsFolder(documents),
-      presets: () => lexiconBuiltInPresets,
-      open: () => {},
-      convert: async (work) => {
-        const path = join(work.output, 'Song.mp3');
-        await writeFile(path, 'converted');
-        return { path, size: 9, format: 'mp3' };
-      },
+      // The user converts the track in Frame's converter as soon as it opens.
+      open: () =>
+        void frame.record({
+          source,
+          output: converted,
+          format: 'mp3',
+          size: 9,
+          savedAt: Date.now() + 1,
+        }),
     });
     const reports: string[] = [];
     await runInNewContext(`(async () => {\n${strFromU8(archive['frame.convert.js'])}\n})()`, {
-      _vars: { tracksSelected: library, tracksAllAmount: 1, playlistsSelected: [] },
-      _library: { track: { getNextAllBatch: async () => [], create: async () => {} } },
+      _vars: { tracksSelected: library },
+      _library: { track: { create: async () => {} } },
       _files: {
         list: () => readdirSync(folder),
         read: (name: string) => readFileSync(join(folder, name), 'utf8'),
@@ -547,21 +400,11 @@ describe('Lexicon plugin build', () => {
         Report: (message: string) => reports.push(message),
         Log: () => {},
         // While the action waits, Frame's timer handles the request.
-        Wait: async () => {
-          await frame.poll();
-          await frame.settled();
-        },
+        Wait: () => frame.poll(),
       },
-      _ui: {
-        progress: () => {},
-        showInputDialog: async (dialog: LexiconDialog) => dialog.options![0],
-      },
+      _ui: { progress: () => {} },
     });
-    expect(library[0]).toEqual({
-      id: 7,
-      type: '0',
-      location: lexiconLocation(join(root, 'Song.mp3')),
-    });
-    expect(reports).toEqual(['Relinked 1 track(s) to their converted files.']);
+    expect(library[0]).toEqual({ id: 7, type: '0', location: lexiconLocation(converted) });
+    expect(reports).toEqual(['Relinked 1 track(s) to the files saved in Frame.']);
   });
 });
