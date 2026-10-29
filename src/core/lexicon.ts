@@ -117,6 +117,22 @@ export function parseExports(value: unknown): LexiconExports {
   };
 }
 
+/**
+ * Serializes a protocol document as plain ASCII. Track paths often contain characters such as
+ * "é" or "–", and escaping them keeps both sides independent of the other's text encoding.
+ */
+export function lexiconJson(value: unknown) {
+  return JSON.stringify(value).replace(
+    /[\u007f-\uffff]/g,
+    (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
+}
+
+/** Parses a protocol document, ignoring a byte-order mark some writers add. */
+export function parseLexiconJson(text: string): unknown {
+  return JSON.parse(text.replace(/^\uFEFF/, ''));
+}
+
 /** Lexicon stores locations with forward slashes on every platform. */
 export function lexiconLocation(path: string) {
   return path.replace(/\\/g, '/');

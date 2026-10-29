@@ -7,7 +7,9 @@ import {
   LEXICON_PLUGIN_FILE,
   LEXICON_REQUEST_FILE,
   everyTrackSaved,
+  lexiconJson,
   parseExports,
+  parseLexiconJson,
   parseRequest,
   recordLexiconExport,
   type LexiconExports,
@@ -45,7 +47,7 @@ const exists = (path: string) =>
 async function writeJson(path: string, data: unknown) {
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temporary, JSON.stringify(data, null, 2));
+    await writeFile(temporary, lexiconJson(data));
     await rename(temporary, path);
   } finally {
     await rm(temporary, { force: true });
@@ -120,16 +122,25 @@ export async function lexiconFilesFolders(pluginsFolder: string) {
   return folders;
 }
 
+const ignored = new Set<string>();
 async function readRequest(folder: string): Promise<LexiconRequest | null> {
   try {
-    return parseRequest(JSON.parse(await readFile(join(folder, LEXICON_REQUEST_FILE), 'utf8')));
-  } catch {
+    return parseRequest(
+      parseLexiconJson(await readFile(join(folder, LEXICON_REQUEST_FILE), 'utf8')),
+    );
+  } catch (error) {
+    // Polling rereads the request every few seconds; explain each unreadable one once.
+    const reason = `${folder}: ${(error as Error).message}`;
+    if (!ignored.has(reason)) console.warn(`Ignoring Lexicon request in ${reason}`);
+    ignored.add(reason);
     return null;
   }
 }
 async function readExports(folder: string): Promise<LexiconExports | null> {
   try {
-    return parseExports(JSON.parse(await readFile(join(folder, LEXICON_EXPORTS_FILE), 'utf8')));
+    return parseExports(
+      parseLexiconJson(await readFile(join(folder, LEXICON_EXPORTS_FILE), 'utf8')),
+    );
   } catch {
     return null;
   }

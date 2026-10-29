@@ -8,7 +8,9 @@ import {
   LEXICON_HEARTBEAT,
   LEXICON_MAX_TRACKS,
   LEXICON_REQUEST_FILE,
+  lexiconJson,
   parseExports,
+  parseLexiconJson,
   parseRequest,
   type LexiconExport,
   type LexiconRequest,
@@ -48,7 +50,7 @@ const POLL_INTERVAL = 500;
 function readDocument<T>(api: LexiconPluginApi, name: string, parse: (value: unknown) => T) {
   if (!api.listFiles().includes(name)) return null;
   try {
-    return parse(JSON.parse(api.readFile(name)));
+    return parse(parseLexiconJson(api.readFile(name)));
   } catch (error) {
     api.log(`Ignoring ${name}: ${(error as Error).message}`);
     return null;
@@ -97,7 +99,7 @@ async function openInFrame(api: LexiconPluginApi, kind: LexiconRequestKind) {
     status: 'pending',
     tracks,
   };
-  api.writeFile(LEXICON_REQUEST_FILE, JSON.stringify(request));
+  api.writeFile(LEXICON_REQUEST_FILE, lexiconJson(request));
 
   for (;;) {
     await api.wait(POLL_INTERVAL);

@@ -10,8 +10,10 @@ import {
   LEXICON_PLUGIN_FILE,
   LEXICON_REQUEST_FILE,
   everyTrackSaved,
+  lexiconJson,
   lexiconLocation,
   parseExports,
+  parseLexiconJson,
   parseRequest,
   recordLexiconExport,
   type LexiconExport,
@@ -152,6 +154,14 @@ describe('Lexicon protocol', () => {
       ).toBeNull();
     expect(everyTrackSaved(request(), first!)).toBe(false);
     expect(lexiconLocation('C:\\a\\b.mp3')).toBe('C:/a/b.mp3');
+  });
+
+  it('writes plain ASCII JSON and reads documents with a byte-order mark', () => {
+    const document = request({ tracks: [{ id: 1, location: 'C:/Música/Café – Ünï 🎵.flac' }] });
+    const text = lexiconJson(document);
+    expect(text).toMatch(/^[\x20-\x7e]*$/);
+    expect(parseRequest(parseLexiconJson(text))).toEqual(document);
+    expect(parseRequest(parseLexiconJson(`\uFEFF${JSON.stringify(document)}`))).toEqual(document);
   });
 });
 
@@ -366,25 +376,35 @@ describe('Lexicon plugin build', () => {
       expect(lexiconSandboxViolations(strFromU8(archive[`${action.id}.js`]))).toEqual([]);
     }
 
-    // Lexicon's side: a selected track and the plugin's Files folder, which Frame polls.
+    // Lexicon's side: selected tracks with typical DJ file names, and the plugin's Files folder,
+    // which Frame polls. Lexicon's file writer is not necessarily UTF-8.
     const documents = join(root, 'Documents'),
       folder = join(lexiconPluginsFolder(documents), 'Frame', 'Files'),
-      source = join(root, 'Song.flac'),
-      converted = join(root, 'Song.mp3');
+      names = ['Café del Mar – Energy 52.flac', 'Röyksopp – Eple (Remix) 🎵.wav'],
+      sources = names.map((name) => join(root, name)),
+      converted = sources.map((source) => source.replace(/\.\w+$/, '.mp3'));
     await mkdir(folder, { recursive: true });
-    await writeFile(source, 'audio');
-    const library = [{ id: 7, type: '0', location: lexiconLocation(source) }];
+    for (const source of sources) await writeFile(source, 'audio');
+    const library = sources.map((source, index) => ({
+      id: 7 + index,
+      type: '0',
+      location: lexiconLocation(source),
+    }));
+    const opened: string[][] = [];
     const frame = new LexiconRequests({
       pluginsFolder: lexiconPluginsFolder(documents),
-      // The user converts the track in Frame's converter as soon as it opens.
-      open: () =>
-        void frame.record({
-          source,
-          output: converted,
-          format: 'mp3',
-          size: 9,
-          savedAt: Date.now() + 1,
-        }),
+      // The user converts the tracks in Frame's converter as soon as they open.
+      open: (paths) => {
+        opened.push(paths);
+        for (const [index, source] of sources.entries())
+          void frame.record({
+            source,
+            output: converted[index],
+            format: 'mp3',
+            size: 9,
+            savedAt: Date.now() + 1,
+          });
+      },
     });
     const reports: string[] = [];
     await runInNewContext(`(async () => {\n${strFromU8(archive['frame.convert.js'])}\n})()`, {
@@ -392,8 +412,9 @@ describe('Lexicon plugin build', () => {
       _library: { track: { create: async () => {} } },
       _files: {
         list: () => readdirSync(folder),
-        read: (name: string) => readFileSync(join(folder, name), 'utf8'),
-        write: (name: string, contents: string) => writeFileSync(join(folder, name), contents),
+        read: (name: string) => readFileSync(join(folder, name), 'latin1'),
+        write: (name: string, contents: string) =>
+          writeFileSync(join(folder, name), contents, 'latin1'),
       },
       _settings: {},
       _helpers: {
@@ -404,7 +425,10 @@ describe('Lexicon plugin build', () => {
       },
       _ui: { progress: () => {} },
     });
-    expect(library[0]).toEqual({ id: 7, type: '0', location: lexiconLocation(converted) });
-    expect(reports).toEqual(['Relinked 1 track(s) to the files saved in Frame.']);
+    expect(opened).toEqual(
+      [library.map((track) => sources[track.id - 7])].map((paths) => paths.map(lexiconLocation)),
+    );
+    expect(library.map((track) => track.location)).toEqual(converted.map(lexiconLocation));
+    expect(reports).toEqual(['Relinked 2 track(s) to the files saved in Frame.']);
   });
 });
