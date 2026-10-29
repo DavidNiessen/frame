@@ -1,8 +1,4 @@
-import { prepareImageSource } from './image-source';
-import { nativeSourceFingerprint } from './source-fingerprint';
-import { readImageMetadata } from '../src/core/image-metadata';
-import { writeImageMetadata } from '../src/core/image-metadata-export';
-import { recordExport } from './export-history';
+import { convertSource } from './convert-source';
 import {
   app,
   BrowserWindow,
@@ -12,19 +8,12 @@ import {
   type IpcMainInvokeEvent,
   type WebContents,
 } from 'electron';
-import { readFile, writeFile, rename, rm, lstat, realpath, stat } from 'node:fs/promises';
-import { join, basename, dirname, relative, isAbsolute, sep } from 'node:path';
+import { readFile, writeFile, rename, rm, lstat, realpath } from 'node:fs/promises';
+import { join, relative, isAbsolute, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseWatchDraft, type WatchFolder } from '../src/core/watch-folders';
-import { taggedNamingAsset } from '../src/core/media-tags';
-import { conversionName, conversionSettings, canConvert } from '../src/core/conversion';
-import { buildExportArgs } from '../src/core/export-plan';
-import { editedDuration } from '../src/core/timeline';
 import { WatchRunner, validateWatchPaths, validateWatchNetwork } from './watch-runner';
 import { MediaJobs } from './jobs';
-import { probeFile, runFfmpeg } from './native';
-import { withResources } from './resources';
-import { safeOutputPath, publishOutput } from './output-files';
 
 export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => void) {
   const config = join(app.getPath('userData'), 'watch-folders.json'),
@@ -54,80 +43,20 @@ export function configureWatchFolders(trusted: (event: IpcMainInvokeEvent) => vo
       isAbsolute(relation)
     )
       throw new Error('The source moved outside its watched folder.');
-    return jobs.run(async (execute) => {
-      const cancel = () => jobs.cancel();
-      work.signal.addEventListener('abort', cancel, { once: true });
-      if (work.signal.aborted) cancel();
-      let temporary: string | undefined;
-      let decodedDirectory: string | undefined;
-      try {
-        const prepared = await prepareImageSource(source, jobs.signal);
-        decodedDirectory = prepared.directory;
-        const asset = {
-          ...(await probeFile(prepared.path, { rawOnly: true, signal: jobs.signal })),
-          id: randomUUID(),
-          name: basename(source),
-          relativePath: work.relativePath,
-          previewUrl: '',
-        };
-        if (prepared.directory) {
-          asset.size = original.size;
-          asset.fingerprint = await nativeSourceFingerprint(source, original.size);
-          asset.imageMetadata = {
-            ...prepared.metadata,
-            ...(await readImageMetadata(await readFile(source))),
-          };
-        }
-        if (!canConvert(asset, work.watch.settings))
-          throw new Error(
-            `This source cannot be converted to ${work.watch.settings.format.toUpperCase()}.`,
-          );
-        const edit = conversionSettings(asset, {
-          ...work.watch.settings,
-          acceleration: 'software',
-        });
-        const name = conversionName(
-          taggedNamingAsset(asset, edit.outputTags),
-          edit.format,
-          work.watch.keepFolders,
-          work.watch.namingTemplate,
-        );
-        const destination = await safeOutputPath(work.watch.output, name);
-        temporary = join(dirname(destination), `.frame-watch-${randomUUID()}.${edit.format}`);
-        await withResources(
-          [edit],
-          async (paths) =>
-            execute(
-              runFfmpeg(
-                buildExportArgs(asset, edit, prepared.path, temporary!, paths[0]),
-                editedDuration(edit),
-                work.progress,
-              ),
-            ),
-          [asset],
-        );
-        if (asset.kind === 'image')
-          await writeFile(temporary, writeImageMetadata(await readFile(temporary), asset, edit));
-        if (jobs.cancelled) throw new Error('Conversion cancelled.');
-        const current = await lstat(source);
-        if (current.size !== original.size || current.mtimeMs !== original.mtimeMs)
-          throw new Error(
-            'The source changed while converting. Frame will retry when it is stable.',
-          );
-        const path = await publishOutput(temporary, work.watch.output, name);
-        await recordExport(
-          { name: basename(path), path, size: (await stat(path)).size },
-          'watch',
-          asset.name,
-          edit.format,
-        );
-        return path;
-      } finally {
-        work.signal.removeEventListener('abort', cancel);
-        if (temporary) await rm(temporary, { force: true });
-        if (decodedDirectory) await rm(decodedDirectory, { recursive: true, force: true });
-      }
+    const { path } = await convertSource(jobs, {
+      source,
+      original,
+      settings: work.watch.settings,
+      output: work.watch.output,
+      relativePath: work.relativePath,
+      keepFolders: work.watch.keepFolders,
+      namingTemplate: work.watch.namingTemplate,
+      history: 'watch',
+      signal: work.signal,
+      progress: work.progress,
+      changed: 'The source changed while converting. Frame will retry when it is stable.',
     });
+    return path;
   }, persist);
   function persist() {
     const data = runner.status().watches,
