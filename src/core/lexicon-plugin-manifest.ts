@@ -16,7 +16,7 @@ const importMode = {
 /** config.json of the Lexicon plugin; see https://www.lexicondj.com/docs/developers/plugin */
 export const lexiconPluginManifest = {
   id: 'frame.lexicon',
-  author: { name: 'Frame' },
+  author: { name: 'Frame', email: 'david@niessen.dev', discordUsername: 'david.niessen' },
   actions: [
     {
       id: 'frame.convert',

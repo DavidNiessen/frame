@@ -504,7 +504,11 @@ describe('Lexicon plugin build', () => {
     await prepareLexiconPlugin(root);
     const archive = unzipSync(await readFile(join(root, LEXICON_PLUGIN_FILE)));
     const manifest = JSON.parse(strFromU8(archive['config.json']));
-    expect(manifest.author).toEqual({ name: 'Frame' });
+    expect(manifest.author).toEqual({
+      name: 'Frame',
+      email: 'david@niessen.dev',
+      discordUsername: 'david.niessen',
+    });
     for (const action of manifest.actions) {
       expect(archive[`${action.id}.js`]).toBeDefined();
       expect(lexiconSandboxViolations(strFromU8(archive[`${action.id}.js`]))).toEqual([]);
