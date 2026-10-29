@@ -1,5 +1,5 @@
 import { TransientMessage } from '../TransientMessage';
-import { ArrowDownUp, FileAudio, Film, FolderOpen, Plus, ShieldCheck, Link } from 'lucide-react';
+import { ArrowDownUp, FileAudio, Film, FolderOpen, Plus, Link } from 'lucide-react';
 import type { Editor } from '../../hooks/useEditor';
 import type { Conversion } from '../../hooks/useConversion';
 import { ConversionQueue } from './ConversionQueue';
@@ -150,12 +150,6 @@ export function ConversionWorkspace({
             <div className="conversion-supported">PNG · JPG · WebP · MP3 · WAV · MP4 · GIF</div>
           </section>
         )}
-        <p className="conversion-privacy">
-          <ShieldCheck size={15} />
-          {editor.platform === 'desktop'
-            ? 'Portable media tools included. No extra installations or uploads.'
-            : 'Private, local conversion. For large libraries, use the desktop app.'}
-        </p>
       </ConversionLayout>
     </main>
   );

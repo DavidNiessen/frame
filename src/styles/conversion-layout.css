@@ -93,11 +93,6 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
-.workflow-convert .conversion-privacy {
-  flex-shrink: 0;
-  margin: 0;
-  font-size: 10px;
-}
 .workflow-convert .conversion-empty {
   overflow: auto;
   justify-content: safe center;
@@ -155,9 +150,6 @@
     padding: 8px 10px;
     min-height: 34px;
     font-size: 10px;
-  }
-  .workflow-convert .conversion-privacy {
-    display: none;
   }
 }
 @media (max-height: 720px) {
