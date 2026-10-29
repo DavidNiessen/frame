@@ -210,7 +210,7 @@ describe('Lexicon protocol', () => {
 describe('Lexicon plugin actions', () => {
   it('converts with a chosen preset once Frame publishes presets, then relinks', async () => {
     const tracks: LexiconTrack[] = [
-      { id: 1, type: '0', location: 'C:/Music/Song.flac', sizeBytes: 100 },
+      { id: 1, type: '0', location: 'C:/Music/Song.flac' },
       { id: 2, location: 'C:/Music/Broken.wav' },
       { id: 3, type: '1' },
     ];
@@ -243,7 +243,7 @@ describe('Lexicon plugin actions', () => {
       ],
     });
     expect(lexicon.dialogs[0]).toMatchObject({ input: 'select', settingsKey: 'Preset' });
-    expect(tracks[0]).toMatchObject({ location: 'C:/Music/Song.m4a', sizeBytes: 9 });
+    expect(tracks[0]).toEqual({ id: 1, type: '0', location: 'C:/Music/Song.m4a' });
     expect(lexicon.reports).toEqual([
       'Skipped 1 streaming track(s).',
       'Relinked 1 track(s) to their converted files.',
@@ -299,7 +299,7 @@ describe('Lexicon plugin actions', () => {
   it('imports each edit saved in Frame once, using the newest file per track', async () => {
     const tracks: LexiconTrack[] = [
       { id: 2, location: 'C:/Music/Other.wav' },
-      { id: 1, location: 'C:/Music/Song.flac', sizeBytes: 100 },
+      { id: 1, location: 'C:/Music/Song.flac' },
     ];
     const lexicon = fakeLexicon(tracks);
     lexicon.lexicon.frame = () => lexicon.answer({ status: 'opened' });
@@ -317,7 +317,7 @@ describe('Lexicon plugin actions', () => {
     );
     lexicon.reports.length = 0;
     await importFromFrame(lexicon.api);
-    expect(tracks[1]).toEqual({ id: 1, location: 'C:/Out/Song.flac', sizeBytes: 9 });
+    expect(tracks[1]).toEqual({ id: 1, location: 'C:/Out/Song.flac' });
     expect(lexicon.reports).toEqual([
       'Relinked 1 track(s) to their converted files.',
       '1 track(s) are no longer in your library.',
@@ -510,6 +510,8 @@ describe('Lexicon plugin build', () => {
       discordUsername: 'david.niessen',
     });
     for (const action of manifest.actions) {
+      // Lexicon rejects the whole plugin when an action asks to edit a read-only field.
+      expect(action.config.permissions.track?.modifyFields ?? []).not.toContain('sizeBytes');
       expect(archive[`${action.id}.js`]).toBeDefined();
       expect(lexiconSandboxViolations(strFromU8(archive[`${action.id}.js`]))).toEqual([]);
     }
@@ -520,7 +522,7 @@ describe('Lexicon plugin build', () => {
       source = join(root, 'Song.flac');
     await mkdir(folder, { recursive: true });
     await writeFile(source, 'audio');
-    const library = [{ id: 7, type: '0', location: lexiconLocation(source), sizeBytes: 5 }];
+    const library = [{ id: 7, type: '0', location: lexiconLocation(source) }];
     const frame = new LexiconRequests({
       pluginsFolder: lexiconPluginsFolder(documents),
       presets: () => lexiconBuiltInPresets,
@@ -555,9 +557,10 @@ describe('Lexicon plugin build', () => {
         showInputDialog: async (dialog: LexiconDialog) => dialog.options![0],
       },
     });
-    expect(library[0]).toMatchObject({
+    expect(library[0]).toEqual({
+      id: 7,
+      type: '0',
       location: lexiconLocation(join(root, 'Song.mp3')),
-      sizeBytes: 9,
     });
     expect(reports).toEqual(['Relinked 1 track(s) to their converted files.']);
   });

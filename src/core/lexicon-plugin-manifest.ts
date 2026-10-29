@@ -28,7 +28,7 @@ export const lexiconPluginManifest = {
           track: {
             read: ['selected'],
             modify: ['selected'],
-            modifyFields: ['location', 'sizeBytes'],
+            modifyFields: ['location'],
             create: true,
           },
           files,
@@ -63,7 +63,7 @@ export const lexiconPluginManifest = {
           track: {
             read: ['all'],
             modify: ['all'],
-            modifyFields: ['location', 'sizeBytes'],
+            modifyFields: ['location'],
             create: true,
           },
           files,

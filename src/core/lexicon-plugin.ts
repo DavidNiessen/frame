@@ -23,7 +23,6 @@ export interface LexiconTrack {
   id: number;
   type?: string | number;
   location?: string;
-  sizeBytes?: number;
 }
 export interface LexiconDialog {
   input: 'text' | 'select';
@@ -223,8 +222,8 @@ async function applyOutputs(
       for (const track of batch) {
         const entry = byTrack.get(track.id);
         if (!entry) continue;
+        // Lexicon only lets plugins change the location; it reads the new file's details itself.
         track.location = entry.output;
-        track.sizeBytes = entry.size;
         applied++;
       }
       seen += batch.length;
