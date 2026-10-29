@@ -16,6 +16,7 @@ import { ThemeChoices } from './ThemeChoices';
 import { CompletionNotifications } from './CompletionNotifications';
 import { RecentExports } from './RecentExports';
 import { WatchFolders } from './WatchFolders';
+import { LexiconPlugin } from './LexiconPlugin';
 import { CertificateTrust } from './CertificateTrust';
 import { AppUpdates } from './AppUpdates';
 
@@ -209,6 +210,7 @@ export function SettingsPage({
       <CompletionNotifications />
       <WatchFolders />
       <RecentExports />
+      <LexiconPlugin />
       <section className="settings-card" aria-labelledby="integration-heading">
         <div className="settings-section-heading">
           <FolderOpen size={19} />

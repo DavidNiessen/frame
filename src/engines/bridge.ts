@@ -26,6 +26,7 @@ import type { OutputSettings } from '../core/presets';
 import type { TransitionSettings } from '../core/transitions';
 import type { DesktopLaunchRequest } from '../core/launch';
 import type { ShellIntegrationStatus } from '../core/system-integration';
+import type { LexiconPluginStatus } from '../core/lexicon';
 import type { WindowAction, WindowState } from '../core/window-controls';
 export interface DesktopBridge extends ExportHistoryBridge, UpdateBridge {
   installedFonts(): Promise<string[]>;
@@ -57,6 +58,8 @@ export interface DesktopBridge extends ExportHistoryBridge, UpdateBridge {
   shellIntegrationStatus(): Promise<ShellIntegrationStatus>;
   setShellIntegration(enabled: boolean): Promise<ShellIntegrationStatus>;
   changeShellCertificate(action: 'trust' | 'revoke'): Promise<ShellIntegrationStatus>;
+  lexiconPluginStatus(): Promise<LexiconPluginStatus>;
+  setLexiconPlugin(enabled: boolean): Promise<LexiconPluginStatus>;
   nextLaunch(): Promise<DesktopLaunchRequest | null>;
   importLaunch(id: string): Promise<ImportReport>;
   onLaunchAvailable(callback: () => void): () => void;
