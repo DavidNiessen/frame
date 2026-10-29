@@ -72,7 +72,7 @@ const output = (id: number, path: string, savedAt = 2000): LexiconExport => ({
  */
 function fakeLexicon(tracks: LexiconTrack[]) {
   const files: Record<string, string> = {},
-    reports: string[] = [],
+    logs: string[] = [],
     created: string[][] = [],
     settings: Record<string, string> = {},
     lexicon = { frame: () => {}, clock: 1000 };
@@ -85,8 +85,7 @@ function fakeLexicon(tracks: LexiconTrack[]) {
       files[name] = contents;
     },
     setting: (name) => settings[name],
-    report: (message) => reports.push(message),
-    log: () => {},
+    log: (message) => logs.push(message),
     progress: () => {},
     wait: async (milliseconds) => {
       lexicon.clock += milliseconds;
@@ -105,7 +104,7 @@ function fakeLexicon(tracks: LexiconTrack[]) {
         exports,
       });
   };
-  return { api, files, reports, created, settings, lexicon, sent, answer };
+  return { api, files, logs, created, settings, lexicon, sent, answer };
 }
 
 describe('Lexicon protocol', () => {
@@ -199,7 +198,7 @@ describe('Lexicon plugin actions', () => {
       'C:/Music/Other.wav',
       undefined,
     ]);
-    expect(lexicon.reports).toEqual([
+    expect(lexicon.logs).toEqual([
       'Skipped 1 streaming track(s).',
       'Relinked 1 track(s) to the files saved in Frame.',
       '1 track(s) were not saved in Frame and stay unchanged.',
@@ -221,29 +220,31 @@ describe('Lexicon plugin actions', () => {
     expect(lexicon.sent().kind).toBe('edit');
     expect(lexicon.lexicon.clock).toBeGreaterThanOrEqual(1000 + LEXICON_STALE_AFTER);
     expect(lexicon.created).toEqual([['C:/Edits/Song.wav']]);
-    expect(lexicon.reports).toEqual(['Added 1 file(s) saved in Frame to your library.']);
+    expect(lexicon.logs).toEqual(['Added 1 file(s) saved in Frame to the library.']);
   });
 
-  it('reports when Frame is closed, cannot open the files, or nothing is saved', async () => {
+  it('fails visibly when Frame is closed or cannot open the files, and quietly otherwise', async () => {
     const closed = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }]);
-    await convertInFrame(closed.api);
-    expect(closed.reports).toEqual(['Frame did not respond. Open Frame, then try again.']);
+    await expect(convertInFrame(closed.api)).rejects.toThrow(
+      'Frame did not respond. Open Frame, then try again.',
+    );
 
     const missing = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }]);
     missing.lexicon.frame = () => missing.answer({ status: 'failed', error: 'Files not found.' });
-    await convertInFrame(missing.api);
-    expect(missing.reports).toEqual(['Frame could not open the tracks: Files not found.']);
-
-    const unchanged = fakeLexicon([{ id: 1, location: 'C:/Music/Song.flac' }]);
-    unchanged.lexicon.frame = () => unchanged.answer({ status: 'done' });
-    await editInFrame(unchanged.api);
-    expect(unchanged.reports).toEqual([
-      'Nothing was saved in Frame, so your library is unchanged.',
-    ]);
+    await expect(convertInFrame(missing.api)).rejects.toThrow(
+      'Frame could not open the tracks: Files not found.',
+    );
 
     const none = fakeLexicon([{ id: 1, type: 1 }]);
-    await convertInFrame(none.api);
+    await expect(convertInFrame(none.api)).rejects.toThrow('Select one or more local tracks');
     expect(none.files[LEXICON_REQUEST_FILE]).toBeUndefined();
+
+    // Closing Frame without saving is not an error; the library simply stays as it was.
+    const tracks = [{ id: 1, location: 'C:/Music/Song.flac' }];
+    const unchanged = fakeLexicon(tracks);
+    unchanged.lexicon.frame = () => unchanged.answer({ status: 'done' });
+    await editInFrame(unchanged.api);
+    expect(tracks[0].location).toBe('C:/Music/Song.flac');
   });
 });
 
@@ -373,6 +374,7 @@ describe('Lexicon plugin build', () => {
     for (const action of manifest.actions) {
       // Lexicon rejects the whole plugin when an action asks to edit a read-only field.
       expect(action.config.permissions.track.modifyFields).toEqual(['location']);
+      expect(action.config).toMatchObject({ silent: true, permissions: { silent: true } });
       expect(lexiconSandboxViolations(strFromU8(archive[`${action.id}.js`]))).toEqual([]);
     }
 
@@ -406,7 +408,7 @@ describe('Lexicon plugin build', () => {
           });
       },
     });
-    const reports: string[] = [];
+    const logs: string[] = [];
     await runInNewContext(`(async () => {\n${strFromU8(archive['frame.convert.js'])}\n})()`, {
       _vars: { tracksSelected: library },
       _library: { track: { create: async () => {} } },
@@ -418,8 +420,7 @@ describe('Lexicon plugin build', () => {
       },
       _settings: {},
       _helpers: {
-        Report: (message: string) => reports.push(message),
-        Log: () => {},
+        Log: (message: string) => logs.push(message),
         // While the action waits, Frame's timer handles the request.
         Wait: () => frame.poll(),
       },
@@ -429,6 +430,6 @@ describe('Lexicon plugin build', () => {
       [library.map((track) => sources[track.id - 7])].map((paths) => paths.map(lexiconLocation)),
     );
     expect(library.map((track) => track.location)).toEqual(converted.map(lexiconLocation));
-    expect(reports).toEqual(['Relinked 2 track(s) to the files saved in Frame.']);
+    expect(logs).toEqual(['Relinked 2 track(s) to the files saved in Frame.']);
   });
 });

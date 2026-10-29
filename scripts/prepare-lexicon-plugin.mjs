@@ -15,7 +15,6 @@ const sandboxApi = `{
   readFile: function (name) { return _files.read(name) },
   writeFile: function (name, contents) { return _files.write(name, contents) },
   setting: function (name) { return _settings[name] },
-  report: function (message) { _helpers.Report(message) },
   log: function (message) { _helpers.Log(message) },
   progress: function (ratio) { _ui.progress(ratio) },
   wait: function (milliseconds) { return _helpers.Wait(milliseconds) },

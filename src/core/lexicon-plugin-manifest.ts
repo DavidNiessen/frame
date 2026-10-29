@@ -9,6 +9,8 @@ const config = {
       create: true,
     },
     files: { read: true, write: true, list: true },
+    // No success notification; errors are still shown.
+    silent: true,
   },
   settings: {
     [LEXICON_IMPORT_MODE]: {
@@ -17,6 +19,8 @@ const config = {
       options: [LEXICON_RELINK, LEXICON_ADD],
     },
   },
+  // No completion popup: the tracks are simply relinked once Frame is done.
+  silent: true,
 };
 
 /** config.json of the Lexicon plugin; see https://www.lexicondj.com/docs/developers/plugin */

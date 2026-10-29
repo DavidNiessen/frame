@@ -30,7 +30,6 @@ export interface LexiconPluginApi {
   readFile(name: string): string;
   writeFile(name: string, contents: string): void;
   setting(name: string): string | undefined;
-  report(message: string): void;
   log(message: string): void;
   progress(ratio: number): void;
   wait(milliseconds: number): Promise<void>;
@@ -72,8 +71,8 @@ export function newestExports(exports: LexiconExport[]) {
 }
 
 /**
- * Sends the selected local tracks to Frame and waits while they are open there. Returns the
- * finished request, or null when Frame did not open them.
+ * Sends the selected local tracks to Frame and waits while they are open there. The actions
+ * are silent when they succeed, so problems are thrown for Lexicon to show as an error.
  */
 async function openInFrame(api: LexiconPluginApi, kind: LexiconRequestKind) {
   const selected = api.selectedTracks(),
@@ -81,15 +80,12 @@ async function openInFrame(api: LexiconPluginApi, kind: LexiconRequestKind) {
       .filter((track) => String(track.type) !== '1' && !!track.location)
       .map((track) => ({ id: track.id, location: track.location! }));
   if (tracks.length < selected.length)
-    api.report(`Skipped ${selected.length - tracks.length} streaming track(s).`);
-  if (!tracks.length) {
-    api.report('Select one or more local tracks first.');
-    return null;
-  }
-  if (tracks.length > LEXICON_MAX_TRACKS) {
-    api.report(`Frame opens up to ${LEXICON_MAX_TRACKS} tracks at once; ${tracks.length} given.`);
-    return null;
-  }
+    api.log(`Skipped ${selected.length - tracks.length} streaming track(s).`);
+  if (!tracks.length) throw new Error('Select one or more local tracks first.');
+  if (tracks.length > LEXICON_MAX_TRACKS)
+    throw new Error(
+      `Frame opens up to ${LEXICON_MAX_TRACKS} tracks at once; ${tracks.length} are selected.`,
+    );
   const createdAt = api.now();
   const request: LexiconRequest = {
     version: 1,
@@ -105,18 +101,12 @@ async function openInFrame(api: LexiconPluginApi, kind: LexiconRequestKind) {
     await api.wait(POLL_INTERVAL);
     const current = readDocument(api, LEXICON_REQUEST_FILE, parseRequest),
       now = api.now();
-    if (current?.requestId !== request.requestId) {
-      api.report('Another request to Frame replaced this one.');
-      return null;
-    }
-    if (current.status === 'failed') {
-      api.report(`Frame could not open the tracks: ${current.error}`);
-      return null;
-    }
-    if (current.status === 'pending' && now - createdAt >= LEXICON_ACK_TIMEOUT) {
-      api.report('Frame did not respond. Open Frame, then try again.');
-      return null;
-    }
+    if (current?.requestId !== request.requestId)
+      throw new Error('Another request to Frame replaced this one.');
+    if (current.status === 'failed')
+      throw new Error(`Frame could not open the tracks: ${current.error}`);
+    if (current.status === 'pending' && now - createdAt >= LEXICON_ACK_TIMEOUT)
+      throw new Error('Frame did not respond. Open Frame, then try again.');
     // Done when every track is saved or its Frame window closed; or Frame quit.
     if (current.status === 'done' || now - (current.seenAt ?? now) >= LEXICON_STALE_AFTER)
       return current;
@@ -128,10 +118,10 @@ async function openInFrame(api: LexiconPluginApi, kind: LexiconRequestKind) {
 /** Relinks the selected tracks to the files saved in Frame, or adds those files as tracks. */
 async function applySaved(api: LexiconPluginApi, request: LexiconRequest) {
   const saved = newestExports(readExports(api, request));
-  if (!saved.length) return api.report('Nothing was saved in Frame, so your library is unchanged.');
+  if (!saved.length) return api.log('Nothing was saved in Frame; the library is unchanged.');
   if (api.setting(LEXICON_IMPORT_MODE) === LEXICON_ADD) {
     await api.createTracks(saved.map((entry) => entry.output));
-    api.report(`Added ${saved.length} file(s) saved in Frame to your library.`);
+    api.log(`Added ${saved.length} file(s) saved in Frame to the library.`);
   } else {
     const byTrack = new Map(saved.map((entry) => [entry.id, entry]));
     let relinked = 0;
@@ -142,21 +132,18 @@ async function applySaved(api: LexiconPluginApi, request: LexiconRequest) {
       track.location = entry.output;
       relinked++;
     }
-    api.report(`Relinked ${relinked} track(s) to the files saved in Frame.`);
+    api.log(`Relinked ${relinked} track(s) to the files saved in Frame.`);
   }
   const unsaved = request.tracks.length - saved.length;
-  if (unsaved) api.report(`${unsaved} track(s) were not saved in Frame and stay unchanged.`);
-  api.log(`Applied ${saved.length} file(s) from Frame for request ${request.requestId}`);
+  if (unsaved) api.log(`${unsaved} track(s) were not saved in Frame and stay unchanged.`);
 }
 
 /** Opens the selected tracks in Frame's converter and relinks them to what you convert. */
 export async function convertInFrame(api: LexiconPluginApi) {
-  const request = await openInFrame(api, 'convert');
-  if (request) await applySaved(api, request);
+  await applySaved(api, await openInFrame(api, 'convert'));
 }
 
 /** Opens the selected tracks in Frame's editor and relinks them to the edits you save. */
 export async function editInFrame(api: LexiconPluginApi) {
-  const request = await openInFrame(api, 'edit');
-  if (request) await applySaved(api, request);
+  await applySaved(api, await openInFrame(api, 'edit'));
 }
