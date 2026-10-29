@@ -4,6 +4,7 @@ import { configureShutdown } from './shutdown';
 import { configureInstalledFonts } from './installed-fonts';
 import { configureExportHistory } from './export-history';
 import { configureWatchFolders } from './watch-folders';
+import { configureLexicon } from './lexicon-integration';
 import {
   app,
   BrowserWindow,
@@ -46,6 +47,7 @@ const creating = new Set<WindowKind>(),
 let desktopReady = false,
   lastClosed: WindowKind = 'editor';
 let stopWatchFolders: () => Promise<void> = async () => {};
+let stopLexicon: () => Promise<void> = async () => {};
 let flushExportHistory: () => Promise<void> = async () => {};
 let stopAppUpdates: () => Promise<void> = async () => {};
 const shellCommand = shellStartupCommand(process.argv);
@@ -185,6 +187,7 @@ app.whenReady().then(() => {
   configureInstalledFonts(trusted);
   flushExportHistory = configureExportHistory(trusted);
   stopWatchFolders = configureWatchFolders(trusted);
+  stopLexicon = configureLexicon(trusted, (paths, workflow) => route({ workflow, paths }));
   protocol.handle('media', (request) => {
     const url = new URL(request.url),
       id = url.pathname.slice(1);
@@ -210,6 +213,6 @@ app.on('window-all-closed', () => {
 });
 configureShutdown(app, async () => {
   for (const session of sessions.values()) session.clear();
-  await Promise.allSettled([stopWatchFolders(), stopAppUpdates()]);
+  await Promise.allSettled([stopWatchFolders(), stopLexicon(), stopAppUpdates()]);
   await flushExportHistory();
 });

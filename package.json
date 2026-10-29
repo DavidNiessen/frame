@@ -134,6 +134,10 @@
         "to": "shell-actions"
       },
       {
+        "from": "build/generated/lexicon-plugin",
+        "to": "lexicon-plugin"
+      },
+      {
         "from": "build/media-tools",
         "to": "media-tools",
         "filter": [

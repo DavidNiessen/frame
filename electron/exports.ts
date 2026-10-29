@@ -3,6 +3,7 @@ import { writeImageMetadata } from '../src/core/image-metadata-export';
 import { readFile, writeFile } from 'node:fs/promises';
 import { taggedNamingAsset } from '../src/core/media-tags';
 import { recordExport } from './export-history';
+import { recordLexiconExport } from './lexicon-integration';
 import { resolveAudioLayers } from '../src/core/audio-layers';
 import { dialog, type BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
@@ -136,6 +137,7 @@ export function registerExports(
             item.asset.name,
             settings.format,
           );
+          await recordLexiconExport(result, item.originalPath ?? item.path, settings.format);
           return result;
         } finally {
           if (temporary) await rm(temporary, { force: true });

@@ -5,9 +5,11 @@ import { resolve } from 'node:path';
 import { ensureYoutubeTools } from './prepare-youtube.mjs';
 import { ensureFfmpeg } from './prepare-ffmpeg.mjs';
 import { prepareWindowsShell } from './prepare-windows-shell.mjs';
+import { prepareLexiconPlugin } from './prepare-lexicon-plugin.mjs';
 await ensureFfmpeg();
 await ensureYoutubeTools();
 await prepareWindowsShell();
+await prepareLexiconPlugin();
 await build({
   entryPoints: [
     'electron/main.ts',
